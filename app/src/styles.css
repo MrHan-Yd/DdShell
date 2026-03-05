@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+/*
+ * Shell App — Theme Token System
+ * Based on UI-SPEC: macOS-quality dark/light theme
+ */
+
+@theme {
+  /* ── Layout ── */
+  --height-titlebar: 44px;
+  --width-sidebar: 260px;
+  --width-sidebar-collapsed: 72px;
+  --height-tabbar: 40px;
+  --height-statusbar: 28px;
+  --spacing-grid: 8px;
+
+  /* ── Border Radius ── */
+  --radius-control: 10px;
+  --radius-card: 12px;
+  --radius-popover: 14px;
+
+  /* ── Font Size ── */
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+
+  /* ── Animation ── */
+  --duration-fast: 120ms;
+  --duration-panel: 180ms;
+  --ease-default: ease-out;
+
+  /* ── Dark Theme (default) ── */
+  --color-bg-base: #0F1115;
+  --color-bg-surface: #151922;
+  --color-bg-elevated: #1B2130;
+  --color-bg-hover: #222A3A;
+  --color-bg-active: #2A344A;
+
+  --color-border: #22283A;
+  --color-border-subtle: #1A1F2E;
+  --color-border-focus: #3B82F6;
+
+  --color-text-primary: #E5E7EB;
+  --color-text-secondary: #9CA3AF;
+  --color-text-muted: #6B7280;
+  --color-text-inverse: #0F1115;
+
+  --color-accent: #3B82F6;
+  --color-accent-hover: #2563EB;
+  --color-accent-subtle: rgba(59, 130, 246, 0.15);
+
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+}
+
+/* ── Light Theme ── */
+[data-theme="light"] {
+  --color-bg-base: #F7F8FA;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-elevated: #F0F1F3;
+  --color-bg-hover: #E8E9EB;
+  --color-bg-active: #D1D5DB;
+
+  --color-border: #E5E7EB;
+  --color-border-subtle: #F0F1F3;
+  --color-border-focus: #3B82F6;
+
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-text-muted: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
+
+  --color-accent: #2563EB;
+  --color-accent-hover: #1D4ED8;
+  --color-accent-subtle: rgba(37, 99, 235, 0.1);
+}
+
+/* ── Base Reset ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: "SF Pro Text", Inter, system-ui, -apple-system, "PingFang SC",
+    "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-primary);
+  background: var(--color-bg-base);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── Scrollbar (dark theme) ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ── Drag Region (Titlebar) ── */
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+}
+[data-tauri-drag-region] button,
+[data-tauri-drag-region] a,
+[data-tauri-drag-region] input {
+  -webkit-app-region: no-drag;
+}
