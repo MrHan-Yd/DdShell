@@ -1,0 +1,11 @@
+# Node package manager lockfile policy
+package-lock.json
+
+# Common JS build artifacts
+node_modules/
+dist/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
