@@ -7,7 +7,7 @@ export function Titlebar() {
   return (
     <header
       data-tauri-drag-region
-      className="flex h-[var(--height-titlebar)] items-center border-b border-[var(--color-border)] bg-[var(--color-bg-surface)] px-4"
+      className="glass-surface flex h-[var(--height-titlebar)] items-center border-b border-[var(--color-border)] px-4"
     >
       <span
         data-tauri-drag-region
@@ -19,19 +19,19 @@ export function Titlebar() {
       <div className="flex items-center gap-1">
         <button
           onClick={() => appWindow.minimize()}
-          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)]"
         >
           <Minus size={14} />
         </button>
         <button
           onClick={() => appWindow.toggleMaximize()}
-          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)]"
         >
           <Square size={12} />
         </button>
         <button
           onClick={() => appWindow.close()}
-          className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] hover:bg-[var(--color-error)]/80 hover:text-white transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-error)]/80 hover:text-white transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)]"
         >
           <X size={14} />
         </button>

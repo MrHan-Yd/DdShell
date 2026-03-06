@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { Plus, Search, Server, Folder, Trash2, Pencil, Star, StarOff, Loader2 } from "lucide-react";
+import { Plus, Search, Server, Folder, Trash2, Pencil, Star, StarOff, Loader2, Zap, Upload, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { useConnectionsStore } from "@/stores/connections";
 import { useTerminalStore } from "@/stores/terminal";
 import { useAppStore } from "@/stores/app";
-import type { Host, HostGroup, AuthType } from "@/types";
+import { toast } from "@/stores/toast";
+import { useT } from "@/lib/i18n";
+import * as api from "@/lib/tauri";
+import type { Host, HostGroup, AuthType, SshConfigEntry } from "@/types";
 
 function ConnectionForm({
   host,
@@ -26,6 +29,7 @@ function ConnectionForm({
   }) => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState(host?.name ?? "");
   const [hostAddr, setHostAddr] = useState(host?.host ?? "");
   const [port, setPort] = useState(host?.port ?? 22);
@@ -42,54 +46,54 @@ function ConnectionForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div>
         <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
-          Name
+          {t("form.name")}
         </label>
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Server" required />
       </div>
       <div className="grid grid-cols-[1fr_80px] gap-2">
         <div>
           <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
-            Host
+            {t("form.host")}
           </label>
           <Input value={hostAddr} onChange={(e) => setHostAddr(e.target.value)} placeholder="10.0.0.1" required />
         </div>
         <div>
           <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
-            Port
+            {t("form.port")}
           </label>
           <Input type="number" value={port} onChange={(e) => setPort(Number(e.target.value))} min={1} max={65535} />
         </div>
       </div>
       <div>
         <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
-          Username
+          {t("form.username")}
         </label>
         <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="root" required />
       </div>
       <div>
         <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
-          Auth Type
+          {t("form.authType")}
         </label>
         <select
           value={authType}
           onChange={(e) => setAuthType(e.target.value as AuthType)}
           className="h-8 w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-[var(--font-size-sm)] text-[var(--color-text-primary)] focus:border-[var(--color-border-focus)] focus:outline-none"
         >
-          <option value="password">Password</option>
-          <option value="publickey">Public Key</option>
+          <option value="password">{t("form.password")}</option>
+          <option value="publickey">{t("form.publicKey")}</option>
         </select>
       </div>
       {groups.length > 0 && (
         <div>
           <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
-            Group
+            {t("form.group")}
           </label>
           <select
             value={groupId ?? ""}
             onChange={(e) => setGroupId(e.target.value || null)}
             className="h-8 w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-[var(--font-size-sm)] text-[var(--color-text-primary)] focus:border-[var(--color-border-focus)] focus:outline-none"
           >
-            <option value="">No Group</option>
+            <option value="">{t("conn.noGroup")}</option>
             {groups.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
@@ -100,17 +104,155 @@ function ConnectionForm({
       )}
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancel
+          {t("conn.cancel")}
         </Button>
         <Button type="submit">
-          {host ? "Update" : "Create"}
+          {host ? t("conn.update") : t("conn.create")}
         </Button>
       </div>
     </form>
   );
 }
 
+// ── FR-39: SSH Config Import Panel ──
+
+function SshConfigImportPanel({
+  onDone,
+}: {
+  onDone: () => void;
+}) {
+  const t = useT();
+  const [entries, setEntries] = useState<SshConfigEntry[]>([]);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const { createHost, fetchHosts } = useConnectionsStore();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const result = await api.sshConfigImport();
+        setEntries(result.entries);
+        setErrors(result.errors);
+        // Select all by default
+        setSelected(new Set(result.entries.map((_, i) => i)));
+      } catch (e) {
+        toast.error(`Failed to parse SSH config: ${e}`);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const handleImport = async () => {
+    setImporting(true);
+    let imported = 0;
+    for (const idx of selected) {
+      const entry = entries[idx];
+      try {
+        await createHost({
+          name: entry.host,
+          host: entry.hostName || entry.host,
+          port: entry.port || 22,
+          username: entry.user || "root",
+          authType: entry.identityFile ? "publickey" : "password",
+          groupId: null,
+        });
+        imported++;
+      } catch {
+        // skip duplicates or failures
+      }
+    }
+    await fetchHosts();
+    toast.success(`Imported ${imported} connection(s)`);
+    setImporting(false);
+    onDone();
+  };
+
+  const toggleSelect = (idx: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8">
+        <Loader2 size={20} className="animate-spin text-[var(--color-text-muted)]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] p-4">
+        <h2 className="text-[var(--font-size-base)] font-medium">{t("conn.importSshConfig")}</h2>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={onDone}>{t("conn.cancel")}</Button>
+          <Button onClick={handleImport} disabled={selected.size === 0 || importing}>
+            {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+            Import ({selected.size})
+          </Button>
+        </div>
+      </div>
+
+      {errors.length > 0 && (
+        <div className="border-b border-[var(--color-border)] bg-[var(--color-fair)]/5 px-4 py-2">
+          <p className="text-[var(--font-size-xs)] text-[var(--color-fair)]">
+            {errors.length} warning(s): {errors[0]}
+          </p>
+        </div>
+      )}
+
+      <div className="flex-1 overflow-y-auto p-2">
+        {entries.length === 0 && (
+          <p className="p-8 text-center text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
+            {t("conn.noEntries")}
+          </p>
+        )}
+
+        {entries.map((entry, idx) => (
+          <button
+            key={idx}
+            onClick={() => toggleSelect(idx)}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-[var(--radius-control)] p-3 text-left transition-colors",
+              selected.has(idx)
+                ? "bg-[var(--color-accent-subtle)]"
+                : "hover:bg-[var(--color-bg-hover)]",
+            )}
+          >
+            <div
+              className={cn(
+                "flex h-5 w-5 items-center justify-center rounded border transition-colors",
+                selected.has(idx)
+                  ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
+                  : "border-[var(--color-border)]",
+              )}
+            >
+              {selected.has(idx) && <Check size={12} className="text-white" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[var(--font-size-sm)] font-medium truncate">
+                {entry.host}
+              </p>
+              <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)] truncate">
+                {entry.user || "root"}@{entry.hostName || entry.host}:{entry.port || 22}
+              </p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ConnectionsPage() {
+  const t = useT();
   const {
     hosts,
     groups,
@@ -128,6 +270,7 @@ export function ConnectionsPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingHost, setEditingHost] = useState<Host | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   useEffect(() => {
     fetchHosts();
@@ -163,10 +306,18 @@ export function ConnectionsPage() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search..."
+              placeholder={t("conn.search")}
               className="pl-8"
             />
           </div>
+          <Button
+            size="icon"
+            variant="secondary"
+            onClick={() => setShowImport(true)}
+            title="Import SSH Config"
+          >
+            <Upload size={16} />
+          </Button>
           <Button
             size="icon"
             variant="secondary"
@@ -182,7 +333,7 @@ export function ConnectionsPage() {
         <div className="flex-1 overflow-y-auto p-2">
           {loading && (
             <p className="p-4 text-center text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
-              Loading...
+              {t("conn.loading")}
             </p>
           )}
 
@@ -190,10 +341,10 @@ export function ConnectionsPage() {
             <div className="flex flex-col items-center justify-center p-8 text-center">
               <Server size={32} className="mb-3 text-[var(--color-text-muted)]" />
               <p className="text-[var(--font-size-sm)] text-[var(--color-text-secondary)]">
-                No connections yet
+                {t("conn.noConnections")}
               </p>
               <p className="mt-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-                Click + to add your first connection
+                {t("conn.addFirst")}
               </p>
             </div>
           )}
@@ -233,12 +384,14 @@ export function ConnectionsPage() {
         </div>
       </div>
 
-      {/* Right: Detail / Form */}
+      {/* Right: Detail / Form / Import */}
       <div className="flex flex-1 flex-col overflow-y-auto p-6">
-        {showForm ? (
+        {showImport ? (
+          <SshConfigImportPanel onDone={() => setShowImport(false)} />
+        ) : showForm ? (
           <div className="mx-auto w-full max-w-md">
             <h2 className="mb-4 text-[var(--font-size-lg)] font-medium">
-              {editingHost ? "Edit Connection" : "New Connection"}
+              {editingHost ? t("conn.editConnection") : t("conn.newConnection")}
             </h2>
             <ConnectionForm
               host={editingHost}
@@ -280,7 +433,7 @@ export function ConnectionsPage() {
             <div>
               <Server size={48} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
               <p className="text-[var(--font-size-base)] text-[var(--color-text-secondary)]">
-                Select a connection or create a new one
+                {t("conn.selectOrCreate")}
               </p>
             </div>
           </div>
@@ -332,8 +485,10 @@ function HostDetail({
   onDelete: () => void;
   onToggleFavorite: () => void;
 }) {
+  const t = useT();
   const [password, setPassword] = useState("");
   const [connecting, setConnecting] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const openSession = useTerminalStore((s) => s.openSession);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
@@ -350,6 +505,26 @@ function HostDetail({
       setError(String(e));
     } finally {
       setConnecting(false);
+    }
+  };
+
+  const handleTest = async () => {
+    if (!password.trim()) return;
+    setTesting(true);
+    setError(null);
+    try {
+      const result = await api.connectionTest(host.id, password);
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        setError(result.message);
+        toast.error(result.message);
+      }
+    } catch (e) {
+      setError(String(e));
+      toast.error(String(e));
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -376,19 +551,19 @@ function HostDetail({
 
       <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4">
         <dl className="grid grid-cols-[120px_1fr] gap-3 text-[var(--font-size-sm)]">
-          <dt className="text-[var(--color-text-muted)]">Host</dt>
+          <dt className="text-[var(--color-text-muted)]">{t("form.host")}</dt>
           <dd>{host.host}</dd>
-          <dt className="text-[var(--color-text-muted)]">Port</dt>
+          <dt className="text-[var(--color-text-muted)]">{t("form.port")}</dt>
           <dd>{host.port}</dd>
-          <dt className="text-[var(--color-text-muted)]">Username</dt>
+          <dt className="text-[var(--color-text-muted)]">{t("form.username")}</dt>
           <dd>{host.username}</dd>
-          <dt className="text-[var(--color-text-muted)]">Auth Type</dt>
+          <dt className="text-[var(--color-text-muted)]">{t("form.authType")}</dt>
           <dd className="capitalize">{host.authType}</dd>
-          <dt className="text-[var(--color-text-muted)]">Created</dt>
+          <dt className="text-[var(--color-text-muted)]">{t("form.created")}</dt>
           <dd>{new Date(host.createdAt).toLocaleString()}</dd>
           {host.lastConnectedAt && (
             <>
-              <dt className="text-[var(--color-text-muted)]">Last Connected</dt>
+              <dt className="text-[var(--color-text-muted)]">{t("form.lastConnected")}</dt>
               <dd>{new Date(host.lastConnectedAt).toLocaleString()}</dd>
             </>
           )}
@@ -401,7 +576,7 @@ function HostDetail({
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password..."
+            placeholder={t("conn.enterPassword")}
             onKeyDown={(e) => {
               if (e.key === "Enter") handleConnect();
             }}
@@ -416,15 +591,34 @@ function HostDetail({
           className="w-full"
           size="lg"
           onClick={handleConnect}
-          disabled={connecting || (host.authType === "password" && !password.trim())}
+          disabled={connecting || testing || (host.authType === "password" && !password.trim())}
         >
           {connecting ? (
             <>
               <Loader2 size={16} className="animate-spin" />
-              Connecting...
+              {t("conn.connecting")}
             </>
           ) : (
-            "Connect"
+            t("conn.connect")
+          )}
+        </Button>
+        <Button
+          className="w-full"
+          size="lg"
+          variant="secondary"
+          onClick={handleTest}
+          disabled={connecting || testing || (host.authType === "password" && !password.trim())}
+        >
+          {testing ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              {t("conn.testing")}
+            </>
+          ) : (
+            <>
+              <Zap size={16} />
+              {t("conn.testConnection")}
+            </>
           )}
         </Button>
       </div>

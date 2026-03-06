@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { useSnippetsStore } from "@/stores/snippets";
 import type { Snippet } from "@/types";
 
@@ -28,6 +29,7 @@ function SnippetForm({
   }) => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [title, setTitle] = useState(snippet?.title ?? "");
   const [command, setCommand] = useState(snippet?.command ?? "");
   const [description, setDescription] = useState(snippet?.description ?? "");
@@ -48,7 +50,7 @@ function SnippetForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div>
         <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
-          Title
+          {t("snippets.formTitle")}
         </label>
         <Input
           value={title}
@@ -59,7 +61,7 @@ function SnippetForm({
       </div>
       <div>
         <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
-          Command
+          {t("snippets.formCommand")}
         </label>
         <textarea
           value={command}
@@ -72,7 +74,7 @@ function SnippetForm({
       </div>
       <div>
         <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
-          Description
+          {t("snippets.formDescription")}
         </label>
         <Input
           value={description}
@@ -82,7 +84,7 @@ function SnippetForm({
       </div>
       <div>
         <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
-          Tags (comma separated)
+          {t("snippets.formTags")}
         </label>
         <Input
           value={tagsInput}
@@ -92,9 +94,9 @@ function SnippetForm({
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancel
+          {t("snippets.cancel")}
         </Button>
-        <Button type="submit">{snippet ? "Update" : "Create"}</Button>
+        <Button type="submit">{snippet ? t("snippets.update") : t("snippets.create")}</Button>
       </div>
     </form>
   );
@@ -161,6 +163,7 @@ function SnippetDetail({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -195,7 +198,7 @@ function SnippetDetail({
           onClick={handleCopy}
         >
           <Copy size={14} />
-          {copied ? "Copied!" : "Copy"}
+          {copied ? t("snippets.copied") : t("snippets.copy")}
         </Button>
       </div>
 
@@ -225,9 +228,9 @@ function SnippetDetail({
 
       {/* Metadata */}
       <div className="mt-4 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-        Created {new Date(snippet.createdAt).toLocaleString()}
+        {t("snippets.createdAt")} {new Date(snippet.createdAt).toLocaleString()}
         {snippet.updatedAt !== snippet.createdAt && (
-          <> · Updated {new Date(snippet.updatedAt).toLocaleString()}</>
+          <> · {t("snippets.updatedAt")} {new Date(snippet.updatedAt).toLocaleString()}</>
         )}
       </div>
     </div>
@@ -235,6 +238,7 @@ function SnippetDetail({
 }
 
 export function SnippetsPage() {
+  const t = useT();
   const {
     snippets,
     loading,
@@ -279,7 +283,7 @@ export function SnippetsPage() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search snippets..."
+              placeholder={t("snippets.search")}
               className="pl-8"
             />
           </div>
@@ -298,7 +302,7 @@ export function SnippetsPage() {
         <div className="flex-1 overflow-y-auto p-2">
           {loading && (
             <p className="p-4 text-center text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
-              Loading...
+              {t("snippets.loading")}
             </p>
           )}
 
@@ -306,10 +310,10 @@ export function SnippetsPage() {
             <div className="flex flex-col items-center justify-center p-8 text-center">
               <Code2 size={32} className="mb-3 text-[var(--color-text-muted)]" />
               <p className="text-[var(--font-size-sm)] text-[var(--color-text-secondary)]">
-                No snippets yet
+                {t("snippets.noSnippets")}
               </p>
               <p className="mt-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-                Click + to create your first snippet
+                {t("snippets.addFirst")}
               </p>
             </div>
           )}
@@ -330,7 +334,7 @@ export function SnippetsPage() {
         {showForm ? (
           <div className="mx-auto w-full max-w-md">
             <h2 className="mb-4 text-[var(--font-size-lg)] font-medium">
-              {editingSnippet ? "Edit Snippet" : "New Snippet"}
+              {editingSnippet ? t("snippets.editSnippet") : t("snippets.newSnippet")}
             </h2>
             <SnippetForm
               snippet={editingSnippet}
@@ -376,7 +380,7 @@ export function SnippetsPage() {
             <div>
               <Code2 size={48} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
               <p className="text-[var(--font-size-base)] text-[var(--color-text-secondary)]">
-                Select a snippet or create a new one
+                {t("snippets.selectOrCreate")}
               </p>
             </div>
           </div>

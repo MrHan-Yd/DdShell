@@ -8,6 +8,12 @@ import type {
   FileEntry,
   TransferTask,
   TransferDirection,
+  MetricsSnapshot,
+  CommandHistoryItem,
+  SystemInfo,
+  FavoritePath,
+  RecentPath,
+  SshConfigImportResult,
 } from "@/types";
 
 // ── Connection commands ──
@@ -171,4 +177,133 @@ export async function sftpTransferList(): Promise<TransferTask[]> {
 
 export async function sftpTransferClear(): Promise<{ success: boolean }> {
   return invoke("sftp_transfer_clear");
+}
+
+export async function sftpUploadFiles(
+  sessionId: string,
+  localPaths: string[],
+  remoteDir: string,
+): Promise<string[]> {
+  return invoke("sftp_upload_files", { sessionId, localPaths, remoteDir });
+}
+
+// ── Connection test ──
+
+export async function connectionTest(
+  hostId: string,
+  password: string,
+): Promise<{ success: boolean; message: string; latencyMs: number | null }> {
+  return invoke("connection_test", { hostId, password });
+}
+
+// ── Keyring commands ──
+
+export async function keyringStore(hostId: string, password: string): Promise<string> {
+  return invoke("keyring_store", { hostId, password });
+}
+
+export async function keyringGet(secretRef: string): Promise<string> {
+  return invoke("keyring_get", { secretRef });
+}
+
+export async function keyringDelete(secretRef: string): Promise<{ success: boolean }> {
+  return invoke("keyring_delete", { secretRef });
+}
+
+// ── Metrics commands ──
+
+export async function metricsStart(
+  sessionId: string,
+  intervalSecs?: number,
+): Promise<{ id: string }> {
+  return invoke("metrics_start", { sessionId, intervalSecs: intervalSecs ?? 2 });
+}
+
+export async function metricsStop(collectorId: string): Promise<{ success: boolean }> {
+  return invoke("metrics_stop", { collectorId });
+}
+
+export async function metricsSnapshot(collectorId: string): Promise<MetricsSnapshot | null> {
+  return invoke("metrics_snapshot", { collectorId });
+}
+
+export async function metricsHistory(collectorId: string): Promise<MetricsSnapshot[]> {
+  return invoke("metrics_history", { collectorId });
+}
+
+// ── Command history commands ──
+
+export async function commandHistoryInsert(
+  sessionId: string,
+  hostId: string,
+  command: string,
+): Promise<{ id: string }> {
+  return invoke("command_history_insert", { sessionId, hostId, command });
+}
+
+export async function commandHistoryList(
+  hostId?: string | null,
+  query?: string | null,
+  limit?: number,
+): Promise<CommandHistoryItem[]> {
+  return invoke("command_history_list", {
+    hostId: hostId ?? null,
+    query: query ?? null,
+    limit: limit ?? 200,
+  });
+}
+
+export async function commandHistoryClear(hostId?: string | null): Promise<{ success: boolean }> {
+  return invoke("command_history_clear", { hostId: hostId ?? null });
+}
+
+// ── System detection ──
+
+export async function systemDetect(sessionId: string): Promise<SystemInfo> {
+  return invoke("system_detect", { sessionId });
+}
+
+// ── Local filesystem ──
+
+export interface LocalFileEntry {
+  name: string;
+  fileType: "file" | "dir" | "symlink";
+  size: number;
+  mtime: number;
+}
+
+export async function localListDir(path: string): Promise<LocalFileEntry[]> {
+  return invoke("local_list_dir", { path });
+}
+
+export async function localHomeDir(): Promise<string> {
+  return invoke("local_home_dir");
+}
+
+// ── FR-17: Path Tools ──
+
+export async function pathAddFavorite(sessionId: string, path: string, label?: string): Promise<{ id: string }> {
+  return invoke("path_add_favorite", { sessionId, path, label: label ?? null });
+}
+
+export async function pathRemoveFavorite(id: string): Promise<{ success: boolean }> {
+  return invoke("path_remove_favorite", { id });
+}
+
+export async function pathListFavorites(sessionId: string): Promise<FavoritePath[]> {
+  return invoke("path_list_favorites", { sessionId });
+}
+
+export async function pathListRecent(sessionId: string, limit?: number): Promise<RecentPath[]> {
+  return invoke("path_list_recent", { sessionId, limit: limit ?? 20 });
+}
+
+export async function pathAddRecent(sessionId: string, path: string): Promise<{ id: string }> {
+  return invoke("path_add_recent", { sessionId, path });
+}
+
+// ── FR-39: SSH Config Import ──
+
+export async function sshConfigImport(): Promise<SshConfigImportResult> {
+  return invoke("ssh_config_import");
 }

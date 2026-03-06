@@ -100,3 +100,46 @@ pub fn emit_transfer_failed(app: &AppHandle, task_id: &str, error: &str) {
         },
     );
 }
+
+// ── Metrics events ──
+
+pub const METRICS_UPDATED: &str = "metrics:updated";
+pub const METRICS_COLLECTOR_STATE: &str = "metrics:collector_state_changed";
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MetricsUpdatedEvent {
+    pub collector_id: String,
+    pub snapshot: crate::core::metrics::MetricsSnapshot,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MetricsCollectorStateEvent {
+    pub collector_id: String,
+    pub state: String,
+}
+
+pub fn emit_metrics_updated(
+    app: &AppHandle,
+    collector_id: &str,
+    snapshot: crate::core::metrics::MetricsSnapshot,
+) {
+    let _ = app.emit(
+        METRICS_UPDATED,
+        MetricsUpdatedEvent {
+            collector_id: collector_id.to_string(),
+            snapshot,
+        },
+    );
+}
+
+pub fn emit_metrics_collector_state(app: &AppHandle, collector_id: &str, state: &str) {
+    let _ = app.emit(
+        METRICS_COLLECTOR_STATE,
+        MetricsCollectorStateEvent {
+            collector_id: collector_id.to_string(),
+            state: state.to_string(),
+        },
+    );
+}

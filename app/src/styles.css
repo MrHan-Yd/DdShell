@@ -2,7 +2,7 @@
 
 /*
  * Shell App — Theme Token System
- * Based on UI-SPEC: macOS-quality dark/light theme
+ * Based on UI-SPEC + COMPONENT-STYLE-SPEC: macOS-quality dark/light theme
  */
 
 @theme {
@@ -15,6 +15,7 @@
   --spacing-grid: 8px;
 
   /* ── Border Radius ── */
+  --radius-tiny: 8px;
   --radius-control: 10px;
   --radius-card: 12px;
   --radius-popover: 14px;
@@ -28,8 +29,10 @@
 
   /* ── Animation ── */
   --duration-fast: 120ms;
+  --duration-base: 140ms;
   --duration-panel: 180ms;
   --ease-default: ease-out;
+  --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* ── Dark Theme (default) ── */
   --color-bg-base: #0F1115;
@@ -55,6 +58,25 @@
   --color-warning: #F59E0B;
   --color-error: #EF4444;
   --color-info: #3B82F6;
+
+  /* ── Health / Status Colors ── */
+  --color-good: #34C759;
+  --color-fair: #FF9F0A;
+  --color-poor: #FF453A;
+
+  /* ── Glass Surfaces ── */
+  --surface-window: rgba(21, 25, 34, 0.78);
+  --surface-card: rgba(27, 33, 48, 0.72);
+
+  /* ── Shadow System ── */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.24), 0 0 0.5px rgba(0, 0, 0, 0.12);
+  --shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.2);
+  --shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 1px rgba(0, 0, 0, 0.3);
+  --shadow-focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.35);
+
+  /* ── Hairline Borders ── */
+  --border-hairline-inner: inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+  --border-hairline-outer: 0 0.5px 0 rgba(0, 0, 0, 0.4);
 }
 
 /* ── Light Theme ── */
@@ -77,6 +99,16 @@
   --color-accent: #2563EB;
   --color-accent-hover: #1D4ED8;
   --color-accent-subtle: rgba(37, 99, 235, 0.1);
+
+  --surface-window: rgba(255, 255, 255, 0.82);
+  --surface-card: rgba(255, 255, 255, 0.76);
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 0 0.5px rgba(0, 0, 0, 0.06);
+  --shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.18), 0 0 1px rgba(0, 0, 0, 0.1);
+
+  --border-hairline-inner: inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
+  --border-hairline-outer: 0 0.5px 0 rgba(0, 0, 0, 0.08);
 }
 
 /* ── Base Reset ── */
@@ -128,4 +160,37 @@ body {
 [data-tauri-drag-region] a,
 [data-tauri-drag-region] input {
   -webkit-app-region: no-drag;
+}
+
+/* ── Glass Surface Utility ── */
+.glass-surface {
+  background: var(--surface-window);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: var(--border-hairline-inner), var(--border-hairline-outer);
+}
+
+.glass-card {
+  background: var(--surface-card);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: var(--shadow-card), var(--border-hairline-inner);
+}
+
+/* ── Batch 7: Small Window Fallback ── */
+
+/* Height < 800px: compact layout */
+@media (max-height: 799px) {
+  :root {
+    --height-titlebar: 40px;
+    --height-tabbar: 36px;
+    --height-statusbar: 24px;
+  }
+}
+
+/* Width < 1280px: narrow layout */
+@media (max-width: 1279px) {
+  :root {
+    --width-sidebar: 200px;
+  }
 }

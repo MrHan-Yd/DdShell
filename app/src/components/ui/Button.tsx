@@ -3,18 +3,18 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 font-medium transition-colors duration-[var(--duration-fast)] ease-[var(--ease-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] disabled:pointer-events-none disabled:opacity-50 cursor-default",
+  "inline-flex items-center justify-center gap-2 font-medium transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:shadow-[var(--shadow-focus-ring)] disabled:pointer-events-none disabled:opacity-45 cursor-default",
   {
     variants: {
       variant: {
         default:
-          "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] rounded-[var(--radius-control)]",
+          "bg-gradient-to-b from-[#0A84FF] to-[#0066E0] text-white rounded-[var(--radius-control)] shadow-[var(--shadow-card)] hover:brightness-106 active:translate-y-px active:shadow-none",
         secondary:
-          "bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] rounded-[var(--radius-control)]",
+          "bg-[var(--surface-card)] text-[var(--color-text-primary)] rounded-[var(--radius-control)] shadow-[var(--border-hairline-inner),var(--border-hairline-outer)] backdrop-blur-sm hover:bg-[var(--color-bg-hover)]",
         ghost:
           "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] rounded-[var(--radius-control)]",
         danger:
-          "bg-[var(--color-error)] text-white hover:opacity-90 rounded-[var(--radius-control)]",
+          "bg-[var(--color-error)] text-white hover:opacity-90 rounded-[var(--radius-control)] shadow-[var(--shadow-card)] active:translate-y-px",
       },
       size: {
         sm: "h-7 px-2.5 text-[var(--font-size-xs)]",

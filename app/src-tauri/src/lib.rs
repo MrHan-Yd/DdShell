@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use tauri::Manager;
 
 use crate::core::event;
+use crate::core::metrics::MetricsManager;
 use crate::core::sftp::SftpManager;
 use crate::core::ssh::SessionManager;
 use crate::core::store::Database;
@@ -535,6 +536,596 @@ async fn sftp_transfer_clear(
     Ok(SuccessResponse { success: true })
 }
 
+// ── Commands: Local filesystem ──
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LocalFileEntry {
+    name: String,
+    file_type: String,
+    size: u64,
+    mtime: i64,
+}
+
+#[tauri::command]
+async fn local_list_dir(path: String) -> Result<Vec<LocalFileEntry>, String> {
+    tokio::task::spawn_blocking(move || {
+        let mut entries = Vec::new();
+        let dir = std::fs::read_dir(&path).map_err(|e| e.to_string())?;
+
+        for entry in dir {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let metadata = entry.metadata().map_err(|e| e.to_string())?;
+            let name = entry.file_name().to_string_lossy().to_string();
+
+            let file_type = if metadata.is_dir() {
+                "dir"
+            } else if metadata.file_type().is_symlink() {
+                "symlink"
+            } else {
+                "file"
+            };
+
+            let mtime = metadata
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(0);
+
+            entries.push(LocalFileEntry {
+                name,
+                file_type: file_type.to_string(),
+                size: metadata.len(),
+                mtime,
+            });
+        }
+
+        // Sort: dirs first, then by name
+        entries.sort_by(|a, b| {
+            let dir_a = a.file_type == "dir";
+            let dir_b = b.file_type == "dir";
+            dir_b
+                .cmp(&dir_a)
+                .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+        });
+
+        Ok(entries)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn local_home_dir() -> Result<String, String> {
+    dirs::home_dir()
+        .map(|p| p.to_string_lossy().to_string())
+        .ok_or_else(|| "Could not determine home directory".to_string())
+}
+
+// ── Commands: System Detection ──
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SystemInfo {
+    os: String,
+    distro: Option<String>,
+    distro_version: Option<String>,
+    shell: Option<String>,
+    kernel: Option<String>,
+}
+
+#[tauri::command]
+async fn system_detect(
+    mgr: tauri::State<'_, SessionManager>,
+    session_id: String,
+) -> Result<SystemInfo, String> {
+    let mgr = mgr.inner().clone();
+    tokio::task::spawn_blocking(move || {
+        let session = mgr
+            .get(&session_id)
+            .ok_or_else(|| "Session not found".to_string())?;
+        let sess = session.lock();
+
+        let cmd = "echo '===OS==='; uname -s; echo '===KERNEL==='; uname -r; echo '===DISTRO==='; cat /etc/os-release 2>/dev/null | head -5; echo '===SHELL==='; echo $SHELL; echo '===END==='";
+        let output = sess.exec_command(cmd).map_err(|e| e.to_string())?;
+        drop(sess);
+
+        let mut os = String::new();
+        let mut kernel = None;
+        let mut distro = None;
+        let mut distro_version = None;
+        let mut shell = None;
+
+        let mut section: Option<&str> = None;
+        for line in output.lines() {
+            if line.starts_with("===") && line.ends_with("===") {
+                section = Some(line.trim_matches('='));
+                continue;
+            }
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            match section {
+                Some("OS") => {
+                    os = line.to_string();
+                }
+                Some("KERNEL") => {
+                    kernel = Some(line.to_string());
+                }
+                Some("DISTRO") => {
+                    if line.starts_with("PRETTY_NAME=") {
+                        distro = Some(line.trim_start_matches("PRETTY_NAME=").trim_matches('"').to_string());
+                    }
+                    if line.starts_with("VERSION_ID=") {
+                        distro_version = Some(line.trim_start_matches("VERSION_ID=").trim_matches('"').to_string());
+                    }
+                }
+                Some("SHELL") => {
+                    shell = Some(line.to_string());
+                }
+                _ => {}
+            }
+        }
+
+        Ok(SystemInfo {
+            os,
+            distro,
+            distro_version,
+            shell,
+            kernel,
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+// ── Commands: SFTP batch upload (drag-drop) ──
+
+#[tauri::command]
+async fn sftp_upload_files(
+    app: tauri::AppHandle,
+    session_mgr: tauri::State<'_, SessionManager>,
+    sftp_mgr: tauri::State<'_, SftpManager>,
+    session_id: String,
+    local_paths: Vec<String>,
+    remote_dir: String,
+) -> Result<Vec<String>, String> {
+    let mut task_ids = Vec::new();
+
+    for local_path in &local_paths {
+        let file_name = std::path::Path::new(local_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("file")
+            .to_string();
+
+        let remote_path = if remote_dir.ends_with('/') {
+            format!("{}{}", remote_dir, file_name)
+        } else {
+            format!("{}/{}", remote_dir, file_name)
+        };
+
+        let task_id = sftp_mgr.start_upload(&session_id, local_path, &remote_path);
+
+        // Spawn background transfer
+        let sftp_mgr_clone = sftp_mgr.inner().clone();
+        let session_mgr_clone = session_mgr.inner().clone();
+        let tid = task_id.clone();
+        let app_handle = app.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let result = sftp_mgr_clone.execute_upload(&session_mgr_clone, &tid);
+            match result {
+                Ok(()) => {
+                    if let Some(task) = sftp_mgr_clone.get_task(&tid) {
+                        if task.state == core::sftp::TransferState::Completed {
+                            event::emit_transfer_completed(&app_handle, &tid);
+                        }
+                    }
+                }
+                Err(e) => {
+                    sftp_mgr_clone.mark_failed(&tid, e.to_string());
+                    event::emit_transfer_failed(&app_handle, &tid, &e.to_string());
+                }
+            }
+        });
+
+        // Progress reporter
+        let sftp_mgr_progress = sftp_mgr.inner().clone();
+        let tid_progress = task_id.clone();
+        let app_progress = app.clone();
+
+        tokio::spawn(async move {
+            let mut last_bytes: u64 = 0;
+            loop {
+                tokio::time::sleep(Duration::from_millis(200)).await;
+                if let Some(task) = sftp_mgr_progress.get_task(&tid_progress) {
+                    let speed = ((task.transferred_bytes - last_bytes) as f64 / 0.2) as u64;
+                    last_bytes = task.transferred_bytes;
+                    event::emit_transfer_progress(
+                        &app_progress,
+                        &tid_progress,
+                        task.transferred_bytes,
+                        task.total_bytes,
+                        speed,
+                    );
+                    if task.state != core::sftp::TransferState::Running
+                        && task.state != core::sftp::TransferState::Queued
+                    {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+        });
+
+        task_ids.push(task_id);
+    }
+
+    Ok(task_ids)
+}
+
+// ── Commands: Connection Test ──
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConnectionTestResult {
+    success: bool,
+    message: String,
+    latency_ms: Option<u64>,
+}
+
+#[tauri::command]
+async fn connection_test(
+    db: tauri::State<'_, Database>,
+    host_id: String,
+    password: String,
+) -> Result<ConnectionTestResult, String> {
+    let host = db
+        .get_host(&host_id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "Host not found".to_string())?;
+
+    let host_addr = host.host.clone();
+    let port = host.port as u16;
+    let username = host.username.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let start = std::time::Instant::now();
+
+        // Test TCP connection
+        let addr = format!("{}:{}", host_addr, port);
+        let tcp = match std::net::TcpStream::connect_timeout(
+            &addr.parse().map_err(|e: std::net::AddrParseError| e.to_string())?,
+            Duration::from_secs(10),
+        ) {
+            Ok(tcp) => tcp,
+            Err(e) => {
+                return Ok::<ConnectionTestResult, String>(ConnectionTestResult {
+                    success: false,
+                    message: format!("Connection failed: {}", e),
+                    latency_ms: None,
+                });
+            }
+        };
+
+        // Test SSH handshake + auth
+        let mut sess = match ssh2::Session::new() {
+            Ok(s) => s,
+            Err(e) => {
+                return Ok(ConnectionTestResult {
+                    success: false,
+                    message: format!("SSH init failed: {}", e),
+                    latency_ms: None,
+                });
+            }
+        };
+
+        sess.set_tcp_stream(tcp);
+        if let Err(e) = sess.handshake() {
+            return Ok(ConnectionTestResult {
+                success: false,
+                message: format!("SSH handshake failed: {}", e),
+                latency_ms: None,
+            });
+        }
+
+        if let Err(e) = sess.userauth_password(&username, &password) {
+            return Ok(ConnectionTestResult {
+                success: false,
+                message: format!("Authentication failed: {}", e),
+                latency_ms: None,
+            });
+        }
+
+        if !sess.authenticated() {
+            return Ok(ConnectionTestResult {
+                success: false,
+                message: "Authentication failed".to_string(),
+                latency_ms: None,
+            });
+        }
+
+        let latency = start.elapsed().as_millis() as u64;
+
+        let _ = sess.disconnect(None, "test complete", None);
+
+        Ok(ConnectionTestResult {
+            success: true,
+            message: format!("Connected successfully ({}ms)", latency),
+            latency_ms: Some(latency),
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    Ok(result)
+}
+
+// ── Commands: Metrics ──
+
+#[tauri::command]
+async fn metrics_start(
+    app: tauri::AppHandle,
+    session_mgr: tauri::State<'_, SessionManager>,
+    metrics_mgr: tauri::State<'_, MetricsManager>,
+    session_id: String,
+    interval_secs: Option<u64>,
+) -> Result<IdResponse, String> {
+    // Check if there's already a running collector for this session
+    if let Some(existing) = metrics_mgr.find_by_session(&session_id) {
+        return Ok(IdResponse { id: existing });
+    }
+
+    let interval = interval_secs.unwrap_or(2);
+    let collector_id = metrics_mgr.start(&session_id, interval);
+
+    event::emit_metrics_collector_state(&app, &collector_id, "running");
+
+    // Spawn the collection loop
+    let smgr = session_mgr.inner().clone();
+    let mmgr = metrics_mgr.inner().clone();
+    let cid = collector_id.clone();
+    let app_handle = app.clone();
+
+    tokio::spawn(async move {
+        loop {
+            if !mmgr.should_continue(&cid) {
+                break;
+            }
+
+            let smgr_clone = smgr.clone();
+            let mmgr_clone = mmgr.clone();
+            let cid_clone = cid.clone();
+
+            let result = tokio::task::spawn_blocking(move || {
+                crate::core::metrics::collect_snapshot(
+                    &smgr_clone,
+                    &mmgr_clone.get_config(&cid_clone).map(|(s, _)| s).unwrap_or_default(),
+                    &mmgr_clone,
+                    &cid_clone,
+                )
+            })
+            .await;
+
+            match result {
+                Ok(Ok(snapshot)) => {
+                    mmgr.push_snapshot(&cid, snapshot.clone());
+                    event::emit_metrics_updated(&app_handle, &cid, snapshot);
+                }
+                Ok(Err(e)) => {
+                    tracing::warn!("metrics collection error: {}", e);
+                    mmgr.mark_error(&cid);
+                    event::emit_metrics_collector_state(&app_handle, &cid, "error");
+                    break;
+                }
+                Err(e) => {
+                    tracing::warn!("metrics spawn error: {}", e);
+                    mmgr.mark_error(&cid);
+                    event::emit_metrics_collector_state(&app_handle, &cid, "error");
+                    break;
+                }
+            }
+
+            let secs = mmgr.get_config(&cid).map(|(_, i)| i).unwrap_or(2);
+            tokio::time::sleep(Duration::from_secs(secs)).await;
+        }
+    });
+
+    Ok(IdResponse { id: collector_id })
+}
+
+#[tauri::command]
+async fn metrics_stop(
+    app: tauri::AppHandle,
+    metrics_mgr: tauri::State<'_, MetricsManager>,
+    collector_id: String,
+) -> Result<SuccessResponse, String> {
+    metrics_mgr.stop(&collector_id);
+    event::emit_metrics_collector_state(&app, &collector_id, "stopped");
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn metrics_snapshot(
+    metrics_mgr: tauri::State<'_, MetricsManager>,
+    collector_id: String,
+) -> Result<Option<core::metrics::MetricsSnapshot>, String> {
+    Ok(metrics_mgr.latest_snapshot(&collector_id))
+}
+
+#[tauri::command]
+async fn metrics_history(
+    metrics_mgr: tauri::State<'_, MetricsManager>,
+    collector_id: String,
+) -> Result<Vec<core::metrics::MetricsSnapshot>, String> {
+    Ok(metrics_mgr.all_snapshots(&collector_id))
+}
+
+// ── Commands: Keyring ──
+
+#[tauri::command]
+async fn command_history_insert(
+    db: tauri::State<'_, Database>,
+    session_id: String,
+    host_id: String,
+    command: String,
+) -> Result<IdResponse, String> {
+    let id = db
+        .insert_command(&session_id, &host_id, &command)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(IdResponse { id })
+}
+
+#[tauri::command]
+async fn command_history_list(
+    db: tauri::State<'_, Database>,
+    host_id: Option<String>,
+    query: Option<String>,
+    limit: Option<i64>,
+) -> Result<Vec<core::store::CommandHistoryItem>, String> {
+    db.list_commands(
+        host_id.as_deref(),
+        query.as_deref(),
+        limit.unwrap_or(200),
+    )
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn command_history_clear(
+    db: tauri::State<'_, Database>,
+    host_id: Option<String>,
+) -> Result<SuccessResponse, String> {
+    db.clear_commands(host_id.as_deref())
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+// ── Commands: Keyring (credentials) ──
+
+#[tauri::command]
+async fn keyring_store(
+    host_id: String,
+    password: String,
+) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || {
+        core::secret::store_password(&host_id, &password).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn keyring_get(secret_ref: String) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || {
+        core::secret::get_password(&secret_ref).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn keyring_delete(secret_ref: String) -> Result<SuccessResponse, String> {
+    tokio::task::spawn_blocking(move || {
+        core::secret::delete_password(&secret_ref).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    Ok(SuccessResponse { success: true })
+}
+
+// ── Commands: Favorite & Recent Paths ──
+
+#[tauri::command]
+async fn path_add_favorite(
+    db: tauri::State<'_, Database>,
+    session_id: String,
+    path: String,
+    label: Option<String>,
+) -> Result<IdResponse, String> {
+    let id = db
+        .add_favorite_path(&session_id, &path, label.as_deref())
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(IdResponse { id })
+}
+
+#[tauri::command]
+async fn path_remove_favorite(
+    db: tauri::State<'_, Database>,
+    id: String,
+) -> Result<SuccessResponse, String> {
+    db.remove_favorite_path(&id)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn path_list_favorites(
+    db: tauri::State<'_, Database>,
+    session_id: String,
+) -> Result<Vec<core::store::FavoritePath>, String> {
+    db.list_favorite_paths(&session_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn path_add_recent(
+    db: tauri::State<'_, Database>,
+    session_id: String,
+    path: String,
+) -> Result<IdResponse, String> {
+    let id = db
+        .add_recent_path(&session_id, &path)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(IdResponse { id })
+}
+
+#[tauri::command]
+async fn path_list_recent(
+    db: tauri::State<'_, Database>,
+    session_id: String,
+    limit: Option<i64>,
+) -> Result<Vec<core::store::RecentPath>, String> {
+    db.list_recent_paths(&session_id, limit.unwrap_or(50))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// ── Commands: SSH Config Import ──
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SshConfigImportResult {
+    entries: Vec<core::store::SshConfigEntry>,
+    errors: Vec<String>,
+}
+
+#[tauri::command]
+async fn ssh_config_import() -> Result<SshConfigImportResult, String> {
+    let result = tokio::task::spawn_blocking(|| {
+        core::store::parse_ssh_config().map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    Ok(SshConfigImportResult {
+        entries: result.0,
+        errors: result.1,
+    })
+}
+
 /// Background loop that reads SSH output and emits events
 fn output_reader_loop(
     app: tauri::AppHandle,
@@ -580,6 +1171,7 @@ pub fn run() {
             // Initialize managers immediately (sync)
             app.manage(SessionManager::new());
             app.manage(SftpManager::new());
+            app.manage(MetricsManager::new());
 
             let app_data_dir = app
                 .path()
@@ -630,6 +1222,27 @@ pub fn run() {
             sftp_transfer_cancel,
             sftp_transfer_list,
             sftp_transfer_clear,
+            sftp_upload_files,
+            system_detect,
+            connection_test,
+            metrics_start,
+            metrics_stop,
+            metrics_snapshot,
+            metrics_history,
+            command_history_insert,
+            command_history_list,
+            command_history_clear,
+            keyring_store,
+            keyring_get,
+            keyring_delete,
+            local_list_dir,
+            local_home_dir,
+            path_add_favorite,
+            path_remove_favorite,
+            path_list_favorites,
+            path_add_recent,
+            path_list_recent,
+            ssh_config_import,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

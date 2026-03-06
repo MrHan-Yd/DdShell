@@ -15,7 +15,10 @@
         "title": "Shell",
         "width": 1280,
         "height": 800,
-        "decorations": false
+        "minWidth": 900,
+        "minHeight": 600,
+        "decorations": false,
+        "center": true
       }
     ],
     "security": {
@@ -31,6 +34,17 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "category": "DeveloperTool",
+    "shortDescription": "Open-source SSH/SFTP desktop client",
+    "longDescription": "Shell is an open-source cross-platform SSH/SFTP desktop client built with Tauri 2 + React + Rust. It provides terminal management, SFTP file transfer, command snippets, and more.",
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    }
   }
 }

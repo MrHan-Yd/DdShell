@@ -1,7 +1,9 @@
+use std::io::BufRead;
+use std::path::Path;
+
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::{FromRow, SqlitePool};
-use std::path::Path;
 use uuid::Uuid;
 
 // ── Data models ──
@@ -46,6 +48,56 @@ pub struct Snippet {
     pub sort_order: i64,
     pub created_at: String,
     pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct CommandHistoryItem {
+    pub id: String,
+    pub session_id: String,
+    pub host_id: String,
+    pub command: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct KnownHost {
+    pub host: String,
+    pub port: i64,
+    pub key_type: String,
+    pub fingerprint: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct FavoritePath {
+    pub id: String,
+    pub session_id: String,
+    pub path: String,
+    pub label: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct RecentPath {
+    pub id: String,
+    pub session_id: String,
+    pub path: String,
+    pub accessed_at: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SshConfigEntry {
+    pub host: String,
+    pub host_name: Option<String>,
+    pub user: Option<String>,
+    pub port: Option<i64>,
+    pub proxy_jump: Option<String>,
+    pub identity_file: Option<String>,
 }
 
 // ── Database ──
@@ -127,6 +179,66 @@ impl Database {
                 value TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS command_history (
+                id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                host_id TEXT NOT NULL,
+                command TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_command_history_host ON command_history(host_id, created_at DESC)",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS known_hosts (
+                host TEXT NOT NULL,
+                port INTEGER NOT NULL,
+                key_type TEXT NOT NULL,
+                fingerprint TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (host, port)
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS favorite_paths (
+                id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                path TEXT NOT NULL,
+                label TEXT,
+                created_at TEXT NOT NULL
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS recent_paths (
+                id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                path TEXT NOT NULL,
+                accessed_at TEXT NOT NULL
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_recent_paths_session_path ON recent_paths(session_id, path)",
         )
         .execute(&self.pool)
         .await?;
@@ -421,4 +533,384 @@ impl Database {
 
         Ok(())
     }
+
+    // ── Command History ──
+
+    pub async fn insert_command(
+        &self,
+        session_id: &str,
+        host_id: &str,
+        command: &str,
+    ) -> anyhow::Result<String> {
+        let id = Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query(
+            "INSERT INTO command_history (id, session_id, host_id, command, created_at) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(&id)
+        .bind(session_id)
+        .bind(host_id)
+        .bind(command)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(id)
+    }
+
+    pub async fn list_commands(
+        &self,
+        host_id: Option<&str>,
+        query: Option<&str>,
+        limit: i64,
+    ) -> anyhow::Result<Vec<CommandHistoryItem>> {
+        let rows: Vec<CommandHistoryItem> = match (host_id, query) {
+            (Some(hid), Some(q)) => {
+                let pattern = format!("%{}%", q);
+                sqlx::query_as(
+                    "SELECT id, session_id, host_id, command, created_at FROM command_history WHERE host_id = ? AND command LIKE ? ORDER BY created_at DESC LIMIT ?",
+                )
+                .bind(hid)
+                .bind(&pattern)
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await?
+            }
+            (Some(hid), None) => {
+                sqlx::query_as(
+                    "SELECT id, session_id, host_id, command, created_at FROM command_history WHERE host_id = ? ORDER BY created_at DESC LIMIT ?",
+                )
+                .bind(hid)
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await?
+            }
+            (None, Some(q)) => {
+                let pattern = format!("%{}%", q);
+                sqlx::query_as(
+                    "SELECT id, session_id, host_id, command, created_at FROM command_history WHERE command LIKE ? ORDER BY created_at DESC LIMIT ?",
+                )
+                .bind(&pattern)
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await?
+            }
+            (None, None) => {
+                sqlx::query_as(
+                    "SELECT id, session_id, host_id, command, created_at FROM command_history ORDER BY created_at DESC LIMIT ?",
+                )
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await?
+            }
+        };
+
+        Ok(rows)
+    }
+
+    pub async fn clear_commands(&self, host_id: Option<&str>) -> anyhow::Result<()> {
+        match host_id {
+            Some(hid) => {
+                sqlx::query("DELETE FROM command_history WHERE host_id = ?")
+                    .bind(hid)
+                    .execute(&self.pool)
+                    .await?;
+            }
+            None => {
+                sqlx::query("DELETE FROM command_history")
+                    .execute(&self.pool)
+                    .await?;
+            }
+        }
+        Ok(())
+    }
+
+    // ── Known Hosts ──
+
+    pub async fn get_known_host(
+        &self,
+        host: &str,
+        port: i64,
+    ) -> anyhow::Result<Option<KnownHost>> {
+        let row: Option<KnownHost> = sqlx::query_as(
+            "SELECT host, port, key_type, fingerprint, created_at FROM known_hosts WHERE host = ? AND port = ?",
+        )
+        .bind(host)
+        .bind(port)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    pub async fn save_known_host(
+        &self,
+        host: &str,
+        port: i64,
+        key_type: &str,
+        fingerprint: &str,
+    ) -> anyhow::Result<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        sqlx::query(
+            "INSERT INTO known_hosts (host, port, key_type, fingerprint, created_at)
+             VALUES (?, ?, ?, ?, ?)
+             ON CONFLICT(host, port) DO UPDATE SET key_type = excluded.key_type, fingerprint = excluded.fingerprint, created_at = excluded.created_at",
+        )
+        .bind(host)
+        .bind(port)
+        .bind(key_type)
+        .bind(fingerprint)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    // ── Favorite Paths ──
+
+    pub async fn add_favorite_path(
+        &self,
+        session_id: &str,
+        path: &str,
+        label: Option<&str>,
+    ) -> anyhow::Result<String> {
+        let id = Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query(
+            "INSERT INTO favorite_paths (id, session_id, path, label, created_at) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(&id)
+        .bind(session_id)
+        .bind(path)
+        .bind(label)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(id)
+    }
+
+    pub async fn remove_favorite_path(&self, id: &str) -> anyhow::Result<()> {
+        sqlx::query("DELETE FROM favorite_paths WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn list_favorite_paths(&self, session_id: &str) -> anyhow::Result<Vec<FavoritePath>> {
+        let rows: Vec<FavoritePath> = sqlx::query_as(
+            "SELECT id, session_id, path, label, created_at FROM favorite_paths WHERE session_id = ? ORDER BY created_at",
+        )
+        .bind(session_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    // ── Recent Paths ──
+
+    pub async fn add_recent_path(
+        &self,
+        session_id: &str,
+        path: &str,
+    ) -> anyhow::Result<String> {
+        let id = Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+
+        // Upsert: if the same session_id + path already exists, update accessed_at.
+        // The unique index idx_recent_paths_session_path enforces uniqueness on (session_id, path).
+        sqlx::query(
+            "INSERT INTO recent_paths (id, session_id, path, accessed_at) VALUES (?, ?, ?, ?)
+             ON CONFLICT(session_id, path) DO UPDATE SET accessed_at = excluded.accessed_at",
+        )
+        .bind(&id)
+        .bind(session_id)
+        .bind(path)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+
+        // Return the actual id (could be old row if conflict)
+        let row: Option<(String,)> = sqlx::query_as(
+            "SELECT id FROM recent_paths WHERE session_id = ? AND path = ?",
+        )
+        .bind(session_id)
+        .bind(path)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row.map(|r| r.0).unwrap_or(id))
+    }
+
+    pub async fn list_recent_paths(
+        &self,
+        session_id: &str,
+        limit: i64,
+    ) -> anyhow::Result<Vec<RecentPath>> {
+        let rows: Vec<RecentPath> = sqlx::query_as(
+            "SELECT id, session_id, path, accessed_at FROM recent_paths WHERE session_id = ? ORDER BY accessed_at DESC LIMIT ?",
+        )
+        .bind(session_id)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
+    }
+}
+
+// ── SSH Config Parser ──
+
+pub fn parse_ssh_config() -> anyhow::Result<(Vec<SshConfigEntry>, Vec<String>)> {
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?;
+    let config_path = home.join(".ssh").join("config");
+
+    if !config_path.exists() {
+        return Ok((Vec::new(), Vec::new()));
+    }
+
+    let file = std::fs::File::open(&config_path)?;
+    let reader = std::io::BufReader::new(file);
+
+    let mut entries: Vec<SshConfigEntry> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
+
+    // Temporary state for current host block
+    let mut current_host: Option<String> = None;
+    let mut current_hostname: Option<String> = None;
+    let mut current_user: Option<String> = None;
+    let mut current_port: Option<i64> = None;
+    let mut current_proxy_jump: Option<String> = None;
+    let mut current_identity_file: Option<String> = None;
+
+    let flush_entry = |host: &Option<String>,
+                       hostname: &Option<String>,
+                       user: &Option<String>,
+                       port: &Option<i64>,
+                       proxy_jump: &Option<String>,
+                       identity_file: &Option<String>,
+                       entries: &mut Vec<SshConfigEntry>,
+                       _errors: &mut Vec<String>| {
+        if let Some(ref h) = host {
+            // Skip wildcard hosts
+            if h.contains('*') || h.contains('?') {
+                return;
+            }
+            entries.push(SshConfigEntry {
+                host: h.clone(),
+                host_name: hostname.clone(),
+                user: user.clone(),
+                port: *port,
+                proxy_jump: proxy_jump.clone(),
+                identity_file: identity_file.clone(),
+            });
+        }
+    };
+
+    for (line_num, line_result) in reader.lines().enumerate() {
+        let line = match line_result {
+            Ok(l) => l,
+            Err(e) => {
+                errors.push(format!("Line {}: read error: {}", line_num + 1, e));
+                continue;
+            }
+        };
+
+        let trimmed = line.trim();
+
+        // Skip empty lines and comments
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+
+        // Split into keyword and value
+        let (keyword, value) = if let Some(eq_pos) = trimmed.find('=') {
+            let k = trimmed[..eq_pos].trim();
+            let v = trimmed[eq_pos + 1..].trim();
+            (k, v)
+        } else {
+            let mut parts = trimmed.splitn(2, char::is_whitespace);
+            let k = parts.next().unwrap_or("").trim();
+            let v = parts.next().unwrap_or("").trim();
+            (k, v)
+        };
+
+        match keyword.to_lowercase().as_str() {
+            "host" => {
+                // Flush previous entry
+                flush_entry(
+                    &current_host,
+                    &current_hostname,
+                    &current_user,
+                    &current_port,
+                    &current_proxy_jump,
+                    &current_identity_file,
+                    &mut entries,
+                    &mut errors,
+                );
+
+                // Start new entry
+                current_host = Some(value.to_string());
+                current_hostname = None;
+                current_user = None;
+                current_port = None;
+                current_proxy_jump = None;
+                current_identity_file = None;
+            }
+            "hostname" => {
+                current_hostname = Some(value.to_string());
+            }
+            "user" => {
+                current_user = Some(value.to_string());
+            }
+            "port" => {
+                match value.parse::<i64>() {
+                    Ok(p) => current_port = Some(p),
+                    Err(_) => {
+                        errors.push(format!(
+                            "Line {}: invalid port value '{}'",
+                            line_num + 1,
+                            value
+                        ));
+                    }
+                }
+            }
+            "proxyjump" => {
+                current_proxy_jump = Some(value.to_string());
+            }
+            "identityfile" => {
+                // Expand ~ to home directory
+                let expanded = if let Some(stripped) = value.strip_prefix("~/") {
+                    if let Some(ref home) = dirs::home_dir() {
+                        home.join(stripped).to_string_lossy().to_string()
+                    } else {
+                        value.to_string()
+                    }
+                } else {
+                    value.to_string()
+                };
+                current_identity_file = Some(expanded);
+            }
+            _ => {
+                // Ignore other directives
+            }
+        }
+    }
+
+    // Flush last entry
+    flush_entry(
+        &current_host,
+        &current_hostname,
+        &current_user,
+        &current_port,
+        &current_proxy_jump,
+        &current_identity_file,
+        &mut entries,
+        &mut errors,
+    );
+
+    Ok((entries, errors))
 }

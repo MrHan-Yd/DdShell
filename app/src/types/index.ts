@@ -1,7 +1,7 @@
 // Core data types aligned with API-CONTRACTS and GLOSSARY
 
 /** Page navigation */
-export type Page = "connections" | "terminal" | "sftp" | "snippets" | "settings";
+export type Page = "connections" | "terminal" | "sftp" | "snippets" | "settings" | "monitor";
 
 /** Auth method for SSH connection */
 export type AuthType = "password" | "publickey";
@@ -123,4 +123,127 @@ export interface TransferTask {
   totalBytes: number;
   transferredBytes: number;
   error?: string | null;
+}
+
+// ── Metrics types — TECH-SPEC §7 ──
+
+export interface LoadInfo {
+  one: number;
+  five: number;
+  fifteen: number;
+}
+
+export interface CpuInfo {
+  usagePercent: number;
+}
+
+export interface MemoryInfo {
+  totalMb: number;
+  usedMb: number;
+  freeMb: number;
+  cacheMb: number;
+  usagePercent: number;
+}
+
+export interface NetworkInfo {
+  rxBytesPerSec: number;
+  txBytesPerSec: number;
+}
+
+export interface ProcessInfo {
+  pid: number;
+  user: string;
+  cpuPercent: number;
+  memPercent: number;
+  command: string;
+}
+
+export interface DiskInfo {
+  filesystem: string;
+  mount: string;
+  total: string;
+  used: string;
+  available: string;
+  usagePercent: number;
+}
+
+export interface MetricsSnapshot {
+  timestamp: number;
+  uptime: string;
+  load: LoadInfo;
+  cpu: CpuInfo;
+  memory: MemoryInfo;
+  network: NetworkInfo;
+  processes: ProcessInfo[];
+  disks: DiskInfo[];
+  sessionHealth?: number;
+}
+
+export type CollectorState = "running" | "stopped" | "error";
+
+/** Command history item */
+export interface CommandHistoryItem {
+  id: string;
+  sessionId: string;
+  hostId: string;
+  command: string;
+  createdAt: string;
+}
+
+/** Remote system info — FR-27 */
+export interface SystemInfo {
+  os: string;
+  distro?: string | null;
+  distroVersion?: string | null;
+  shell?: string | null;
+  kernel?: string | null;
+}
+
+// ── FR-17: Path Tools ──
+
+export interface FavoritePath {
+  id: string;
+  sessionId: string;
+  path: string;
+  label?: string | null;
+  createdAt: string;
+}
+
+export interface RecentPath {
+  id: string;
+  sessionId: string;
+  path: string;
+  accessedAt: string;
+}
+
+// ── FR-30: Terminal Background ──
+
+export type TerminalBgSource = "color" | "image";
+
+export interface TerminalBgSettings {
+  source: TerminalBgSource;
+  color: string;
+  imagePath?: string | null;
+  opacity: number; // 0-100
+  blur: number; // 0-20
+}
+
+// ── FR-37: Session Health ──
+
+export type HealthLevel = "GOOD" | "FAIR" | "POOR";
+
+// ── FR-39: SSH Config Import ──
+
+export interface SshConfigEntry {
+  host: string;
+  hostName?: string | null;
+  user?: string | null;
+  port?: number | null;
+  proxyJump?: string | null;
+  identityFile?: string | null;
+}
+
+export interface SshConfigImportResult {
+  entries: SshConfigEntry[];
+  errors: string[];
 }
