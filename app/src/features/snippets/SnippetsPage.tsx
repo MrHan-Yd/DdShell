@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import { useSnippetsStore } from "@/stores/snippets";
+import { confirm } from "@/stores/confirm";
 import type { Snippet } from "@/types";
 
 function SnippetForm({
@@ -372,6 +373,12 @@ export function SnippetsPage() {
               setShowForm(true);
             }}
             onDelete={async () => {
+              const ok = await confirm({
+                title: t("confirm.deleteSnippetTitle"),
+                description: t("confirm.deleteSnippetDesc"),
+                confirmLabel: t("confirm.delete"),
+              });
+              if (!ok) return;
               await deleteSnippet(selectedSnippet.id);
             }}
           />

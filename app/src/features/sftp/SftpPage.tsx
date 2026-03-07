@@ -29,6 +29,7 @@ import { useTerminalStore } from "@/stores/terminal";
 import * as api from "@/lib/tauri";
 import type { LocalFileEntry } from "@/lib/tauri";
 import { toast } from "@/stores/toast";
+import { confirm } from "@/stores/confirm";
 import { useT } from "@/lib/i18n";
 import type { FileEntry, TransferTask, FavoritePath, RecentPath } from "@/types";
 
@@ -537,9 +538,15 @@ function RemoteFileList() {
         setRenameValue(selected[0]);
       }
     };
-    const handleDelete = () => {
+    const handleDelete = async () => {
       const selected = Array.from(selectedRemoteEntries);
       if (selected.length > 0) {
+        const ok = await confirm({
+          title: t("confirm.deleteBatchTitle"),
+          description: t("confirm.deleteBatchDesc", { n: selected.length }),
+          confirmLabel: t("confirm.delete"),
+        });
+        if (!ok) return;
         const entries = remoteEntries.filter((e) => selectedRemoteEntries.has(e.name));
         for (const entry of entries) {
           remove(entry.name, entry.fileType === "dir");
@@ -812,8 +819,14 @@ function RemoteFileList() {
                   <Pencil size={12} className="text-[var(--color-text-muted)]" />
                 </button>
                 <button
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
+                    const ok = await confirm({
+                      title: t("confirm.deleteFileTitle"),
+                      description: t("confirm.deleteFileDesc"),
+                      confirmLabel: t("confirm.delete"),
+                    });
+                    if (!ok) return;
                     remove(entry.name, entry.fileType === "dir");
                   }}
                   className="p-0.5 rounded hover:bg-[var(--color-bg-hover)]"

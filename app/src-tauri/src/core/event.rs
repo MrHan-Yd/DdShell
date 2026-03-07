@@ -143,3 +143,60 @@ pub fn emit_metrics_collector_state(app: &AppHandle, collector_id: &str, state: 
         },
     );
 }
+
+// ── Update download events ──
+
+pub const UPDATE_DOWNLOAD_PROGRESS: &str = "update:download_progress";
+pub const UPDATE_DOWNLOAD_COMPLETED: &str = "update:download_completed";
+pub const UPDATE_DOWNLOAD_FAILED: &str = "update:download_failed";
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateDownloadProgressEvent {
+    pub downloaded_bytes: u64,
+    pub total_bytes: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateDownloadCompletedEvent {
+    pub path: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateDownloadFailedEvent {
+    pub error: String,
+}
+
+pub fn emit_update_download_progress(
+    app: &AppHandle,
+    downloaded_bytes: u64,
+    total_bytes: u64,
+) {
+    let _ = app.emit(
+        UPDATE_DOWNLOAD_PROGRESS,
+        UpdateDownloadProgressEvent {
+            downloaded_bytes,
+            total_bytes,
+        },
+    );
+}
+
+pub fn emit_update_download_completed(app: &AppHandle, path: &str) {
+    let _ = app.emit(
+        UPDATE_DOWNLOAD_COMPLETED,
+        UpdateDownloadCompletedEvent {
+            path: path.to_string(),
+        },
+    );
+}
+
+pub fn emit_update_download_failed(app: &AppHandle, error: &str) {
+    let _ = app.emit(
+        UPDATE_DOWNLOAD_FAILED,
+        UpdateDownloadFailedEvent {
+            error: error.to_string(),
+        },
+    );
+}

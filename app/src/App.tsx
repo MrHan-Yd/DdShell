@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Titlebar } from "@/components/Titlebar";
 import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
 import { ToastContainer } from "@/components/Toast";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useAppStore } from "@/stores/app";
 import { useShortcuts } from "@/hooks/useShortcuts";
 import { ConnectionsPage } from "@/features/connections/ConnectionsPage";
@@ -13,41 +14,85 @@ import { SettingsPage } from "@/features/settings/SettingsPage";
 import { MonitorPage } from "@/features/monitor/MonitorPage";
 import * as api from "@/lib/tauri";
 import type { Locale } from "@/lib/i18n";
+import type { Page } from "@/types";
+
+const PAGE_ORDER: Page[] = ["connections", "terminal", "sftp", "monitor", "snippets", "settings"];
 
 function PageRenderer() {
   const currentPage = useAppStore((s) => s.currentPage);
+  const prevPageRef = useRef<Page>(currentPage);
+  const [animClass, setAnimClass] = useState("animate-fade-in-up");
 
-  switch (currentPage) {
-    case "connections":
-      return <ConnectionsPage />;
-    case "terminal":
-      return <TerminalPage />;
-    case "sftp":
-      return <SftpPage />;
-    case "monitor":
-      return <MonitorPage />;
-    case "snippets":
-      return <SnippetsPage />;
-    case "settings":
-      return <SettingsPage />;
-  }
+  useEffect(() => {
+    const prevIdx = PAGE_ORDER.indexOf(prevPageRef.current);
+    const currIdx = PAGE_ORDER.indexOf(currentPage);
+    setAnimClass(currIdx >= prevIdx ? "animate-fade-in-up" : "animate-fade-in-down");
+    prevPageRef.current = currentPage;
+  }, [currentPage]);
+
+  return (
+    <>
+      <div className={currentPage === "terminal" ? "flex flex-1 overflow-hidden" : "hidden"}>
+        <TerminalPage />
+      </div>
+      {currentPage !== "terminal" && (
+        <div key={currentPage} className={`flex flex-1 overflow-hidden ${animClass}`}>
+          {currentPage === "connections" && <ConnectionsPage />}
+          {currentPage === "sftp" && <SftpPage />}
+          {currentPage === "monitor" && <MonitorPage />}
+          {currentPage === "snippets" && <SnippetsPage />}
+          {currentPage === "settings" && <SettingsPage />}
+        </div>
+      )}
+    </>
+  );
 }
 
 export default function App() {
   const theme = useAppStore((s) => s.theme);
   const setLocale = useAppStore((s) => s.setLocale);
+  const [uiFontFamily, setUiFontFamily] = useState("");
+  const [uiFontSize, setUiFontSize] = useState(14);
 
   // Register global + page shortcuts
   useShortcuts();
 
-  // Load locale from backend on mount
+  // Load locale and UI font settings from backend on mount + when settings change
   useEffect(() => {
-    api.settingGet("locale").then((saved) => {
-      if (saved === "en" || saved === "zh") {
-        setLocale(saved as Locale);
-      }
-    }).catch(() => {});
+    const loadUiSettings = () => {
+      api.settingGet("locale").then((saved) => {
+        if (saved === "en" || saved === "zh") {
+          setLocale(saved as Locale);
+        }
+      }).catch(() => {});
+
+      api.settingGet("ui.fontFamily").then((saved) => {
+        setUiFontFamily(saved || "");
+      }).catch(() => {});
+
+      api.settingGet("ui.fontSize").then((saved) => {
+        if (saved) setUiFontSize(parseInt(saved));
+      }).catch(() => {});
+    };
+
+    loadUiSettings();
+
+    window.addEventListener("terminal:settings-changed", loadUiSettings);
+    return () => {
+      window.removeEventListener("terminal:settings-changed", loadUiSettings);
+    };
   }, [setLocale]);
+
+  // Apply UI font to document
+  useEffect(() => {
+    const root = document.documentElement;
+    if (uiFontFamily) {
+      root.style.fontFamily = `"${uiFontFamily}", "SF Pro Text", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    } else {
+      root.style.removeProperty("font-family");
+    }
+    root.style.fontSize = `${uiFontSize}px`;
+  }, [uiFontFamily, uiFontSize]);
 
   // Apply theme to document
   useEffect(() => {
@@ -78,6 +123,7 @@ export default function App() {
       </div>
       <StatusBar />
       <ToastContainer />
+      <ConfirmDialog />
     </div>
   );
 }

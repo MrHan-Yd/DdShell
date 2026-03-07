@@ -18,6 +18,18 @@ const dict = {
   "status.transfer": { zh: "个传输", en: " transfer" },
   "status.transfers": { zh: "个传输", en: " transfers" },
 
+  // ── Update ──
+  "update.checking": { zh: "检查中...", en: "Checking..." },
+  "update.available": { zh: "新版本 {v}", en: "New version {v}" },
+  "update.latest": { zh: "已是最新", en: "Up to date" },
+  "update.download": { zh: "前往下载", en: "Download" },
+  "update.failed": { zh: "检查失败", en: "Check failed" },
+  "update.downloading": { zh: "下载中...", en: "Downloading..." },
+  "update.downloadComplete": { zh: "下载完成", en: "Download complete" },
+  "update.downloadFailed": { zh: "下载失败", en: "Download failed" },
+  "update.openFile": { zh: "打开安装包", en: "Open installer" },
+  "update.close": { zh: "关闭", en: "Close" },
+
   // ── ConnectionsPage ──
   "conn.search": { zh: "搜索...", en: "Search..." },
   "conn.loading": { zh: "加载中...", en: "Loading..." },
@@ -60,6 +72,9 @@ const dict = {
   "term.history": { zh: "历史记录", en: "History" },
   "term.searchCommands": { zh: "搜索命令...", en: "Search commands..." },
   "term.noCommands": { zh: "没有找到命令", en: "No commands found" },
+  "term.disconnected": { zh: "连接已断开", en: "Disconnected" },
+  "term.reconnect": { zh: "重新连接", en: "Reconnect" },
+  "term.reconnecting": { zh: "重连中...", en: "Reconnecting..." },
 
   // ── SftpPage ──
   "sftp.local": { zh: "本地", en: "Local" },
@@ -173,6 +188,8 @@ const dict = {
   "settings.fontSize": { zh: "字体大小", en: "Font Size" },
   "settings.fontWeight": { zh: "字体粗细", en: "Font Weight" },
   "settings.lineHeight": { zh: "行高", en: "Line Height" },
+  "settings.fontLigatures": { zh: "字体连字", en: "Font Ligatures" },
+  "settings.fontLigaturesDesc": { zh: "启用字体连字（如 -> => >= <=），需要字体支持", en: "Enable font ligatures (e.g. -> => >= <=), requires font support" },
   "settings.terminalColors": { zh: "终端颜色", en: "Terminal Colors" },
   "settings.foreground": { zh: "前景色", en: "Foreground" },
   "settings.cursor": { zh: "光标", en: "Cursor" },
@@ -200,6 +217,27 @@ const dict = {
   "settings.clear": { zh: "清除", en: "Clear" },
   "settings.noImageSelected": { zh: "未选择图片", en: "No image selected" },
   "settings.loadingFonts": { zh: "加载字体...", en: "Loading fonts..." },
+  "settings.uiFont": { zh: "程序字体", en: "UI Font" },
+  "settings.uiFontFamily": { zh: "字体族", en: "Font Family" },
+  "settings.uiFontSize": { zh: "字体大小", en: "Font Size" },
+  "settings.uiFontDesc": { zh: "设置程序界面的显示字体", en: "Set the font for the application interface" },
+  "settings.systemDefault": { zh: "系统默认", en: "System Default" },
+
+  // ── Confirm Dialog ──
+  "confirm.ok": { zh: "确认", en: "Confirm" },
+  "confirm.cancel": { zh: "取消", en: "Cancel" },
+  "confirm.delete": { zh: "删除", en: "Delete" },
+  "confirm.close": { zh: "关闭", en: "Close" },
+  "confirm.deleteConnectionTitle": { zh: "删除连接", en: "Delete Connection" },
+  "confirm.deleteConnectionDesc": { zh: "确定要删除此连接吗？此操作不可撤销。", en: "Are you sure you want to delete this connection? This cannot be undone." },
+  "confirm.deleteFileTitle": { zh: "删除文件", en: "Delete File" },
+  "confirm.deleteFileDesc": { zh: "确定要删除此远程文件/目录吗？此操作不可撤销。", en: "Are you sure you want to delete this remote file/directory? This cannot be undone." },
+  "confirm.deleteBatchTitle": { zh: "批量删除", en: "Delete Multiple Items" },
+  "confirm.deleteBatchDesc": { zh: "确定要删除选中的 {n} 个文件吗？此操作不可撤销。", en: "Are you sure you want to delete {n} selected items? This cannot be undone." },
+  "confirm.deleteSnippetTitle": { zh: "删除片段", en: "Delete Snippet" },
+  "confirm.deleteSnippetDesc": { zh: "确定要删除此代码片段吗？此操作不可撤销。", en: "Are you sure you want to delete this snippet? This cannot be undone." },
+  "confirm.closeSessionTitle": { zh: "关闭会话", en: "Close Session" },
+  "confirm.closeSessionDesc": { zh: "确定要关闭此终端会话吗？", en: "Are you sure you want to close this terminal session?" },
 
   // ── SnippetsPage ──
   "snippets.title": { zh: "命令片段", en: "Snippets" },
@@ -225,11 +263,17 @@ const dict = {
 
 export type DictKey = keyof typeof dict;
 
-export function t(key: DictKey, locale: Locale): string {
-  return dict[key]?.[locale] ?? key;
+export function t(key: DictKey, locale: Locale, params?: Record<string, string | number>): string {
+  let text: string = dict[key]?.[locale] ?? key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      text = text.replace(`{${k}}`, String(v));
+    }
+  }
+  return text;
 }
 
 export function useT() {
   const locale = useAppStore((s) => s.locale);
-  return (key: DictKey) => t(key, locale);
+  return (key: DictKey, params?: Record<string, string | number>) => t(key, locale, params);
 }
