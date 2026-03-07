@@ -143,6 +143,7 @@ impl MetricsManager {
     }
 
     /// Remove a collector
+    #[allow(dead_code)]
     pub fn remove(&self, collector_id: &str) {
         self.collectors.lock().remove(collector_id);
     }
@@ -205,6 +206,7 @@ impl MetricsManager {
     }
 
     /// Get the collector state
+    #[allow(dead_code)]
     pub fn state(&self, collector_id: &str) -> Option<CollectorState> {
         self.collectors
             .lock()

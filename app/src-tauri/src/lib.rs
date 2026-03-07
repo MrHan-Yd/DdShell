@@ -13,7 +13,7 @@ use crate::core::sftp::SftpManager;
 use crate::core::ssh::SessionManager;
 use crate::core::store::Database;
 
-// ── Request / Response types ──
+// ── Request / Response types ──///
 
 /// Deserialize a doubly-optional field:
 /// - absent in JSON → None (don't update)
@@ -342,8 +342,15 @@ async fn session_connect(
 
     event::emit_session_state(&app, "", "connecting");
 
+    let timeout_secs = db
+        .get_setting("session.keepAlive")
+        .await
+        .unwrap_or(None)
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(30);
+
     let (session_id, channel, cmd_rx) = mgr
-        .connect(&db, &req.host_id, &password, cols, rows)
+        .connect(&db, &req.host_id, &password, cols, rows, timeout_secs)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -842,7 +849,7 @@ async fn connection_test(
 
     let start = std::time::Instant::now();
 
-    match core::ssh::SshSession::connect(&host_addr, port, &username, &password, &host_id).await {
+    match core::ssh::SshSession::connect(&host_addr, port, &username, &password, &host_id, 30).await {
         Ok(mut sess) => {
             let latency = start.elapsed().as_millis() as u64;
             sess.disconnect().await;

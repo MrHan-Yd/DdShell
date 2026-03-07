@@ -121,6 +121,7 @@ export function SettingsPage() {
   const [uiFontFamily, setUiFontFamily] = useState(DEFAULT_UI_FONT_FAMILY);
   const [uiFontSize, setUiFontSize] = useState(DEFAULT_UI_FONT_SIZE);
   const [confirmDanger, setConfirmDanger] = useState(true);
+  const [sessionTimeout, setSessionTimeout] = useState("30");
   const [loaded, setLoaded] = useState(false);
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
@@ -141,6 +142,7 @@ export function SettingsPage() {
           savedCursor,
           savedSelectionBg,
           savedConfirmDanger,
+          savedKeepAlive,
           savedBgSource,
           savedBgColor,
           savedBgImagePath,
@@ -160,6 +162,7 @@ export function SettingsPage() {
           api.settingGet("terminal.cursor"),
           api.settingGet("terminal.selectionBg"),
           api.settingGet("confirmDangerousActions"),
+          api.settingGet("session.keepAlive"),
           api.settingGet("terminal.bgSource"),
           api.settingGet("terminal.bgColor"),
           api.settingGet("terminal.bgImagePath"),
@@ -190,6 +193,7 @@ export function SettingsPage() {
         });
 
         setConfirmDanger(savedConfirmDanger !== "false");
+        setSessionTimeout(savedKeepAlive || "30");
 
         setUiFontFamily(savedUiFontFamily || DEFAULT_UI_FONT_FAMILY);
         setUiFontSize(savedUiFontSize ? parseInt(savedUiFontSize) : DEFAULT_UI_FONT_SIZE);
@@ -222,6 +226,7 @@ export function SettingsPage() {
         api.settingSet("terminal.cursor", terminal.cursor),
         api.settingSet("terminal.selectionBg", terminal.selectionBg),
         api.settingSet("confirmDangerousActions", String(confirmDanger)),
+        api.settingSet("session.keepAlive", sessionTimeout),
         api.settingSet("terminal.bgSource", terminal.bgSource),
         api.settingSet("terminal.bgColor", terminal.bgColor),
         api.settingSet("terminal.bgImagePath", terminal.bgImagePath),
@@ -246,6 +251,7 @@ export function SettingsPage() {
     setUiFontFamily(DEFAULT_UI_FONT_FAMILY);
     setUiFontSize(DEFAULT_UI_FONT_SIZE);
     setConfirmDanger(true);
+    setSessionTimeout("30");
     setResetStatus(true);
     setTimeout(() => setResetStatus(false), 2000);
   };
@@ -342,8 +348,10 @@ export function SettingsPage() {
           </div>
         </Section>
 
-        {/* Terminal Font */}
-        <Section title={t("settings.terminalFont")}>
+        {/* Terminal */}
+        <Section title={t("settings.terminal")}>
+          {/* Font */}
+          <h4 className="mb-3 text-[var(--font-size-sm)] font-medium text-[var(--color-text-muted)]">{t("settings.terminalFont")}</h4>
           <div className="space-y-3">
             <SettingRow label={t("settings.fontFamily")}>
               <select
@@ -426,10 +434,10 @@ export function SettingsPage() {
               </button>
             </SettingRow>
           </div>
-        </Section>
 
-        {/* Terminal Colors */}
-        <Section title={t("settings.terminalColors")}>
+          {/* Colors */}
+          <div className="my-4 border-t border-[var(--color-border)]" />
+          <h4 className="mb-3 text-[var(--font-size-sm)] font-medium text-[var(--color-text-muted)]">{t("settings.terminalColors")}</h4>
           <div className="space-y-3">
             <SettingRow label={t("settings.foreground")}>
               <div className="flex items-center gap-2">
@@ -529,10 +537,10 @@ export function SettingsPage() {
               </div>
             </div>
           </div>
-        </Section>
 
-        {/* Terminal Background — FR-30 */}
-        <Section title={t("settings.terminalBg")}>
+          {/* Background */}
+          <div className="my-4 border-t border-[var(--color-border)]" />
+          <h4 className="mb-3 text-[var(--font-size-sm)] font-medium text-[var(--color-text-muted)]">{t("settings.terminalBg")}</h4>
           <div className="space-y-3">
             <SettingRow label={t("settings.bgSource")}>
               <SegmentedControl
@@ -661,6 +669,25 @@ export function SettingsPage() {
               </Button>
             </div>
           </div>
+
+          {/* Session */}
+          <div className="my-4 border-t border-[var(--color-border)]" />
+          <h4 className="mb-3 text-[var(--font-size-sm)] font-medium text-[var(--color-text-muted)]">{t("settings.terminalSession")}</h4>
+          <SettingRow
+            label={t("settings.sessionTimeout")}
+            description={t("settings.sessionTimeoutDesc")}
+          >
+            <SegmentedControl
+              value={sessionTimeout}
+              onChange={setSessionTimeout}
+              options={[
+                { value: "30", label: t("settings.timeout30s") },
+                { value: "300", label: t("settings.timeout5m") },
+                { value: "1800", label: t("settings.timeout30m") },
+                { value: "0", label: t("settings.timeoutNever") },
+              ]}
+            />
+          </SettingRow>
         </Section>
 
         {/* Behavior */}

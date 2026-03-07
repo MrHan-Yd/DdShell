@@ -14,6 +14,7 @@ use crate::core::store::Database;
 /// Session state
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
+#[allow(dead_code)]
 pub enum SessionState {
     Connecting,
     Connected,
@@ -68,6 +69,7 @@ pub enum PtyCommand {
 }
 
 /// A live SSH session backed by russh
+#[allow(dead_code)]
 pub struct SshSession {
     pub id: String,
     pub host_id: String,
@@ -85,9 +87,10 @@ impl SshSession {
         username: &str,
         password: &str,
         host_id: &str,
+        timeout_secs: u64,
     ) -> anyhow::Result<Self> {
         let config = client::Config {
-            inactivity_timeout: Some(std::time::Duration::from_secs(30)),
+            inactivity_timeout: if timeout_secs == 0 { None } else { Some(std::time::Duration::from_secs(timeout_secs)) },
             ..Default::default()
         };
 
@@ -126,9 +129,10 @@ impl SshSession {
         username: &str,
         password: &str,
         host_id: &str,
+        timeout_secs: u64,
     ) -> anyhow::Result<(Self, String, String)> {
         let config = client::Config {
-            inactivity_timeout: Some(std::time::Duration::from_secs(30)),
+            inactivity_timeout: if timeout_secs == 0 { None } else { Some(std::time::Duration::from_secs(timeout_secs)) },
             ..Default::default()
         };
 
@@ -300,6 +304,7 @@ impl SessionManager {
         password: &str,
         cols: u32,
         rows: u32,
+        timeout_secs: u64,
     ) -> anyhow::Result<(String, Channel<client::Msg>, tokio::sync::mpsc::UnboundedReceiver<PtyCommand>)> {
         let host = db
             .get_host(host_id)
@@ -313,6 +318,7 @@ impl SessionManager {
                 &host.username,
                 password,
                 host_id,
+                timeout_secs,
             )
             .await?;
 
