@@ -10,7 +10,7 @@ interface TerminalState {
   splitDirection: SplitDirection;
   splitSessionId: string | null; // second pane session ID
 
-  openSession: (hostId: string, hostName: string, password: string) => Promise<string>;
+  openSession: (hostId: string, hostName: string, password?: string) => Promise<string>;
   closeSession: (tabId: string) => Promise<void>;
   setActiveTab: (tabId: string) => void;
   updateTabState: (sessionId: string, state: SessionState) => void;

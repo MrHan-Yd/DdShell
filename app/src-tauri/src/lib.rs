@@ -1,9 +1,8 @@
 mod core;
 
-use std::sync::Arc;
 use std::time::Duration;
 
-use parking_lot::Mutex;
+use russh::ChannelMsg;
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
 
@@ -15,6 +14,17 @@ use crate::core::store::Database;
 
 // ── Request / Response types ──
 
+/// Deserialize a doubly-optional field:
+/// - absent in JSON → None (don't update)
+/// - present as null → Some(None) (set to NULL)
+/// - present as "value" → Some(Some("value"))
+fn deserialize_optional_field<'de, D>(deserializer: D) -> Result<Option<Option<String>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(Some(Option::deserialize(deserializer)?))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct CreateHostReq {
@@ -24,6 +34,7 @@ struct CreateHostReq {
     username: String,
     auth_type: String,
     group_id: Option<String>,
+    password: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,9 +46,13 @@ struct UpdateHostReq {
     port: Option<i64>,
     username: Option<String>,
     auth_type: Option<String>,
-    group_id: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_field")]
+    group_id: Option<Option<String>>,
     is_favorite: Option<bool>,
     sort_order: Option<i64>,
+    #[serde(default, deserialize_with = "deserialize_optional_field")]
+    secret_ref: Option<Option<String>>,
+    password: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -63,7 +78,7 @@ struct HealthPayload {
 #[serde(rename_all = "camelCase")]
 struct SessionConnectReq {
     host_id: String,
-    password: String,
+    password: Option<String>,
     cols: Option<u32>,
     rows: Option<u32>,
 }
@@ -94,6 +109,13 @@ async fn connection_create(
     db: tauri::State<'_, Database>,
     req: CreateHostReq,
 ) -> Result<IdResponse, String> {
+    // Encrypt password before storing
+    let encrypted = req.password.as_deref()
+        .filter(|p| !p.is_empty())
+        .map(|p| core::secret::encrypt(p))
+        .transpose()
+        .map_err(|e| e.to_string())?;
+
     let id = db
         .create_host(
             &req.name,
@@ -102,9 +124,11 @@ async fn connection_create(
             &req.username,
             &req.auth_type,
             req.group_id.as_deref(),
+            encrypted.as_deref(),
         )
         .await
         .map_err(|e| e.to_string())?;
+
     Ok(IdResponse { id })
 }
 
@@ -113,6 +137,18 @@ async fn connection_update(
     db: tauri::State<'_, Database>,
     req: UpdateHostReq,
 ) -> Result<SuccessResponse, String> {
+    // If password provided, encrypt and store in secret_ref column
+    let secret_ref = if let Some(ref pw) = req.password {
+        if pw.is_empty() {
+            Some(None) // clear password
+        } else {
+            let encrypted = core::secret::encrypt(pw).map_err(|e| e.to_string())?;
+            Some(Some(encrypted))
+        }
+    } else {
+        req.secret_ref.clone()
+    };
+
     db.update_host(
         &req.id,
         req.name.as_deref(),
@@ -120,9 +156,10 @@ async fn connection_update(
         req.port,
         req.username.as_deref(),
         req.auth_type.as_deref(),
-        Some(req.group_id.as_deref()),
+        req.group_id.as_ref().map(|g| g.as_deref()),
         req.is_favorite,
         req.sort_order,
+        secret_ref.as_ref().map(|s| s.as_deref()),
     )
     .await
     .map_err(|e| e.to_string())?;
@@ -289,24 +326,34 @@ async fn session_connect(
     let cols = req.cols.unwrap_or(120);
     let rows = req.rows.unwrap_or(40);
 
+    // Resolve password: use provided password or decrypt from DB (secret_ref column)
+    let password = match req.password {
+        Some(pw) if !pw.is_empty() => pw,
+        _ => {
+            let host = db.get_host(&req.host_id).await.map_err(|e| e.to_string())?
+                .ok_or_else(|| "Host not found".to_string())?;
+            let encrypted = host.secret_ref
+                .ok_or_else(|| "No saved password".to_string())?;
+            core::secret::decrypt(&encrypted)
+                .map_err(|e| format!("Failed to decrypt password: {}", e))?
+        }
+    };
+
     event::emit_session_state(&app, "", "connecting");
 
-    let session_id = mgr
-        .connect(&db, &req.host_id, &req.password, cols, rows)
+    let (session_id, channel, cmd_rx) = mgr
+        .connect(&db, &req.host_id, &password, cols, rows)
         .await
         .map_err(|e| e.to_string())?;
 
     event::emit_session_state(&app, &session_id, "connected");
 
-    // Spawn output reader loop
-    let session = mgr
-        .get(&session_id)
-        .ok_or_else(|| "Session lost".to_string())?;
+    // Spawn async output reader loop — channel is owned exclusively by the reader
     let sid = session_id.clone();
     let app_handle = app.clone();
 
-    tokio::task::spawn_blocking(move || {
-        output_reader_loop(app_handle, session, &sid);
+    tokio::spawn(async move {
+        output_reader_loop(app_handle, channel, cmd_rx, &sid).await;
     });
 
     Ok(IdResponse { id: session_id })
@@ -318,7 +365,7 @@ async fn session_disconnect(
     mgr: tauri::State<'_, SessionManager>,
     session_id: String,
 ) -> Result<SuccessResponse, String> {
-    mgr.disconnect(&session_id).map_err(|e| e.to_string())?;
+    mgr.disconnect(&session_id).await.map_err(|e| e.to_string())?;
     event::emit_session_state(&app, &session_id, "disconnected");
     Ok(SuccessResponse { success: true })
 }
@@ -334,7 +381,9 @@ async fn session_write(
         .ok_or_else(|| "Session not found".to_string())?;
     session
         .lock()
+        .await
         .write_input(&data)
+        .await
         .map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
 }
@@ -351,6 +400,7 @@ async fn session_resize(
         .ok_or_else(|| "Session not found".to_string())?;
     session
         .lock()
+        .await
         .resize(cols, rows)
         .map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
@@ -364,12 +414,8 @@ async fn sftp_list_dir(
     session_id: String,
     remote_path: String,
 ) -> Result<Vec<core::sftp::FileEntry>, String> {
-    let mgr = mgr.inner().clone();
-    let sid = session_id.clone();
-    let rp = remote_path.clone();
-    tokio::task::spawn_blocking(move || SftpManager::list_dir(&mgr, &sid, &rp))
+    SftpManager::list_dir(&mgr, &session_id, &remote_path)
         .await
-        .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())
 }
 
@@ -379,10 +425,8 @@ async fn sftp_mkdir(
     session_id: String,
     remote_path: String,
 ) -> Result<SuccessResponse, String> {
-    let mgr = mgr.inner().clone();
-    tokio::task::spawn_blocking(move || SftpManager::mkdir(&mgr, &session_id, &remote_path))
+    SftpManager::mkdir(&mgr, &session_id, &remote_path)
         .await
-        .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
 }
@@ -394,17 +438,15 @@ async fn sftp_remove(
     remote_path: String,
     is_dir: bool,
 ) -> Result<SuccessResponse, String> {
-    let mgr = mgr.inner().clone();
-    tokio::task::spawn_blocking(move || {
-        if is_dir {
-            SftpManager::remove_dir(&mgr, &session_id, &remote_path)
-        } else {
-            SftpManager::remove_file(&mgr, &session_id, &remote_path)
-        }
-    })
-    .await
-    .map_err(|e| e.to_string())?
-    .map_err(|e| e.to_string())?;
+    if is_dir {
+        SftpManager::remove_dir(&mgr, &session_id, &remote_path)
+            .await
+            .map_err(|e| e.to_string())?;
+    } else {
+        SftpManager::remove_file(&mgr, &session_id, &remote_path)
+            .await
+            .map_err(|e| e.to_string())?;
+    }
     Ok(SuccessResponse { success: true })
 }
 
@@ -415,10 +457,8 @@ async fn sftp_rename(
     old_path: String,
     new_path: String,
 ) -> Result<SuccessResponse, String> {
-    let mgr = mgr.inner().clone();
-    tokio::task::spawn_blocking(move || SftpManager::rename(&mgr, &session_id, &old_path, &new_path))
+    SftpManager::rename(&mgr, &session_id, &old_path, &new_path)
         .await
-        .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
 }
@@ -436,16 +476,10 @@ async fn sftp_transfer_start(
         sftp_mgr.start_upload(&req.session_id, &req.local_path, &req.remote_path)
     } else {
         // Get remote file size for download progress
-        let session_mgr_clone = session_mgr.inner().clone();
-        let sid = req.session_id.clone();
-        let rp = req.remote_path.clone();
-        let remote_size = tokio::task::spawn_blocking(move || {
-            SftpManager::stat(&session_mgr_clone, &sid, &rp)
-                .map(|e| e.size)
-                .unwrap_or(0)
-        })
-        .await
-        .unwrap_or(0);
+        let remote_size = SftpManager::stat(&session_mgr, &req.session_id, &req.remote_path)
+            .await
+            .map(|e| e.size)
+            .unwrap_or(0);
         sftp_mgr.start_download(&req.session_id, &req.remote_path, &req.local_path, remote_size)
     };
 
@@ -455,11 +489,11 @@ async fn sftp_transfer_start(
     let tid = task_id.clone();
     let app_handle = app.clone();
 
-    tokio::task::spawn_blocking(move || {
+    tokio::spawn(async move {
         let result = if is_upload {
-            sftp_mgr_clone.execute_upload(&session_mgr_clone, &tid)
+            sftp_mgr_clone.execute_upload(&session_mgr_clone, &tid).await
         } else {
-            sftp_mgr_clone.execute_download(&session_mgr_clone, &tid)
+            sftp_mgr_clone.execute_download(&session_mgr_clone, &tid).await
         };
 
         match result {
@@ -603,6 +637,17 @@ fn local_home_dir() -> Result<String, String> {
         .ok_or_else(|| "Could not determine home directory".to_string())
 }
 
+// ── Commands: System Fonts ──
+
+#[tauri::command]
+fn list_system_fonts() -> Result<Vec<String>, String> {
+    use font_kit::source::SystemSource;
+    let source = SystemSource::new();
+    let mut families = source.all_families().map_err(|e| e.to_string())?;
+    families.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+    Ok(families)
+}
+
 // ── Commands: System Detection ──
 
 #[derive(Debug, Clone, Serialize)]
@@ -620,65 +665,60 @@ async fn system_detect(
     mgr: tauri::State<'_, SessionManager>,
     session_id: String,
 ) -> Result<SystemInfo, String> {
-    let mgr = mgr.inner().clone();
-    tokio::task::spawn_blocking(move || {
-        let session = mgr
-            .get(&session_id)
-            .ok_or_else(|| "Session not found".to_string())?;
-        let sess = session.lock();
+    let session = mgr
+        .get(&session_id)
+        .ok_or_else(|| "Session not found".to_string())?;
+    let sess = session.lock().await;
 
-        let cmd = "echo '===OS==='; uname -s; echo '===KERNEL==='; uname -r; echo '===DISTRO==='; cat /etc/os-release 2>/dev/null | head -5; echo '===SHELL==='; echo $SHELL; echo '===END==='";
-        let output = sess.exec_command(cmd).map_err(|e| e.to_string())?;
-        drop(sess);
+    let cmd = "echo '===OS==='; uname -s; echo '===KERNEL==='; uname -r; echo '===DISTRO==='; cat /etc/os-release 2>/dev/null | head -5; echo '===SHELL==='; echo $SHELL; echo '===END==='";
+    let output = sess.exec_command(cmd).await.map_err(|e| e.to_string())?;
+    drop(sess);
 
-        let mut os = String::new();
-        let mut kernel = None;
-        let mut distro = None;
-        let mut distro_version = None;
-        let mut shell = None;
+    let mut os = String::new();
+    let mut kernel = None;
+    let mut distro = None;
+    let mut distro_version = None;
+    let mut shell = None;
 
-        let mut section: Option<&str> = None;
-        for line in output.lines() {
-            if line.starts_with("===") && line.ends_with("===") {
-                section = Some(line.trim_matches('='));
-                continue;
-            }
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
-            }
-            match section {
-                Some("OS") => {
-                    os = line.to_string();
-                }
-                Some("KERNEL") => {
-                    kernel = Some(line.to_string());
-                }
-                Some("DISTRO") => {
-                    if line.starts_with("PRETTY_NAME=") {
-                        distro = Some(line.trim_start_matches("PRETTY_NAME=").trim_matches('"').to_string());
-                    }
-                    if line.starts_with("VERSION_ID=") {
-                        distro_version = Some(line.trim_start_matches("VERSION_ID=").trim_matches('"').to_string());
-                    }
-                }
-                Some("SHELL") => {
-                    shell = Some(line.to_string());
-                }
-                _ => {}
-            }
+    let mut section: Option<&str> = None;
+    for line in output.lines() {
+        if line.starts_with("===") && line.ends_with("===") {
+            section = Some(line.trim_matches('='));
+            continue;
         }
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        match section {
+            Some("OS") => {
+                os = line.to_string();
+            }
+            Some("KERNEL") => {
+                kernel = Some(line.to_string());
+            }
+            Some("DISTRO") => {
+                if line.starts_with("PRETTY_NAME=") {
+                    distro = Some(line.trim_start_matches("PRETTY_NAME=").trim_matches('"').to_string());
+                }
+                if line.starts_with("VERSION_ID=") {
+                    distro_version = Some(line.trim_start_matches("VERSION_ID=").trim_matches('"').to_string());
+                }
+            }
+            Some("SHELL") => {
+                shell = Some(line.to_string());
+            }
+            _ => {}
+        }
+    }
 
-        Ok(SystemInfo {
-            os,
-            distro,
-            distro_version,
-            shell,
-            kernel,
-        })
+    Ok(SystemInfo {
+        os,
+        distro,
+        distro_version,
+        shell,
+        kernel,
     })
-    .await
-    .map_err(|e| e.to_string())?
 }
 
 // ── Commands: SFTP batch upload (drag-drop) ──
@@ -715,8 +755,8 @@ async fn sftp_upload_files(
         let tid = task_id.clone();
         let app_handle = app.clone();
 
-        tokio::task::spawn_blocking(move || {
-            let result = sftp_mgr_clone.execute_upload(&session_mgr_clone, &tid);
+        tokio::spawn(async move {
+            let result = sftp_mgr_clone.execute_upload(&session_mgr_clone, &tid).await;
             match result {
                 Ok(()) => {
                     if let Some(task) = sftp_mgr_clone.get_task(&tid) {
@@ -782,7 +822,6 @@ struct ConnectionTestResult {
 async fn connection_test(
     db: tauri::State<'_, Database>,
     host_id: String,
-    password: String,
 ) -> Result<ConnectionTestResult, String> {
     let host = db
         .get_host(&host_id)
@@ -794,76 +833,32 @@ async fn connection_test(
     let port = host.port as u16;
     let username = host.username.clone();
 
-    let result = tokio::task::spawn_blocking(move || {
-        let start = std::time::Instant::now();
+    // Decrypt password from DB
+    let encrypted = host.secret_ref.clone()
+        .ok_or_else(|| "No saved password".to_string())?;
+    let password = core::secret::decrypt(&encrypted)
+        .map_err(|e| format!("Failed to decrypt password: {}", e))?;
 
-        // Test TCP connection
-        let addr = format!("{}:{}", host_addr, port);
-        let tcp = match std::net::TcpStream::connect_timeout(
-            &addr.parse().map_err(|e: std::net::AddrParseError| e.to_string())?,
-            Duration::from_secs(10),
-        ) {
-            Ok(tcp) => tcp,
-            Err(e) => {
-                return Ok::<ConnectionTestResult, String>(ConnectionTestResult {
-                    success: false,
-                    message: format!("Connection failed: {}", e),
-                    latency_ms: None,
-                });
-            }
-        };
+    let start = std::time::Instant::now();
 
-        // Test SSH handshake + auth
-        let mut sess = match ssh2::Session::new() {
-            Ok(s) => s,
-            Err(e) => {
-                return Ok(ConnectionTestResult {
-                    success: false,
-                    message: format!("SSH init failed: {}", e),
-                    latency_ms: None,
-                });
-            }
-        };
-
-        sess.set_tcp_stream(tcp);
-        if let Err(e) = sess.handshake() {
-            return Ok(ConnectionTestResult {
-                success: false,
-                message: format!("SSH handshake failed: {}", e),
-                latency_ms: None,
-            });
+    match core::ssh::SshSession::connect(&host_addr, port, &username, &password, &host_id).await {
+        Ok(mut sess) => {
+            let latency = start.elapsed().as_millis() as u64;
+            sess.disconnect().await;
+            Ok(ConnectionTestResult {
+                success: true,
+                message: format!("Connected successfully ({}ms)", latency),
+                latency_ms: Some(latency),
+            })
         }
-
-        if let Err(e) = sess.userauth_password(&username, &password) {
-            return Ok(ConnectionTestResult {
+        Err(e) => {
+            Ok(ConnectionTestResult {
                 success: false,
-                message: format!("Authentication failed: {}", e),
+                message: format!("Connection failed: {}", e),
                 latency_ms: None,
-            });
+            })
         }
-
-        if !sess.authenticated() {
-            return Ok(ConnectionTestResult {
-                success: false,
-                message: "Authentication failed".to_string(),
-                latency_ms: None,
-            });
-        }
-
-        let latency = start.elapsed().as_millis() as u64;
-
-        let _ = sess.disconnect(None, "test complete", None);
-
-        Ok(ConnectionTestResult {
-            success: true,
-            message: format!("Connected successfully ({}ms)", latency),
-            latency_ms: Some(latency),
-        })
-    })
-    .await
-    .map_err(|e| e.to_string())??;
-
-    Ok(result)
+    }
 }
 
 // ── Commands: Metrics ──
@@ -898,33 +893,21 @@ async fn metrics_start(
                 break;
             }
 
-            let smgr_clone = smgr.clone();
-            let mmgr_clone = mmgr.clone();
-            let cid_clone = cid.clone();
-
-            let result = tokio::task::spawn_blocking(move || {
-                crate::core::metrics::collect_snapshot(
-                    &smgr_clone,
-                    &mmgr_clone.get_config(&cid_clone).map(|(s, _)| s).unwrap_or_default(),
-                    &mmgr_clone,
-                    &cid_clone,
-                )
-            })
+            let result = crate::core::metrics::collect_snapshot(
+                &smgr,
+                &mmgr.get_config(&cid).map(|(s, _)| s).unwrap_or_default(),
+                &mmgr,
+                &cid,
+            )
             .await;
 
             match result {
-                Ok(Ok(snapshot)) => {
+                Ok(snapshot) => {
                     mmgr.push_snapshot(&cid, snapshot.clone());
                     event::emit_metrics_updated(&app_handle, &cid, snapshot);
                 }
-                Ok(Err(e)) => {
-                    tracing::warn!("metrics collection error: {}", e);
-                    mmgr.mark_error(&cid);
-                    event::emit_metrics_collector_state(&app_handle, &cid, "error");
-                    break;
-                }
                 Err(e) => {
-                    tracing::warn!("metrics spawn error: {}", e);
+                    tracing::warn!("metrics collection error: {}", e);
                     mmgr.mark_error(&cid);
                     event::emit_metrics_collector_state(&app_handle, &cid, "error");
                     break;
@@ -1012,34 +995,8 @@ async fn command_history_clear(
 // ── Commands: Keyring (credentials) ──
 
 #[tauri::command]
-async fn keyring_store(
-    host_id: String,
-    password: String,
-) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        core::secret::store_password(&host_id, &password).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
-}
-
-#[tauri::command]
-async fn keyring_get(secret_ref: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        core::secret::get_password(&secret_ref).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
-}
-
-#[tauri::command]
-async fn keyring_delete(secret_ref: String) -> Result<SuccessResponse, String> {
-    tokio::task::spawn_blocking(move || {
-        core::secret::delete_password(&secret_ref).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())??;
-    Ok(SuccessResponse { success: true })
+async fn password_decrypt(encrypted: String) -> Result<String, String> {
+    core::secret::decrypt(&encrypted).map_err(|e| e.to_string())
 }
 
 // ── Commands: Favorite & Recent Paths ──
@@ -1126,32 +1083,58 @@ async fn ssh_config_import() -> Result<SshConfigImportResult, String> {
     })
 }
 
-/// Background loop that reads SSH output and emits events
-fn output_reader_loop(
+/// Background async loop that reads SSH output and emits events.
+/// Owns the Channel exclusively — write goes through Handle, resize goes through mpsc.
+async fn output_reader_loop(
     app: tauri::AppHandle,
-    session: Arc<Mutex<core::ssh::SshSession>>,
+    mut channel: russh::Channel<russh::client::Msg>,
+    mut cmd_rx: tokio::sync::mpsc::UnboundedReceiver<core::ssh::PtyCommand>,
     session_id: &str,
 ) {
+    tracing::info!("[output_reader_loop] started for session {}", session_id);
+    // Brief delay so the frontend React component can mount and register its
+    // Tauri event listener before we start emitting output data.
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
     loop {
-        {
-            let mut sess = session.lock();
-            if sess.is_eof() {
-                event::emit_session_state(&app, session_id, "disconnected");
-                break;
+        tokio::select! {
+            msg = channel.wait() => {
+                match msg {
+                    Some(ChannelMsg::Data { ref data }) => {
+                        tracing::debug!("[output_reader_loop] received {} bytes for session {}", data.len(), session_id);
+                        event::emit_session_output(&app, session_id, data.to_vec());
+                    }
+                    Some(ChannelMsg::Eof) => {
+                        tracing::info!("[output_reader_loop] EOF for session {}", session_id);
+                        event::emit_session_state(&app, session_id, "disconnected");
+                        break;
+                    }
+                    None => {
+                        tracing::info!("[output_reader_loop] channel closed for session {}", session_id);
+                        event::emit_session_state(&app, session_id, "disconnected");
+                        break;
+                    }
+                    other => {
+                        tracing::debug!("[output_reader_loop] other msg: {:?}", other);
+                    }
+                }
             }
-            match sess.read_output() {
-                Ok(data) if !data.is_empty() => {
-                    event::emit_session_output(&app, session_id, data);
+            cmd = cmd_rx.recv() => {
+                match cmd {
+                    Some(core::ssh::PtyCommand::Resize { cols, rows }) => {
+                        tracing::debug!("[output_reader_loop] resize {}x{}", cols, rows);
+                        if let Err(e) = channel.window_change(cols, rows, 0, 0).await {
+                            tracing::warn!("window_change failed: {}", e);
+                        }
+                    }
+                    None => {
+                        tracing::info!("[output_reader_loop] cmd_rx closed for session {}", session_id);
+                        break;
+                    }
                 }
-                Err(_) => {
-                    event::emit_session_state(&app, session_id, "failed");
-                    break;
-                }
-                _ => {}
             }
         }
-        std::thread::sleep(Duration::from_millis(10));
     }
+    tracing::info!("[output_reader_loop] exited for session {}", session_id);
 }
 
 // ── App entry ──
@@ -1167,11 +1150,20 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // Initialize managers immediately (sync)
             app.manage(SessionManager::new());
             app.manage(SftpManager::new());
             app.manage(MetricsManager::new());
+
+            // On Windows/Linux, hide native decorations so we use custom titlebar.
+            // On macOS, keep decorations + overlay titlebar for native traffic lights.
+            #[cfg(not(target_os = "macos"))]
+            {
+                let window = app.get_webview_window("main").unwrap();
+                let _ = window.set_decorations(false);
+            }
 
             let app_data_dir = app
                 .path()
@@ -1232,9 +1224,7 @@ pub fn run() {
             command_history_insert,
             command_history_list,
             command_history_clear,
-            keyring_store,
-            keyring_get,
-            keyring_delete,
+            password_decrypt,
             local_list_dir,
             local_home_dir,
             path_add_favorite,
@@ -1243,6 +1233,7 @@ pub fn run() {
             path_add_recent,
             path_list_recent,
             ssh_config_import,
+            list_system_fonts,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

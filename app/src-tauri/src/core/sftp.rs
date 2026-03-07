@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -8,6 +7,28 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::core::ssh::SessionManager;
+
+/// Convert russh-sftp FilePermissions to unix permission bits
+fn permissions_to_u32(p: &russh_sftp::protocol::FilePermissions) -> u32 {
+    let mut bits: u32 = 0;
+    if p.owner_read { bits |= 0o400; }
+    if p.owner_write { bits |= 0o200; }
+    if p.owner_exec { bits |= 0o100; }
+    if p.group_read { bits |= 0o040; }
+    if p.group_write { bits |= 0o020; }
+    if p.group_exec { bits |= 0o010; }
+    if p.other_read { bits |= 0o004; }
+    if p.other_write { bits |= 0o002; }
+    if p.other_exec { bits |= 0o001; }
+    bits
+}
+
+/// Convert SystemTime to unix epoch i64
+fn systemtime_to_epoch(t: std::time::SystemTime) -> i64 {
+    t.duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
 
 /// A file entry returned by directory listing
 #[derive(Debug, Clone, Serialize)]
@@ -70,7 +91,7 @@ impl SftpManager {
     }
 
     /// List directory on remote host
-    pub fn list_dir(
+    pub async fn list_dir(
         session_mgr: &SessionManager,
         session_id: &str,
         remote_path: &str,
@@ -79,25 +100,24 @@ impl SftpManager {
             .get(session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
-        let sess = session.lock();
-        let sftp = sess.sftp()?;
-        let entries = sftp.readdir(std::path::Path::new(remote_path))?;
+        let sess = session.lock().await;
+        let sftp = sess.init_sftp().await?;
+        let entries = sftp.read_dir(remote_path).await?;
 
         let mut result = Vec::new();
-        for (path, stat) in entries {
-            let name = path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_default();
+        for entry in entries {
+            let name = entry.file_name();
 
             // Skip . and ..
             if name == "." || name == ".." {
                 continue;
             }
 
-            let file_type = if stat.is_dir() {
+            let metadata = entry.metadata();
+            let file_type_val = metadata.file_type();
+            let file_type = if file_type_val.is_dir() {
                 "dir"
-            } else if stat.file_type().is_symlink() {
+            } else if file_type_val.is_symlink() {
                 "symlink"
             } else {
                 "file"
@@ -106,9 +126,9 @@ impl SftpManager {
             result.push(FileEntry {
                 name,
                 file_type: file_type.to_string(),
-                size: stat.size.unwrap_or(0),
-                mtime: stat.mtime.unwrap_or(0) as i64,
-                permissions: stat.perm.unwrap_or(0),
+                size: metadata.len(),
+                mtime: metadata.modified().map(systemtime_to_epoch).unwrap_or(0),
+                permissions: permissions_to_u32(&metadata.permissions()),
             });
         }
 
@@ -123,7 +143,7 @@ impl SftpManager {
     }
 
     /// Create directory on remote host
-    pub fn mkdir(
+    pub async fn mkdir(
         session_mgr: &SessionManager,
         session_id: &str,
         remote_path: &str,
@@ -132,14 +152,14 @@ impl SftpManager {
             .get(session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
-        let sess = session.lock();
-        let sftp = sess.sftp()?;
-        sftp.mkdir(std::path::Path::new(remote_path), 0o755)?;
+        let sess = session.lock().await;
+        let sftp = sess.init_sftp().await?;
+        sftp.create_dir(remote_path).await?;
         Ok(())
     }
 
     /// Remove file on remote host
-    pub fn remove_file(
+    pub async fn remove_file(
         session_mgr: &SessionManager,
         session_id: &str,
         remote_path: &str,
@@ -148,14 +168,14 @@ impl SftpManager {
             .get(session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
-        let sess = session.lock();
-        let sftp = sess.sftp()?;
-        sftp.unlink(std::path::Path::new(remote_path))?;
+        let sess = session.lock().await;
+        let sftp = sess.init_sftp().await?;
+        sftp.remove_file(remote_path).await?;
         Ok(())
     }
 
     /// Remove directory on remote host
-    pub fn remove_dir(
+    pub async fn remove_dir(
         session_mgr: &SessionManager,
         session_id: &str,
         remote_path: &str,
@@ -164,14 +184,14 @@ impl SftpManager {
             .get(session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
-        let sess = session.lock();
-        let sftp = sess.sftp()?;
-        sftp.rmdir(std::path::Path::new(remote_path))?;
+        let sess = session.lock().await;
+        let sftp = sess.init_sftp().await?;
+        sftp.remove_dir(remote_path).await?;
         Ok(())
     }
 
     /// Rename file/dir on remote host
-    pub fn rename(
+    pub async fn rename(
         session_mgr: &SessionManager,
         session_id: &str,
         old_path: &str,
@@ -181,18 +201,14 @@ impl SftpManager {
             .get(session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
-        let sess = session.lock();
-        let sftp = sess.sftp()?;
-        sftp.rename(
-            std::path::Path::new(old_path),
-            std::path::Path::new(new_path),
-            None,
-        )?;
+        let sess = session.lock().await;
+        let sftp = sess.init_sftp().await?;
+        sftp.rename(old_path, new_path).await?;
         Ok(())
     }
 
     /// Get stat info for a remote path
-    pub fn stat(
+    pub async fn stat(
         session_mgr: &SessionManager,
         session_id: &str,
         remote_path: &str,
@@ -201,18 +217,19 @@ impl SftpManager {
             .get(session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
-        let sess = session.lock();
-        let sftp = sess.sftp()?;
-        let stat = sftp.stat(std::path::Path::new(remote_path))?;
+        let sess = session.lock().await;
+        let sftp = sess.init_sftp().await?;
+        let metadata = sftp.metadata(remote_path).await?;
 
         let name = std::path::Path::new(remote_path)
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| remote_path.to_string());
 
-        let file_type = if stat.is_dir() {
+        let file_type_val = metadata.file_type();
+        let file_type = if file_type_val.is_dir() {
             "dir"
-        } else if stat.file_type().is_symlink() {
+        } else if file_type_val.is_symlink() {
             "symlink"
         } else {
             "file"
@@ -221,9 +238,9 @@ impl SftpManager {
         Ok(FileEntry {
             name,
             file_type: file_type.to_string(),
-            size: stat.size.unwrap_or(0),
-            mtime: stat.mtime.unwrap_or(0) as i64,
-            permissions: stat.perm.unwrap_or(0),
+            size: metadata.len(),
+            mtime: metadata.modified().map(systemtime_to_epoch).unwrap_or(0),
+            permissions: permissions_to_u32(&metadata.permissions()),
         })
     }
 
@@ -284,7 +301,7 @@ impl SftpManager {
     }
 
     /// Execute an upload: reads local file, writes to SFTP remote
-    pub fn execute_upload(
+    pub async fn execute_upload(
         &self,
         session_mgr: &SessionManager,
         task_id: &str,
@@ -314,20 +331,21 @@ impl SftpManager {
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
         // Read local file
-        let mut local_file = std::fs::File::open(&local_path)?;
-        let metadata = local_file.metadata()?;
-        let total = metadata.len();
+        let local_data = tokio::fs::read(&local_path).await?;
+        let total = local_data.len() as u64;
 
-        // Open remote file for writing
-        let sess = session.lock();
-        let sftp = sess.sftp()?;
-        let mut remote_file = sftp.create(std::path::Path::new(&remote_path))?;
+        // Open SFTP and write remote file
+        let sess = session.lock().await;
+        let sftp = sess.init_sftp().await?;
+
+        use tokio::io::AsyncWriteExt;
+        let mut remote_file = sftp.create(&remote_path).await?;
 
         // Transfer in chunks
-        let mut buf = vec![0u8; 32768];
+        let chunk_size = 32768;
         let mut transferred: u64 = 0;
 
-        loop {
+        for chunk in local_data.chunks(chunk_size) {
             // Check for cancellation
             if self.canceled.lock().contains(task_id) {
                 self.update_task_state(task_id, TransferState::Canceled, None);
@@ -335,13 +353,8 @@ impl SftpManager {
                 return Ok(());
             }
 
-            let n = local_file.read(&mut buf)?;
-            if n == 0 {
-                break;
-            }
-
-            remote_file.write_all(&buf[..n])?;
-            transferred += n as u64;
+            remote_file.write_all(chunk).await?;
+            transferred += chunk.len() as u64;
 
             // Update progress
             {
@@ -353,12 +366,14 @@ impl SftpManager {
             }
         }
 
+        remote_file.shutdown().await?;
+
         self.update_task_state(task_id, TransferState::Completed, None);
         Ok(())
     }
 
     /// Execute a download: reads from SFTP remote, writes to local file
-    pub fn execute_download(
+    pub async fn execute_download(
         &self,
         session_mgr: &SessionManager,
         task_id: &str,
@@ -387,21 +402,22 @@ impl SftpManager {
             .get(&session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
-        // Open remote file
-        let sess = session.lock();
-        let sftp = sess.sftp()?;
-        let stat = sftp.stat(std::path::Path::new(&remote_path))?;
-        let total = stat.size.unwrap_or(0);
-        let mut remote_file = sftp.open(std::path::Path::new(&remote_path))?;
+        // Open remote file via SFTP
+        let sess = session.lock().await;
+        let sftp = sess.init_sftp().await?;
+
+        let metadata = sftp.metadata(&remote_path).await?;
+        let total = metadata.len();
+
+        use tokio::io::AsyncReadExt;
+        let mut remote_file = sftp.open(&remote_path).await?;
 
         // Ensure local parent dir exists
         if let Some(parent) = PathBuf::from(&local_path).parent() {
-            std::fs::create_dir_all(parent)?;
+            tokio::fs::create_dir_all(parent).await?;
         }
 
-        let mut local_file = std::fs::File::create(&local_path)?;
-
-        // Transfer in chunks
+        let mut local_data = Vec::new();
         let mut buf = vec![0u8; 32768];
         let mut transferred: u64 = 0;
 
@@ -410,17 +426,16 @@ impl SftpManager {
             if self.canceled.lock().contains(task_id) {
                 self.update_task_state(task_id, TransferState::Canceled, None);
                 self.canceled.lock().remove(task_id);
-                // Clean up partial file
-                let _ = std::fs::remove_file(&local_path);
+                let _ = tokio::fs::remove_file(&local_path).await;
                 return Ok(());
             }
 
-            let n = remote_file.read(&mut buf)?;
+            let n = remote_file.read(&mut buf).await?;
             if n == 0 {
                 break;
             }
 
-            local_file.write_all(&buf[..n])?;
+            local_data.extend_from_slice(&buf[..n]);
             transferred += n as u64;
 
             // Update progress
@@ -432,6 +447,8 @@ impl SftpManager {
                 }
             }
         }
+
+        tokio::fs::write(&local_path, &local_data).await?;
 
         self.update_task_state(task_id, TransferState::Completed, None);
         Ok(())

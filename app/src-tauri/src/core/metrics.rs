@@ -254,10 +254,10 @@ impl MetricsManager {
     }
 }
 
-// ── Metric Collection (runs on blocking thread) ──
+// ── Metric Collection ──
 
 /// Collect a single metrics snapshot from a remote host
-pub fn collect_snapshot(
+pub async fn collect_snapshot(
     session_mgr: &SessionManager,
     session_id: &str,
     metrics_mgr: &MetricsManager,
@@ -267,7 +267,7 @@ pub fn collect_snapshot(
         .get(session_id)
         .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
-    let sess = session.lock();
+    let sess = session.lock().await;
 
     // Run a combined command to reduce round-trips
     let combined_cmd = concat!(
@@ -281,7 +281,7 @@ pub fn collect_snapshot(
         "echo '===END==='",
     );
 
-    let output = sess.exec_command(combined_cmd)?;
+    let output = sess.exec_command(combined_cmd).await?;
     drop(sess);
 
     let timestamp = SystemTime::now()

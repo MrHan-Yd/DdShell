@@ -105,12 +105,12 @@ export async function appHealth(): Promise<{ status: string; message: string }> 
 
 export async function sessionConnect(
   hostId: string,
-  password: string,
+  password?: string,
   cols?: number,
   rows?: number,
 ): Promise<{ id: string }> {
   return invoke("session_connect", {
-    req: { hostId, password, cols: cols ?? 120, rows: rows ?? 40 },
+    req: { hostId, password: password || null, cols: cols ?? 120, rows: rows ?? 40 },
   });
 }
 
@@ -191,23 +191,14 @@ export async function sftpUploadFiles(
 
 export async function connectionTest(
   hostId: string,
-  password: string,
 ): Promise<{ success: boolean; message: string; latencyMs: number | null }> {
-  return invoke("connection_test", { hostId, password });
+  return invoke("connection_test", { hostId });
 }
 
-// ── Keyring commands ──
+// ── Password commands ──
 
-export async function keyringStore(hostId: string, password: string): Promise<string> {
-  return invoke("keyring_store", { hostId, password });
-}
-
-export async function keyringGet(secretRef: string): Promise<string> {
-  return invoke("keyring_get", { secretRef });
-}
-
-export async function keyringDelete(secretRef: string): Promise<{ success: boolean }> {
-  return invoke("keyring_delete", { secretRef });
+export async function passwordDecrypt(encrypted: string): Promise<string> {
+  return invoke("password_decrypt", { encrypted });
 }
 
 // ── Metrics commands ──
@@ -302,8 +293,14 @@ export async function pathAddRecent(sessionId: string, path: string): Promise<{ 
   return invoke("path_add_recent", { sessionId, path });
 }
 
-// ── FR-39: SSH Config Import ──
+// ── SSH Config Import ──
 
 export async function sshConfigImport(): Promise<SshConfigImportResult> {
   return invoke("ssh_config_import");
+}
+
+// ── System Fonts ──
+
+export async function listSystemFonts(): Promise<string[]> {
+  return invoke("list_system_fonts");
 }

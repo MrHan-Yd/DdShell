@@ -79,6 +79,7 @@ export interface CreateHostRequest {
   username: string;
   authType: AuthType;
   groupId?: string | null;
+  password?: string;
 }
 
 /** Update host request — partial patch */
@@ -92,6 +93,8 @@ export interface UpdateHostRequest {
   groupId?: string | null;
   isFavorite?: boolean;
   sortOrder?: number;
+  secretRef?: string | null;
+  password?: string;
 }
 
 /** Terminal tab info */

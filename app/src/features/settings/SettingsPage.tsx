@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe } from "lucide-react";
+import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app";
 import { useT } from "@/lib/i18n";
@@ -115,6 +115,9 @@ export function SettingsPage() {
   const [terminal, setTerminal] = useState<TerminalSettings>(DEFAULT_TERMINAL);
   const [confirmDanger, setConfirmDanger] = useState(true);
   const [loaded, setLoaded] = useState(false);
+  const [systemFonts, setSystemFonts] = useState<string[]>([]);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [resetStatus, setResetStatus] = useState(false);
 
   // Load settings from backend on mount
   useEffect(() => {
@@ -177,27 +180,42 @@ export function SettingsPage() {
         // Use defaults if settings not available yet
       }
       setLoaded(true);
+
+      // Load system fonts in background
+      try {
+        const fonts = await api.listSystemFonts();
+        setSystemFonts(fonts);
+      } catch {
+        // Fallback: empty list, user can still type manually
+      }
     })();
   }, [setTheme, setLocale]);
 
   const handleSave = async () => {
-    await Promise.all([
-      api.settingSet("theme", theme),
-      api.settingSet("locale", locale),
-      api.settingSet("terminal.fontFamily", terminal.fontFamily),
-      api.settingSet("terminal.fontSize", String(terminal.fontSize)),
-      api.settingSet("terminal.fontWeight", String(terminal.fontWeight)),
-      api.settingSet("terminal.lineHeight", String(terminal.lineHeight)),
-      api.settingSet("terminal.foreground", terminal.foreground),
-      api.settingSet("terminal.cursor", terminal.cursor),
-      api.settingSet("terminal.selectionBg", terminal.selectionBg),
-      api.settingSet("confirmDangerousActions", String(confirmDanger)),
-      api.settingSet("terminal.bgSource", terminal.bgSource),
-      api.settingSet("terminal.bgColor", terminal.bgColor),
-      api.settingSet("terminal.bgImagePath", terminal.bgImagePath),
-      api.settingSet("terminal.bgOpacity", String(terminal.bgOpacity)),
-      api.settingSet("terminal.bgBlur", String(terminal.bgBlur)),
-    ]);
+    try {
+      await Promise.all([
+        api.settingSet("theme", theme),
+        api.settingSet("locale", locale),
+        api.settingSet("terminal.fontFamily", terminal.fontFamily),
+        api.settingSet("terminal.fontSize", String(terminal.fontSize)),
+        api.settingSet("terminal.fontWeight", String(terminal.fontWeight)),
+        api.settingSet("terminal.lineHeight", String(terminal.lineHeight)),
+        api.settingSet("terminal.foreground", terminal.foreground),
+        api.settingSet("terminal.cursor", terminal.cursor),
+        api.settingSet("terminal.selectionBg", terminal.selectionBg),
+        api.settingSet("confirmDangerousActions", String(confirmDanger)),
+        api.settingSet("terminal.bgSource", terminal.bgSource),
+        api.settingSet("terminal.bgColor", terminal.bgColor),
+        api.settingSet("terminal.bgImagePath", terminal.bgImagePath),
+        api.settingSet("terminal.bgOpacity", String(terminal.bgOpacity)),
+        api.settingSet("terminal.bgBlur", String(terminal.bgBlur)),
+      ]);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    } catch {
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    }
   };
 
   const handleReset = () => {
@@ -205,6 +223,8 @@ export function SettingsPage() {
     setTheme("dark");
     setLocale("zh");
     setConfirmDanger(true);
+    setResetStatus(true);
+    setTimeout(() => setResetStatus(false), 2000);
   };
 
   if (!loaded) {
@@ -222,12 +242,16 @@ export function SettingsPage() {
           <h1 className="text-[var(--font-size-xl)] font-medium">{t("settings.title")}</h1>
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={handleReset}>
-              <RotateCcw size={14} />
-              {t("settings.reset")}
+              {resetStatus ? <Check size={14} /> : <RotateCcw size={14} />}
+              {resetStatus ? t("settings.resetDone") : t("settings.reset")}
             </Button>
             <Button onClick={handleSave}>
-              <Save size={14} />
-              {t("settings.save")}
+              {saveStatus === "saved" ? <Check size={14} /> : <Save size={14} />}
+              {saveStatus === "saved"
+                ? t("settings.saved")
+                : saveStatus === "error"
+                  ? t("settings.saveFailed")
+                  : t("settings.save")}
             </Button>
           </div>
         </div>
@@ -285,13 +309,22 @@ export function SettingsPage() {
         <Section title={t("settings.terminalFont")}>
           <div className="space-y-3">
             <SettingRow label={t("settings.fontFamily")}>
-              <Input
-                value={terminal.fontFamily}
-                onChange={(e) =>
-                  setTerminal((t) => ({ ...t, fontFamily: e.target.value }))
-                }
-                className="w-64"
-              />
+              <div className="relative">
+                <input
+                  list="system-fonts-list"
+                  value={terminal.fontFamily}
+                  onChange={(e) =>
+                    setTerminal((t) => ({ ...t, fontFamily: e.target.value }))
+                  }
+                  className="h-8 w-64 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-[var(--font-size-sm)] text-[var(--color-text-primary)] focus:border-[var(--color-border-focus)] focus:outline-none"
+                  placeholder={systemFonts.length === 0 ? t("settings.loadingFonts") : t("settings.fontFamily")}
+                />
+                <datalist id="system-fonts-list">
+                  {systemFonts.map((font) => (
+                    <option key={font} value={font} />
+                  ))}
+                </datalist>
+              </div>
             </SettingRow>
 
             <SettingRow label={t("settings.fontSize")} description="10 - 24 px">
@@ -400,7 +433,12 @@ export function SettingsPage() {
                     size="sm"
                     variant="secondary"
                     onClick={() => {
-                      setTerminal((t) => ({ ...t, foreground: safeContrast(t.bgColor) }));
+                      setTerminal((t) => {
+                        const safeFg = safeContrast(t.bgColor);
+                        const bgL = luminance(t.bgColor);
+                        const safeCursor = bgL > 0.4 ? "#2563EB" : "#3B82F6";
+                        return { ...t, foreground: safeFg, cursor: safeCursor };
+                      });
                     }}
                   >
                     {t("settings.fix")}
@@ -489,14 +527,43 @@ export function SettingsPage() {
 
             {terminal.bgSource === "image" && (
               <SettingRow label={t("settings.imagePath")}>
-                <Input
-                  value={terminal.bgImagePath}
-                  onChange={(e) =>
-                    setTerminal((t) => ({ ...t, bgImagePath: e.target.value }))
-                  }
-                  placeholder="/path/to/image.png"
-                  className="w-64"
-                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={async () => {
+                      const file = await open({
+                        title: t("settings.selectImage"),
+                        filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "webp", "gif", "bmp"] }],
+                        multiple: false,
+                      });
+                      if (file) {
+                        setTerminal((t) => ({ ...t, bgImagePath: file as string }));
+                      }
+                    }}
+                  >
+                    <FolderOpen size={12} />
+                    {t("settings.selectImage")}
+                  </Button>
+                  {terminal.bgImagePath && (
+                    <>
+                      <span className="max-w-40 truncate text-[var(--font-size-xs)] text-[var(--color-text-muted)]" title={terminal.bgImagePath}>
+                        {terminal.bgImagePath.split("/").pop() || terminal.bgImagePath}
+                      </span>
+                      <button
+                        onClick={() => setTerminal((t) => ({ ...t, bgImagePath: "" }))}
+                        className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                      >
+                        <X size={14} />
+                      </button>
+                    </>
+                  )}
+                  {!terminal.bgImagePath && (
+                    <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                      {t("settings.noImageSelected")}
+                    </span>
+                  )}
+                </div>
               </SettingRow>
             )}
 

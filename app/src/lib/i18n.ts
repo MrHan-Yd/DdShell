@@ -38,6 +38,8 @@ const dict = {
   "conn.noGroup": { zh: "无分组", en: "No Group" },
   "conn.import": { zh: "导入", en: "Import" },
   "conn.noEntries": { zh: "在 ~/.ssh/config 中未找到条目", en: "No entries found in ~/.ssh/config" },
+  "conn.passwordSaved": { zh: "密码已保存", en: "Password saved" },
+  "conn.noPasswordSaved": { zh: "未保存密码，请编辑连接以设置密码", en: "No password saved. Edit connection to set password." },
 
   // ── ConnectionForm labels ──
   "form.name": { zh: "名称", en: "Name" },
@@ -154,6 +156,9 @@ const dict = {
   "settings.title": { zh: "设置", en: "Settings" },
   "settings.reset": { zh: "重置", en: "Reset" },
   "settings.save": { zh: "保存", en: "Save" },
+  "settings.saved": { zh: "已保存", en: "Saved" },
+  "settings.saveFailed": { zh: "保存失败", en: "Save failed" },
+  "settings.resetDone": { zh: "已重置", en: "Reset done" },
   "settings.loadingSettings": { zh: "加载设置中...", en: "Loading settings..." },
   "settings.appearance": { zh: "外观", en: "Appearance" },
   "settings.theme": { zh: "主题", en: "Theme" },
@@ -191,6 +196,10 @@ const dict = {
   "settings.license": { zh: "许可证", en: "License" },
   "settings.color": { zh: "颜色", en: "color" },
   "settings.image": { zh: "图片", en: "image" },
+  "settings.selectImage": { zh: "选择图片", en: "Select Image" },
+  "settings.clear": { zh: "清除", en: "Clear" },
+  "settings.noImageSelected": { zh: "未选择图片", en: "No image selected" },
+  "settings.loadingFonts": { zh: "加载字体...", en: "Loading fonts..." },
 
   // ── SnippetsPage ──
   "snippets.title": { zh: "命令片段", en: "Snippets" },

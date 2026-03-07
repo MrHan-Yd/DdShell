@@ -26,6 +26,7 @@ function ConnectionForm({
     username: string;
     authType: AuthType;
     groupId: string | null;
+    password?: string;
   }) => void;
   onCancel: () => void;
 }) {
@@ -36,10 +37,17 @@ function ConnectionForm({
   const [username, setUsername] = useState(host?.username ?? "root");
   const [authType, setAuthType] = useState<AuthType>(host?.authType ?? "password");
   const [groupId, setGroupId] = useState<string | null>(host?.groupId ?? null);
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (host?.secretRef) {
+      api.passwordDecrypt(host.secretRef).then(setPassword).catch(() => {});
+    }
+  }, [host?.secretRef]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ name, host: hostAddr, port, username, authType, groupId });
+    onSave({ name, host: hostAddr, port, username, authType, groupId, password: password || undefined });
   };
 
   return (
@@ -83,6 +91,19 @@ function ConnectionForm({
           <option value="publickey">{t("form.publicKey")}</option>
         </select>
       </div>
+      {authType === "password" && (
+        <div>
+          <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
+            {t("form.password")}
+          </label>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={t("conn.enterPassword")}
+          />
+        </div>
+      )}
       {groups.length > 0 && (
         <div>
           <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
@@ -486,20 +507,19 @@ function HostDetail({
   onToggleFavorite: () => void;
 }) {
   const t = useT();
-  const [password, setPassword] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const openSession = useTerminalStore((s) => s.openSession);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
 
+  const hasSavedPassword = !!host.secretRef;
+
   const handleConnect = async () => {
-    if (!password.trim()) return;
     setConnecting(true);
     setError(null);
     try {
-      await openSession(host.id, host.name, password);
-      setPassword("");
+      await openSession(host.id, host.name);
       setCurrentPage("terminal");
     } catch (e) {
       setError(String(e));
@@ -509,11 +529,10 @@ function HostDetail({
   };
 
   const handleTest = async () => {
-    if (!password.trim()) return;
     setTesting(true);
     setError(null);
     try {
-      const result = await api.connectionTest(host.id, password);
+      const result = await api.connectionTest(host.id);
       if (result.success) {
         toast.success(result.message);
       } else {
@@ -571,16 +590,15 @@ function HostDetail({
       </div>
 
       <div className="mt-6 space-y-3">
-        {host.authType === "password" && (
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={t("conn.enterPassword")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleConnect();
-            }}
-          />
+        {host.authType === "password" && !hasSavedPassword && (
+          <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            {t("conn.noPasswordSaved")}
+          </p>
+        )}
+        {hasSavedPassword && (
+          <p className="text-[var(--font-size-xs)] text-[var(--color-success)]">
+            {t("conn.passwordSaved")}
+          </p>
         )}
         {error && (
           <p className="text-[var(--font-size-xs)] text-[var(--color-error)]">
@@ -591,7 +609,7 @@ function HostDetail({
           className="w-full"
           size="lg"
           onClick={handleConnect}
-          disabled={connecting || testing || (host.authType === "password" && !password.trim())}
+          disabled={connecting || testing || !hasSavedPassword}
         >
           {connecting ? (
             <>
@@ -607,7 +625,7 @@ function HostDetail({
           size="lg"
           variant="secondary"
           onClick={handleTest}
-          disabled={connecting || testing || (host.authType === "password" && !password.trim())}
+          disabled={connecting || testing || !hasSavedPassword}
         >
           {testing ? (
             <>

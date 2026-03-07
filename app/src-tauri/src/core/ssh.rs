@@ -1,16 +1,17 @@
 use std::collections::HashMap;
-use std::io::{Read, Write};
-use std::net::TcpStream;
 use std::sync::Arc;
 
-use parking_lot::Mutex;
+use async_trait::async_trait;
+use russh::client;
+use russh::keys::ssh_key;
+use russh::{Channel, ChannelMsg, CryptoVec, Disconnect};
 use sha2::{Digest, Sha256};
-use ssh2::Session as Ssh2Session;
+use tokio::sync::Mutex as TokioMutex;
 use uuid::Uuid;
 
 use crate::core::store::Database;
 
-/// Session state — GLOSSARY §7
+/// Session state
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SessionState {
@@ -21,35 +22,88 @@ pub enum SessionState {
     Failed,
 }
 
-/// A live SSH session with a PTY channel
+/// Handler for russh client callbacks
+struct SshHandler {
+    server_key_info: Arc<std::sync::Mutex<Option<(Vec<u8>, String)>>>,
+}
+
+#[async_trait]
+impl client::Handler for SshHandler {
+    type Error = anyhow::Error;
+
+    async fn check_server_key(
+        &mut self,
+        server_public_key: &ssh_key::PublicKey,
+    ) -> Result<bool, Self::Error> {
+        let key_bytes = server_public_key.to_bytes()
+            .map_err(|e| anyhow::anyhow!("Failed to encode public key: {}", e))?;
+
+        let key_type = match server_public_key.algorithm() {
+            ssh_key::Algorithm::Rsa { .. } => "ssh-rsa",
+            ssh_key::Algorithm::Dsa => "ssh-dss",
+            ssh_key::Algorithm::Ecdsa { curve } => match curve {
+                ssh_key::EcdsaCurve::NistP256 => "ecdsa-sha2-nistp256",
+                ssh_key::EcdsaCurve::NistP384 => "ecdsa-sha2-nistp384",
+                ssh_key::EcdsaCurve::NistP521 => "ecdsa-sha2-nistp521",
+            },
+            ssh_key::Algorithm::Ed25519 => "ssh-ed25519",
+            other => {
+                tracing::warn!("Unknown key algorithm: {:?}", other);
+                "unknown"
+            }
+        };
+
+        if let Ok(mut info) = self.server_key_info.lock() {
+            *info = Some((key_bytes.to_vec(), key_type.to_string()));
+        }
+
+        // Always accept — external code does known_hosts verification
+        Ok(true)
+    }
+}
+
+/// Commands sent to the PTY channel loop
+pub enum PtyCommand {
+    Resize { cols: u32, rows: u32 },
+}
+
+/// A live SSH session backed by russh
 pub struct SshSession {
     pub id: String,
     pub host_id: String,
     pub state: SessionState,
-    ssh: Ssh2Session,
-    channel: Option<ssh2::Channel>,
-    _tcp: TcpStream,
+    handle: client::Handle<SshHandler>,
+    pty_channel_id: Option<russh::ChannelId>,
+    pty_cmd_tx: Option<tokio::sync::mpsc::UnboundedSender<PtyCommand>>,
 }
 
 impl SshSession {
     /// Establish SSH connection and authenticate
-    pub fn connect(
+    pub async fn connect(
         host: &str,
         port: u16,
         username: &str,
         password: &str,
         host_id: &str,
     ) -> anyhow::Result<Self> {
-        let addr = format!("{}:{}", host, port);
-        let tcp = TcpStream::connect(&addr)?;
-        tcp.set_nonblocking(false)?;
+        let config = client::Config {
+            inactivity_timeout: Some(std::time::Duration::from_secs(30)),
+            ..Default::default()
+        };
 
-        let mut sess = Ssh2Session::new()?;
-        sess.set_tcp_stream(tcp.try_clone()?);
-        sess.handshake()?;
-        sess.userauth_password(username, password)?;
+        let handler = SshHandler {
+            server_key_info: Arc::new(std::sync::Mutex::new(None)),
+        };
 
-        if !sess.authenticated() {
+        let mut handle = client::connect(Arc::new(config), (host, port), handler)
+            .await
+            .map_err(|e| anyhow::anyhow!("SSH connect to {}:{} failed: {}", host, port, e))?;
+
+        let auth_ok = handle
+            .authenticate_password(username, password)
+            .await
+            .map_err(|e| anyhow::anyhow!("SSH auth for {}@{}:{} failed: {}", username, host, port, e))?;
+        if !auth_ok {
             anyhow::bail!("AUTH_FAILED");
         }
 
@@ -59,64 +113,58 @@ impl SshSession {
             id,
             host_id: host_id.to_string(),
             state: SessionState::Connected,
-            ssh: sess,
-            channel: None,
-            _tcp: tcp,
+            handle,
+            pty_channel_id: None,
+            pty_cmd_tx: None,
         })
     }
 
-    /// Get host key fingerprint (SHA256 hex) after handshake but before auth
-    pub fn connect_with_fingerprint(
+    /// Connect and return host key fingerprint info
+    pub async fn connect_with_fingerprint(
         host: &str,
         port: u16,
         username: &str,
         password: &str,
         host_id: &str,
     ) -> anyhow::Result<(Self, String, String)> {
-        let addr = format!("{}:{}", host, port);
-        let tcp = TcpStream::connect(&addr)?;
-        tcp.set_nonblocking(false)?;
-
-        let mut sess = Ssh2Session::new()?;
-        sess.set_tcp_stream(tcp.try_clone()?);
-        sess.handshake()?;
-
-        // Extract host key fingerprint
-        let (fingerprint, key_type) = {
-            let host_key = sess.host_key()
-                .ok_or_else(|| anyhow::anyhow!("No host key available"))?;
-            let key_bytes = host_key.0;
-            let key_type_val = host_key.1;
-
-            // SHA256 hash of the raw key
-            use std::fmt::Write;
-            let digest = {
-                // Simple SHA256 using ring-like manual approach
-                // Actually use a simple hex encoding of the first 32 bytes for fingerprint
-                let mut hasher = Sha256::new();
-                hasher.update(key_bytes);
-                hasher.finalize()
-            };
-            let mut hex = String::new();
-            for byte in digest.iter() {
-                write!(&mut hex, "{:02x}", byte).unwrap();
-            }
-
-            let kt = match key_type_val {
-                ssh2::HostKeyType::Rsa => "ssh-rsa",
-                ssh2::HostKeyType::Dss => "ssh-dss",
-                ssh2::HostKeyType::Ecdsa256 => "ecdsa-sha2-nistp256",
-                ssh2::HostKeyType::Ecdsa384 => "ecdsa-sha2-nistp384",
-                ssh2::HostKeyType::Ecdsa521 => "ecdsa-sha2-nistp521",
-                ssh2::HostKeyType::Ed25519 => "ssh-ed25519",
-                _ => "unknown",
-            };
-            (hex, kt.to_string())
+        let config = client::Config {
+            inactivity_timeout: Some(std::time::Duration::from_secs(30)),
+            ..Default::default()
         };
 
-        sess.userauth_password(username, password)?;
+        let server_key_info = Arc::new(std::sync::Mutex::new(None));
+        let handler = SshHandler {
+            server_key_info: server_key_info.clone(),
+        };
 
-        if !sess.authenticated() {
+        let mut handle = client::connect(Arc::new(config), (host, port), handler)
+            .await
+            .map_err(|e| anyhow::anyhow!("SSH connect to {}:{} failed: {}", host, port, e))?;
+
+        // Extract fingerprint after handshake
+        let (fingerprint, key_type) = {
+            let info = server_key_info.lock().unwrap();
+            match info.as_ref() {
+                Some((key_bytes, kt)) => {
+                    let mut hasher = Sha256::new();
+                    hasher.update(key_bytes);
+                    let digest = hasher.finalize();
+                    let mut hex = String::new();
+                    for byte in digest.iter() {
+                        use std::fmt::Write;
+                        write!(&mut hex, "{:02x}", byte).unwrap();
+                    }
+                    (hex, kt.clone())
+                }
+                None => anyhow::bail!("No host key available after handshake"),
+            }
+        };
+
+        let auth_ok = handle
+            .authenticate_password(username, password)
+            .await
+            .map_err(|e| anyhow::anyhow!("SSH auth for {}@{}:{} failed: {}", username, host, port, e))?;
+        if !auth_ok {
             anyhow::bail!("AUTH_FAILED");
         }
 
@@ -126,98 +174,107 @@ impl SshSession {
             id,
             host_id: host_id.to_string(),
             state: SessionState::Connected,
-            ssh: sess,
-            channel: None,
-            _tcp: tcp,
+            handle,
+            pty_channel_id: None,
+            pty_cmd_tx: None,
         };
 
         Ok((session, fingerprint, key_type))
     }
 
-    /// Open a PTY channel with given dimensions
-    pub fn open_pty(&mut self, cols: u32, rows: u32) -> anyhow::Result<()> {
-        let mut channel = self.ssh.channel_session()?;
-        channel.request_pty("xterm-256color", None, Some((cols, rows, 0, 0)))?;
-        channel.shell()?;
-        self.ssh.set_blocking(false);
-        self.channel = Some(channel);
+    /// Open a PTY channel with given dimensions.
+    /// Returns (Channel for reader loop, command receiver for resize etc.)
+    pub async fn open_pty(
+        &mut self,
+        cols: u32,
+        rows: u32,
+    ) -> anyhow::Result<(Channel<client::Msg>, tokio::sync::mpsc::UnboundedReceiver<PtyCommand>)> {
+        let channel = self.handle.channel_open_session().await?;
+        let channel_id = channel.id();
+
+        channel
+            .request_pty(
+                true,
+                "xterm-256color",
+                cols,
+                rows,
+                0,
+                0,
+                &[],
+            )
+            .await?;
+
+        channel.request_shell(true).await?;
+
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        self.pty_channel_id = Some(channel_id);
+        self.pty_cmd_tx = Some(tx);
+
+        Ok((channel, rx))
+    }
+
+    /// Write input data to the PTY channel via Handle.data()
+    pub async fn write_input(&self, data: &[u8]) -> anyhow::Result<()> {
+        let _channel_id = self
+            .pty_channel_id
+            .ok_or_else(|| anyhow::anyhow!("No channel open"))?;
+        self.handle
+            .data(_channel_id, CryptoVec::from_slice(data))
+            .await
+            .map_err(|_| anyhow::anyhow!("Failed to send data"))?;
         Ok(())
     }
 
-    /// Read available output from the PTY channel
-    pub fn read_output(&mut self) -> anyhow::Result<Vec<u8>> {
-        let channel = self
-            .channel
-            .as_mut()
+    /// Request PTY resize (sends command to the reader loop)
+    pub fn resize(&self, cols: u32, rows: u32) -> anyhow::Result<()> {
+        let tx = self
+            .pty_cmd_tx
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("No channel open"))?;
-
-        let mut buf = vec![0u8; 8192];
-        match channel.read(&mut buf) {
-            Ok(0) => Ok(vec![]),
-            Ok(n) => {
-                buf.truncate(n);
-                Ok(buf)
-            }
-            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(vec![]),
-            Err(e) => Err(e.into()),
-        }
-    }
-
-    /// Write input data to the PTY channel
-    pub fn write_input(&mut self, data: &[u8]) -> anyhow::Result<()> {
-        let channel = self
-            .channel
-            .as_mut()
-            .ok_or_else(|| anyhow::anyhow!("No channel open"))?;
-        channel.write_all(data)?;
-        channel.flush()?;
+        tx.send(PtyCommand::Resize { cols, rows })
+            .map_err(|_| anyhow::anyhow!("Failed to send resize command"))?;
         Ok(())
     }
 
-    /// Resize PTY
-    pub fn resize(&mut self, cols: u32, rows: u32) -> anyhow::Result<()> {
-        let channel = self
-            .channel
-            .as_mut()
-            .ok_or_else(|| anyhow::anyhow!("No channel open"))?;
-        channel.request_pty_size(cols, rows, None, None)?;
-        Ok(())
-    }
+    /// Initialize SFTP subsystem on a new channel, returns the SftpSession
+    pub async fn init_sftp(&self) -> anyhow::Result<russh_sftp::client::SftpSession> {
+        let channel = self.handle.channel_open_session().await?;
+        channel.request_subsystem(false, "sftp").await?;
 
-    /// Check if the channel has been closed by the remote
-    pub fn is_eof(&self) -> bool {
-        self.channel.as_ref().map(|c| c.eof()).unwrap_or(true)
-    }
-
-    /// Get an SFTP subsystem handle (requires blocking mode temporarily)
-    pub fn sftp(&self) -> anyhow::Result<ssh2::Sftp> {
-        self.ssh.set_blocking(true);
-        let sftp = self.ssh.sftp()?;
-        // Note: we leave blocking on because SFTP operations need it
-        // The output reader loop will handle non-blocking separately
+        let sftp = russh_sftp::client::SftpSession::new(channel.into_stream()).await?;
         Ok(sftp)
     }
 
     /// Execute a command and return its stdout output (uses a new exec channel)
-    pub fn exec_command(&self, command: &str) -> anyhow::Result<String> {
-        self.ssh.set_blocking(true);
-        let mut channel = self.ssh.channel_session()?;
-        channel.exec(command)?;
+    pub async fn exec_command(&self, command: &str) -> anyhow::Result<String> {
+        let channel = self.handle.channel_open_session().await?;
+        channel.exec(true, command).await?;
 
-        let mut output = String::new();
-        channel.read_to_string(&mut output)?;
-        channel.wait_close()?;
-        Ok(output)
+        let mut output = Vec::new();
+        let mut channel = channel;
+
+        loop {
+            match channel.wait().await {
+                Some(ChannelMsg::Data { data }) => {
+                    output.extend_from_slice(&data);
+                }
+                Some(ChannelMsg::Eof) | None => {
+                    break;
+                }
+                _ => {}
+            }
+        }
+
+        Ok(String::from_utf8_lossy(&output).to_string())
     }
 
     /// Close the session
-    pub fn disconnect(&mut self) {
-        if let Some(ref mut ch) = self.channel {
-            let _ = ch.close();
-            let _ = ch.wait_close();
-        }
-        self.channel = None;
-        let _ = self.ssh.disconnect(None, "user disconnect", None);
+    pub async fn disconnect(&mut self) {
+        self.pty_cmd_tx = None;
+        let _ = self
+            .handle
+            .disconnect(Disconnect::ByApplication, "user disconnect", "")
+            .await;
         self.state = SessionState::Disconnected;
     }
 }
@@ -225,17 +282,17 @@ impl SshSession {
 /// Manages all active SSH sessions
 #[derive(Clone)]
 pub struct SessionManager {
-    sessions: Arc<Mutex<HashMap<String, Arc<Mutex<SshSession>>>>>,
+    sessions: Arc<parking_lot::Mutex<HashMap<String, Arc<TokioMutex<SshSession>>>>>,
 }
 
 impl SessionManager {
     pub fn new() -> Self {
         Self {
-            sessions: Arc::new(Mutex::new(HashMap::new())),
+            sessions: Arc::new(parking_lot::Mutex::new(HashMap::new())),
         }
     }
 
-    /// Connect to a host and return session ID
+    /// Connect to a host and return (session_id, pty_channel, cmd_receiver)
     pub async fn connect(
         &self,
         db: &Database,
@@ -243,32 +300,27 @@ impl SessionManager {
         password: &str,
         cols: u32,
         rows: u32,
-    ) -> anyhow::Result<String> {
+    ) -> anyhow::Result<(String, Channel<client::Msg>, tokio::sync::mpsc::UnboundedReceiver<PtyCommand>)> {
         let host = db
             .get_host(host_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Host not found"))?;
 
-        let host_addr = host.host.clone();
-        let port = host.port as u16;
-        let username = host.username.clone();
-        let hid = host_id.to_string();
-        let pw = password.to_string();
-
-        // SSH connect in blocking thread
-        let (session, fingerprint, key_type) = tokio::task::spawn_blocking(move || {
-            let (mut sess, fp, kt) = SshSession::connect_with_fingerprint(&host_addr, port, &username, &pw, &hid)?;
-            sess.open_pty(cols, rows)?;
-            Ok::<_, anyhow::Error>((sess, fp, kt))
-        })
-        .await??;
+        let (mut session, fingerprint, key_type) =
+            SshSession::connect_with_fingerprint(
+                &host.host,
+                host.port as u16,
+                &host.username,
+                password,
+                host_id,
+            )
+            .await?;
 
         // Check known hosts
         let known = db.get_known_host(&host.host, host.port).await?;
         match known {
             Some(kh) => {
                 if kh.fingerprint != fingerprint {
-                    // Fingerprint mismatch — security risk
                     anyhow::bail!(
                         "FINGERPRINT_MISMATCH: Host key fingerprint has changed! Expected {}, got {}. This could indicate a security breach.",
                         &kh.fingerprint[..16],
@@ -277,33 +329,34 @@ impl SessionManager {
                 }
             }
             None => {
-                // First connection — save the fingerprint
                 db.save_known_host(&host.host, host.port, &key_type, &fingerprint)
                     .await?;
             }
         }
 
+        let (channel, cmd_rx) = session.open_pty(cols, rows).await?;
+
         let session_id = session.id.clone();
-        let session = Arc::new(Mutex::new(session));
+        let session = Arc::new(TokioMutex::new(session));
         self.sessions.lock().insert(session_id.clone(), session);
 
-        Ok(session_id)
+        Ok((session_id, channel, cmd_rx))
     }
 
     /// Get a session by ID
-    pub fn get(&self, session_id: &str) -> Option<Arc<Mutex<SshSession>>> {
+    pub fn get(&self, session_id: &str) -> Option<Arc<TokioMutex<SshSession>>> {
         self.sessions.lock().get(session_id).cloned()
     }
 
     /// Disconnect and remove a session
-    pub fn disconnect(&self, session_id: &str) -> anyhow::Result<()> {
+    pub async fn disconnect(&self, session_id: &str) -> anyhow::Result<()> {
         let session = self
             .sessions
             .lock()
             .remove(session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
-        session.lock().disconnect();
+        session.lock().await.disconnect().await;
         Ok(())
     }
 }

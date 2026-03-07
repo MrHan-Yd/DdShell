@@ -256,13 +256,14 @@ impl Database {
         username: &str,
         auth_type: &str,
         group_id: Option<&str>,
+        password: Option<&str>,
     ) -> anyhow::Result<String> {
         let id = Uuid::new_v4().to_string();
         let now = chrono::Utc::now().to_rfc3339();
 
         sqlx::query(
-            "INSERT INTO hosts (id, name, host, port, username, auth_type, group_id, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO hosts (id, name, host, port, username, auth_type, secret_ref, group_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&id)
         .bind(name)
@@ -270,6 +271,7 @@ impl Database {
         .bind(port)
         .bind(username)
         .bind(auth_type)
+        .bind(password)
         .bind(group_id)
         .bind(&now)
         .bind(&now)
@@ -290,6 +292,7 @@ impl Database {
         group_id: Option<Option<&str>>,
         is_favorite: Option<bool>,
         sort_order: Option<i64>,
+        secret_ref: Option<Option<&str>>,
     ) -> anyhow::Result<()> {
         let now = chrono::Utc::now().to_rfc3339();
         let current = self
@@ -309,9 +312,12 @@ impl Database {
             .unwrap_or(current.group_id);
         let is_favorite = is_favorite.unwrap_or(current.is_favorite);
         let sort_order = sort_order.unwrap_or(current.sort_order);
+        let secret_ref = secret_ref
+            .map(|s| s.map(|v| v.to_string()))
+            .unwrap_or(current.secret_ref);
 
         sqlx::query(
-            "UPDATE hosts SET name=?, host=?, port=?, username=?, auth_type=?, group_id=?, is_favorite=?, sort_order=?, updated_at=? WHERE id=?",
+            "UPDATE hosts SET name=?, host=?, port=?, username=?, auth_type=?, group_id=?, is_favorite=?, sort_order=?, secret_ref=?, updated_at=? WHERE id=?",
         )
         .bind(&name)
         .bind(&host_addr)
@@ -321,6 +327,7 @@ impl Database {
         .bind(&group_id)
         .bind(is_favorite)
         .bind(sort_order)
+        .bind(&secret_ref)
         .bind(&now)
         .bind(id)
         .execute(&self.pool)

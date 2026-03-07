@@ -1,8 +1,10 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
+import { FitAddon } from "@xterm/addon-fit";
 import { X, Plus, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTerminalStore } from "@/stores/terminal";
@@ -21,11 +23,24 @@ function cleanSelection(text: string): string {
 function TerminalInstance({
   sessionId,
   hostId,
-  bgSettings,
+  termSettings,
 }: {
   sessionId: string;
   hostId: string;
-  bgSettings?: { color?: string; imagePath?: string | null; opacity?: number; blur?: number };
+  termSettings?: {
+    fontFamily?: string;
+    fontSize?: number;
+    fontWeight?: number;
+    lineHeight?: number;
+    foreground?: string;
+    cursor?: string;
+    selectionBg?: string;
+    bgSource?: string;
+    bgColor?: string;
+    bgImagePath?: string | null;
+    bgOpacity?: number;
+    bgBlur?: number;
+  };
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
@@ -37,14 +52,19 @@ function TerminalInstance({
 
     const term = new Terminal({
       cursorBlink: true,
-      fontSize: 14,
-      fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace",
+      fontSize: termSettings?.fontSize ?? 14,
+      fontFamily: termSettings?.fontFamily ?? "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace",
+      fontWeight: (termSettings?.fontWeight ?? 400) as any,
+      lineHeight: termSettings?.lineHeight ?? 1.4,
       allowTransparency: true,
+      allowProposedApi: true,
       theme: {
-        background: bgSettings?.color ?? "#0F1115",
-        foreground: "#E5E7EB",
-        cursor: "#3B82F6",
-        selectionBackground: "rgba(59, 130, 246, 0.3)",
+        background: termSettings?.bgSource === "image" && termSettings?.bgImagePath
+          ? "#00000000"
+          : (termSettings?.bgColor ?? "#0F1115"),
+        foreground: termSettings?.foreground ?? "#E5E7EB",
+        cursor: termSettings?.cursor ?? "#3B82F6",
+        selectionBackground: termSettings?.selectionBg ?? "rgba(59, 130, 246, 0.3)",
         black: "#1B2130",
         red: "#EF4444",
         green: "#22C55E",
@@ -67,16 +87,30 @@ function TerminalInstance({
     term.open(containerRef.current);
 
     // Load addons
-    try {
-      term.loadAddon(new WebglAddon());
-    } catch {
-      // WebGL fallback: canvas renderer is fine
+    // WebGL addon does not support transparent backgrounds, skip it when using bg image
+    const usesBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
+    if (!usesBgImage) {
+      try {
+        term.loadAddon(new WebglAddon());
+      } catch {
+        // WebGL fallback: canvas renderer is fine
+      }
     }
     const unicode11 = new Unicode11Addon();
     term.loadAddon(unicode11);
     term.unicode.activeVersion = "11";
 
+    const fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
+
     termRef.current = term;
+
+    // Fit terminal to container and keep it fitted on resize
+    fitAddon.fit();
+    const resizeObserver = new ResizeObserver(() => {
+      try { fitAddon.fit(); } catch { /* ignore if disposed */ }
+    });
+    resizeObserver.observe(containerRef.current);
 
     // Handle user input -> SSH
     const onData = term.onData((data) => {
@@ -164,6 +198,7 @@ function TerminalInstance({
     term.focus();
 
     return () => {
+      resizeObserver.disconnect();
       onData.dispose();
       onResize.dispose();
       unlisten.then((fn) => fn());
@@ -172,33 +207,16 @@ function TerminalInstance({
       window.removeEventListener("terminal:clear", handleClear);
       term.dispose();
     };
-  }, [sessionId, hostId, updateTabState, bgSettings?.color]);
+  }, [sessionId, hostId, updateTabState, termSettings]);
 
-  // Apply background image/blur overlay
-  const hasBgImage = bgSettings?.imagePath;
-  const bgOpacity = (bgSettings?.opacity ?? 100) / 100;
-  const bgBlur = bgSettings?.blur ?? 0;
+  const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
 
   return (
-    <div className="relative h-full w-full">
-      {hasBgImage && (
-        <div
-          className="absolute inset-0 z-0"
-          style={{
-            backgroundImage: `url(${bgSettings!.imagePath})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            opacity: bgOpacity,
-            filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
-          }}
-        />
-      )}
-      <div
-        ref={containerRef}
-        className="relative z-10 h-full w-full"
-        style={{ padding: "4px 8px" }}
-      />
-    </div>
+    <div
+      ref={containerRef}
+      className={cn("h-full w-full", hasBgImage && "xterm-bg-transparent")}
+      style={{ padding: "2px 4px 0" }}
+    />
   );
 }
 
@@ -363,6 +381,49 @@ export function TerminalPage() {
   const [splitRatio, setSplitRatio] = useState(0.5);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Load terminal settings from backend
+  const [termSettings, setTermSettings] = useState<Record<string, any> | undefined>(undefined);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [
+          fontFamily, fontSize, fontWeight, lineHeight,
+          foreground, cursor, selectionBg,
+          bgSource, bgColor, bgImagePath, bgOpacity, bgBlur,
+        ] = await Promise.all([
+          api.settingGet("terminal.fontFamily"),
+          api.settingGet("terminal.fontSize"),
+          api.settingGet("terminal.fontWeight"),
+          api.settingGet("terminal.lineHeight"),
+          api.settingGet("terminal.foreground"),
+          api.settingGet("terminal.cursor"),
+          api.settingGet("terminal.selectionBg"),
+          api.settingGet("terminal.bgSource"),
+          api.settingGet("terminal.bgColor"),
+          api.settingGet("terminal.bgImagePath"),
+          api.settingGet("terminal.bgOpacity"),
+          api.settingGet("terminal.bgBlur"),
+        ]);
+        setTermSettings({
+          fontFamily: fontFamily || undefined,
+          fontSize: fontSize ? parseInt(fontSize) : undefined,
+          fontWeight: fontWeight ? parseInt(fontWeight) : undefined,
+          lineHeight: lineHeight ? parseFloat(lineHeight) : undefined,
+          foreground: foreground || undefined,
+          cursor: cursor || undefined,
+          selectionBg: selectionBg || undefined,
+          bgSource: bgSource || undefined,
+          bgColor: bgColor || undefined,
+          bgImagePath: bgImagePath || null,
+          bgOpacity: bgOpacity ? parseInt(bgOpacity) : undefined,
+          bgBlur: bgBlur ? parseInt(bgBlur) : undefined,
+        });
+      } catch {
+        setTermSettings({});
+      }
+    })();
+  }, []);
+
   const goToConnections = useCallback(() => {
     setCurrentPage("connections");
   }, [setCurrentPage]);
@@ -416,6 +477,10 @@ export function TerminalPage() {
   }
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
+
+  const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
+  const bgOpacity = (termSettings?.bgOpacity ?? 100) / 100;
+  const bgBlur = termSettings?.bgBlur ?? 0;
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -514,13 +579,29 @@ export function TerminalPage() {
         <div
           ref={containerRef}
           className={cn(
-            "flex-1 overflow-hidden bg-[#0F1115]",
+            "relative flex-1 overflow-hidden",
             splitDirection === "horizontal" ? "flex flex-col" : "flex flex-row",
           )}
+          style={{
+            backgroundColor: hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F1115"),
+          }}
         >
+          {/* Background image layer (rendered at this level so it covers the entire terminal area) */}
+          {hasBgImage && (
+            <div
+              className="absolute inset-0 z-0"
+              style={{
+                backgroundImage: `url(${convertFileSrc(termSettings!.bgImagePath!)})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                opacity: bgOpacity,
+                filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
+              }}
+            />
+          )}
           {/* Primary pane */}
           <div
-            className="overflow-hidden"
+            className="relative z-10 overflow-hidden"
             style={
               splitDirection
                 ? splitDirection === "horizontal"
@@ -537,7 +618,7 @@ export function TerminalPage() {
                   tab.id === activeTabId ? "block" : "hidden",
                 )}
               >
-                <TerminalInstance sessionId={tab.sessionId} hostId={tab.hostId} />
+                <TerminalInstance sessionId={tab.sessionId} hostId={tab.hostId} termSettings={termSettings} />
               </div>
             ))}
           </div>
@@ -547,7 +628,7 @@ export function TerminalPage() {
             <>
               <ResizeHandle direction={splitDirection} onResize={handleResize} />
               <div
-                className="overflow-hidden"
+                className="relative z-10 overflow-hidden"
                 style={
                   splitDirection === "horizontal"
                     ? { height: `${(1 - splitRatio) * 100}%` }
@@ -557,6 +638,7 @@ export function TerminalPage() {
                 <TerminalInstance
                   sessionId={splitSessionId}
                   hostId={activeTab?.hostId ?? ""}
+                  termSettings={termSettings}
                 />
               </div>
             </>
