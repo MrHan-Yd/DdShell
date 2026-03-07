@@ -9,23 +9,56 @@ permissions:
   contents: write
 
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create.outputs.upload_url }}
+    steps:
+      - name: Create Release
+        id: create
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "DdShell-${{ github.ref_name }}"
+          body: |
+            ## DdShell ${{ github.ref_name }}
+
+            开源跨平台 SSH/SFTP 桌面客户端。
+
+            ### 下载
+
+            | 平台 | 文件 | 说明 |
+            |------|------|------|
+            | macOS (Apple Silicon) | `DdShell-${{ github.ref_name }}-macos-aarch64.dmg` | M1/M2/M3/M4 芯片 |
+            | macOS (Intel) | `DdShell-${{ github.ref_name }}-macos-x86_64.dmg` | Intel 芯片 |
+            | Windows | `DdShell-${{ github.ref_name }}-windows-x64.msi` | 64位安装包 |
+            | Windows | `DdShell-${{ github.ref_name }}-windows-x64.exe` | 64位免安装 |
+            | Linux | `DdShell-${{ github.ref_name }}-linux-amd64.deb` | Debian/Ubuntu |
+            | Linux | `DdShell-${{ github.ref_name }}-linux-amd64.AppImage` | 通用格式 |
+          draft: false
+          prerelease: false
+
   build:
+    needs: create-release
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: macos-latest
-            args: "--target aarch64-apple-darwin"
             rust_target: aarch64-apple-darwin
+            args: "--target aarch64-apple-darwin"
+            suffix: macos-aarch64
           - platform: macos-latest
-            args: "--target x86_64-apple-darwin"
             rust_target: x86_64-apple-darwin
+            args: "--target x86_64-apple-darwin"
+            suffix: macos-x86_64
           - platform: ubuntu-22.04
-            args: ""
             rust_target: ""
+            args: ""
+            suffix: linux-amd64
           - platform: windows-latest
-            args: ""
             rust_target: ""
+            args: ""
+            suffix: windows-x64
 
     runs-on: ${{ matrix.platform }}
 
@@ -54,7 +87,6 @@ jobs:
         with:
           workspaces: app/src-tauri -> target
 
-      # Linux dependencies
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
@@ -74,23 +106,80 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: app
+        run: pnpm tauri build ${{ matrix.args }}
+
+      # ── Rename & Upload (macOS) ──
+      - name: Rename macOS dmg
+        if: startsWith(matrix.platform, 'macos')
+        run: |
+          cd app/src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg
+          for f in *.dmg; do
+            mv "$f" "DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.dmg"
+          done
+
+      - name: Upload macOS dmg
+        if: startsWith(matrix.platform, 'macos')
+        uses: softprops/action-gh-release@v2
         with:
-          projectPath: app
-          tagName: ${{ github.ref_name }}
-          releaseName: "DdShell ${{ github.ref_name }}"
-          releaseBody: |
-            ## DdShell ${{ github.ref_name }}
+          files: app/src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.dmg
+          tag_name: ${{ github.ref_name }}
 
-            Cross-platform SSH/SFTP desktop client.
+      # ── Rename & Upload (Linux) ──
+      - name: Rename and upload Linux packages
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          cd app/src-tauri/target/release/bundle
+          # deb
+          for f in deb/*.deb; do
+            cp "$f" "/tmp/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.deb"
+          done
+          # AppImage
+          for f in appimage/*.AppImage; do
+            cp "$f" "/tmp/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.AppImage"
+          done
 
-            ### Downloads
-            - **macOS (Apple Silicon)**: `.dmg` (aarch64)
-            - **macOS (Intel)**: `.dmg` (x86_64)
-            - **Windows**: `.msi` / `.exe`
-            - **Linux**: `.deb` / `.AppImage`
-          releaseDraft: false
-          prerelease: false
-          args: ${{ matrix.args }}
+      - name: Upload Linux deb
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: /tmp/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.deb
+          tag_name: ${{ github.ref_name }}
+
+      - name: Upload Linux AppImage
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: /tmp/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.AppImage
+          tag_name: ${{ github.ref_name }}
+
+      # ── Rename & Upload (Windows) ──
+      - name: Rename and upload Windows packages
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          $bundleDir = "app/src-tauri/target/release/bundle"
+          # MSI
+          $msi = Get-ChildItem "$bundleDir/msi/*.msi" | Select-Object -First 1
+          if ($msi) {
+            Copy-Item $msi.FullName "$env:TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.msi"
+          }
+          # NSIS exe
+          $exe = Get-ChildItem "$bundleDir/nsis/*.exe" | Select-Object -First 1
+          if ($exe) {
+            Copy-Item $exe.FullName "$env:TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe"
+          }
+
+      - name: Upload Windows msi
+        if: matrix.platform == 'windows-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ runner.temp }}/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.msi
+          tag_name: ${{ github.ref_name }}
+
+      - name: Upload Windows exe
+        if: matrix.platform == 'windows-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ runner.temp }}/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe
+          tag_name: ${{ github.ref_name }}
