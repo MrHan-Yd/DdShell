@@ -2,6 +2,7 @@ mod core;
 
 use std::time::Duration;
 
+use futures_util::StreamExt;
 use russh::ChannelMsg;
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
@@ -1083,6 +1084,72 @@ async fn ssh_config_import() -> Result<SshConfigImportResult, String> {
     })
 }
 
+// ── Commands: Update Download ──
+
+#[tauri::command]
+async fn download_update(app: tauri::AppHandle, url: String, filename: String) -> Result<String, String> {
+    let download_dir = dirs::download_dir()
+        .or_else(|| dirs::home_dir().map(|h| h.join("Downloads")))
+        .ok_or_else(|| "Cannot determine download directory".to_string())?;
+
+    let dest = download_dir.join(&filename);
+    let dest_str = dest.to_string_lossy().to_string();
+
+    let app_handle = app.clone();
+    let dest_clone = dest.clone();
+    let dest_str_clone = dest_str.clone();
+
+    tokio::spawn(async move {
+        let result: Result<(), String> = async {
+            let client = reqwest::Client::new();
+            let res = client
+                .get(&url)
+                .header("User-Agent", "DdShell-Updater")
+                .send()
+                .await
+                .map_err(|e| e.to_string())?;
+
+            if !res.status().is_success() {
+                return Err(format!("HTTP {}", res.status()));
+            }
+
+            let total = res.content_length().unwrap_or(0);
+            let mut downloaded: u64 = 0;
+
+            let mut file = tokio::fs::File::create(&dest_clone)
+                .await
+                .map_err(|e| e.to_string())?;
+
+            let mut stream = res.bytes_stream();
+            let mut last_emit = std::time::Instant::now();
+
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk.map_err(|e| e.to_string())?;
+                tokio::io::AsyncWriteExt::write_all(&mut file, &chunk)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                downloaded += chunk.len() as u64;
+
+                if last_emit.elapsed().as_millis() >= 200 {
+                    event::emit_update_download_progress(&app_handle, downloaded, total);
+                    last_emit = std::time::Instant::now();
+                }
+            }
+
+            event::emit_update_download_progress(&app_handle, downloaded, total);
+            event::emit_update_download_completed(&app_handle, &dest_str_clone);
+            Ok(())
+        }
+        .await;
+
+        if let Err(e) = result {
+            event::emit_update_download_failed(&app_handle, &e);
+        }
+    });
+
+    Ok(dest_str)
+}
+
 /// Background async loop that reads SSH output and emits events.
 /// Owns the Channel exclusively — write goes through Handle, resize goes through mpsc.
 async fn output_reader_loop(
@@ -1234,6 +1301,7 @@ pub fn run() {
             path_list_recent,
             ssh_config_import,
             list_system_fonts,
+            download_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

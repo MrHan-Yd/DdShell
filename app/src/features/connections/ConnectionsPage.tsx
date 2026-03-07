@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Search, Server, Folder, Trash2, Pencil, Star, StarOff, Loader2, Zap, Upload, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -7,6 +7,7 @@ import { useConnectionsStore } from "@/stores/connections";
 import { useTerminalStore } from "@/stores/terminal";
 import { useAppStore } from "@/stores/app";
 import { toast } from "@/stores/toast";
+import { confirm } from "@/stores/confirm";
 import { useT } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
 import type { Host, HostGroup, AuthType, SshConfigEntry } from "@/types";
@@ -85,7 +86,7 @@ function ConnectionForm({
         <select
           value={authType}
           onChange={(e) => setAuthType(e.target.value as AuthType)}
-          className="h-8 w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-[var(--font-size-sm)] text-[var(--color-text-primary)] focus:border-[var(--color-border-focus)] focus:outline-none"
+          className="select-mac w-full"
         >
           <option value="password">{t("form.password")}</option>
           <option value="publickey">{t("form.publicKey")}</option>
@@ -112,7 +113,7 @@ function ConnectionForm({
           <select
             value={groupId ?? ""}
             onChange={(e) => setGroupId(e.target.value || null)}
-            className="h-8 w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-[var(--font-size-sm)] text-[var(--color-text-primary)] focus:border-[var(--color-border-focus)] focus:outline-none"
+            className="select-mac w-full"
           >
             <option value="">{t("conn.noGroup")}</option>
             {groups.map((g) => (
@@ -292,11 +293,25 @@ export function ConnectionsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingHost, setEditingHost] = useState<Host | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [detailAnim, setDetailAnim] = useState("animate-fade-in-up");
+  const prevHostIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetchHosts();
     fetchGroups();
   }, [fetchHosts, fetchGroups]);
+
+  const selectHost = (id: string) => {
+    // Determine direction based on host list order
+    const prevIdx = filteredHosts.findIndex((h) => h.id === prevHostIdRef.current);
+    const nextIdx = filteredHosts.findIndex((h) => h.id === id);
+    setDetailAnim(nextIdx >= prevIdx ? "animate-fade-in-up" : "animate-fade-in-down");
+    prevHostIdRef.current = id;
+    setSelectedHostId(id);
+    setShowForm(false);
+    setShowImport(false);
+    setEditingHost(null);
+  };
 
   const selectedHost = hosts.find((h) => h.id === selectedHostId) ?? null;
 
@@ -334,7 +349,11 @@ export function ConnectionsPage() {
           <Button
             size="icon"
             variant="secondary"
-            onClick={() => setShowImport(true)}
+            onClick={() => {
+              setShowForm(false);
+              setEditingHost(null);
+              setShowImport(true);
+            }}
             title="Import SSH Config"
           >
             <Upload size={16} />
@@ -343,6 +362,7 @@ export function ConnectionsPage() {
             size="icon"
             variant="secondary"
             onClick={() => {
+              setShowImport(false);
               setEditingHost(null);
               setShowForm(true);
             }}
@@ -386,7 +406,7 @@ export function ConnectionsPage() {
                       key={h.id}
                       host={h}
                       selected={h.id === selectedHostId}
-                      onSelect={() => setSelectedHostId(h.id)}
+                      onSelect={() => selectHost(h.id)}
                     />
                   ))}
                 </div>
@@ -399,7 +419,7 @@ export function ConnectionsPage() {
               key={h.id}
               host={h}
               selected={h.id === selectedHostId}
-              onSelect={() => setSelectedHostId(h.id)}
+              onSelect={() => selectHost(h.id)}
             />
           ))}
         </div>
@@ -408,9 +428,11 @@ export function ConnectionsPage() {
       {/* Right: Detail / Form / Import */}
       <div className="flex flex-1 flex-col overflow-y-auto p-6">
         {showImport ? (
-          <SshConfigImportPanel onDone={() => setShowImport(false)} />
+          <div key="import" className="animate-fade-in-up flex flex-1 flex-col overflow-hidden">
+            <SshConfigImportPanel onDone={() => setShowImport(false)} />
+          </div>
         ) : showForm ? (
-          <div className="mx-auto w-full max-w-md">
+          <div key="form" className="animate-fade-in-up mx-auto w-full max-w-md">
             <h2 className="mb-4 text-[var(--font-size-lg)] font-medium">
               {editingHost ? t("conn.editConnection") : t("conn.newConnection")}
             </h2>
@@ -434,12 +456,20 @@ export function ConnectionsPage() {
           </div>
         ) : selectedHost ? (
           <HostDetail
+            key={selectedHost.id}
             host={selectedHost}
+            animClass={detailAnim}
             onEdit={() => {
               setEditingHost(selectedHost);
               setShowForm(true);
             }}
             onDelete={async () => {
+              const ok = await confirm({
+                title: t("confirm.deleteConnectionTitle"),
+                description: t("confirm.deleteConnectionDesc"),
+                confirmLabel: t("confirm.delete"),
+              });
+              if (!ok) return;
               await deleteHost(selectedHost.id);
             }}
             onToggleFavorite={async () => {
@@ -450,7 +480,7 @@ export function ConnectionsPage() {
             }}
           />
         ) : (
-          <div className="flex flex-1 items-center justify-center text-center">
+          <div key="empty" className="animate-fade-in flex flex-1 items-center justify-center text-center">
             <div>
               <Server size={48} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
               <p className="text-[var(--font-size-base)] text-[var(--color-text-secondary)]">
@@ -477,31 +507,43 @@ function HostItem({
     <button
       onClick={onSelect}
       className={cn(
-        "flex w-full items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-left transition-colors duration-[var(--duration-fast)]",
+        "flex w-full items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-left transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)] active:scale-[0.98]",
         selected
           ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
           : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
       )}
     >
-      <Server size={16} className={selected ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"} />
+      <Server
+        size={16}
+        className={cn(
+          "transition-colors duration-[var(--duration-base)]",
+          selected ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]",
+        )}
+      />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[var(--font-size-sm)] font-medium">{host.name}</p>
         <p className="truncate text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
           {host.username}@{host.host}:{host.port}
         </p>
       </div>
-      {host.isFavorite && <Star size={14} className="text-[var(--color-warning)] fill-[var(--color-warning)]" />}
+      {host.isFavorite && (
+        <span className="animate-star-pop">
+          <Star size={14} className="text-[var(--color-warning)] fill-[var(--color-warning)]" />
+        </span>
+      )}
     </button>
   );
 }
 
 function HostDetail({
   host,
+  animClass,
   onEdit,
   onDelete,
   onToggleFavorite,
 }: {
   host: Host;
+  animClass: string;
   onEdit: () => void;
   onDelete: () => void;
   onToggleFavorite: () => void;
@@ -548,13 +590,15 @@ function HostDetail({
   };
 
   return (
-    <div className="mx-auto w-full max-w-lg">
+    <div className={`${animClass} mx-auto w-full max-w-lg`}>
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-[var(--font-size-xl)] font-medium">{host.name}</h2>
         <div className="flex items-center gap-2">
           <Button size="icon" variant="ghost" onClick={onToggleFavorite}>
             {host.isFavorite ? (
-              <Star size={16} className="text-[var(--color-warning)] fill-[var(--color-warning)]" />
+              <span className="animate-star-pop">
+                <Star size={16} className="text-[var(--color-warning)] fill-[var(--color-warning)]" />
+              </span>
             ) : (
               <StarOff size={16} />
             )}

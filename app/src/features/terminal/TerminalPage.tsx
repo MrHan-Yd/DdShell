@@ -5,13 +5,14 @@ import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { FitAddon } from "@xterm/addon-fit";
-import { X, Plus, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle } from "lucide-react";
+import { X, Plus, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTerminalStore } from "@/stores/terminal";
 import { useAppStore } from "@/stores/app";
 import * as api from "@/lib/tauri";
 import type { CommandHistoryItem } from "@/types";
 import { useT } from "@/lib/i18n";
+import { confirm } from "@/stores/confirm";
 import "@xterm/xterm/css/xterm.css";
 
 /** Strip ANSI escape sequences and trim whitespace */
@@ -21,10 +22,12 @@ function cleanSelection(text: string): string {
 }
 
 function TerminalInstance({
+  tabId,
   sessionId,
   hostId,
   termSettings,
 }: {
+  tabId: string;
   sessionId: string;
   hostId: string;
   termSettings?: {
@@ -32,6 +35,7 @@ function TerminalInstance({
     fontSize?: number;
     fontWeight?: number;
     lineHeight?: number;
+    fontLigatures?: boolean;
     foreground?: string;
     cursor?: string;
     selectionBg?: string;
@@ -44,27 +48,40 @@ function TerminalInstance({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
   const updateTabState = useTerminalStore((s) => s.updateTabState);
+  const reconnectSession = useTerminalStore((s) => s.reconnectSession);
+  const tabState = useTerminalStore(
+    (s) => s.tabs.find((t) => t.id === tabId)?.state,
+  );
+  const [reconnecting, setReconnecting] = useState(false);
   const cmdBufferRef = useRef<string>("");
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
+  const termSettingsRef = useRef(termSettings);
+  termSettingsRef.current = termSettings;
+  const t = useT();
 
+  // Effect 1: Create xterm instance (once, independent of sessionId)
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const ts = termSettingsRef.current;
     const term = new Terminal({
       cursorBlink: true,
-      fontSize: termSettings?.fontSize ?? 14,
-      fontFamily: termSettings?.fontFamily ?? "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace",
-      fontWeight: (termSettings?.fontWeight ?? 400) as any,
-      lineHeight: termSettings?.lineHeight ?? 1.4,
+      fontSize: ts?.fontSize ?? 14,
+      fontFamily: ts?.fontFamily ?? "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace",
+      fontWeight: (ts?.fontWeight ?? 400) as any,
+      lineHeight: ts?.lineHeight ?? 1.4,
       allowTransparency: true,
       allowProposedApi: true,
       theme: {
-        background: termSettings?.bgSource === "image" && termSettings?.bgImagePath
+        background: ts?.bgSource === "image" && ts?.bgImagePath
           ? "#00000000"
-          : (termSettings?.bgColor ?? "#0F1115"),
-        foreground: termSettings?.foreground ?? "#E5E7EB",
-        cursor: termSettings?.cursor ?? "#3B82F6",
-        selectionBackground: termSettings?.selectionBg ?? "rgba(59, 130, 246, 0.3)",
+          : (ts?.bgColor ?? "#0F1115"),
+        foreground: ts?.foreground ?? "#E5E7EB",
+        cursor: ts?.cursor ?? "#3B82F6",
+        selectionBackground: ts?.selectionBg ?? "rgba(59, 130, 246, 0.3)",
         black: "#1B2130",
         red: "#EF4444",
         green: "#22C55E",
@@ -86,14 +103,83 @@ function TerminalInstance({
 
     term.open(containerRef.current);
 
-    // Load addons
-    // WebGL addon does not support transparent backgrounds, skip it when using bg image
-    const usesBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
-    if (!usesBgImage) {
+    const usesBgImage = ts?.bgSource === "image" && ts?.bgImagePath;
+    const usesLigatures = ts?.fontLigatures === true;
+    // WebGL renderer uses its own texture atlas for glyphs, bypassing CSS
+    // font-feature-settings, so ligatures won't render under WebGL.
+    if (!usesBgImage && !usesLigatures) {
       try {
         term.loadAddon(new WebglAddon());
       } catch {
-        // WebGL fallback: canvas renderer is fine
+        // WebGL fallback: DOM renderer is fine
+      }
+    }
+    // xterm 6.x uses a DOM renderer by default. Enable ligatures by:
+    // 1. Setting CSS font-feature-settings on the terminal element
+    // 2. Registering a character joiner so multi-char ligatures are
+    //    placed in the same DOM span (required for cross-element ligatures)
+    // 3. Using MutationObserver to fix letter-spacing on joined spans
+    //    (the DOM renderer adds letter-spacing for monospace alignment,
+    //     but this breaks ligature glyphs by inserting space between chars)
+    if (usesLigatures) {
+      if (term.element) {
+        term.element.style.fontFeatureSettings = '"calt" on';
+      }
+      const LIGATURE_PATTERNS = [
+        "<---", "--->", "<-->", "<==>", "<===>",
+        "<--", "-->", "<->", "<=>", "===>",
+        "<==", "==>", "<<=", ">>=",
+        "<<-", "->>",
+        "===", "!==", "!===",
+        "<-", "->", "<=", ">=", "=>",
+        "==", "!=", "/=", "~=", "<>",
+        "::", ":::", "<~~", "~~>",
+        "</", "/>", "</>",
+        "<:", ":=", "*=", "*+",
+        "<*", "<*>", "*>",
+        "<|", "<|>", "|>",
+        "+*", "=*", "=:", ":>",
+        "/*", "*/", "+++",
+        "<!--", "<!---",
+      ].sort((a, b) => b.length - a.length);
+
+      const ligatureSet = new Set(LIGATURE_PATTERNS);
+
+      term.registerCharacterJoiner((text: string) => {
+        const ranges: [number, number][] = [];
+        for (let i = 0; i < text.length; i++) {
+          for (const pat of LIGATURE_PATTERNS) {
+            if (text.startsWith(pat, i)) {
+              ranges.push([i, i + pat.length]);
+              i += pat.length - 1;
+              break;
+            }
+          }
+        }
+        return ranges;
+      });
+
+      // Fix letter-spacing on joined spans: the DOM renderer adds
+      // letter-spacing to the row container for monospace alignment, but for
+      // ligature spans the extra spacing breaks the combined glyph.
+      // We observe DOM mutations and reset letter-spacing to 0 on spans
+      // whose text content matches a known ligature pattern.
+      const rowsEl = term.element?.querySelector('.xterm-rows');
+      if (rowsEl) {
+        const fixLigatureSpans = (root: Element) => {
+          const spans = root.getElementsByTagName('span');
+          for (let i = 0; i < spans.length; i++) {
+            const text = spans[i].textContent || '';
+            if (text.length >= 2 && ligatureSet.has(text)) {
+              spans[i].style.letterSpacing = '0px';
+            }
+          }
+        };
+        const observer = new MutationObserver(() => {
+          fixLigatureSpans(rowsEl);
+        });
+        observer.observe(rowsEl, { childList: true, subtree: true, characterData: true });
+        fixLigatureSpans(rowsEl);
       }
     }
     const unicode11 = new Unicode11Addon();
@@ -104,21 +190,47 @@ function TerminalInstance({
     term.loadAddon(fitAddon);
 
     termRef.current = term;
+    fitAddonRef.current = fitAddon;
 
-    // Fit terminal to container and keep it fitted on resize
     fitAddon.fit();
-    const resizeObserver = new ResizeObserver(() => {
+    const resizeObserver = new ResizeObserver((entries) => {
+      // Skip fit when container is hidden (width/height = 0) to avoid
+      // sending bogus resize sequences that show up as visible characters
+      const { width, height } = entries[0].contentRect;
+      if (width === 0 || height === 0) return;
       try { fitAddon.fit(); } catch { /* ignore if disposed */ }
     });
     resizeObserver.observe(containerRef.current);
 
+    const handleClear = () => {
+      term.clear();
+    };
+    window.addEventListener("terminal:clear", handleClear);
+
+    term.focus();
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("terminal:clear", handleClear);
+      term.dispose();
+      termRef.current = null;
+      fitAddonRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Effect 2: Bind session I/O (re-runs when sessionId changes, keeps xterm alive)
+  useEffect(() => {
+    const term = termRef.current;
+    if (!term) return;
+
     // Handle user input -> SSH
     const onData = term.onData((data) => {
-      // Track command input for history
+      const sid = sessionIdRef.current;
       if (data === "\r" || data === "\n") {
         const cmd = cmdBufferRef.current.trim();
         if (cmd.length > 0) {
-          api.commandHistoryInsert(sessionId, hostId, cmd).catch(() => {});
+          api.commandHistoryInsert(sid, hostId, cmd).catch(() => {});
         }
         cmdBufferRef.current = "";
       } else if (data === "\x7f" || data === "\b") {
@@ -131,12 +243,13 @@ function TerminalInstance({
 
       const encoder = new TextEncoder();
       const bytes = Array.from(encoder.encode(data));
-      api.sessionWrite(sessionId, bytes).catch(() => {});
+      api.sessionWrite(sid, bytes).catch(() => {});
     });
 
-    // Handle resize -> SSH
+    // Handle resize -> SSH (skip when container is hidden)
     const onResize = term.onResize(({ cols, rows }) => {
-      api.sessionResize(sessionId, cols, rows).catch(() => {});
+      if (cols <= 1 || rows <= 1) return;
+      api.sessionResize(sessionIdRef.current, cols, rows).catch(() => {});
     });
 
     // Listen for SSH output events
@@ -159,14 +272,6 @@ function TerminalInstance({
             sessionId,
             event.payload.state as "connected" | "disconnected" | "failed",
           );
-          if (
-            event.payload.state === "disconnected" ||
-            event.payload.state === "failed"
-          ) {
-            term.write(
-              `\r\n\x1b[31m[Session ${event.payload.state}]\x1b[0m\r\n`,
-            );
-          }
         }
       },
     );
@@ -179,44 +284,62 @@ function TerminalInstance({
         if (cleaned) {
           const encoder = new TextEncoder();
           const bytes = Array.from(encoder.encode(cleaned));
-          api.sessionWrite(sessionId, bytes).catch(() => {});
+          api.sessionWrite(sessionIdRef.current, bytes).catch(() => {});
         }
       }
     };
     window.addEventListener("terminal:insert-selection", handleInsertSelection);
 
-    // Listen for clear shortcut event (Cmd+L)
-    const handleClear = () => {
-      term.clear();
-    };
-    window.addEventListener("terminal:clear", handleClear);
-
     // Initial resize notification
     api.sessionResize(sessionId, term.cols, term.rows).catch(() => {});
 
-    // Focus terminal
     term.focus();
 
     return () => {
-      resizeObserver.disconnect();
       onData.dispose();
       onResize.dispose();
       unlisten.then((fn) => fn());
       unlistenState.then((fn) => fn());
       window.removeEventListener("terminal:insert-selection", handleInsertSelection);
-      window.removeEventListener("terminal:clear", handleClear);
-      term.dispose();
     };
-  }, [sessionId, hostId, updateTabState, termSettings]);
+  }, [sessionId, hostId, tabId, updateTabState]);
 
   const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
+  const isDisconnected = tabState === "disconnected" || tabState === "failed";
+
+  const handleReconnect = async () => {
+    setReconnecting(true);
+    try {
+      await reconnectSession(tabId);
+    } finally {
+      setReconnecting(false);
+    }
+  };
 
   return (
-    <div
-      ref={containerRef}
-      className={cn("h-full w-full", hasBgImage && "xterm-bg-transparent")}
-      style={{ padding: "2px 4px 0" }}
-    />
+    <div className="relative h-full w-full">
+      <div
+        ref={containerRef}
+        className={cn("h-full w-full", hasBgImage && "xterm-bg-transparent")}
+        style={{ padding: "2px 4px 0" }}
+      />
+      {isDisconnected && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60">
+          <Zap size={40} className="mb-3 text-yellow-400" />
+          <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
+            {t("term.disconnected")}
+          </p>
+          <button
+            onClick={handleReconnect}
+            disabled={reconnecting}
+            className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-accent)] px-4 py-2 text-sm text-white hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-60"
+          >
+            <Zap size={16} />
+            {reconnecting ? t("term.reconnecting") : t("term.reconnect")}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -383,11 +506,13 @@ export function TerminalPage() {
 
   // Load terminal settings from backend
   const [termSettings, setTermSettings] = useState<Record<string, any> | undefined>(undefined);
+  const [settingsVersion, setSettingsVersion] = useState(0);
+
   useEffect(() => {
-    (async () => {
+    const loadSettings = async () => {
       try {
         const [
-          fontFamily, fontSize, fontWeight, lineHeight,
+          fontFamily, fontSize, fontWeight, lineHeight, fontLigatures,
           foreground, cursor, selectionBg,
           bgSource, bgColor, bgImagePath, bgOpacity, bgBlur,
         ] = await Promise.all([
@@ -395,6 +520,7 @@ export function TerminalPage() {
           api.settingGet("terminal.fontSize"),
           api.settingGet("terminal.fontWeight"),
           api.settingGet("terminal.lineHeight"),
+          api.settingGet("terminal.fontLigatures"),
           api.settingGet("terminal.foreground"),
           api.settingGet("terminal.cursor"),
           api.settingGet("terminal.selectionBg"),
@@ -409,6 +535,7 @@ export function TerminalPage() {
           fontSize: fontSize ? parseInt(fontSize) : undefined,
           fontWeight: fontWeight ? parseInt(fontWeight) : undefined,
           lineHeight: lineHeight ? parseFloat(lineHeight) : undefined,
+          fontLigatures: fontLigatures === "true",
           foreground: foreground || undefined,
           cursor: cursor || undefined,
           selectionBg: selectionBg || undefined,
@@ -421,7 +548,18 @@ export function TerminalPage() {
       } catch {
         setTermSettings({});
       }
-    })();
+    };
+
+    loadSettings();
+
+    const handleSettingsChanged = () => {
+      loadSettings();
+      setSettingsVersion((v) => v + 1);
+    };
+    window.addEventListener("terminal:settings-changed", handleSettingsChanged);
+    return () => {
+      window.removeEventListener("terminal:settings-changed", handleSettingsChanged);
+    };
   }, []);
 
   const goToConnections = useCallback(() => {
@@ -510,8 +648,14 @@ export function TerminalPage() {
               />
               <span className="max-w-[120px] truncate">{tab.title}</span>
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
+                  const ok = await confirm({
+                    title: t("confirm.closeSessionTitle"),
+                    description: t("confirm.closeSessionDesc"),
+                    confirmLabel: t("confirm.close"),
+                  });
+                  if (!ok) return;
                   closeSession(tab.id);
                 }}
                 className="ml-1 rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-[var(--color-bg-hover)] transition-opacity"
@@ -618,7 +762,9 @@ export function TerminalPage() {
                   tab.id === activeTabId ? "block" : "hidden",
                 )}
               >
-                <TerminalInstance sessionId={tab.sessionId} hostId={tab.hostId} termSettings={termSettings} />
+                {termSettings && (
+                  <TerminalInstance key={`${tab.id}-${settingsVersion}`} tabId={tab.id} sessionId={tab.sessionId} hostId={tab.hostId} termSettings={termSettings} />
+                )}
               </div>
             ))}
           </div>
@@ -635,11 +781,15 @@ export function TerminalPage() {
                     : { width: `${(1 - splitRatio) * 100}%` }
                 }
               >
-                <TerminalInstance
-                  sessionId={splitSessionId}
-                  hostId={activeTab?.hostId ?? ""}
-                  termSettings={termSettings}
-                />
+                {termSettings && (
+                  <TerminalInstance
+                    key={`split-${splitSessionId}-${settingsVersion}`}
+                    tabId={activeTab?.id ?? ""}
+                    sessionId={splitSessionId}
+                    hostId={activeTab?.hostId ?? ""}
+                    termSettings={termSettings}
+                  />
+                )}
               </div>
             </>
           )}

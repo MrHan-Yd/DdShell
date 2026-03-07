@@ -304,3 +304,9 @@ export async function sshConfigImport(): Promise<SshConfigImportResult> {
 export async function listSystemFonts(): Promise<string[]> {
   return invoke("list_system_fonts");
 }
+
+// ── Update download ──
+
+export async function downloadUpdate(url: string, filename: string): Promise<string> {
+  return invoke("download_update", { url, filename });
+}

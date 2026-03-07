@@ -36,14 +36,9 @@ export function Titlebar() {
       className="glass-surface flex h-[var(--height-titlebar)] items-center border-b border-[var(--color-border)] px-4"
     >
       {/* macOS: leave space for native traffic lights */}
-      {isMac && <div className="w-[70px] shrink-0" />}
+      {isMac && <div data-tauri-drag-region className="w-[70px] shrink-0" />}
 
-      <span
-        data-tauri-drag-region
-        className="flex-1 text-[var(--font-size-sm)] font-medium text-[var(--color-text-secondary)]"
-      >
-        Shell
-      </span>
+      <span data-tauri-drag-region className="flex-1 select-none">&nbsp;</span>
 
       {!isMac && <WinControls />}
     </header>

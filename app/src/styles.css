@@ -31,8 +31,11 @@
   --duration-fast: 120ms;
   --duration-base: 140ms;
   --duration-panel: 180ms;
+  --duration-toggle: 280ms;
   --ease-default: ease-out;
   --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.6, 0.32, 1.6);
 
   /* ── Dark Theme (default) ── */
   --color-bg-base: #0F1115;
@@ -182,7 +185,8 @@ body {
 /* xterm transparent background for image bg mode */
 .xterm-bg-transparent .xterm,
 .xterm-bg-transparent .xterm-viewport,
-.xterm-bg-transparent .xterm-screen {
+.xterm-bg-transparent .xterm-screen,
+.xterm-bg-transparent .xterm-scrollable-element {
   background: transparent !important;
   background-color: transparent !important;
 }
@@ -249,4 +253,280 @@ body {
   :root {
     --width-sidebar: 200px;
   }
+}
+
+/* ══════════════════════════════════════════════════════
+   macOS-quality Toggle Switch
+   ══════════════════════════════════════════════════════ */
+.toggle-switch {
+  position: relative;
+  height: 24px;
+  width: 44px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--duration-toggle) var(--ease-smooth);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2), inset 0 0 1px rgba(0, 0, 0, 0.1);
+}
+.toggle-switch[data-state="on"] {
+  background-color: var(--color-accent);
+}
+.toggle-switch[data-state="off"] {
+  background-color: var(--color-border);
+}
+.toggle-switch .toggle-thumb {
+  position: absolute;
+  top: 2px;
+  height: 20px;
+  width: 20px;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0.5px rgba(0, 0, 0, 0.1);
+  transition: left var(--duration-toggle) var(--ease-spring);
+}
+.toggle-switch[data-state="on"] .toggle-thumb {
+  left: 22px;
+}
+.toggle-switch[data-state="off"] .toggle-thumb {
+  left: 2px;
+}
+.toggle-switch:active .toggle-thumb {
+  width: 24px;
+  transition: left var(--duration-toggle) var(--ease-spring),
+              width var(--duration-fast) var(--ease-smooth);
+}
+.toggle-switch[data-state="on"]:active .toggle-thumb {
+  left: 18px;
+}
+
+/* ══════════════════════════════════════════════════════
+   macOS-quality Segmented Control
+   ══════════════════════════════════════════════════════ */
+.segmented-control {
+  position: relative;
+  display: flex;
+  gap: 0;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-border);
+  padding: 2px;
+  background: var(--color-bg-elevated);
+}
+.segmented-control .seg-pill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 8px;
+  background: var(--color-accent);
+  transition: left var(--duration-toggle) var(--ease-spring),
+              width var(--duration-toggle) var(--ease-spring);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  z-index: 0;
+}
+.segmented-control button {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: var(--font-size-xs);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: color var(--duration-base) var(--ease-smooth);
+  white-space: nowrap;
+}
+.segmented-control button[data-active="true"] {
+  color: white;
+}
+.segmented-control button:not([data-active="true"]):hover {
+  color: var(--color-text-secondary);
+}
+
+/* ══════════════════════════════════════════════════════
+   macOS-quality Custom Select / Dropdown
+   ══════════════════════════════════════════════════════ */
+.select-mac {
+  height: 32px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  padding: 0 32px 0 12px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  transition: border-color var(--duration-base) var(--ease-smooth),
+              box-shadow var(--duration-base) var(--ease-smooth),
+              background-color var(--duration-base) var(--ease-smooth);
+}
+.select-mac:hover {
+  border-color: var(--color-text-muted);
+}
+.select-mac:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* ══════════════════════════════════════════════════════
+   macOS-quality Range Slider
+   ══════════════════════════════════════════════════════ */
+.range-mac {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 128px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  outline: none;
+  cursor: pointer;
+  transition: background var(--duration-base) var(--ease-smooth);
+}
+.range-mac::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: white;
+  border: 0.5px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 0 0.5px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform var(--duration-base) var(--ease-spring),
+              box-shadow var(--duration-base) var(--ease-smooth);
+}
+.range-mac::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+.range-mac::-webkit-slider-thumb:active {
+  transform: scale(1.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.range-mac:focus::-webkit-slider-thumb {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* ══════════════════════════════════════════════════════
+   Sidebar active indicator
+   ══════════════════════════════════════════════════════ */
+.nav-item {
+  position: relative;
+  overflow: hidden;
+}
+.nav-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-accent);
+  opacity: 0;
+  transform: scaleY(0);
+  transition: opacity var(--duration-base) var(--ease-smooth),
+              transform var(--duration-toggle) var(--ease-spring);
+}
+.nav-item[data-active="true"]::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+.nav-item .nav-icon {
+  transition: transform var(--duration-base) var(--ease-spring);
+}
+.nav-item:hover .nav-icon {
+  transform: scale(1.1);
+}
+.nav-item:active .nav-icon {
+  transform: scale(0.92);
+}
+
+/* ══════════════════════════════════════════════════════
+   Button press animation refinements
+   ══════════════════════════════════════════════════════ */
+.btn-press {
+  transition: transform var(--duration-fast) var(--ease-smooth),
+              box-shadow var(--duration-base) var(--ease-smooth),
+              background-color var(--duration-base) var(--ease-smooth),
+              opacity var(--duration-base) var(--ease-smooth);
+}
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* ══════════════════════════════════════════════════════
+   Icon swap animation (save/reset success feedback)
+   ══════════════════════════════════════════════════════ */
+@keyframes icon-pop {
+  0%   { transform: scale(0) rotate(-90deg); opacity: 0; }
+  60%  { transform: scale(1.2) rotate(10deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes icon-spin-reset {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+.icon-swap-enter {
+  display: inline-flex;
+  animation: icon-pop 350ms var(--ease-spring) both;
+}
+.icon-spin {
+  display: inline-flex;
+  animation: icon-spin-reset 500ms var(--ease-smooth) both;
+}
+
+/* ══════════════════════════════════════════════════════
+   Panel / Content fade-in animation
+   ══════════════════════════════════════════════════════ */
+@keyframes fade-in-up {
+  0%   { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 380ms var(--ease-smooth) both;
+}
+
+@keyframes fade-in-down {
+  0%   { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-down {
+  animation: fade-in-down 380ms var(--ease-smooth) both;
+}
+
+@keyframes fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 200ms var(--ease-smooth) both;
+}
+
+/* List item stagger helper (applied via style="--i:N") */
+@keyframes list-item-in {
+  0%   { opacity: 0; transform: translateX(-8px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.animate-list-item {
+  animation: list-item-in 200ms var(--ease-smooth) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+/* Star favorite pop */
+@keyframes star-pop {
+  0%   { transform: scale(0.5) rotate(-15deg); opacity: 0; }
+  60%  { transform: scale(1.25) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.animate-star-pop {
+  animation: star-pop 300ms var(--ease-spring) both;
 }

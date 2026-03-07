@@ -14,6 +14,7 @@ interface TerminalState {
   closeSession: (tabId: string) => Promise<void>;
   setActiveTab: (tabId: string) => void;
   updateTabState: (sessionId: string, state: SessionState) => void;
+  reconnectSession: (tabId: string) => Promise<void>;
   splitPane: (direction: "horizontal" | "vertical") => void;
   closeSplit: () => void;
 }
@@ -78,6 +79,29 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         t.sessionId === sessionId ? { ...t, state } : t,
       ),
     })),
+
+  reconnectSession: async (tabId) => {
+    const state = get();
+    const tab = state.tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+
+    try {
+      const { id: newSessionId } = await api.sessionConnect(tab.hostId);
+      set((s) => ({
+        tabs: s.tabs.map((t) =>
+          t.id === tabId
+            ? { ...t, sessionId: newSessionId, state: "connected" as const }
+            : t,
+        ),
+      }));
+    } catch {
+      set((s) => ({
+        tabs: s.tabs.map((t) =>
+          t.id === tabId ? { ...t, state: "failed" as const } : t,
+        ),
+      }));
+    }
+  },
 
   splitPane: (direction) => {
     const state = get();

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useAppStore } from "@/stores/app";
 import { useT } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -16,6 +16,7 @@ interface TerminalSettings {
   fontSize: number;
   fontWeight: number;
   lineHeight: number;
+  fontLigatures: boolean;
   foreground: string;
   cursor: string;
   selectionBg: string;
@@ -31,6 +32,7 @@ const DEFAULT_TERMINAL: TerminalSettings = {
   fontSize: 14,
   fontWeight: 400,
   lineHeight: 1.4,
+  fontLigatures: false,
   foreground: "#E5E7EB",
   cursor: "#3B82F6",
   selectionBg: "rgba(59, 130, 246, 0.3)",
@@ -105,6 +107,9 @@ function SettingRow({
   );
 }
 
+const DEFAULT_UI_FONT_FAMILY = "";
+const DEFAULT_UI_FONT_SIZE = 14;
+
 export function SettingsPage() {
   const theme = useAppStore((s) => s.theme);
   const setTheme = useAppStore((s) => s.setTheme);
@@ -113,6 +118,8 @@ export function SettingsPage() {
   const t = useT();
 
   const [terminal, setTerminal] = useState<TerminalSettings>(DEFAULT_TERMINAL);
+  const [uiFontFamily, setUiFontFamily] = useState(DEFAULT_UI_FONT_FAMILY);
+  const [uiFontSize, setUiFontSize] = useState(DEFAULT_UI_FONT_SIZE);
   const [confirmDanger, setConfirmDanger] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
@@ -129,6 +136,7 @@ export function SettingsPage() {
           savedFontSize,
           savedFontWeight,
           savedLineHeight,
+          savedFontLigatures,
           savedForeground,
           savedCursor,
           savedSelectionBg,
@@ -139,12 +147,15 @@ export function SettingsPage() {
           savedBgOpacity,
           savedBgBlur,
           savedLocale,
+          savedUiFontFamily,
+          savedUiFontSize,
         ] = await Promise.all([
           api.settingGet("theme"),
           api.settingGet("terminal.fontFamily"),
           api.settingGet("terminal.fontSize"),
           api.settingGet("terminal.fontWeight"),
           api.settingGet("terminal.lineHeight"),
+          api.settingGet("terminal.fontLigatures"),
           api.settingGet("terminal.foreground"),
           api.settingGet("terminal.cursor"),
           api.settingGet("terminal.selectionBg"),
@@ -155,6 +166,8 @@ export function SettingsPage() {
           api.settingGet("terminal.bgOpacity"),
           api.settingGet("terminal.bgBlur"),
           api.settingGet("locale"),
+          api.settingGet("ui.fontFamily"),
+          api.settingGet("ui.fontSize"),
         ]);
 
         if (savedTheme) setTheme(savedTheme as ThemeOption);
@@ -165,6 +178,7 @@ export function SettingsPage() {
           fontSize: savedFontSize ? parseInt(savedFontSize) : DEFAULT_TERMINAL.fontSize,
           fontWeight: savedFontWeight ? parseInt(savedFontWeight) : DEFAULT_TERMINAL.fontWeight,
           lineHeight: savedLineHeight ? parseFloat(savedLineHeight) : DEFAULT_TERMINAL.lineHeight,
+          fontLigatures: savedFontLigatures === "true",
           foreground: savedForeground || DEFAULT_TERMINAL.foreground,
           cursor: savedCursor || DEFAULT_TERMINAL.cursor,
           selectionBg: savedSelectionBg || DEFAULT_TERMINAL.selectionBg,
@@ -176,6 +190,9 @@ export function SettingsPage() {
         });
 
         setConfirmDanger(savedConfirmDanger !== "false");
+
+        setUiFontFamily(savedUiFontFamily || DEFAULT_UI_FONT_FAMILY);
+        setUiFontSize(savedUiFontSize ? parseInt(savedUiFontSize) : DEFAULT_UI_FONT_SIZE);
       } catch {
         // Use defaults if settings not available yet
       }
@@ -200,6 +217,7 @@ export function SettingsPage() {
         api.settingSet("terminal.fontSize", String(terminal.fontSize)),
         api.settingSet("terminal.fontWeight", String(terminal.fontWeight)),
         api.settingSet("terminal.lineHeight", String(terminal.lineHeight)),
+        api.settingSet("terminal.fontLigatures", String(terminal.fontLigatures)),
         api.settingSet("terminal.foreground", terminal.foreground),
         api.settingSet("terminal.cursor", terminal.cursor),
         api.settingSet("terminal.selectionBg", terminal.selectionBg),
@@ -209,7 +227,10 @@ export function SettingsPage() {
         api.settingSet("terminal.bgImagePath", terminal.bgImagePath),
         api.settingSet("terminal.bgOpacity", String(terminal.bgOpacity)),
         api.settingSet("terminal.bgBlur", String(terminal.bgBlur)),
+        api.settingSet("ui.fontFamily", uiFontFamily),
+        api.settingSet("ui.fontSize", String(uiFontSize)),
       ]);
+      window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     } catch {
@@ -222,6 +243,8 @@ export function SettingsPage() {
     setTerminal(DEFAULT_TERMINAL);
     setTheme("dark");
     setLocale("zh");
+    setUiFontFamily(DEFAULT_UI_FONT_FAMILY);
+    setUiFontSize(DEFAULT_UI_FONT_SIZE);
     setConfirmDanger(true);
     setResetStatus(true);
     setTimeout(() => setResetStatus(false), 2000);
@@ -242,11 +265,15 @@ export function SettingsPage() {
           <h1 className="text-[var(--font-size-xl)] font-medium">{t("settings.title")}</h1>
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={handleReset}>
-              {resetStatus ? <Check size={14} /> : <RotateCcw size={14} />}
+              {resetStatus
+                ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
+                : <span key="icon" className="icon-spin"><RotateCcw size={14} /></span>}
               {resetStatus ? t("settings.resetDone") : t("settings.reset")}
             </Button>
             <Button onClick={handleSave}>
-              {saveStatus === "saved" ? <Check size={14} /> : <Save size={14} />}
+              {saveStatus === "saved"
+                ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
+                : <Save size={14} />}
               {saveStatus === "saved"
                 ? t("settings.saved")
                 : saveStatus === "error"
@@ -259,72 +286,78 @@ export function SettingsPage() {
         {/* Theme */}
         <Section title={t("settings.appearance")}>
           <SettingRow label={t("settings.theme")} description={t("settings.themeDesc")}>
-            <div className="flex gap-1 rounded-[var(--radius-control)] border border-[var(--color-border)] p-0.5">
-              {([
-                { value: "dark" as const, icon: Moon, labelKey: "settings.dark" as const },
-                { value: "light" as const, icon: Sun, labelKey: "settings.light" as const },
-                { value: "system" as const, icon: Monitor, labelKey: "settings.system" as const },
-              ]).map(({ value, icon: Icon, labelKey }) => (
-                <button
-                  key={value}
-                  onClick={() => setTheme(value)}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-[8px] px-3 py-1.5 text-[var(--font-size-xs)] transition-colors",
-                    theme === value
-                      ? "bg-[var(--color-accent)] text-white"
-                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]",
-                  )}
-                >
-                  <Icon size={12} />
-                  {t(labelKey)}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              value={theme}
+              onChange={setTheme}
+              options={[
+                { value: "dark", label: <><Moon size={12} />{t("settings.dark")}</> },
+                { value: "light", label: <><Sun size={12} />{t("settings.light")}</> },
+                { value: "system", label: <><Monitor size={12} />{t("settings.system")}</> },
+              ]}
+            />
           </SettingRow>
           <SettingRow label={t("settings.language")} description={t("settings.languageDesc")}>
-            <div className="flex gap-1 rounded-[var(--radius-control)] border border-[var(--color-border)] p-0.5">
-              {([
-                { value: "zh" as const, label: "中文" },
-                { value: "en" as const, label: "English" },
-              ]).map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => setLocale(value)}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-[8px] px-3 py-1.5 text-[var(--font-size-xs)] transition-colors",
-                    locale === value
-                      ? "bg-[var(--color-accent)] text-white"
-                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]",
-                  )}
-                >
-                  <Globe size={12} />
-                  {label}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              value={locale}
+              onChange={setLocale}
+              options={[
+                { value: "zh", label: <><Globe size={12} />中文</> },
+                { value: "en", label: <><Globe size={12} />English</> },
+              ]}
+            />
           </SettingRow>
+        </Section>
+
+        {/* UI Font */}
+        <Section title={t("settings.uiFont")}>
+          <div className="space-y-3">
+            <SettingRow label={t("settings.uiFontFamily")} description={t("settings.uiFontDesc")}>
+              <select
+                value={uiFontFamily}
+                onChange={(e) => setUiFontFamily(e.target.value)}
+                className="select-mac w-64"
+              >
+                <option value="">{t("settings.systemDefault")}</option>
+                {systemFonts.map((font) => (
+                  <option key={font} value={font}>{font}</option>
+                ))}
+              </select>
+            </SettingRow>
+
+            <SettingRow label={t("settings.uiFontSize")} description="12 - 18 px">
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min={12}
+                  max={18}
+                  value={uiFontSize}
+                  onChange={(e) => setUiFontSize(parseInt(e.target.value))}
+                  className="range-mac"
+                />
+                <span className="w-8 text-right text-[var(--font-size-sm)]">
+                  {uiFontSize}
+                </span>
+              </div>
+            </SettingRow>
+          </div>
         </Section>
 
         {/* Terminal Font */}
         <Section title={t("settings.terminalFont")}>
           <div className="space-y-3">
             <SettingRow label={t("settings.fontFamily")}>
-              <div className="relative">
-                <input
-                  list="system-fonts-list"
-                  value={terminal.fontFamily}
-                  onChange={(e) =>
-                    setTerminal((t) => ({ ...t, fontFamily: e.target.value }))
-                  }
-                  className="h-8 w-64 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-[var(--font-size-sm)] text-[var(--color-text-primary)] focus:border-[var(--color-border-focus)] focus:outline-none"
-                  placeholder={systemFonts.length === 0 ? t("settings.loadingFonts") : t("settings.fontFamily")}
-                />
-                <datalist id="system-fonts-list">
-                  {systemFonts.map((font) => (
-                    <option key={font} value={font} />
-                  ))}
-                </datalist>
-              </div>
+              <select
+                value={terminal.fontFamily}
+                onChange={(e) =>
+                  setTerminal((t) => ({ ...t, fontFamily: e.target.value }))
+                }
+                className="select-mac w-64"
+              >
+                <option value={DEFAULT_TERMINAL.fontFamily}>{t("settings.systemDefault")}</option>
+                {systemFonts.map((font) => (
+                  <option key={font} value={font}>{font}</option>
+                ))}
+              </select>
             </SettingRow>
 
             <SettingRow label={t("settings.fontSize")} description="10 - 24 px">
@@ -337,7 +370,7 @@ export function SettingsPage() {
                   onChange={(e) =>
                     setTerminal((t) => ({ ...t, fontSize: parseInt(e.target.value) }))
                   }
-                  className="w-32 accent-[var(--color-accent)]"
+                  className="range-mac"
                 />
                 <span className="w-8 text-right text-[var(--font-size-sm)]">
                   {terminal.fontSize}
@@ -351,7 +384,7 @@ export function SettingsPage() {
                 onChange={(e) =>
                   setTerminal((t) => ({ ...t, fontWeight: parseInt(e.target.value) }))
                 }
-                className="h-8 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 text-[var(--font-size-sm)] text-[var(--color-text-primary)] focus:border-[var(--color-border-focus)] focus:outline-none"
+                className="select-mac"
               >
                 <option value={400}>Regular (400)</option>
                 <option value={500}>Medium (500)</option>
@@ -372,12 +405,25 @@ export function SettingsPage() {
                       lineHeight: parseInt(e.target.value) / 10,
                     }))
                   }
-                  className="w-32 accent-[var(--color-accent)]"
+                  className="range-mac"
                 />
                 <span className="w-8 text-right text-[var(--font-size-sm)]">
                   {terminal.lineHeight.toFixed(1)}
                 </span>
               </div>
+            </SettingRow>
+
+            <SettingRow
+              label={t("settings.fontLigatures")}
+              description={t("settings.fontLigaturesDesc")}
+            >
+              <button
+                onClick={() => setTerminal((t) => ({ ...t, fontLigatures: !t.fontLigatures }))}
+                data-state={terminal.fontLigatures ? "on" : "off"}
+                className="toggle-switch"
+              >
+                <span className="toggle-thumb" />
+              </button>
             </SettingRow>
           </div>
         </Section>
@@ -489,22 +535,14 @@ export function SettingsPage() {
         <Section title={t("settings.terminalBg")}>
           <div className="space-y-3">
             <SettingRow label={t("settings.bgSource")}>
-              <div className="flex gap-1 rounded-[var(--radius-control)] border border-[var(--color-border)] p-0.5">
-                {(["color", "image"] as const).map((src) => (
-                  <button
-                    key={src}
-                    onClick={() => setTerminal((t) => ({ ...t, bgSource: src }))}
-                    className={cn(
-                      "rounded-[8px] px-3 py-1.5 text-[var(--font-size-xs)] transition-colors capitalize",
-                      terminal.bgSource === src
-                        ? "bg-[var(--color-accent)] text-white"
-                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]",
-                    )}
-                  >
-                    {src === "color" ? t("settings.color") : t("settings.image")}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                value={terminal.bgSource}
+                onChange={(v) => setTerminal((t) => ({ ...t, bgSource: v }))}
+                options={[
+                  { value: "color", label: t("settings.color") },
+                  { value: "image", label: t("settings.image") },
+                ]}
+              />
             </SettingRow>
 
             {terminal.bgSource === "color" && (
@@ -577,7 +615,7 @@ export function SettingsPage() {
                   onChange={(e) =>
                     setTerminal((t) => ({ ...t, bgOpacity: parseInt(e.target.value) }))
                   }
-                  className="w-32 accent-[var(--color-accent)]"
+                  className="range-mac"
                 />
                 <span className="w-8 text-right text-[var(--font-size-sm)]">
                   {terminal.bgOpacity}%
@@ -595,7 +633,7 @@ export function SettingsPage() {
                   onChange={(e) =>
                     setTerminal((t) => ({ ...t, bgBlur: parseInt(e.target.value) }))
                   }
-                  className="w-32 accent-[var(--color-accent)]"
+                  className="range-mac"
                 />
                 <span className="w-8 text-right text-[var(--font-size-sm)]">
                   {terminal.bgBlur}px
@@ -633,17 +671,10 @@ export function SettingsPage() {
           >
             <button
               onClick={() => setConfirmDanger(!confirmDanger)}
-              className={cn(
-                "relative h-6 w-11 rounded-full transition-colors",
-                confirmDanger ? "bg-[var(--color-accent)]" : "bg-[var(--color-border)]",
-              )}
+              data-state={confirmDanger ? "on" : "off"}
+              className="toggle-switch"
             >
-              <span
-                className={cn(
-                  "absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform",
-                  confirmDanger ? "left-[22px]" : "left-0.5",
-                )}
-              />
+              <span className="toggle-thumb" />
             </button>
           </SettingRow>
         </Section>

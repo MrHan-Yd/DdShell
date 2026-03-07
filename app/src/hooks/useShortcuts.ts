@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useAppStore } from "@/stores/app";
 import { useTerminalStore } from "@/stores/terminal";
+import { confirm } from "@/stores/confirm";
+import { t } from "@/lib/i18n";
 import type { Page } from "@/types";
 
 type ShortcutHandler = (e: KeyboardEvent) => void;
@@ -48,9 +50,16 @@ export function useShortcuts() {
       {
         key: "w",
         ctrl: true,
-        handler: () => {
+        handler: async () => {
           const store = useTerminalStore.getState();
           if (store.activeTabId) {
+            const locale = useAppStore.getState().locale;
+            const ok = await confirm({
+              title: t("confirm.closeSessionTitle", locale),
+              description: t("confirm.closeSessionDesc", locale),
+              confirmLabel: t("confirm.close", locale),
+            });
+            if (!ok) return;
             store.closeSession(store.activeTabId);
           }
         },
