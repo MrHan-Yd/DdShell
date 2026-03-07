@@ -162,12 +162,12 @@ jobs:
           # MSI
           $msi = Get-ChildItem "$bundleDir/msi/*.msi" | Select-Object -First 1
           if ($msi) {
-            Copy-Item $msi.FullName "$env:TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.msi"
+            Copy-Item $msi.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.msi"
           }
           # NSIS exe
           $exe = Get-ChildItem "$bundleDir/nsis/*.exe" | Select-Object -First 1
           if ($exe) {
-            Copy-Item $exe.FullName "$env:TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe"
+            Copy-Item $exe.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe"
           }
 
       - name: Upload Windows msi
