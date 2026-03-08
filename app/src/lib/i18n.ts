@@ -21,9 +21,11 @@ const dict = {
   // ── Update ──
   "update.checking": { zh: "检查中...", en: "Checking..." },
   "update.available": { zh: "新版本 {v}", en: "New version {v}" },
-  "update.latest": { zh: "已是最新", en: "Up to date" },
+  "update.latest": { zh: "已是最新版本", en: "Up to date" },
   "update.download": { zh: "前往下载", en: "Download" },
-  "update.failed": { zh: "检查失败", en: "Check failed" },
+  "update.failed": { zh: "检查失败，点击重试", en: "Check failed, click to retry" },
+  "update.rateLimited": { zh: "请求过频，稍后再试", en: "Rate limited, try later" },
+  "update.networkError": { zh: "网络异常，点击重试", en: "Network error, click to retry" },
   "update.downloading": { zh: "下载中...", en: "Downloading..." },
   "update.downloadComplete": { zh: "下载完成", en: "Download complete" },
   "update.downloadFailed": { zh: "下载失败", en: "Download failed" },

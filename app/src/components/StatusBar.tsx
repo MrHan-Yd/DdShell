@@ -5,13 +5,13 @@ import { useMetricsStore } from "@/stores/metrics";
 import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app";
 import { cn } from "@/lib/utils";
-import { APP_NAME, APP_VERSION } from "@/lib/constants";
+import { APP_NAME, getAppVersion } from "@/lib/constants";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { listen } from "@tauri-apps/api/event";
-import { downloadUpdate } from "@/lib/tauri";
+import { downloadUpdate, checkUpdate as apiCheckUpdate } from "@/lib/tauri";
 
 type HealthLevel = "GOOD" | "FAIR" | "POOR";
-type UpdateStatus = "idle" | "checking" | "available" | "upToDate" | "error";
+type UpdateStatus = "idle" | "checking" | "available" | "upToDate" | "rateLimited" | "networkError" | "error";
 type DownloadStatus = "idle" | "downloading" | "completed" | "failed";
 
 interface ReleaseAsset {
@@ -50,19 +50,6 @@ function computeHealthLevel(sessionHealth?: number): HealthLevel {
   if (sessionHealth >= 80) return "GOOD";
   if (sessionHealth >= 50) return "FAIR";
   return "POOR";
-}
-
-function compareVersions(current: string, latest: string): boolean {
-  const normalize = (v: string) => v.replace(/^v/, "");
-  const cur = normalize(current).split(".").map(Number);
-  const lat = normalize(latest).split(".").map(Number);
-  for (let i = 0; i < Math.max(cur.length, lat.length); i++) {
-    const c = cur[i] ?? 0;
-    const l = lat[i] ?? 0;
-    if (l > c) return true;
-    if (l < c) return false;
-  }
-  return false;
 }
 
 function formatBytes(bytes: number): string {
@@ -187,6 +174,7 @@ export function StatusBar() {
   const t = useT();
 
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
+  const [appVersion, setAppVersion] = useState("");
   const [latestVersion, setLatestVersion] = useState("");
   const [releaseAssets, setReleaseAssets] = useState<ReleaseAsset[]>([]);
 
@@ -197,6 +185,11 @@ export function StatusBar() {
   const [downloadError, setDownloadError] = useState("");
 
   const unlistenRefs = useRef<Array<() => void>>([]);
+  const lastCheckRef = useRef(0);
+
+  useEffect(() => {
+    getAppVersion().then(setAppVersion);
+  }, []);
 
   useEffect(() => {
     const setup = async () => {
@@ -230,28 +223,33 @@ export function StatusBar() {
   }, []);
 
   const checkUpdate = useCallback(async () => {
-    if (updateStatus === "checking") return;
+    if (updateStatus === "checking" || !appVersion) return;
     setUpdateStatus("checking");
     try {
-      const res = await fetch(
-        "https://api.github.com/repos/MrHan-Yd/DdShell/releases/latest",
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const tagName: string = data.tag_name ?? "";
-      if (compareVersions(APP_VERSION, tagName)) {
-        setLatestVersion(tagName);
-        setReleaseAssets(data.assets ?? []);
+      const result = await apiCheckUpdate(appVersion);
+      lastCheckRef.current = Date.now();
+      if (result.hasUpdate) {
+        setLatestVersion(result.latestVersion);
+        setReleaseAssets(result.assets.map(a => ({
+          name: a.name,
+          browser_download_url: a.browserDownloadUrl,
+          size: a.size,
+        })));
         setUpdateStatus("available");
       } else {
         setUpdateStatus("upToDate");
-        setTimeout(() => setUpdateStatus("idle"), 3000);
       }
-    } catch {
-      setUpdateStatus("error");
-      setTimeout(() => setUpdateStatus("idle"), 3000);
+    } catch (err) {
+      const msg = typeof err === "string" ? err : err instanceof Error ? err.message : "";
+      if (msg.includes("rate_limited")) {
+        setUpdateStatus("rateLimited");
+      } else if (msg.includes("network")) {
+        setUpdateStatus("networkError");
+      } else {
+        setUpdateStatus("error");
+      }
     }
-  }, [updateStatus]);
+  }, [updateStatus, appVersion]);
 
   const startDownload = useCallback(() => {
     const asset = getPlatformAsset(releaseAssets);
@@ -284,15 +282,15 @@ export function StatusBar() {
     : `${activeTransfers} transfer${activeTransfers !== 1 ? "s" : ""}`;
 
   const renderVersion = () => {
+    const versionTag = `${APP_NAME} v${appVersion}`;
+
     switch (updateStatus) {
       case "checking":
         return (
-          <button
-            className="text-[var(--font-size-xs)] text-[var(--color-text-muted)] cursor-default"
-            disabled
-          >
+          <span className="flex items-center gap-1.5 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            <span className="h-3 w-3 animate-spin rounded-full border border-[var(--color-text-muted)] border-t-transparent" />
             {t("update.checking")}
-          </button>
+          </span>
         );
       case "available":
         return (
@@ -311,15 +309,40 @@ export function StatusBar() {
         );
       case "upToDate":
         return (
-          <span className="text-[var(--font-size-xs)] text-[var(--color-success)]">
-            ✓ {t("update.latest")}
+          <span className="flex items-center gap-1.5 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            <span>{versionTag}</span>
+            <span className="text-[var(--color-success)]">✓ {t("update.latest")}</span>
           </span>
+        );
+      case "rateLimited":
+        return (
+          <button
+            className="flex items-center gap-1.5 text-[var(--font-size-xs)] cursor-pointer"
+            onClick={checkUpdate}
+          >
+            <span className="text-[var(--color-text-muted)]">{versionTag}</span>
+            <span className="text-[var(--color-fair)]">{t("update.rateLimited")}</span>
+          </button>
+        );
+      case "networkError":
+        return (
+          <button
+            className="flex items-center gap-1.5 text-[var(--font-size-xs)] cursor-pointer"
+            onClick={checkUpdate}
+          >
+            <span className="text-[var(--color-text-muted)]">{versionTag}</span>
+            <span className="text-[var(--color-poor)]">{t("update.networkError")}</span>
+          </button>
         );
       case "error":
         return (
-          <span className="text-[var(--font-size-xs)] text-[var(--color-poor)]">
-            {t("update.failed")}
-          </span>
+          <button
+            className="flex items-center gap-1.5 text-[var(--font-size-xs)] cursor-pointer"
+            onClick={checkUpdate}
+          >
+            <span className="text-[var(--color-text-muted)]">{versionTag}</span>
+            <span className="text-[var(--color-poor)]">{t("update.failed")}</span>
+          </button>
         );
       default:
         return (
@@ -328,7 +351,7 @@ export function StatusBar() {
             onClick={checkUpdate}
             title={locale === "zh" ? "检查更新" : "Check for updates"}
           >
-            {APP_NAME} v{APP_VERSION}
+            {versionTag}
           </button>
         );
     }

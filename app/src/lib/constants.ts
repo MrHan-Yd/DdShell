@@ -1,2 +1,15 @@
+import { getVersion } from "@tauri-apps/api/app";
+
 export const APP_NAME = "DdShell";
-export const APP_VERSION = "0.1.0";
+
+let _cachedVersion = "";
+
+export async function getAppVersion(): Promise<string> {
+  if (_cachedVersion) return _cachedVersion;
+  try {
+    _cachedVersion = await getVersion();
+  } catch {
+    _cachedVersion = "0.0.0";
+  }
+  return _cachedVersion;
+}

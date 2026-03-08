@@ -305,7 +305,18 @@ export async function listSystemFonts(): Promise<string[]> {
   return invoke("list_system_fonts");
 }
 
-// ── Update download ──
+// ── Update check & download ──
+
+export interface UpdateCheckResult {
+  hasUpdate: boolean;
+  latestVersion: string;
+  assets: { name: string; browserDownloadUrl: string; size: number }[];
+  error: string | null;
+}
+
+export async function checkUpdate(currentVersion: string): Promise<UpdateCheckResult> {
+  return invoke("check_update", { currentVersion });
+}
 
 export async function downloadUpdate(url: string, filename: string): Promise<string> {
   return invoke("download_update", { url, filename });

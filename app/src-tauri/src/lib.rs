@@ -1091,7 +1091,118 @@ async fn ssh_config_import() -> Result<SshConfigImportResult, String> {
     })
 }
 
-// ── Commands: Update Download ──
+// ── Commands: Update Check & Download ──
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateCheckResult {
+    has_update: bool,
+    latest_version: String,
+    assets: Vec<ReleaseAssetInfo>,
+    error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReleaseAssetInfo {
+    name: String,
+    browser_download_url: String,
+    size: u64,
+}
+
+#[tauri::command]
+async fn check_update(current_version: String) -> Result<UpdateCheckResult, String> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    // 1. 通过 releases/latest 重定向获取最新版本号（不走 API，无限流）
+    let res = client
+        .get("https://github.com/MrHan-Yd/DdShell/releases/latest")
+        .header("User-Agent", "DdShell-Updater")
+        .send()
+        .await
+        .map_err(|e| format!("network:{}", e))?;
+
+    let tag = res
+        .headers()
+        .get("location")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|url| url.rsplit('/').next())
+        .unwrap_or("")
+        .to_string();
+
+    if tag.is_empty() {
+        return Err("no_release".to_string());
+    }
+
+    let cur = current_version.trim_start_matches('v');
+    let lat = tag.trim_start_matches('v');
+    let has_update = version_gt(lat, cur);
+
+    if !has_update {
+        return Ok(UpdateCheckResult {
+            has_update: false,
+            latest_version: tag,
+            assets: vec![],
+            error: None,
+        });
+    }
+
+    // 2. 有新版本时，尝试获取资源列表（可选，失败也不影响）
+    let api_client = reqwest::Client::new();
+    let assets = match api_client
+        .get("https://api.github.com/repos/MrHan-Yd/DdShell/releases/latest")
+        .header("User-Agent", "DdShell-Updater")
+        .header("Accept", "application/vnd.github.v3+json")
+        .send()
+        .await
+    {
+        Ok(api_res) if api_res.status().is_success() => {
+            let data: serde_json::Value = api_res.json().await.unwrap_or_default();
+            data["assets"]
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|a| {
+                            Some(ReleaseAssetInfo {
+                                name: a["name"].as_str()?.to_string(),
+                                browser_download_url: a["browser_download_url"]
+                                    .as_str()?
+                                    .to_string(),
+                                size: a["size"].as_u64().unwrap_or(0),
+                            })
+                        })
+                        .collect()
+                })
+                .unwrap_or_default()
+        }
+        _ => vec![],
+    };
+
+    Ok(UpdateCheckResult {
+        has_update: true,
+        latest_version: tag,
+        assets,
+        error: None,
+    })
+}
+
+fn version_gt(a: &str, b: &str) -> bool {
+    let parse = |v: &str| -> Vec<u32> {
+        v.split('.').filter_map(|s| s.parse().ok()).collect()
+    };
+    let va = parse(a);
+    let vb = parse(b);
+    for i in 0..va.len().max(vb.len()) {
+        let x = va.get(i).copied().unwrap_or(0);
+        let y = vb.get(i).copied().unwrap_or(0);
+        if x > y { return true; }
+        if x < y { return false; }
+    }
+    false
+}
 
 #[tauri::command]
 async fn download_update(app: tauri::AppHandle, url: String, filename: String) -> Result<String, String> {
@@ -1316,6 +1427,7 @@ pub fn run() {
             ssh_config_import,
             list_system_fonts,
             download_update,
+            check_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

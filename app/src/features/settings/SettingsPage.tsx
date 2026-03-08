@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useAppStore } from "@/stores/app";
 import { useT } from "@/lib/i18n";
+import { getAppVersion } from "@/lib/constants";
 import type { Locale } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
 import type { TerminalBgSource } from "@/types";
@@ -126,6 +127,11 @@ export function SettingsPage() {
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [resetStatus, setResetStatus] = useState(false);
+  const [appVersion, setAppVersion] = useState("");
+
+  useEffect(() => {
+    getAppVersion().then(setAppVersion);
+  }, []);
 
   // Load settings from backend on mount
   useEffect(() => {
@@ -711,7 +717,7 @@ export function SettingsPage() {
           <div className="space-y-2 text-[var(--font-size-sm)]">
             <div className="flex justify-between">
               <span className="text-[var(--color-text-muted)]">{t("settings.version")}</span>
-              <span>0.1.0</span>
+              <span>v{appVersion}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[var(--color-text-muted)]">{t("settings.framework")}</span>
