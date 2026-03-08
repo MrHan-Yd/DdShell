@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app";
 import { useT } from "@/lib/i18n";
+import { Logo } from "@/components/Logo";
 import type { Page } from "@/types";
 import type { DictKey } from "@/lib/i18n";
 
@@ -69,6 +70,19 @@ export function Sidebar() {
       )}
     >
       <div className="flex-1 overflow-y-auto p-2">
+        {/* Logo */}
+        <div className={cn(
+          "flex items-center mb-2 px-3 py-2",
+          collapsed ? "justify-center" : "gap-2"
+        )}>
+          <Logo size={collapsed ? 26 : 30} />
+          {!collapsed && (
+            <span className="text-sm font-semibold text-[var(--color-text-primary)] select-none">
+              DdShell
+            </span>
+          )}
+        </div>
+
         <nav ref={navRef} className="relative flex flex-col gap-1">
           {/* Sliding highlight pill */}
           <div

@@ -94,21 +94,23 @@ export default function App() {
     root.style.fontSize = `${uiFontSize}px`;
   }, [uiFontFamily, uiFontSize]);
 
-  // Apply theme to document
+  // Apply theme to document + update favicon
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "system") {
-      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    const applyTheme = (isDark: boolean) => {
       root.setAttribute("data-theme", isDark ? "dark" : "light");
+      if (favicon) favicon.href = isDark ? "/logo-dark.svg" : "/logo.svg";
+    };
 
-      const handler = (e: MediaQueryListEvent) => {
-        root.setAttribute("data-theme", e.matches ? "dark" : "light");
-      };
+    if (theme === "system") {
       const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      applyTheme(mq.matches);
+      const handler = (e: MediaQueryListEvent) => applyTheme(e.matches);
       mq.addEventListener("change", handler);
       return () => mq.removeEventListener("change", handler);
     } else {
-      root.setAttribute("data-theme", theme);
+      applyTheme(theme === "dark");
     }
   }, [theme]);
 
