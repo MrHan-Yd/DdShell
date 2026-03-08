@@ -1,6 +1,6 @@
 [package]
 name = "dd-shell"
-version = "0.1.0"
+version = "0.1.1"
 description = "DdShell — Open-source SSH/SFTP client"
 authors = ["you"]
 edition = "2021"
