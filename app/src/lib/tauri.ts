@@ -321,3 +321,9 @@ export async function checkUpdate(currentVersion: string): Promise<UpdateCheckRe
 export async function downloadUpdate(url: string, filename: string): Promise<string> {
   return invoke("download_update", { url, filename });
 }
+
+// ── Install type detection ──
+
+export async function getInstallType(): Promise<string> {
+  return invoke("get_install_type");
+}

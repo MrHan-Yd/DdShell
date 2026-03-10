@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/Button";
+import { Select } from "@/components/ui/Select";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useAppStore } from "@/stores/app";
 import { useT } from "@/lib/i18n";
@@ -9,6 +10,9 @@ import { getAppVersion } from "@/lib/constants";
 import type { Locale } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
 import type { TerminalBgSource } from "@/types";
+
+const TABS = ["general", "terminal", "about"] as const;
+type SettingsTab = (typeof TABS)[number];
 
 type ThemeOption = "dark" | "light" | "system";
 
@@ -26,6 +30,7 @@ interface TerminalSettings {
   bgImagePath: string;
   bgOpacity: number;
   bgBlur: number;
+  encoding: string;
 }
 
 const DEFAULT_TERMINAL: TerminalSettings = {
@@ -42,6 +47,7 @@ const DEFAULT_TERMINAL: TerminalSettings = {
   bgImagePath: "",
   bgOpacity: 100,
   bgBlur: 0,
+  encoding: "utf-8",
 };
 
 /** Compute relative luminance (WCAG formula) */
@@ -118,6 +124,8 @@ export function SettingsPage() {
   const setLocale = useAppStore((s) => s.setLocale);
   const t = useT();
 
+  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+  const [slideDir, setSlideDir] = useState<"left" | "right">("right");
   const [terminal, setTerminal] = useState<TerminalSettings>(DEFAULT_TERMINAL);
   const [uiFontFamily, setUiFontFamily] = useState(DEFAULT_UI_FONT_FAMILY);
   const [uiFontSize, setUiFontSize] = useState(DEFAULT_UI_FONT_SIZE);
@@ -157,6 +165,7 @@ export function SettingsPage() {
           savedLocale,
           savedUiFontFamily,
           savedUiFontSize,
+          savedEncoding,
         ] = await Promise.all([
           api.settingGet("theme"),
           api.settingGet("terminal.fontFamily"),
@@ -177,6 +186,7 @@ export function SettingsPage() {
           api.settingGet("locale"),
           api.settingGet("ui.fontFamily"),
           api.settingGet("ui.fontSize"),
+          api.settingGet("terminal.encoding"),
         ]);
 
         if (savedTheme) setTheme(savedTheme as ThemeOption);
@@ -196,6 +206,7 @@ export function SettingsPage() {
           bgImagePath: savedBgImagePath || DEFAULT_TERMINAL.bgImagePath,
           bgOpacity: savedBgOpacity ? parseInt(savedBgOpacity) : DEFAULT_TERMINAL.bgOpacity,
           bgBlur: savedBgBlur ? parseInt(savedBgBlur) : DEFAULT_TERMINAL.bgBlur,
+          encoding: savedEncoding || DEFAULT_TERMINAL.encoding,
         });
 
         setConfirmDanger(savedConfirmDanger !== "false");
@@ -240,6 +251,7 @@ export function SettingsPage() {
         api.settingSet("terminal.bgBlur", String(terminal.bgBlur)),
         api.settingSet("ui.fontFamily", uiFontFamily),
         api.settingSet("ui.fontSize", String(uiFontSize)),
+        api.settingSet("terminal.encoding", terminal.encoding),
       ]);
       window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
       setSaveStatus("saved");
@@ -262,6 +274,15 @@ export function SettingsPage() {
     setTimeout(() => setResetStatus(false), 2000);
   };
 
+  const handleTabChange = (tab: SettingsTab) => {
+    const prevIdx = TABS.indexOf(activeTab);
+    const nextIdx = TABS.indexOf(tab);
+    if (nextIdx !== prevIdx) {
+      setSlideDir(nextIdx > prevIdx ? "right" : "left");
+      setActiveTab(tab);
+    }
+  };
+
   if (!loaded) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -271,7 +292,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-x-hidden overflow-y-scroll">
       <div className="mx-auto max-w-2xl space-y-6 p-6">
         <div className="flex items-center justify-between">
           <h1 className="text-[var(--font-size-xl)] font-medium">{t("settings.title")}</h1>
@@ -295,6 +316,19 @@ export function SettingsPage() {
           </div>
         </div>
 
+        <SegmentedControl
+          value={activeTab}
+          onChange={handleTabChange}
+          className="w-fit"
+          options={[
+            { value: "general", label: t("settings.tabGeneral") },
+            { value: "terminal", label: t("settings.tabTerminal") },
+            { value: "about", label: t("settings.tabAbout") },
+          ]}
+        />
+
+        <div key={activeTab} className={`space-y-6 tab-slide-in-${slideDir}`}>
+        {activeTab === "general" && (<>
         {/* Theme */}
         <Section title={t("settings.appearance")}>
           <SettingRow label={t("settings.theme")} description={t("settings.themeDesc")}>
@@ -354,10 +388,25 @@ export function SettingsPage() {
           </div>
         </Section>
 
-        {/* Terminal */}
-        <Section title={t("settings.terminal")}>
-          {/* Font */}
-          <h4 className="mb-3 text-[var(--font-size-sm)] font-medium text-[var(--color-text-muted)]">{t("settings.terminalFont")}</h4>
+        {/* Behavior */}
+        <Section title={t("settings.behavior")}>
+          <SettingRow
+            label={t("settings.confirmDanger")}
+            description={t("settings.confirmDangerDesc")}
+          >
+            <button
+              onClick={() => setConfirmDanger(!confirmDanger)}
+              data-state={confirmDanger ? "on" : "off"}
+              className="toggle-switch"
+            >
+              <span className="toggle-thumb" />
+            </button>
+          </SettingRow>
+        </Section>
+        </>)}
+
+        {activeTab === "terminal" && (<>
+        <Section title={t("settings.terminalFont")}>
           <div className="space-y-3">
             <SettingRow label={t("settings.fontFamily")}>
               <select
@@ -440,10 +489,9 @@ export function SettingsPage() {
               </button>
             </SettingRow>
           </div>
+        </Section>
 
-          {/* Colors */}
-          <div className="my-4 border-t border-[var(--color-border)]" />
-          <h4 className="mb-3 text-[var(--font-size-sm)] font-medium text-[var(--color-text-muted)]">{t("settings.terminalColors")}</h4>
+        <Section title={t("settings.terminalColors")}>
           <div className="space-y-3">
             <SettingRow label={t("settings.foreground")}>
               <div className="flex items-center gap-2">
@@ -543,10 +591,9 @@ export function SettingsPage() {
               </div>
             </div>
           </div>
+        </Section>
 
-          {/* Background */}
-          <div className="my-4 border-t border-[var(--color-border)]" />
-          <h4 className="mb-3 text-[var(--font-size-sm)] font-medium text-[var(--color-text-muted)]">{t("settings.terminalBg")}</h4>
+        <Section title={t("settings.terminalBg")}>
           <div className="space-y-3">
             <SettingRow label={t("settings.bgSource")}>
               <SegmentedControl
@@ -675,10 +722,9 @@ export function SettingsPage() {
               </Button>
             </div>
           </div>
+        </Section>
 
-          {/* Session */}
-          <div className="my-4 border-t border-[var(--color-border)]" />
-          <h4 className="mb-3 text-[var(--font-size-sm)] font-medium text-[var(--color-text-muted)]">{t("settings.terminalSession")}</h4>
+        <Section title={t("settings.terminalSession")}>
           <SettingRow
             label={t("settings.sessionTimeout")}
             description={t("settings.sessionTimeoutDesc")}
@@ -694,25 +740,34 @@ export function SettingsPage() {
               ]}
             />
           </SettingRow>
-        </Section>
-
-        {/* Behavior */}
-        <Section title={t("settings.behavior")}>
           <SettingRow
-            label={t("settings.confirmDanger")}
-            description={t("settings.confirmDangerDesc")}
+            label={t("settings.encoding")}
+            description={t("settings.encodingDesc")}
           >
-            <button
-              onClick={() => setConfirmDanger(!confirmDanger)}
-              data-state={confirmDanger ? "on" : "off"}
-              className="toggle-switch"
-            >
-              <span className="toggle-thumb" />
-            </button>
+            <Select
+              value={terminal.encoding}
+              onChange={(v) => setTerminal((t) => ({ ...t, encoding: v }))}
+              options={[
+                { value: "utf-8", label: "UTF-8" },
+                { value: "gbk", label: "GBK" },
+                { value: "gb18030", label: "GB18030" },
+                { value: "big5", label: "Big5" },
+                { value: "shift_jis", label: "Shift_JIS" },
+                { value: "euc-kr", label: "EUC-KR" },
+              ]}
+              className="w-40"
+            />
           </SettingRow>
         </Section>
+        </>)}
 
-        {/* About */}
+        {activeTab === "about" && (<>
+        <Section title={t("settings.dataPrivacy")}>
+          <p className="text-[var(--font-size-sm)] leading-relaxed text-[var(--color-text-secondary)]">
+            {t("settings.dataPrivacyDesc")}
+          </p>
+        </Section>
+
         <Section title={t("settings.about")}>
           <div className="space-y-2 text-[var(--font-size-sm)]">
             <div className="flex justify-between">
@@ -729,6 +784,8 @@ export function SettingsPage() {
             </div>
           </div>
         </Section>
+        </>)}
+        </div>
       </div>
     </div>
   );

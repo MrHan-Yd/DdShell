@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { readText } from "@tauri-apps/plugin-clipboard-manager";
 import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
@@ -230,7 +231,9 @@ function TerminalInstance({
       if (data === "\r" || data === "\n") {
         const cmd = cmdBufferRef.current.trim();
         if (cmd.length > 0) {
-          api.commandHistoryInsert(sid, hostId, cmd).catch(() => {});
+          api.commandHistoryInsert(sid, hostId, cmd).then(() => {
+            window.dispatchEvent(new Event("command-history-updated"));
+          }).catch(() => {});
         }
         cmdBufferRef.current = "";
       } else if (data === "\x7f" || data === "\b") {
@@ -290,6 +293,21 @@ function TerminalInstance({
     };
     window.addEventListener("terminal:insert-selection", handleInsertSelection);
 
+    // Middle-click paste (via Tauri clipboard plugin, no permission prompt)
+    const handleMiddleClick = (e: MouseEvent) => {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      readText().then((text) => {
+        if (text) {
+          const encoder = new TextEncoder();
+          const bytes = Array.from(encoder.encode(text));
+          api.sessionWrite(sessionIdRef.current, bytes).catch(() => {});
+        }
+      }).catch(() => {});
+    };
+    const termEl = term.element;
+    termEl?.addEventListener("mousedown", handleMiddleClick);
+
     // Initial resize notification
     api.sessionResize(sessionId, term.cols, term.rows).catch(() => {});
 
@@ -301,6 +319,7 @@ function TerminalInstance({
       unlisten.then((fn) => fn());
       unlistenState.then((fn) => fn());
       window.removeEventListener("terminal:insert-selection", handleInsertSelection);
+      termEl?.removeEventListener("mousedown", handleMiddleClick);
     };
   }, [sessionId, hostId, tabId, updateTabState]);
 
@@ -360,6 +379,8 @@ function CommandHistoryPanel({
   const activeTabId = useTerminalStore((s) => s.activeTabId);
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
+  const listRef = useRef<HTMLDivElement>(null);
+
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
@@ -380,8 +401,24 @@ function CommandHistoryPanel({
     fetchHistory();
   }, [fetchHistory]);
 
+  // Auto-scroll to bottom when items change
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [items]);
+
+  // Listen for new commands inserted (use ref to avoid stale closures)
+  const fetchRef = useRef(fetchHistory);
+  fetchRef.current = fetchHistory;
+  useEffect(() => {
+    const handler = () => fetchRef.current();
+    window.addEventListener("command-history-updated", handler);
+    return () => window.removeEventListener("command-history-updated", handler);
+  }, []);
+
   return (
-    <div className="flex w-[280px] flex-col border-l border-[var(--color-border)] glass-surface">
+    <div className="flex h-full w-[280px] flex-col border-l border-[var(--color-border)] glass-surface">
       <div className="flex items-center justify-between border-b border-[var(--color-border)] px-3 py-2">
         <div className="flex items-center gap-2">
           <History size={14} className="text-[var(--color-text-muted)]" />
@@ -410,7 +447,7 @@ function CommandHistoryPanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div ref={listRef} className="flex-1 overflow-y-auto">
         {loading && (
           <p className="p-4 text-center text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
             {t("conn.loading")}
@@ -797,12 +834,19 @@ export function TerminalPage() {
       </div>
 
       {/* Command History Panel */}
-      {showHistory && (
-        <CommandHistoryPanel
-          onInsert={handleInsertCommand}
-          onClose={() => setShowHistory(false)}
-        />
-      )}
+      <div
+        className={cn(
+          "shrink-0 overflow-hidden transition-[width] duration-[var(--duration-panel)] ease-[var(--ease-smooth)]",
+          showHistory ? "w-[280px]" : "w-0",
+        )}
+      >
+        {showHistory && (
+          <CommandHistoryPanel
+            onInsert={handleInsertCommand}
+            onClose={() => setShowHistory(false)}
+          />
+        )}
+      </div>
     </div>
   );
 }

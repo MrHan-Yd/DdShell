@@ -6,9 +6,9 @@ import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app";
 import { cn } from "@/lib/utils";
 import { APP_NAME, getAppVersion } from "@/lib/constants";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { listen } from "@tauri-apps/api/event";
-import { downloadUpdate, checkUpdate as apiCheckUpdate } from "@/lib/tauri";
+import { downloadUpdate, checkUpdate as apiCheckUpdate, getInstallType } from "@/lib/tauri";
 
 type HealthLevel = "GOOD" | "FAIR" | "POOR";
 type UpdateStatus = "idle" | "checking" | "available" | "upToDate" | "rateLimited" | "networkError" | "error";
@@ -58,7 +58,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getPlatformAsset(assets: ReleaseAsset[]): ReleaseAsset | undefined {
+function getPlatformAsset(assets: ReleaseAsset[], installType: string): ReleaseAsset | undefined {
   const platform = navigator.platform.toLowerCase();
   if (platform.includes("mac") || platform.includes("darwin")) {
     // Prefer .dmg, fallback to .app.tar.gz
@@ -68,7 +68,13 @@ function getPlatformAsset(assets: ReleaseAsset[]): ReleaseAsset | undefined {
     );
   }
   if (platform.includes("win")) {
-    // Prefer .exe (NSIS), fallback to .msi
+    if (installType === "msi") {
+      return (
+        assets.find((a) => a.name.endsWith(".msi")) ??
+        assets.find((a) => a.name.endsWith(".exe"))
+      );
+    }
+    // Default: prefer .exe (NSIS), fallback to .msi
     return (
       assets.find((a) => a.name.endsWith(".exe")) ??
       assets.find((a) => a.name.endsWith(".msi"))
@@ -88,6 +94,7 @@ function DownloadModal({
   downloadedPath,
   downloadError,
   onClose,
+  onBackground,
   t,
 }: {
   downloadStatus: DownloadStatus;
@@ -96,6 +103,7 @@ function DownloadModal({
   downloadedPath: string;
   downloadError: string;
   onClose: () => void;
+  onBackground: () => void;
   t: (key: string) => string;
 }) {
   const pct = totalBytes > 0 ? Math.round((downloadedBytes / totalBytes) * 100) : 0;
@@ -125,6 +133,12 @@ function DownloadModal({
                 {formatBytes(downloadedBytes)} / {formatBytes(totalBytes)}
               </span>
             </div>
+            <button
+              className="mt-3 w-full rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]"
+              onClick={onBackground}
+            >
+              {t("update.backgroundDownload")}
+            </button>
           </div>
         )}
 
@@ -133,7 +147,7 @@ function DownloadModal({
             <button
               className="flex-1 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-xs text-white hover:brightness-110"
               onClick={() => {
-                openPath(downloadedPath);
+                revealItemInDir(downloadedPath);
                 onClose();
               }}
             >
@@ -183,12 +197,15 @@ export function StatusBar() {
   const [totalBytes, setTotalBytes] = useState(0);
   const [downloadedPath, setDownloadedPath] = useState("");
   const [downloadError, setDownloadError] = useState("");
+  const [installType, setInstallType] = useState("unknown");
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   const unlistenRefs = useRef<Array<() => void>>([]);
   const lastCheckRef = useRef(0);
 
   useEffect(() => {
     getAppVersion().then(setAppVersion);
+    getInstallType().then(setInstallType);
   }, []);
 
   useEffect(() => {
@@ -205,6 +222,7 @@ export function StatusBar() {
         (e) => {
           setDownloadedPath(e.payload.path);
           setDownloadStatus("completed");
+          setShowDownloadModal(true);
         },
       );
       const u3 = await listen<{ error: string }>(
@@ -212,6 +230,7 @@ export function StatusBar() {
         (e) => {
           setDownloadError(e.payload.error);
           setDownloadStatus("failed");
+          setShowDownloadModal(true);
         },
       );
       unlistenRefs.current = [u1, u2, u3];
@@ -252,18 +271,26 @@ export function StatusBar() {
   }, [updateStatus, appVersion]);
 
   const startDownload = useCallback(() => {
-    const asset = getPlatformAsset(releaseAssets);
+    const asset = getPlatformAsset(releaseAssets, installType);
     if (!asset) return;
     setDownloadedBytes(0);
     setTotalBytes(asset.size);
     setDownloadError("");
     setDownloadedPath("");
     setDownloadStatus("downloading");
+    setShowDownloadModal(true);
     downloadUpdate(asset.browser_download_url, asset.name);
-  }, [releaseAssets]);
+  }, [releaseAssets, installType]);
 
   const closeDownloadModal = useCallback(() => {
-    setDownloadStatus("idle");
+    setShowDownloadModal(false);
+    if (downloadStatus === "completed" || downloadStatus === "failed") {
+      setDownloadStatus("idle");
+    }
+  }, [downloadStatus]);
+
+  const backgroundDownload = useCallback(() => {
+    setShowDownloadModal(false);
   }, []);
 
   const connectedCount = tabs.filter((t) => t.state === "connected").length;
@@ -357,10 +384,29 @@ export function StatusBar() {
     }
   };
 
+  const downloadPct = totalBytes > 0 ? Math.round((downloadedBytes / totalBytes) * 100) : 0;
+
   return (
     <>
       <footer className="glass-surface flex h-[var(--height-statusbar)] items-center border-t border-[var(--color-border)] px-4 gap-4">
         {renderVersion()}
+
+        {downloadStatus === "downloading" && !showDownloadModal && (
+          <button
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setShowDownloadModal(true)}
+          >
+            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--color-bg-secondary)]">
+              <div
+                className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-200"
+                style={{ width: `${downloadPct}%` }}
+              />
+            </div>
+            <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+              {downloadPct}%
+            </span>
+          </button>
+        )}
 
         <div className="flex-1" />
 
@@ -386,7 +432,7 @@ export function StatusBar() {
         )}
       </footer>
 
-      {downloadStatus !== "idle" && (
+      {downloadStatus !== "idle" && showDownloadModal && (
         <DownloadModal
           downloadStatus={downloadStatus}
           downloadedBytes={downloadedBytes}
@@ -394,6 +440,7 @@ export function StatusBar() {
           downloadedPath={downloadedPath}
           downloadError={downloadError}
           onClose={closeDownloadModal}
+          onBackground={backgroundDownload}
           t={t as (key: string) => string}
         />
       )}

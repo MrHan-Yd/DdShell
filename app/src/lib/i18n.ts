@@ -29,7 +29,8 @@ const dict = {
   "update.downloading": { zh: "下载中...", en: "Downloading..." },
   "update.downloadComplete": { zh: "下载完成", en: "Download complete" },
   "update.downloadFailed": { zh: "下载失败", en: "Download failed" },
-  "update.openFile": { zh: "打开安装包", en: "Open installer" },
+  "update.openFile": { zh: "前往安装包", en: "Show in folder" },
+  "update.backgroundDownload": { zh: "后台下载", en: "Background" },
   "update.close": { zh: "关闭", en: "Close" },
 
   // ── ConnectionsPage ──
@@ -213,6 +214,8 @@ const dict = {
   "settings.terminalSession": { zh: "终端会话", en: "Terminal Session" },
   "settings.sessionTimeout": { zh: "会话超时", en: "Session Timeout" },
   "settings.sessionTimeoutDesc": { zh: "无操作多久后断开连接，选\"永不\"保持长会话", en: "Disconnect after inactivity, choose Never to keep alive" },
+  "settings.encoding": { zh: "字符编码", en: "Character Encoding" },
+  "settings.encodingDesc": { zh: "远程服务器的字符编码，默认 UTF-8", en: "Character encoding of the remote server, default UTF-8" },
   "settings.timeout30s": { zh: "30 秒", en: "30s" },
   "settings.timeout5m": { zh: "5 分钟", en: "5 min" },
   "settings.timeout30m": { zh: "30 分钟", en: "30 min" },
@@ -221,6 +224,8 @@ const dict = {
   "settings.version": { zh: "版本", en: "Version" },
   "settings.framework": { zh: "框架", en: "Framework" },
   "settings.license": { zh: "许可证", en: "License" },
+  "settings.dataPrivacy": { zh: "数据与隐私", en: "Data & Privacy" },
+  "settings.dataPrivacyDesc": { zh: "所有数据均存储在本地 SQLite 数据库中，不会向任何第三方发送数据。网络请求仅在检查更新时请求 GitHub 仓库。", en: "All data is stored locally in a SQLite database. No data is sent to any third party. Network requests are only made to the GitHub repository when checking for updates." },
   "settings.color": { zh: "颜色", en: "color" },
   "settings.image": { zh: "图片", en: "image" },
   "settings.selectImage": { zh: "选择图片", en: "Select Image" },
@@ -232,6 +237,9 @@ const dict = {
   "settings.uiFontSize": { zh: "字体大小", en: "Font Size" },
   "settings.uiFontDesc": { zh: "设置程序界面的显示字体", en: "Set the font for the application interface" },
   "settings.systemDefault": { zh: "系统默认", en: "System Default" },
+  "settings.tabGeneral": { zh: "通用", en: "General" },
+  "settings.tabTerminal": { zh: "终端", en: "Terminal" },
+  "settings.tabAbout": { zh: "关于", en: "About" },
 
   // ── Confirm Dialog ──
   "confirm.ok": { zh: "确认", en: "Confirm" },

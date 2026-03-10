@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, Search, Server, Folder, Trash2, Pencil, Star, StarOff, Loader2, Zap, Upload, Check } from "lucide-react";
+import { Plus, Search, Server, Folder, Trash2, Pencil, Star, StarOff, Loader2, Zap, Upload, Check, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { cn } from "@/lib/utils";
 import { useConnectionsStore } from "@/stores/connections";
 import { useTerminalStore } from "@/stores/terminal";
@@ -70,7 +71,26 @@ function ConnectionForm({
           <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
             {t("form.port")}
           </label>
-          <Input type="number" value={port} onChange={(e) => setPort(Number(e.target.value))} min={1} max={65535} />
+          <div className="relative">
+            <Input type="number" value={port} onChange={(e) => setPort(Number(e.target.value))} min={1} max={65535} className="pr-6" />
+            <div className="absolute right-0 top-0 flex h-full w-6 flex-col border-l border-[var(--color-border)]">
+              <button
+                type="button"
+                onClick={() => setPort((p) => Math.min(65535, p + 1))}
+                className="flex flex-1 items-center justify-center text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors rounded-tr-[var(--radius-control)]"
+              >
+                <ChevronUp size={10} />
+              </button>
+              <div className="h-px bg-[var(--color-border)]" />
+              <button
+                type="button"
+                onClick={() => setPort((p) => Math.max(1, p - 1))}
+                className="flex flex-1 items-center justify-center text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors rounded-br-[var(--radius-control)]"
+              >
+                <ChevronDown size={10} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <div>
@@ -83,14 +103,15 @@ function ConnectionForm({
         <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
           {t("form.authType")}
         </label>
-        <select
+        <Select
           value={authType}
-          onChange={(e) => setAuthType(e.target.value as AuthType)}
-          className="select-mac w-full"
-        >
-          <option value="password">{t("form.password")}</option>
-          <option value="publickey">{t("form.publicKey")}</option>
-        </select>
+          onChange={(v) => setAuthType(v as AuthType)}
+          options={[
+            { value: "password", label: t("form.password") },
+            { value: "publickey", label: t("form.publicKey") },
+          ]}
+          className="w-full"
+        />
       </div>
       {authType === "password" && (
         <div>
@@ -110,18 +131,15 @@ function ConnectionForm({
           <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
             {t("form.group")}
           </label>
-          <select
+          <Select
             value={groupId ?? ""}
-            onChange={(e) => setGroupId(e.target.value || null)}
-            className="select-mac w-full"
-          >
-            <option value="">{t("conn.noGroup")}</option>
-            {groups.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setGroupId(v || null)}
+            options={[
+              { value: "", label: t("conn.noGroup") },
+              ...groups.map((g) => ({ value: g.id, label: g.name })),
+            ]}
+            className="w-full"
+          />
         </div>
       )}
       <div className="flex justify-end gap-2 pt-2">

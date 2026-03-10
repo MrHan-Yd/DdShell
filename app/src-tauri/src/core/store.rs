@@ -576,7 +576,7 @@ impl Database {
             (Some(hid), Some(q)) => {
                 let pattern = format!("%{}%", q);
                 sqlx::query_as(
-                    "SELECT id, session_id, host_id, command, created_at FROM command_history WHERE host_id = ? AND command LIKE ? ORDER BY created_at DESC LIMIT ?",
+                    "SELECT id, session_id, host_id, command, created_at FROM command_history WHERE host_id = ? AND command LIKE ? ORDER BY created_at ASC LIMIT ?",
                 )
                 .bind(hid)
                 .bind(&pattern)
@@ -586,7 +586,7 @@ impl Database {
             }
             (Some(hid), None) => {
                 sqlx::query_as(
-                    "SELECT id, session_id, host_id, command, created_at FROM command_history WHERE host_id = ? ORDER BY created_at DESC LIMIT ?",
+                    "SELECT id, session_id, host_id, command, created_at FROM command_history WHERE host_id = ? ORDER BY created_at ASC LIMIT ?",
                 )
                 .bind(hid)
                 .bind(limit)
@@ -596,7 +596,7 @@ impl Database {
             (None, Some(q)) => {
                 let pattern = format!("%{}%", q);
                 sqlx::query_as(
-                    "SELECT id, session_id, host_id, command, created_at FROM command_history WHERE command LIKE ? ORDER BY created_at DESC LIMIT ?",
+                    "SELECT id, session_id, host_id, command, created_at FROM command_history WHERE command LIKE ? ORDER BY created_at ASC LIMIT ?",
                 )
                 .bind(&pattern)
                 .bind(limit)
@@ -605,7 +605,7 @@ impl Database {
             }
             (None, None) => {
                 sqlx::query_as(
-                    "SELECT id, session_id, host_id, command, created_at FROM command_history ORDER BY created_at DESC LIMIT ?",
+                    "SELECT id, session_id, host_id, command, created_at FROM command_history ORDER BY created_at ASC LIMIT ?",
                 )
                 .bind(limit)
                 .fetch_all(&self.pool)

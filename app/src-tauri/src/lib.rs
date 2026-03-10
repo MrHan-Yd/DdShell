@@ -349,10 +349,21 @@ async fn session_connect(
         .and_then(|v| v.parse::<u64>().ok())
         .unwrap_or(30);
 
+    let encoding = db
+        .get_setting("terminal.encoding")
+        .await
+        .unwrap_or(None)
+        .unwrap_or_else(|| "utf-8".to_string());
+
     let (session_id, channel, cmd_rx) = mgr
         .connect(&db, &req.host_id, &password, cols, rows, timeout_secs)
         .await
         .map_err(|e| e.to_string())?;
+
+    // Set encoding on the session
+    if let Some(session) = mgr.get(&session_id) {
+        session.lock().await.encoding = encoding.clone();
+    }
 
     event::emit_session_state(&app, &session_id, "connected");
 
@@ -361,7 +372,7 @@ async fn session_connect(
     let app_handle = app.clone();
 
     tokio::spawn(async move {
-        output_reader_loop(app_handle, channel, cmd_rx, &sid).await;
+        output_reader_loop(app_handle, channel, cmd_rx, &sid, encoding).await;
     });
 
     Ok(IdResponse { id: session_id })
@@ -387,10 +398,21 @@ async fn session_write(
     let session = mgr
         .get(&session_id)
         .ok_or_else(|| "Session not found".to_string())?;
-    session
-        .lock()
-        .await
-        .write_input(&data)
+    let session_guard = session.lock().await;
+    let encoding_name = session_guard.encoding.clone();
+
+    let write_data = if encoding_name.eq_ignore_ascii_case("utf-8") || encoding_name.eq_ignore_ascii_case("utf8") {
+        data
+    } else {
+        let encoding = encoding_rs::Encoding::for_label(encoding_name.as_bytes())
+            .ok_or_else(|| format!("Unsupported encoding: {}", encoding_name))?;
+        let utf8_str = String::from_utf8_lossy(&data);
+        let (encoded, _, _) = encoding.encode(&utf8_str);
+        encoded.into_owned()
+    };
+
+    session_guard
+        .write_input(&write_data)
         .await
         .map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
@@ -1111,6 +1133,23 @@ struct ReleaseAssetInfo {
 }
 
 #[tauri::command]
+fn get_install_type() -> String {
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(exe_path) = std::env::current_exe() {
+            let path_str = exe_path.to_string_lossy().to_lowercase();
+            if path_str.contains("program files") {
+                return "msi".to_string();
+            }
+            if path_str.contains(r"appdata\local") {
+                return "nsis".to_string();
+            }
+        }
+    }
+    "unknown".to_string()
+}
+
+#[tauri::command]
 async fn check_update(current_version: String) -> Result<UpdateCheckResult, String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
@@ -1275,8 +1314,17 @@ async fn output_reader_loop(
     mut channel: russh::Channel<russh::client::Msg>,
     mut cmd_rx: tokio::sync::mpsc::UnboundedReceiver<core::ssh::PtyCommand>,
     session_id: &str,
+    encoding: String,
 ) {
-    tracing::info!("[output_reader_loop] started for session {}", session_id);
+    tracing::info!("[output_reader_loop] started for session {} (encoding: {})", session_id, encoding);
+
+    let is_utf8 = encoding.eq_ignore_ascii_case("utf-8") || encoding.eq_ignore_ascii_case("utf8");
+    let mut decoder = if !is_utf8 {
+        encoding_rs::Encoding::for_label(encoding.as_bytes()).map(|enc| enc.new_decoder())
+    } else {
+        None
+    };
+
     // Brief delay so the frontend React component can mount and register its
     // Tauri event listener before we start emitting output data.
     tokio::time::sleep(std::time::Duration::from_millis(300)).await;
@@ -1286,7 +1334,14 @@ async fn output_reader_loop(
                 match msg {
                     Some(ChannelMsg::Data { ref data }) => {
                         tracing::debug!("[output_reader_loop] received {} bytes for session {}", data.len(), session_id);
-                        event::emit_session_output(&app, session_id, data.to_vec());
+                        if let Some(ref mut dec) = decoder {
+                            // Decode from source encoding to UTF-8
+                            let mut output = String::with_capacity(data.len() * 2);
+                            let (_result, _read, _had_errors) = dec.decode_to_string(data, &mut output, false);
+                            event::emit_session_output(&app, session_id, output.into_bytes());
+                        } else {
+                            event::emit_session_output(&app, session_id, data.to_vec());
+                        }
                     }
                     Some(ChannelMsg::Eof) => {
                         tracing::info!("[output_reader_loop] EOF for session {}", session_id);
@@ -1336,6 +1391,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             // Set window icon (for dev mode)
             if let Some(window) = app.get_webview_window("main") {
@@ -1357,10 +1413,20 @@ pub fn run() {
                 let _ = window.set_decorations(false);
             }
 
+            // Portable mode (Windows/Linux): store data next to the executable
+            // macOS: use standard app data dir (app bundle is read-only)
+            #[cfg(target_os = "macos")]
             let app_data_dir = app
                 .path()
                 .app_data_dir()
                 .expect("failed to resolve app data dir");
+
+            #[cfg(not(target_os = "macos"))]
+            let app_data_dir = std::env::current_exe()
+                .expect("failed to get exe path")
+                .parent()
+                .expect("failed to get exe directory")
+                .to_path_buf();
 
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -1428,6 +1494,7 @@ pub fn run() {
             list_system_fonts,
             download_update,
             check_update,
+            get_install_type,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -346,6 +346,18 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════
+   Hide native number input spinners
+   ══════════════════════════════════════════════════════ */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* ══════════════════════════════════════════════════════
    macOS-quality Custom Select / Dropdown
    ══════════════════════════════════════════════════════ */
 .select-mac {
@@ -529,4 +541,20 @@ body {
 }
 .animate-star-pop {
   animation: star-pop 300ms var(--ease-spring) both;
+}
+
+/* Tab panel slide transition */
+@keyframes tab-slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes tab-slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.tab-slide-in-right {
+  animation: tab-slide-in-right var(--duration-toggle) var(--ease-spring) both;
+}
+.tab-slide-in-left {
+  animation: tab-slide-in-left var(--duration-toggle) var(--ease-spring) both;
 }
