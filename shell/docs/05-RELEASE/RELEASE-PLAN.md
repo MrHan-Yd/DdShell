@@ -21,3 +21,34 @@
 - 配置迁移说明。
 - 回滚版本说明。
 
+## 5. 发布流程
+
+### 5.1 本地检查（必做）
+在推送代码前，先在本地运行构建检查，确保没有错误：
+
+```bash
+cd app
+pnpm build
+```
+
+如果构建成功，再进行下一步。
+
+### 5.2 更新版本号
+- `app/package.json`
+- `app/src-tauri/Cargo.toml`
+- `app/src-tauri/tauri.conf.json`
+
+### 5.3 提交代码
+```bash
+git add -A
+git commit -m "release: v0.x.x"
+```
+
+### 5.4 创建 Tag 并推送
+```bash
+git tag v0.x.x
+git push origin v0.x.x
+```
+
+GitHub Actions 会自动构建并创建 Release。
+
