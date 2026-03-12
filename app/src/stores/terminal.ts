@@ -13,6 +13,7 @@ interface TerminalState {
   openSession: (hostId: string, hostName: string, password?: string) => Promise<string>;
   closeSession: (tabId: string) => Promise<void>;
   setActiveTab: (tabId: string) => void;
+  moveTab: (fromId: string, toIndex: number) => void;
   updateTabState: (sessionId: string, state: SessionState) => void;
   reconnectSession: (tabId: string) => Promise<void>;
   splitPane: (direction: "horizontal" | "vertical") => void;
@@ -72,6 +73,17 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   },
 
   setActiveTab: (tabId) => set({ activeTabId: tabId }),
+
+  moveTab: (fromId, toIndex) =>
+    set((s) => {
+      const fromIndex = s.tabs.findIndex((t) => t.id === fromId);
+      if (fromIndex < 0 || s.tabs.length <= 1) return s;
+      const next = [...s.tabs];
+      const [moved] = next.splice(fromIndex, 1);
+      const insertIndex = Math.max(0, Math.min(toIndex, next.length));
+      next.splice(insertIndex, 0, moved);
+      return { tabs: next };
+    }),
 
   updateTabState: (sessionId, state) =>
     set((s) => ({

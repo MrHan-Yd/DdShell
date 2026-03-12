@@ -138,6 +138,7 @@ export interface LoadInfo {
 
 export interface CpuInfo {
   usagePercent: number;
+  coreCount: number;
 }
 
 export interface MemoryInfo {

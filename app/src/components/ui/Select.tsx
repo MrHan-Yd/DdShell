@@ -75,7 +75,7 @@ export function Select({ value, onChange, options, className }: SelectProps) {
             : "opacity-0 -translate-y-1 scale-[0.98] pointer-events-none",
         )}
       >
-        <div className="p-1">
+        <div className="max-h-60 overflow-y-auto p-1">
           {options.map((opt) => (
             <button
               key={opt.value}

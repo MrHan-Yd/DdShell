@@ -358,16 +358,15 @@ export function SettingsPage() {
         <Section title={t("settings.uiFont")}>
           <div className="space-y-3">
             <SettingRow label={t("settings.uiFontFamily")} description={t("settings.uiFontDesc")}>
-              <select
+              <Select
                 value={uiFontFamily}
-                onChange={(e) => setUiFontFamily(e.target.value)}
-                className="select-mac w-64"
-              >
-                <option value="">{t("settings.systemDefault")}</option>
-                {systemFonts.map((font) => (
-                  <option key={font} value={font}>{font}</option>
-                ))}
-              </select>
+                onChange={(v) => setUiFontFamily(v)}
+                options={[
+                  { value: "", label: t("settings.systemDefault") },
+                  ...systemFonts.map((font) => ({ value: font, label: font })),
+                ]}
+                className="w-64"
+              />
             </SettingRow>
 
             <SettingRow label={t("settings.uiFontSize")} description="12 - 18 px">
@@ -409,18 +408,15 @@ export function SettingsPage() {
         <Section title={t("settings.terminalFont")}>
           <div className="space-y-3">
             <SettingRow label={t("settings.fontFamily")}>
-              <select
+              <Select
                 value={terminal.fontFamily}
-                onChange={(e) =>
-                  setTerminal((t) => ({ ...t, fontFamily: e.target.value }))
-                }
-                className="select-mac w-64"
-              >
-                <option value={DEFAULT_TERMINAL.fontFamily}>{t("settings.systemDefault")}</option>
-                {systemFonts.map((font) => (
-                  <option key={font} value={font}>{font}</option>
-                ))}
-              </select>
+                onChange={(v) => setTerminal((t) => ({ ...t, fontFamily: v }))}
+                options={[
+                  { value: DEFAULT_TERMINAL.fontFamily, label: t("settings.systemDefault") },
+                  ...systemFonts.map((font) => ({ value: font, label: font })),
+                ]}
+                className="w-64"
+              />
             </SettingRow>
 
             <SettingRow label={t("settings.fontSize")} description="10 - 24 px">
@@ -442,17 +438,18 @@ export function SettingsPage() {
             </SettingRow>
 
             <SettingRow label={t("settings.fontWeight")}>
-              <select
-                value={terminal.fontWeight}
-                onChange={(e) =>
-                  setTerminal((t) => ({ ...t, fontWeight: parseInt(e.target.value) }))
+              <Select
+                value={String(terminal.fontWeight)}
+                onChange={(v) =>
+                  setTerminal((t) => ({ ...t, fontWeight: parseInt(v) }))
                 }
-                className="select-mac"
-              >
-                <option value={400}>Regular (400)</option>
-                <option value={500}>Medium (500)</option>
-                <option value={600}>Semibold (600)</option>
-              </select>
+                options={[
+                  { value: "400", label: "Regular (400)" },
+                  { value: "500", label: "Medium (500)" },
+                  { value: "600", label: "Semibold (600)" },
+                ]}
+                className="w-40"
+              />
             </SettingRow>
 
             <SettingRow label={t("settings.lineHeight")} description="1.2 - 1.8">

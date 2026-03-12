@@ -532,6 +532,7 @@ export function TerminalPage() {
   const activeTabId = useTerminalStore((s) => s.activeTabId);
   const setActiveTab = useTerminalStore((s) => s.setActiveTab);
   const closeSession = useTerminalStore((s) => s.closeSession);
+  const moveTab = useTerminalStore((s) => s.moveTab);
   const splitDirection = useTerminalStore((s) => s.splitDirection);
   const splitSessionId = useTerminalStore((s) => s.splitSessionId);
   const splitPane = useTerminalStore((s) => s.splitPane);
@@ -539,6 +540,14 @@ export function TerminalPage() {
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
   const [showHistory, setShowHistory] = useState(false);
   const [splitRatio, setSplitRatio] = useState(0.5);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
+  const [dragDeltaX, setDragDeltaX] = useState(0);
+  const dragStartXRef = useRef<number | null>(null);
+  const dragMovedRef = useRef(false);
+  const ignoreClickRef = useRef(false);
+  const tabBarRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Load terminal settings from backend
@@ -661,29 +670,156 @@ export function TerminalPage() {
     <div className="flex flex-1 overflow-hidden">
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Tab bar */}
-        <div className="flex h-[var(--height-tabbar)] items-center gap-0.5 border-b border-[var(--color-border)] bg-[var(--color-bg-surface)] px-2">
-          {tabs.map((tab) => (
-            <div
-              key={tab.id}
-              className={cn(
-                "group flex h-8 items-center gap-2 rounded-t-lg px-3 text-[var(--font-size-xs)] transition-colors cursor-default",
-                tab.id === activeTabId
-                  ? "bg-[var(--color-bg-base)] text-[var(--color-text-primary)]"
-                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)]",
-              )}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <span
+        {/* [AI-FEATURE]
+            ID: TASK-TERM-TAB-DRAG
+            Name: Terminal tab drag reorder within tab rail
+            Status: IN_PROGRESS
+            Scope: app/src/features/terminal/TerminalPage.tsx, app/src/stores/terminal.ts
+            Input: mouse drag within tab bar
+            Output: reordered tab list
+            Errors: N/A
+            Tests: manual drag/reorder
+            Updated: 2026-03-11
+            Owner: AI
+        */}
+        <div
+          ref={tabBarRef}
+          className="flex h-[var(--height-tabbar)] border-b border-[var(--color-border)] bg-[var(--color-bg-surface)]"
+          onMouseMove={(e) => {
+            if (!draggingTabId || dragStartXRef.current === null) return;
+            const delta = e.clientX - dragStartXRef.current;
+            if (!dragMovedRef.current && Math.abs(delta) < 4) return;
+            dragMovedRef.current = true;
+            setDragDeltaX(delta);
+
+            const fromIndex = tabs.findIndex((t) => t.id === draggingTabId);
+            if (fromIndex < 0) return;
+
+            // Fixed tab width + gap
+            const TAB_WIDTH = 120;
+            const TAB_GAP = 4;
+
+            // Calculate target index based on delta
+            // Each tab shift equals (TAB_WIDTH + TAB_GAP)
+            const shiftAmount = delta > 0 ? delta + TAB_WIDTH / 2 : delta - TAB_WIDTH / 2;
+            const indexDelta = Math.round(shiftAmount / (TAB_WIDTH + TAB_GAP));
+            let targetIndex = fromIndex + indexDelta;
+
+            // Clamp to valid range [0, tabs.length]
+            targetIndex = Math.max(0, Math.min(tabs.length, targetIndex));
+
+            if (targetIndex !== dragOverIndex) setDragOverIndex(targetIndex);
+          }}
+          onMouseUp={() => {
+            if (!draggingTabId) return;
+            const fromId = draggingTabId;
+            const fromIndex = tabs.findIndex((t) => t.id === fromId);
+            const insertIndex = dragOverIndex ?? fromIndex;
+
+            if (fromIndex >= 0 && insertIndex !== fromIndex && dragMovedRef.current) {
+              moveTab(fromId, insertIndex);
+              ignoreClickRef.current = true;
+            }
+            setDraggingTabId(null);
+            setDragOverIndex(null);
+            setDragDeltaX(0);
+            dragStartXRef.current = null;
+            dragMovedRef.current = false;
+            setIsDropping(false);
+          }}
+          onMouseLeave={() => {
+            if (!draggingTabId) return;
+            setDraggingTabId(null);
+            setDragOverIndex(null);
+            setDragDeltaX(0);
+            dragStartXRef.current = null;
+            dragMovedRef.current = false;
+            setIsDropping(false);
+          }}
+        >
+          {/* Tab list - scrollable */}
+          <div className="flex h-[var(--height-tabbar)] flex-1 items-center gap-1 overflow-x-auto px-2 min-w-0">
+            {tabs.map((tab, index) => (
+            <div key={tab.id} className="flex items-center">
+              <div
+                ref={(el) => {
+                  tabRefs.current[tab.id] = el;
+                }}
+                onMouseDown={(e) => {
+                  if (e.button !== 0) return;
+                  const target = e.target as HTMLElement;
+                  if (target.closest("button")) return;
+                  dragStartXRef.current = e.clientX;
+                  dragMovedRef.current = false;
+                  ignoreClickRef.current = false;
+                  setDraggingTabId(tab.id);
+                  setDragOverIndex(null);
+                  setDragDeltaX(0);
+                }}
                 className={cn(
-                  "h-2 w-2 rounded-full",
-                  tab.state === "connected"
+                  "group flex h-7 items-center gap-2 px-3 text-[var(--font-size-xs)] select-none rounded-[var(--radius-control)]",
+                  tab.id === activeTabId
+                    ? "bg-[var(--color-bg-base)] text-[var(--color-text-primary)] border border-[var(--color-border)] shadow-[var(--shadow-card)]"
+                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)]",
+                  draggingTabId === tab.id && "opacity-90 z-10",
+                )}
+                style={{
+                  width: 120,
+                  flexShrink: 0,
+                  ...(draggingTabId ? (() => {
+                    const fromIndex = tabs.findIndex((t) => t.id === draggingTabId);
+                    const toIndex = dragOverIndex ?? fromIndex;
+                    const TAB_WIDTH = 120;
+                    const TAB_GAP = 4;
+
+                    if (tab.id === draggingTabId) {
+                      return {
+                        transform: `translateX(${dragDeltaX}px)`,
+                        transition: "none",
+                      };
+                    }
+
+                    // Calculate shift for other tabs
+                    let shift = 0;
+                    if (fromIndex >= 0) {
+                      if (toIndex > fromIndex) {
+                        // Dragging right: tabs between from and to shift left
+                        if (index > fromIndex && index <= toIndex) {
+                          shift = -(TAB_WIDTH + TAB_GAP);
+                        }
+                      } else if (toIndex < fromIndex) {
+                        // Dragging left: tabs between to and from shift right
+                        if (index >= toIndex && index < fromIndex) {
+                          shift = TAB_WIDTH + TAB_GAP;
+                        }
+                      }
+                    }
+
+                    return {
+                      transform: shift !== 0 ? `translateX(${shift}px)` : undefined,
+                      transition: shift !== 0 ? "transform 320ms cubic-bezier(0.5, 0, 0.2, 1)" : undefined,
+                    };
+                  })() : undefined),
+                }}
+                onClick={() => {
+                  if (ignoreClickRef.current) {
+                    ignoreClickRef.current = false;
+                    return;
+                  }
+                  setActiveTab(tab.id);
+                }}
+              >
+                <span
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    tab.state === "connected"
                     ? "bg-[var(--color-success)]"
                     : tab.state === "failed"
                       ? "bg-[var(--color-error)]"
                       : "bg-[var(--color-text-muted)]",
                 )}
               />
-              <span className="max-w-[120px] truncate">{tab.title}</span>
+              <span className="flex-1 truncate">{tab.title}</span>
               <button
                 onClick={async (e) => {
                   e.stopPropagation();
@@ -695,14 +831,19 @@ export function TerminalPage() {
                   if (!ok) return;
                   closeSession(tab.id);
                 }}
-                className="ml-1 rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-[var(--color-bg-hover)] transition-opacity"
+                onMouseDown={(e) => e.stopPropagation()}
+                className="ml-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors"
+                aria-label={t("confirm.closeSessionTitle")}
               >
                 <X size={12} />
               </button>
+              </div>
             </div>
           ))}
+          </div>
 
-          <div className="flex-1" />
+          {/* Right controls - fixed */}
+          <div className="flex h-[var(--height-tabbar)] shrink-0 items-center px-1">
 
           {/* Split controls */}
           <button
@@ -754,6 +895,7 @@ export function TerminalPage() {
             <History size={14} />
             {!showHistory && <span>{t("term.history")}</span>}
           </button>
+        </div>
         </div>
 
         {/* Terminal area */}

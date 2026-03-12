@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, memo } from "react";
 import {
   Activity,
   Cpu,
@@ -31,6 +31,17 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+function formatMemory(mb: number): string {
+  if (mb < 1024) return `${mb}`;
+  return `${(mb / 1024).toFixed(1)}G`;
+}
+
+function formatLoad(load: number, coreCount: number): string {
+  if (coreCount <= 0) return load.toFixed(2);
+  const percent = (load / coreCount) * 100;
+  return `${percent.toFixed(0)}%`;
+}
+
 // ── Collapsible Section ──
 
 function CollapsibleSection({
@@ -43,6 +54,17 @@ function CollapsibleSection({
   children: React.ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  // Measure content height when opening
+  useEffect(() => {
+    if (isOpen && contentRef.current) {
+      setHeight(contentRef.current.scrollHeight);
+    } else {
+      setHeight(0);
+    }
+  }, [isOpen]);
 
   return (
     <div className="flex flex-col gap-0">
@@ -50,21 +72,30 @@ function CollapsibleSection({
         onClick={() => setIsOpen((prev) => !prev)}
         className="flex items-center gap-2 rounded-[var(--radius-control)] px-2 py-1.5 text-left text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)] transition-colors"
       >
-        {isOpen ? (
-          <ChevronDown size={16} className="text-[var(--color-text-muted)]" />
-        ) : (
-          <ChevronRight size={16} className="text-[var(--color-text-muted)]" />
-        )}
+        <ChevronDown
+          size={16}
+          className={cn(
+            "text-[var(--color-text-muted)] transition-transform duration-200",
+            !isOpen && "-rotate-90",
+          )}
+        />
         {title}
       </button>
-      {isOpen && <div className="mt-1">{children}</div>}
+      <div
+        className="overflow-hidden transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height]"
+        style={{ height: isOpen ? height : 0 }}
+      >
+        <div ref={contentRef} className={isOpen ? "opacity-100" : "opacity-0"}>
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
 
 // ── Mini Chart (Canvas) ──
 
-function MiniChart({
+const MiniChart = memo(function MiniChart({
   data,
   color,
   maxValue,
@@ -155,11 +186,11 @@ function MiniChart({
       />
     </div>
   );
-}
+});
 
 // ── Overview Card ──
 
-function OverviewCard({
+const OverviewCard = memo(function OverviewCard({
   icon: Icon,
   label,
   value,
@@ -196,7 +227,7 @@ function OverviewCard({
       </div>
     </div>
   );
-}
+});
 
 // ── Session Health helpers ──
 
@@ -283,7 +314,7 @@ function SessionPicker({
 
 // ── Process Table ──
 
-function ProcessTable({
+const ProcessTable = memo(function ProcessTable({
   processes,
 }: {
   processes: MetricsSnapshot["processes"];
@@ -292,12 +323,12 @@ function ProcessTable({
 
   return (
     <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-      <div className="border-b border-[var(--color-border)] px-4 py-2">
-        <h3 className="text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
+      <div className="border-b border-[var(--color-border)] px-4 py-3">
+        <h3 className="text-[var(--font-size-base)] font-medium text-[var(--color-text-primary)]">
           {t("monitor.processesTop15")}
         </h3>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto w-full max-w-full rounded-b-[var(--radius-card)]">
         <table className="w-full text-[var(--font-size-xs)]">
           <thead>
             <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
@@ -356,30 +387,30 @@ function ProcessTable({
       </div>
     </div>
   );
-}
+});
 
 // ── Disk Table ──
 
-function DiskTable({ disks }: { disks: MetricsSnapshot["disks"] }) {
+const DiskTable = memo(function DiskTable({ disks }: { disks: MetricsSnapshot["disks"] }) {
   const t = useT();
 
   return (
     <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-      <div className="border-b border-[var(--color-border)] px-4 py-2">
-        <h3 className="text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
+      <div className="border-b border-[var(--color-border)] px-4 py-3">
+        <h3 className="text-[var(--font-size-base)] font-medium text-[var(--color-text-primary)]">
           {t("monitor.diskUsage")}
         </h3>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto w-full max-w-full rounded-b-[var(--radius-card)]">
         <table className="w-full text-[var(--font-size-xs)]">
           <thead>
-            <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
-              <th className="px-4 py-2 text-left font-medium">{t("monitor.filesystem")}</th>
-              <th className="px-4 py-2 text-left font-medium">{t("monitor.mount")}</th>
-              <th className="px-4 py-2 text-right font-medium">{t("monitor.total")}</th>
-              <th className="px-4 py-2 text-right font-medium">{t("monitor.used")}</th>
-              <th className="px-4 py-2 text-right font-medium">{t("monitor.available")}</th>
-              <th className="px-4 py-2 text-right font-medium">{t("monitor.usage")}</th>
+            <tr className="border-b border-[var(--color-border)]">
+              <th className="px-4 py-2 text-left font-medium text-[var(--color-text-secondary)]">{t("monitor.filesystem")}</th>
+              <th className="px-4 py-2 text-left font-medium text-[var(--color-text-secondary)] min-w-[90px]">{t("monitor.usage")}</th>
+              <th className="px-4 py-2 text-right font-medium text-[var(--color-text-secondary)] min-w-[70px]">{t("monitor.available")}</th>
+              <th className="px-4 py-2 text-right font-medium text-[var(--color-text-secondary)] min-w-[60px]">{t("monitor.used")}</th>
+              <th className="px-4 py-2 text-right font-medium text-[var(--color-text-secondary)] min-w-[60px]">{t("monitor.total")}</th>
+              <th className="px-4 py-2 text-left font-medium text-[var(--color-text-secondary)]">{t("monitor.mount")}</th>
             </tr>
           </thead>
           <tbody>
@@ -390,18 +421,6 @@ function DiskTable({ disks }: { disks: MetricsSnapshot["disks"] }) {
               >
                 <td className="px-4 py-1.5 text-[var(--color-text-secondary)]">
                   {d.filesystem}
-                </td>
-                <td className="px-4 py-1.5 text-[var(--color-text-secondary)]">
-                  {d.mount}
-                </td>
-                <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)]">
-                  {d.total}
-                </td>
-                <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)]">
-                  {d.used}
-                </td>
-                <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)]">
-                  {d.available}
                 </td>
                 <td className="px-4 py-1.5 text-right">
                   <div className="flex items-center justify-end gap-2">
@@ -420,7 +439,7 @@ function DiskTable({ disks }: { disks: MetricsSnapshot["disks"] }) {
                     </div>
                     <span
                       className={cn(
-                        "w-10 text-right",
+                        "w-12 text-right",
                         d.usagePercent > 90
                           ? "text-[var(--color-error)]"
                           : "text-[var(--color-text-secondary)]",
@@ -429,6 +448,18 @@ function DiskTable({ disks }: { disks: MetricsSnapshot["disks"] }) {
                       {d.usagePercent.toFixed(0)}%
                     </span>
                   </div>
+                </td>
+                <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)] whitespace-nowrap">
+                  {d.available}
+                </td>
+                <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)] whitespace-nowrap">
+                  {d.used}
+                </td>
+                <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)] whitespace-nowrap">
+                  {d.total}
+                </td>
+                <td className="px-4 py-1.5 text-[var(--color-text-secondary)]">
+                  {d.mount}
                 </td>
               </tr>
             ))}
@@ -447,7 +478,7 @@ function DiskTable({ disks }: { disks: MetricsSnapshot["disks"] }) {
       </div>
     </div>
   );
-}
+});
 
 // ── Command Templates ──
 
@@ -507,7 +538,7 @@ const commandTemplates: { categoryKey: DictKey; commands: CmdTemplate[] }[] = [
   },
 ];
 
-function CommandTemplates() {
+const CommandTemplates = memo(function CommandTemplates() {
   const t = useT();
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
 
@@ -557,12 +588,13 @@ function CommandTemplates() {
       </div>
     </div>
   );
-}
+});
 
 // ── Main Monitor Page ──
 
 export function MonitorPage() {
   const t = useT();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const {
     collectorId,
     collectorState,
@@ -581,6 +613,34 @@ export function MonitorPage() {
 
   useEffect(() => {
     initMetricsListeners();
+  }, []);
+
+  // Scroll to top on mount with smooth animation
+  useEffect(() => {
+    if (scrollRef.current) {
+      // Use manual animation for more control
+      const startTime = performance.now();
+      const startTop = scrollRef.current.scrollTop;
+      const duration = 400;
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease out cubic
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+        scrollRef.current?.scrollTo({
+          top: startTop * (1 - easeProgress),
+          behavior: "auto",
+        });
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    }
   }, []);
 
   // Auto-stop collector on unmount
@@ -675,21 +735,23 @@ export function MonitorPage() {
   const healthScore = latest.sessionHealth;
 
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto p-4 gap-4">
+    <div ref={scrollRef} className="monitor-scroll flex w-full flex-1 flex-col p-4 gap-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Activity size={20} className="text-[var(--color-accent)]" />
-          <h1 className="text-[var(--font-size-lg)] font-medium text-[var(--color-text-primary)]">
-            {t("monitor.title")}
-          </h1>
-          {currentTab && (
-            <span className="rounded-full bg-[var(--color-accent-subtle)] px-2.5 py-0.5 text-[var(--font-size-xs)] text-[var(--color-accent)]">
-              {currentTab.title}
-            </span>
-          )}
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <Activity size={20} className="text-[var(--color-accent)]" />
+            <h1 className="text-[var(--font-size-lg)] font-medium text-[var(--color-text-primary)]">
+              {t("monitor.title")}
+            </h1>
+            {currentTab && (
+              <span className="rounded-full bg-[var(--color-accent-subtle)] px-2.5 py-0.5 text-[var(--font-size-xs)] text-[var(--color-accent)]">
+                {currentTab.title}
+              </span>
+            )}
+          </div>
           {systemInfo && (
-            <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)] ml-8">
               {[
                 systemInfo.distro
                   ? `${systemInfo.distro}${systemInfo.distroVersion ? ` ${systemInfo.distroVersion}` : ""}`
@@ -738,8 +800,7 @@ export function MonitorPage() {
         <OverviewCard
           icon={Gauge}
           label={t("monitor.load")}
-          value={`${latest.load.one.toFixed(2)}`}
-          subValue={`${latest.load.five.toFixed(2)} / ${latest.load.fifteen.toFixed(2)}`}
+          value={formatLoad(latest.load.one, latest.cpu.coreCount)}
           colorClass="text-violet-500"
           bgClass="bg-violet-500/10"
         />
@@ -753,16 +814,14 @@ export function MonitorPage() {
         <OverviewCard
           icon={MemoryStick}
           label={t("monitor.memory")}
-          value={`${latest.memory.usedMb} / ${latest.memory.totalMb} MB`}
-          subValue={`${latest.memory.usagePercent.toFixed(1)}%`}
+          value={`${formatMemory(latest.memory.usedMb)} / ${formatMemory(latest.memory.totalMb)}`}
           colorClass="text-green-500"
           bgClass="bg-green-500/10"
         />
         <OverviewCard
           icon={ArrowDown}
           label={t("monitor.network")}
-          value={`${formatBytes(latest.network.rxBytesPerSec)}/s`}
-          subValue={`TX ${formatBytes(latest.network.txBytesPerSec)}/s`}
+          value={`↓ ${formatBytes(latest.network.rxBytesPerSec)}/s`}
           colorClass="text-cyan-500"
           bgClass="bg-cyan-500/10"
         />
@@ -838,7 +897,7 @@ export function MonitorPage() {
       </div>
 
       {/* Collapsible: Process Table */}
-      <CollapsibleSection title={t("monitor.processes")} defaultOpen={true}>
+      <CollapsibleSection title={t("monitor.processes")} defaultOpen={false}>
         <ProcessTable processes={latest.processes} />
       </CollapsibleSection>
 

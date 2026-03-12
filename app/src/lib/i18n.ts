@@ -124,8 +124,8 @@ const dict = {
   "monitor.sessionHealth": { zh: "会话健康", en: "Session Health" },
   "monitor.cpuUsage": { zh: "CPU 使用率", en: "CPU Usage" },
   "monitor.memoryUsage": { zh: "内存使用率", en: "Memory Usage" },
-  "monitor.networkRx": { zh: "网络 RX", en: "Network RX" },
-  "monitor.networkTx": { zh: "网络 TX", en: "Network TX" },
+  "monitor.networkRx": { zh: "网络下行", en: "Network Down" },
+  "monitor.networkTx": { zh: "网络上行", en: "Network Up" },
 
   // ── Monitor table headers ──
   "monitor.pid": { zh: "PID", en: "PID" },

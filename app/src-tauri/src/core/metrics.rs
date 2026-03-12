@@ -36,6 +36,7 @@ pub struct LoadInfo {
 #[serde(rename_all = "camelCase")]
 pub struct CpuInfo {
     pub usage_percent: f64,
+    pub core_count: u32,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -276,6 +277,7 @@ pub async fn collect_snapshot(
         "echo '===UPTIME==='; uptime; ",
         "echo '===LOADAVG==='; cat /proc/loadavg 2>/dev/null || uptime; ",
         "echo '===CPU==='; top -bn1 | head -5; ",
+        "echo '===CPUINFO==='; nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo 2>/dev/null || echo 1; ",
         "echo '===MEMORY==='; free -m; ",
         "echo '===NETWORK==='; cat /proc/net/dev 2>/dev/null || netstat -ib; ",
         "echo '===PROCESS==='; ps aux --sort=-%cpu 2>/dev/null | head -16 || ps aux | head -16; ",
@@ -297,6 +299,16 @@ pub async fn collect_snapshot(
     let uptime = parse_uptime(sections.get("UPTIME").unwrap_or(&String::new()));
     let load = parse_loadavg(sections.get("LOADAVG").unwrap_or(&String::new()));
     let cpu = parse_cpu(sections.get("CPU").unwrap_or(&String::new()));
+    let core_count = sections
+        .get("CPUINFO")
+        .unwrap_or(&String::new())
+        .trim()
+        .parse::<u32>()
+        .unwrap_or(1);
+    let cpu_with_core = CpuInfo {
+        usage_percent: cpu.usage_percent,
+        core_count,
+    };
     let memory = parse_memory(sections.get("MEMORY").unwrap_or(&String::new()));
 
     // Network: parse total bytes and compute rate
@@ -331,7 +343,7 @@ pub async fn collect_snapshot(
         timestamp,
         uptime,
         load,
-        cpu,
+        cpu: cpu_with_core,
         memory,
         network,
         processes,
@@ -445,6 +457,7 @@ fn parse_cpu(output: &str) -> CpuInfo {
                     .unwrap_or(0.0);
                 return CpuInfo {
                     usage_percent: (100.0 - idle).max(0.0),
+                    core_count: 1, // Will be overridden by CPUINFO
                 };
             }
         }
@@ -452,6 +465,7 @@ fn parse_cpu(output: &str) -> CpuInfo {
 
     CpuInfo {
         usage_percent: 0.0,
+        core_count: 1,
     }
 }
 
@@ -550,13 +564,15 @@ fn parse_processes(output: &str) -> Vec<ProcessInfo> {
         }
 
         // Parse: USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND
-        let parts: Vec<&str> = line.splitn(11, char::is_whitespace).collect();
+        // First 10 fields are fixed, rest is the command
+        let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 11 {
             let user = parts[0].to_string();
             let pid = parts[1].parse::<u32>().unwrap_or(0);
             let cpu_percent = parts[2].parse::<f64>().unwrap_or(0.0);
             let mem_percent = parts[3].parse::<f64>().unwrap_or(0.0);
-            let command = parts[10].to_string();
+            // Join remaining parts as command (handles commands with spaces)
+            let command = parts[10..].join(" ");
 
             if pid > 0 {
                 processes.push(ProcessInfo {
