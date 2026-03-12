@@ -725,7 +725,6 @@ export function TerminalPage() {
             setDragDeltaX(0);
             dragStartXRef.current = null;
             dragMovedRef.current = false;
-            setIsDropping(false);
           }}
           onMouseLeave={() => {
             if (!draggingTabId) return;
@@ -734,7 +733,6 @@ export function TerminalPage() {
             setDragDeltaX(0);
             dragStartXRef.current = null;
             dragMovedRef.current = false;
-            setIsDropping(false);
           }}
         >
           {/* Tab list - scrollable */}
