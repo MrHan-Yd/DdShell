@@ -92,6 +92,10 @@ impl SshSession {
     ) -> anyhow::Result<Self> {
         let config = client::Config {
             inactivity_timeout: if timeout_secs == 0 { None } else { Some(std::time::Duration::from_secs(timeout_secs)) },
+            // Keep alive every 30 seconds to prevent connection timeout
+            keepalive_interval: Some(std::time::Duration::from_secs(30)),
+            // Disconnect after 3 keepalives without response
+            keepalive_max: 3,
             ..Default::default()
         };
 
@@ -135,6 +139,10 @@ impl SshSession {
     ) -> anyhow::Result<(Self, String, String)> {
         let config = client::Config {
             inactivity_timeout: if timeout_secs == 0 { None } else { Some(std::time::Duration::from_secs(timeout_secs)) },
+            // Keep alive every 30 seconds to prevent connection timeout
+            keepalive_interval: Some(std::time::Duration::from_secs(30)),
+            // Disconnect after 3 keepalives without response
+            keepalive_max: 3,
             ..Default::default()
         };
 
@@ -195,6 +203,7 @@ impl SshSession {
         &mut self,
         cols: u32,
         rows: u32,
+        set_locale: bool,
     ) -> anyhow::Result<(Channel<client::Msg>, tokio::sync::mpsc::UnboundedReceiver<PtyCommand>)> {
         let channel = self.handle.channel_open_session().await?;
         let channel_id = channel.id();
@@ -212,6 +221,13 @@ impl SshSession {
             .await?;
 
         channel.request_shell(true).await?;
+
+        // Set locale to avoid garbled characters (if enabled by user)
+        if set_locale {
+            let _ = self.handle
+                .data(channel_id, CryptoVec::from_slice(b"export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8\n"))
+                .await;
+        }
 
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         self.pty_channel_id = Some(channel_id);
@@ -343,7 +359,14 @@ impl SessionManager {
             }
         }
 
-        let (channel, cmd_rx) = session.open_pty(cols, rows).await?;
+        // Read terminal settings
+        let set_locale = db
+            .get_setting("terminal.setLocale")
+            .await?
+            .map(|v| v == "true")
+            .unwrap_or(false);
+
+        let (channel, cmd_rx) = session.open_pty(cols, rows, set_locale).await?;
 
         let session_id = session.id.clone();
         let session = Arc::new(TokioMutex::new(session));
@@ -355,6 +378,11 @@ impl SessionManager {
     /// Get a session by ID
     pub fn get(&self, session_id: &str) -> Option<Arc<TokioMutex<SshSession>>> {
         self.sessions.lock().get(session_id).cloned()
+    }
+
+    /// Check if a session exists in the manager (not disconnected)
+    pub fn is_connected(&self, session_id: &str) -> bool {
+        self.sessions.lock().contains_key(session_id)
     }
 
     /// Disconnect and remove a session

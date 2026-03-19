@@ -163,7 +163,10 @@ export async function sftpTransferStart(
   remotePath: string,
 ): Promise<{ id: string }> {
   return invoke("sftp_transfer_start", {
-    req: { sessionId, direction, localPath, remotePath },
+    sessionId,
+    direction,
+    localPath,
+    remotePath,
   });
 }
 
@@ -326,4 +329,10 @@ export async function downloadUpdate(url: string, filename: string): Promise<str
 
 export async function getInstallType(): Promise<string> {
   return invoke("get_install_type");
+}
+
+// ── Open browser ──
+
+export async function openBrowser(url: string): Promise<void> {
+  return invoke("open_browser", { url });
 }

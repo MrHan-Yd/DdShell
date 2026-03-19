@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { listen } from "@tauri-apps/api/event";
 import {
   Folder,
   File,
@@ -18,8 +19,8 @@ import {
   Star,
   StarOff,
   Clock,
-  ChevronUp,
-  ChevronDown,
+  FolderOpen,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -388,29 +389,137 @@ function LocalFileList({
     });
   }, []);
 
-  const handleUploadSelected = useCallback(async () => {
-    const files = Array.from(selected)
-      .map((name) => entries.find((e) => e.name === name))
-      .filter((e): e is LocalFileEntry => !!e && e.fileType === "file");
+  // Recursively get all files in a directory, returning { localPath, relativePath }
+  const getAllFiles = useCallback(async (dirPath: string, relativeBase: string): Promise<{ local: string; relative: string }[]> => {
+    const files: { local: string; relative: string }[] = [];
+    try {
+      const dirEntries = await api.localListDir(dirPath);
+      for (const entry of dirEntries) {
+        const fullPath = dirPath === "/" ? `/${entry.name}` : `${dirPath}/${entry.name}`;
+        const relativePath = relativeBase ? `${relativeBase}/${entry.name}` : entry.name;
+        if (entry.fileType === "file") {
+          files.push({ local: fullPath, relative: relativePath });
+        } else if (entry.fileType === "dir") {
+          const subFiles = await getAllFiles(fullPath, relativePath);
+          files.push(...subFiles);
+        }
+      }
+    } catch (e) {
+      console.error("Error reading directory:", dirPath, e);
+    }
+    return files;
+  }, []);
 
-    if (files.length === 0) {
+  const refreshTransfers = useSftpStore((s) => s.refreshTransfers);
+  const addUploadingEntry = useSftpStore((s) => s.addUploadingEntry);
+  const updateUploadingEntry = useSftpStore((s) => s.updateUploadingEntry);
+
+  const handleUploadSelected = useCallback(async () => {
+    const selectedNames = Array.from(selected);
+
+    if (selectedNames.length === 0) {
       toast.error("No files selected to upload");
       return;
     }
 
-    const paths = files.map((f) =>
-      localPath === "/" ? `/${f.name}` : `${localPath}/${f.name}`,
-    );
+    if (entries.length === 0) {
+      toast.error("Local file list not loaded, please wait");
+      return;
+    }
+
+    const selectedEntries = selectedNames
+      .map((name) => entries.find((e) => e.name === name))
+      .filter((e): e is LocalFileEntry => !!e);
+
+    // Collect upload tasks: each is { localPath, remoteDir }
+    const uploadTasks: { localPaths: string[]; remoteDir: string }[] = [];
+
+    for (const entry of selectedEntries) {
+      const fullPath = localPath === "/" ? `/${entry.name}` : `${localPath}/${entry.name}`;
+      if (entry.fileType === "file") {
+        // Single file: upload to current remote dir
+        uploadTasks.push({ localPaths: [fullPath], remoteDir: remotePath });
+      } else if (entry.fileType === "dir") {
+        // Directory: recursively get all files, group by their remote subdirectory
+        toast.info(`Scanning directory: ${entry.name}...`);
+        const allFiles = await getAllFiles(fullPath, "");
+        // Group files by their parent directory relative to the selected dir
+        const byDir = new Map<string, string[]>();
+        for (const f of allFiles) {
+          const relativeDir = f.relative.includes("/")
+            ? f.relative.substring(0, f.relative.lastIndexOf("/"))
+            : "";
+          const remoteSubDir = relativeDir
+            ? `${remotePath}/${entry.name}/${relativeDir}`
+            : `${remotePath}/${entry.name}`;
+          if (!byDir.has(remoteSubDir)) byDir.set(remoteSubDir, []);
+          byDir.get(remoteSubDir)!.push(f.local);
+        }
+        for (const [remoteDir, localPaths] of byDir) {
+          uploadTasks.push({ localPaths, remoteDir });
+        }
+      }
+    }
+
+    const totalFiles = uploadTasks.reduce((n, t) => n + t.localPaths.length, 0);
+    if (totalFiles === 0) {
+      toast.error("No files to upload");
+      return;
+    }
 
     try {
-      await api.sftpUploadFiles(sessionId, paths, remotePath);
-      toast.success(
-        `Uploading ${paths.length} file${paths.length > 1 ? "s" : ""}...`,
-      );
+      // Add virtual entries for uploading files to remote list
+      const uploadingNames: string[] = [];
+      for (const task of uploadTasks) {
+        for (const localPath of task.localPaths) {
+          const fileName = localPath.split("/").pop() || "";
+          const localEntry = entries.find((e) => e.name === fileName);
+          if (localEntry) {
+            addUploadingEntry(fileName, localEntry.size);
+            uploadingNames.push(fileName);
+          }
+        }
+      }
+
+      // Start polling for transfer progress
+      let polling = true;
+      const pollInterval = setInterval(async () => {
+        if (polling) {
+          await refreshTransfers();
+          // Update virtual entries with transfer progress
+          const transfers = useSftpStore.getState().transfers;
+          for (const name of uploadingNames) {
+            const task = transfers.find(
+              (t) => t.direction === "upload" && t.remotePath.endsWith(`/${name}`),
+            );
+            if (task && task.state === "running") {
+              updateUploadingEntry(name, task.transferredBytes);
+            }
+          }
+        }
+      }, 500);
+
+      for (const task of uploadTasks) {
+        await api.sftpUploadFiles(sessionId, task.localPaths, task.remoteDir);
+      }
+
+      // Wait a bit for last progress update
+      await new Promise((r) => setTimeout(r, 500));
+      polling = false;
+      clearInterval(pollInterval);
+
+      // Refresh to get real file info (this will replace virtual entries)
+      useSftpStore.getState().refreshRemote();
+      await refreshTransfers();
+      if (totalFiles === 1) {
+        toast.success(t("sftp.uploaded"));
+      } else {
+        toast.success(t("sftp.uploadedFiles", { n: totalFiles }));
+      }
     } catch (err) {
       toast.error(String(err));
     }
-  }, [selected, entries, localPath, sessionId, remotePath]);
+  }, [selected, entries, localPath, sessionId, remotePath, getAllFiles, refreshTransfers, addUploadingEntry, updateUploadingEntry]);
 
   return (
     <div className="flex flex-1 flex-col border rounded-[var(--radius-card)] border-[var(--color-border)] overflow-hidden">
@@ -479,7 +588,7 @@ function LocalFileList({
               <span className="w-20 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
                 {entry.fileType === "dir" ? "-" : formatBytes(entry.size)}
               </span>
-              <span className="w-36 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+              <span className="w-36 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)] whitespace-nowrap">
                 {formatTime(entry.mtime)}
               </span>
             </div>
@@ -491,6 +600,8 @@ function LocalFileList({
 
 function RemoteFileList() {
   const t = useT();
+  const tabs = useTerminalStore((s) => s.tabs);
+  const uploadingFiles = useSftpStore((s) => s.uploadingFiles);
   const {
     sessionId,
     remotePath,
@@ -502,20 +613,25 @@ function RemoteFileList() {
     refreshRemote,
     remove,
     toggleSelectRemote,
+    clearSelectRemote,
   } = useSftpStore();
   const [showMkdir, setShowMkdir] = useState(false);
   const [newDirName, setNewDirName] = useState("");
   const [showRename, setShowRename] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entry: FileEntry } | null>(null);
+  const [hoveredMenuItem, setHoveredMenuItem] = useState<number | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [deletingEntries, setDeletingEntries] = useState<Set<string>>(new Set());
   const mkdir = useSftpStore((s) => s.mkdir);
   const rename = useSftpStore((s) => s.rename);
   const dropRef = useRef<HTMLDivElement>(null);
 
   // Wrap navigateRemote to also track recent paths
   const navigateRemoteWithRecent = useCallback(
-    async (path: string) => {
+    (path: string) => {
       navigateRemote(path);
+      // Track recent path in background (non-blocking)
       if (sessionId) {
         api.pathAddRecent(sessionId, path).catch(() => {
           /* ignore errors for recent tracking */
@@ -525,7 +641,100 @@ function RemoteFileList() {
     [navigateRemote, sessionId],
   );
 
+  // Helper to delete with animation
+  const deleteWithAnimation = useCallback(async (name: string, isDir: boolean) => {
+    // Start animation
+    setDeletingEntries((prev) => new Set(prev).add(name));
+    // Wait for animation to complete
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    // Actually delete
+    try {
+      await remove(name, isDir);
+    } catch (err) {
+      // Remove from animation set on error
+      setDeletingEntries((prev) => {
+        const next = new Set(prev);
+        next.delete(name);
+        return next;
+      });
+      throw err;
+    }
+  }, [remove]);
+
+  // Helper to force delete with animation
+  const forceDeleteWithAnimation = useCallback(async (name: string) => {
+    // Start animation
+    setDeletingEntries((prev) => new Set(prev).add(name));
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const fullPath = remotePath === "/" ? `/${name}` : `${remotePath}/${name}`;
+    await api.sftpRemove(sessionId!, fullPath, true);
+  }, [sessionId, remotePath]);
+
   // ── SFTP keyboard shortcuts ──
+  const handleDelete = useCallback(async () => {
+    // Check if session is still connected
+    const connectedTab = tabs.find((tab) => tab.sessionId === sessionId && tab.state === "connected");
+    if (!connectedTab) {
+      toast.error(t("term.disconnected"));
+      return;
+    }
+
+    const selected = Array.from(selectedRemoteEntries);
+    if (selected.length > 0) {
+      // First check if any selected items are non-empty directories
+      const entries = remoteEntries.filter((e) => selectedRemoteEntries.has(e.name));
+      const nonEmptyDirs = entries.filter((e) => e.fileType === "dir");
+
+      if (nonEmptyDirs.length > 0) {
+        // Show warning for non-empty directories
+        const ok = await confirm({
+          title: t("confirm.deleteNonEmptyDirTitle"),
+          description: t("confirm.deleteNonEmptyDirDesc", { name: nonEmptyDirs[0].name }),
+          confirmLabel: t("confirm.delete"),
+        });
+        if (!ok) return;
+      } else {
+        // Empty directories or files - show normal confirmation
+        const ok = await confirm({
+          title: t("confirm.deleteBatchTitle"),
+          description: t("confirm.deleteBatchDesc", { n: selected.length }),
+          confirmLabel: t("confirm.delete"),
+        });
+        if (!ok) return;
+      }
+
+      // Delete each entry sequentially, with small delay between each to avoid channel overload
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        try {
+          await deleteWithAnimation(entry.name, entry.fileType === "dir");
+          // Small delay between deletes to prevent channel overload
+          if (i < entries.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+        } catch (err) {
+          if (String(err) === "NON_EMPTY_DIR") {
+            // If it's a non-empty directory that we couldn't detect earlier, try with force
+            const ok = await confirm({
+              title: t("confirm.deleteNonEmptyDirTitle"),
+              description: t("confirm.deleteNonEmptyDirDesc", { name: entry.name }),
+              confirmLabel: t("confirm.delete"),
+            });
+            if (ok) {
+              await forceDeleteWithAnimation(entry.name);
+            }
+          } else {
+            console.error("Delete error:", err);
+          }
+        }
+      }
+      // Clear selection after batch delete
+      clearSelectRemote();
+      setDeletingEntries(new Set());
+      toast.success(t("sftp.deletedItems", { n: selected.length }));
+    }
+  }, [tabs, selectedRemoteEntries, remoteEntries, deleteWithAnimation, forceDeleteWithAnimation, clearSelectRemote, sessionId, remotePath, t]);
+
   useEffect(() => {
     const handleRefresh = () => {
       refreshRemote();
@@ -536,21 +745,6 @@ function RemoteFileList() {
       if (selected.length === 1) {
         setShowRename(selected[0]);
         setRenameValue(selected[0]);
-      }
-    };
-    const handleDelete = async () => {
-      const selected = Array.from(selectedRemoteEntries);
-      if (selected.length > 0) {
-        const ok = await confirm({
-          title: t("confirm.deleteBatchTitle"),
-          description: t("confirm.deleteBatchDesc", { n: selected.length }),
-          confirmLabel: t("confirm.delete"),
-        });
-        if (!ok) return;
-        const entries = remoteEntries.filter((e) => selectedRemoteEntries.has(e.name));
-        for (const entry of entries) {
-          remove(entry.name, entry.fileType === "dir");
-        }
       }
     };
     const handleMkdir = () => {
@@ -569,7 +763,59 @@ function RemoteFileList() {
       window.removeEventListener("sftp:delete", handleDelete);
       window.removeEventListener("sftp:mkdir", handleMkdir);
     };
-  }, [refreshRemote, selectedRemoteEntries, remoteEntries, remove]);
+  }, [refreshRemote, selectedRemoteEntries, remoteEntries, remove, handleDelete]);
+
+  // Handle native context menu event
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const fileItem = target.closest("[data-file-entry]");
+      if (fileItem) {
+        const entryName = fileItem.getAttribute("data-file-name");
+        const entryType = fileItem.getAttribute("data-file-type") as "file" | "dir" | "symlink" | null;
+        if (entryName && entryType) {
+          e.preventDefault();
+          const entry: FileEntry = {
+            name: entryName,
+            fileType: entryType,
+            size: 0,
+            mtime: 0,
+            permissions: 0,
+          };
+          if (!selectedRemoteEntries.has(entryName)) {
+            toggleSelectRemote(entryName);
+          }
+          // Calculate position relative to the container
+          const container = dropRef.current;
+          if (container) {
+            const containerRect = container.getBoundingClientRect();
+            let x = e.clientX - containerRect.left;
+            let y = e.clientY - containerRect.top;
+
+            // Menu dimensions
+            const menuWidth = 180;
+            const menuHeight = 120;
+
+            // Adjust if menu would go outside right edge
+            if (x + menuWidth > containerRect.width) {
+              x = containerRect.width - menuWidth;
+            }
+            // Adjust if menu would go outside bottom edge
+            if (y + menuHeight > containerRect.height) {
+              y = containerRect.height - menuHeight;
+            }
+
+            setContextMenu({ x, y, entry });
+          }
+        }
+      }
+    };
+
+    document.addEventListener("contextmenu", handleContextMenu);
+    return () => {
+      document.removeEventListener("contextmenu", handleContextMenu);
+    };
+  }, [selectedRemoteEntries, toggleSelectRemote]);
 
   // Handle native file drag-drop via HTML5 API
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -622,12 +868,16 @@ function RemoteFileList() {
 
       try {
         await api.sftpUploadFiles(sessionId, paths, remotePath);
-        toast.success(`Uploading ${paths.length} file${paths.length > 1 ? "s" : ""}...`);
+        if (paths.length === 1) {
+          toast.success(t("sftp.uploaded"));
+        } else {
+          toast.success(t("sftp.uploadedFiles", { n: paths.length }));
+        }
       } catch (err) {
         toast.error(String(err));
       }
     },
-    [sessionId, remotePath],
+    [sessionId, remotePath, t],
   );
 
   const handleDoubleClick = useCallback(
@@ -699,6 +949,16 @@ function RemoteFileList() {
         >
           <FolderPlus size={14} />
         </Button>
+        {selectedRemoteEntries.size > 0 && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleDelete}
+            title={`Delete ${selectedRemoteEntries.size} item(s)`}
+          >
+            <Trash2 size={14} className="text-[var(--color-error)]" />
+          </Button>
+        )}
       </div>
 
       {/* Breadcrumb with Path Tools */}
@@ -750,7 +1010,7 @@ function RemoteFileList() {
       )}
 
       {/* File list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto relative">
         {loading && (
           <div className="flex items-center justify-center py-8">
             <Loader2 size={20} className="animate-spin text-[var(--color-text-muted)]" />
@@ -770,74 +1030,317 @@ function RemoteFileList() {
         )}
 
         {!loading &&
-          remoteEntries.map((entry) => (
-            <div
-              key={entry.name}
-              className={cn(
-                "flex items-center gap-3 px-3 py-1.5 text-[var(--font-size-sm)] cursor-default hover:bg-[var(--color-bg-hover)] transition-colors",
-                selectedRemoteEntries.has(entry.name) && "bg-[var(--color-accent-subtle)]",
-              )}
-              onClick={() => toggleSelectRemote(entry.name)}
-              onDoubleClick={() => handleDoubleClick(entry)}
-            >
-              <FileIcon entry={entry} />
-              {showRename === entry.name ? (
-                <Input
-                  value={renameValue}
-                  onChange={(e) => setRenameValue(e.target.value)}
-                  className="flex-1 h-6 text-[var(--font-size-sm)]"
-                  autoFocus
-                  onKeyDown={async (e) => {
-                    if (e.key === "Enter" && renameValue.trim()) {
-                      await rename(entry.name, renameValue.trim());
-                      setShowRename(null);
-                    }
-                    if (e.key === "Escape") setShowRename(null);
-                  }}
-                  onBlur={() => setShowRename(null)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <span className="flex-1 truncate">{entry.name}</span>
-              )}
-              <span className="w-20 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-                {entry.fileType === "dir" ? "-" : formatBytes(entry.size)}
-              </span>
-              <span className="w-36 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-                {formatTime(entry.mtime)}
-              </span>
-              <div className="flex items-center gap-1 w-14">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowRename(entry.name);
-                    setRenameValue(entry.name);
-                  }}
-                  className="p-0.5 rounded hover:bg-[var(--color-bg-hover)] opacity-0 group-hover:opacity-100"
-                  title="Rename"
-                >
-                  <Pencil size={12} className="text-[var(--color-text-muted)]" />
-                </button>
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    const ok = await confirm({
-                      title: t("confirm.deleteFileTitle"),
-                      description: t("confirm.deleteFileDesc"),
-                      confirmLabel: t("confirm.delete"),
-                    });
-                    if (!ok) return;
-                    remove(entry.name, entry.fileType === "dir");
-                  }}
-                  className="p-0.5 rounded hover:bg-[var(--color-bg-hover)]"
-                  title="Delete"
-                >
-                  <Trash2 size={12} className="text-[var(--color-error)]" />
-                </button>
+          remoteEntries.map((entry) => {
+            // Check if this file is being uploaded
+            const totalSize = uploadingFiles.get(entry.name);
+            const isUploading = totalSize !== undefined;
+            const progress = isUploading && totalSize > 0
+              ? Math.round((entry.size / totalSize) * 100)
+              : 0;
+
+            return (
+              <div
+                key={entry.name}
+                data-file-entry
+                data-file-name={entry.name}
+                data-file-type={entry.fileType}
+                className={cn(
+                  "relative flex items-center gap-3 px-3 py-1.5 text-[var(--font-size-sm)] cursor-default hover:bg-[var(--color-bg-hover)] transition-colors",
+                  selectedRemoteEntries.has(entry.name) && "bg-[var(--color-accent-subtle)]",
+                  deletingEntries.has(entry.name) && "animate-fade-out pointer-events-none",
+                )}
+                onClick={() => toggleSelectRemote(entry.name)}
+                onDoubleClick={() => handleDoubleClick(entry)}
+              >
+                {/* Progress bar background - 从左到右增长 */}
+                {isUploading && (
+                  <div
+                    className="absolute left-0 top-0 bottom-0 bg-[var(--color-accent)] opacity-15 transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                )}
+                <FileIcon entry={entry} />
+                {showRename === entry.name ? (
+                  <Input
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    className="flex-1 h-6 text-[var(--font-size-sm)]"
+                    autoFocus
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && renameValue.trim()) {
+                        await rename(entry.name, renameValue.trim());
+                        setShowRename(null);
+                      }
+                      if (e.key === "Escape") setShowRename(null);
+                    }}
+                    onBlur={() => setShowRename(null)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <span className="flex-1 truncate">{entry.name}</span>
+                )}
+                {isUploading ? (
+                  <span className="w-24 text-right text-[var(--font-size-xs)] text-[var(--color-accent)]">
+                    {formatBytes(entry.size)} / {formatBytes(totalSize!)}
+                  </span>
+                ) : (
+                  <span className="w-20 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                    {entry.fileType === "dir" ? "-" : formatBytes(entry.size)}
+                  </span>
+                )}
+                <span className="w-36 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)] whitespace-nowrap">
+                  {formatTime(entry.mtime)}
+                </span>
+                <div className="flex items-center gap-1 w-6">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowRename(entry.name);
+                      setRenameValue(entry.name);
+                    }}
+                    className="p-0.5 rounded hover:bg-[var(--color-bg-hover)] opacity-0 group-hover:opacity-100"
+                    title="Rename"
+                  >
+                    <Pencil size={12} className="text-[var(--color-text-muted)]" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="absolute z-50 min-w-[180px] py-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg shadow-lg animate-context-menu"
+          ref={(el) => {
+            if (el && hoveredMenuItem !== null) {
+              const buttons = el.querySelectorAll('.context-menu-item');
+              const btn = buttons[hoveredMenuItem] as HTMLElement;
+              if (btn) {
+                const highlight = el.querySelector('.menu-highlight') as HTMLElement;
+                if (highlight) {
+                  highlight.style.top = (btn.offsetTop) + 'px';
+                  highlight.style.height = btn.offsetHeight + 'px';
+                }
+              }
+            }
+          }}
+          style={{
+            left: contextMenu.x,
+            top: contextMenu.y,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Sliding highlight */}
+          <div
+            className="absolute left-0.5 right-0.5 bg-[var(--color-bg-hover)] rounded transition-all duration-150 ease-spring pointer-events-none menu-highlight"
+          />
+
+          {/* Open - for directories */}
+          {contextMenu.entry.fileType === "dir" && (
+            <button
+              className="w-full px-3 py-1.5 text-left text-[var(--font-size-sm)] flex items-center gap-2 context-menu-item relative z-10"
+              onMouseEnter={(e) => {
+                const buttons = e.currentTarget.parentElement?.querySelectorAll('.context-menu-item');
+                if (buttons) {
+                  setHoveredMenuItem(Array.from(buttons).indexOf(e.currentTarget));
+                }
+              }}
+              onMouseLeave={() => setHoveredMenuItem(null)}
+              onClick={() => {
+                const newPath = remotePath === "/" ? `/${contextMenu.entry.name}` : `${remotePath}/${contextMenu.entry.name}`;
+                navigateRemoteWithRecent(newPath);
+                setContextMenu(null);
+              }}
+            >
+              <FolderOpen size={14} className="text-[var(--color-accent)]" />
+              {t("sftp.open") || "打开"}
+            </button>
+          )}
+
+          {/* Download - for files */}
+          {contextMenu.entry.fileType === "file" && (
+            <button
+              className="w-full px-3 py-1.5 text-left text-[var(--font-size-sm)] flex items-center gap-2 context-menu-item relative z-10"
+              onMouseEnter={(e) => {
+                const buttons = e.currentTarget.parentElement?.querySelectorAll('.context-menu-item');
+                if (buttons) {
+                  setHoveredMenuItem(Array.from(buttons).indexOf(e.currentTarget));
+                }
+              }}
+              onMouseLeave={() => setHoveredMenuItem(null)}
+              onClick={() => {
+                const entry = contextMenu.entry;
+                if (!entry.name) return;
+                const fullPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
+                api.sftpTransferStart(sessionId!, "download", "", fullPath).then(() => {
+                  useSftpStore.getState().refreshTransfers();
+                  toast.success(t("sftp.downloadStarted"));
+                });
+                setContextMenu(null);
+              }}
+            >
+              <Download size={14} className="text-[var(--color-text-muted)]" />
+              {t("sftp.download")}
+            </button>
+          )}
+
+          {/* Download - for directories */}
+          {contextMenu.entry.fileType === "dir" && (
+            <button
+              className="w-full px-3 py-1.5 text-left text-[var(--font-size-sm)] flex items-center gap-2 context-menu-item relative z-10"
+              onMouseEnter={(e) => {
+                const buttons = e.currentTarget.parentElement?.querySelectorAll('.context-menu-item');
+                if (buttons) {
+                  setHoveredMenuItem(Array.from(buttons).indexOf(e.currentTarget));
+                }
+              }}
+              onMouseLeave={() => setHoveredMenuItem(null)}
+              onClick={async () => {
+                const entry = contextMenu.entry;
+                if (!entry) return;
+                const fullPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
+                toast.info(t("sftp.scanningDir"));
+                try {
+                  // Collect all files recursively
+                  const collectFiles = async (dir: string, base: string): Promise<{ remote: string; relative: string }[]> => {
+                    const files: { remote: string; relative: string }[] = [];
+                    const entries = await api.sftpListDir(sessionId!, dir);
+                    for (const e of entries) {
+                      if (e.name === "." || e.name === "..") continue;
+                      const fp = dir === "/" ? `/${e.name}` : `${dir}/${e.name}`;
+                      const rp = base ? `${base}/${e.name}` : e.name;
+                      if (e.fileType === "file") files.push({ remote: fp, relative: rp });
+                      else if (e.fileType === "dir") {
+                        const sub = await collectFiles(fp, rp);
+                        files.push(...sub);
+                      }
+                    }
+                    return files;
+                  };
+                  const allFiles = await collectFiles(fullPath, "");
+                  if (allFiles.length === 0) {
+                    toast.info(t("sftp.emptyDir"));
+                  } else {
+                    // Get download directory: settings > ~/Downloads
+                    const downloadDir = await api.settingGet("transfer.downloadPath").catch(() => null)
+                      ?? await api.localHomeDir() + "/Downloads";
+                    // Start all downloads in parallel (they'll queue at semaphore)
+                    const promises = allFiles.map((file) => {
+                      const localPath = `${downloadDir.replace(/\/$/, "")}/${entry.name}/${file.relative}`;
+                      return api.sftpTransferStart(sessionId!, "download", localPath, file.remote)
+                        .catch((err) => ({ error: err, file: file.remote }));
+                    });
+                    const results = await Promise.all(promises);
+                    const failed = results.filter((r): r is { error: unknown; file: string } => "error" in r);
+                    if (failed.length > 0) {
+                      toast.error(`Failed to start ${failed.length} download(s)`);
+                    }
+                    useSftpStore.getState().refreshTransfers();
+                    toast.success(t("sftp.downloadStarted"));
+                  }
+                } catch {
+                  toast.error("Failed to scan directory");
+                }
+                setContextMenu(null);
+              }}
+            >
+              <Download size={14} className="text-[var(--color-text-muted)]" />
+              {t("sftp.download")}
+            </button>
+          )}
+
+          {/* Rename */}
+          <button
+            className="w-full px-3 py-1.5 text-left text-[var(--font-size-sm)] flex items-center gap-2 context-menu-item relative z-10"
+            onMouseEnter={(e) => {
+              const buttons = e.currentTarget.parentElement?.querySelectorAll('.context-menu-item');
+              if (buttons) {
+                setHoveredMenuItem(Array.from(buttons).indexOf(e.currentTarget));
+              }
+            }}
+            onMouseLeave={() => setHoveredMenuItem(null)}
+            onClick={() => {
+              setShowRename(contextMenu.entry.name);
+              setRenameValue(contextMenu.entry.name);
+              setContextMenu(null);
+            }}
+          >
+            <Pencil size={14} className="text-[var(--color-text-muted)]" />
+            {t("sftp.rename") || "重命名"}
+          </button>
+
+          <div className="my-1 border-t border-[var(--color-border)]" />
+
+          {/* Delete */}
+          <button
+            className="w-full px-3 py-1.5 text-left text-[var(--font-size-sm)] flex items-center gap-2 text-[var(--color-error)] context-menu-item relative z-10"
+            onMouseEnter={(e) => {
+              const buttons = e.currentTarget.parentElement?.querySelectorAll('.context-menu-item');
+              if (buttons) {
+                setHoveredMenuItem(Array.from(buttons).indexOf(e.currentTarget));
+              }
+            }}
+            onMouseLeave={() => setHoveredMenuItem(null)}
+            onClick={async () => {
+              // Check if session is still connected
+              const connectedTab = tabs.find((tab) => tab.sessionId === sessionId && tab.state === "connected");
+              if (!connectedTab) {
+                toast.error(t("term.disconnected"));
+                setContextMenu(null);
+                return;
+              }
+
+              // Check if directory and has content
+              if (contextMenu.entry.fileType === "dir") {
+                const fullPath = remotePath === "/" ? `/${contextMenu.entry.name}` : `${remotePath}/${contextMenu.entry.name}`;
+                const entries = await api.sftpListDir(sessionId!, fullPath);
+                const nonHiddenEntries = entries.filter((x) => x.name !== "." && x.name !== "..");
+                if (nonHiddenEntries.length > 0) {
+                  const ok = await confirm({
+                    title: t("confirm.deleteNonEmptyDirTitle"),
+                    description: t("confirm.deleteNonEmptyDirDesc", { name: contextMenu.entry.name }),
+                    confirmLabel: t("confirm.delete"),
+                  });
+                  if (!ok) {
+                    setContextMenu(null);
+                    return;
+                  }
+                  // Start animation first
+                  setDeletingEntries((prev) => new Set(prev).add(contextMenu.entry.name));
+                  await new Promise((resolve) => setTimeout(resolve, 250));
+                  await api.sftpRemove(sessionId!, fullPath, true);
+                  toast.success(t("sftp.deleted"));
+                  setContextMenu(null);
+                  return;
+                }
+              }
+              const ok = await confirm({
+                title: t("confirm.deleteFileTitle"),
+                description: t("confirm.deleteFileDesc"),
+                confirmLabel: t("confirm.delete"),
+              });
+              if (ok) {
+                await deleteWithAnimation(contextMenu.entry.name, contextMenu.entry.fileType === "dir");
+                toast.success(t("sftp.deleted"));
+              }
+              setContextMenu(null);
+            }}
+          >
+            <Trash2 size={14} />
+            {t("confirm.delete")}
+          </button>
+        </div>
+      )}
+
+      {/* Click outside to close context menu */}
+      {contextMenu && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }
@@ -848,52 +1351,48 @@ function TransferQueue() {
   const cancelTransfer = useSftpStore((s) => s.cancelTransfer);
   const clearFinishedTransfers = useSftpStore((s) => s.clearFinishedTransfers);
 
-  // Track whether user has manually toggled the panel
-  const [manualToggle, setManualToggle] = useState<boolean | null>(null);
-
-  // Determine if there are active or failed transfers
-  const hasActiveOrFailed = transfers.some(
-    (t) => t.state === "running" || t.state === "queued" || t.state === "failed",
+  // Only show active transfers (running or queued)
+  const activeTransfers = transfers.filter(
+    (t) => t.state === "running" || t.state === "queued",
   );
 
-  // Determine effective collapsed state:
-  // - If user has manually toggled, respect that preference
-  // - Otherwise, auto-expand when active/failed, collapse when idle
-  const isExpanded =
-    manualToggle !== null ? manualToggle : hasActiveOrFailed;
+  // Only show finished transfers (for a while)
+  const recentFinished = transfers.filter(
+    (t) => t.state === "completed" || t.state === "failed",
+  );
 
-  // Reset manual toggle when active state changes so auto-behavior resumes
-  useEffect(() => {
-    // When transfers go from active to idle or vice versa, reset manual preference
-    setManualToggle(null);
-  }, [hasActiveOrFailed]);
-
+  // Only show drawer when there are transfers
   if (transfers.length === 0) return null;
 
+  // Floating drawer in bottom right corner
   return (
-    <div className="border-t border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--color-border)]">
-        <button
-          onClick={() => setManualToggle(!isExpanded)}
-          className="flex items-center gap-1.5 text-[var(--font-size-xs)] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
-        >
-          {isExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          {t("sftp.transfers")} ({transfers.length})
-          {hasActiveOrFailed && (
-            <span className="ml-1 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)] animate-pulse" />
+    <div className="fixed bottom-4 right-4 z-50 w-80">
+      <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg shadow-lg overflow-hidden animate-fade-in-up">
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border)]">
+          <div className="flex items-center gap-2">
+            <Upload size={14} className="text-[var(--color-accent)]" />
+            <span className="text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
+              {t("sftp.transfers")} ({activeTransfers.length > 0 ? activeTransfers.length : transfers.length})
+            </span>
+            {activeTransfers.length > 0 && (
+              <span className="h-2 w-2 rounded-full bg-[var(--color-accent)] animate-pulse" />
+            )}
+          </div>
+          {recentFinished.length > 0 && (
+            <Button size="sm" variant="ghost" onClick={clearFinishedTransfers}>
+              {t("sftp.clearFinished")}
+            </Button>
           )}
-        </button>
-        <Button size="sm" variant="ghost" onClick={clearFinishedTransfers}>
-          {t("sftp.clearFinished")}
-        </Button>
-      </div>
-      {isExpanded && (
-        <div className="max-h-[140px] overflow-y-auto">
+        </div>
+
+        {/* Transfer list */}
+        <div className="max-h-[300px] overflow-y-auto">
           {transfers.map((task) => (
             <TransferRow key={task.id} task={task} onCancel={cancelTransfer} />
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -914,41 +1413,64 @@ function TransferRow({
     ? task.localPath.split("/").pop() || task.localPath
     : task.remotePath.split("/").pop() || task.remotePath;
 
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  };
+
+  const formatSpeed = (bytesPerSec: number) => {
+    if (bytesPerSec === 0) return "";
+    return formatBytes(bytesPerSec) + "/s";
+  };
+
   return (
-    <div className="flex items-center gap-3 px-3 py-1.5 text-[var(--font-size-xs)]">
-      {task.direction === "upload" ? (
-        <ArrowUp size={12} className="text-[var(--color-accent)]" />
-      ) : (
-        <ArrowDown size={12} className="text-[var(--color-success)]" />
-      )}
-      <span className="flex-1 truncate">{fileName}</span>
+    <div className="flex flex-col gap-1 px-3 py-2 text-[var(--font-size-xs)] border-b border-[var(--color-border-subtle)] last:border-0">
+      <div className="flex items-center gap-2">
+        {task.direction === "upload" ? (
+          <ArrowUp size={12} className="text-[var(--color-accent)]" />
+        ) : (
+          <ArrowDown size={12} className="text-[var(--color-success)]" />
+        )}
+        <span className="flex-1 truncate font-medium">{fileName}</span>
+        {(task.state === "running" || task.state === "queued") && (
+          <button
+            onClick={() => onCancel(task.id)}
+            className="p-0.5 rounded hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)]"
+            title="Cancel"
+          >
+            <X size={12} />
+          </button>
+        )}
+      </div>
       {task.state === "running" && (
         <>
-          <div className="w-24 h-1.5 bg-[var(--color-bg-elevated)] rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[var(--color-accent)] rounded-full transition-all"
-              style={{ width: `${progress}%` }}
-            />
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-1.5 bg-[var(--color-bg-base)] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[var(--color-accent)] rounded-full transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="text-[var(--color-text-muted)] whitespace-nowrap">
+              {formatBytes(task.transferredBytes)} / {formatBytes(task.totalBytes)}
+              {task.speedBytesPerSec ? (
+                <span className="ml-2 text-[var(--color-accent)]">{formatSpeed(task.speedBytesPerSec)}</span>
+              ) : null}
+            </span>
           </div>
-          <span className="w-10 text-right text-[var(--color-text-muted)]">{progress}%</span>
         </>
       )}
-      <span
-        className={cn(
-          "w-16 text-right",
-          task.state === "completed" && "text-[var(--color-success)]",
-          task.state === "failed" && "text-[var(--color-error)]",
-          task.state === "running" && "text-[var(--color-accent)]",
-          task.state === "queued" && "text-[var(--color-text-muted)]",
-          task.state === "canceled" && "text-[var(--color-text-muted)]",
-        )}
-      >
-        {task.state}
-      </span>
-      {(task.state === "running" || task.state === "queued") && (
-        <button onClick={() => onCancel(task.id)} className="p-0.5 rounded hover:bg-[var(--color-bg-hover)]">
-          <X size={12} />
-        </button>
+      {task.state === "completed" && (
+        <span className="text-[var(--color-success)]">Completed - {formatBytes(task.totalBytes)}</span>
+      )}
+      {task.state === "failed" && (
+        <span className="text-[var(--color-error)]">Failed: {task.error}</span>
+      )}
+      {task.state === "queued" && (
+        <span className="text-[var(--color-text-muted)]">Waiting...</span>
       )}
     </div>
   );
@@ -1009,10 +1531,50 @@ export function SftpPage() {
   const sessionId = useSftpStore((s) => s.sessionId);
   const remotePath = useSftpStore((s) => s.remotePath);
   const setSessionId = useSftpStore((s) => s.setSessionId);
+  const refreshTransfers = useSftpStore((s) => s.refreshTransfers);
+  const transfers = useSftpStore((s) => s.transfers);
+
+  // Use refs to get latest values in event listeners
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
+  const setSessionIdRef = useRef(setSessionId);
+  setSessionIdRef.current = setSessionId;
+  const tRef = useRef(t);
+  tRef.current = t;
 
   useEffect(() => {
     initSftpListeners();
+    // Load transfer list on mount
+    refreshTransfers();
+
+    // Listen for session state changes to handle disconnection
+    const unlistenState = listen<{ sessionId: string; state: string }>(
+      "session:state_changed",
+      (event) => {
+        if (event.payload.sessionId === sessionIdRef.current) {
+          if (event.payload.state === "disconnected" || event.payload.state === "failed") {
+            toast.error(tRef.current("term.disconnected"));
+            setSessionIdRef.current(null);
+          }
+        }
+      },
+    );
+
+    return () => {
+      unlistenState.then((fn) => fn());
+    };
   }, []);
+
+  // Poll transfers periodically to show progress
+  useEffect(() => {
+    const hasActive = transfers.some((t) => t.state === "running" || t.state === "queued");
+    if (!hasActive) return;
+
+    const interval = setInterval(() => {
+      refreshTransfers();
+    }, 500);
+    return () => clearInterval(interval);
+  }, [transfers, refreshTransfers]);
 
   if (!sessionId) {
     return <SessionPicker onSelect={setSessionId} />;

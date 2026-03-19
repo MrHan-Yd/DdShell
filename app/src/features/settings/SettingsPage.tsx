@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check } from "lucide-react";
+import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check, Trash2 } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useAppStore } from "@/stores/app";
@@ -9,9 +10,10 @@ import { useT } from "@/lib/i18n";
 import { getAppVersion } from "@/lib/constants";
 import type { Locale } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
+import { confirm } from "@/stores/confirm";
 import type { TerminalBgSource } from "@/types";
 
-const TABS = ["general", "terminal", "about"] as const;
+const TABS = ["general", "transfer", "terminal", "about"] as const;
 type SettingsTab = (typeof TABS)[number];
 
 type ThemeOption = "dark" | "light" | "system";
@@ -31,6 +33,7 @@ interface TerminalSettings {
   bgOpacity: number;
   bgBlur: number;
   encoding: string;
+  setLocale: boolean;
 }
 
 const DEFAULT_TERMINAL: TerminalSettings = {
@@ -48,6 +51,7 @@ const DEFAULT_TERMINAL: TerminalSettings = {
   bgOpacity: 100,
   bgBlur: 0,
   encoding: "utf-8",
+  setLocale: false,
 };
 
 /** Compute relative luminance (WCAG formula) */
@@ -131,10 +135,17 @@ export function SettingsPage() {
   const [uiFontSize, setUiFontSize] = useState(DEFAULT_UI_FONT_SIZE);
   const [confirmDanger, setConfirmDanger] = useState(true);
   const [sessionTimeout, setSessionTimeout] = useState("30");
+  const [chunkSize, setChunkSize] = useState("256");
+  const [maxConcurrent, setMaxConcurrent] = useState("3");
+  const [transferTimeout, setTransferTimeout] = useState("300");
+  const [retryCount, setRetryCount] = useState("3");
+  const [downloadPath, setDownloadPath] = useState("");
+  const [transferNotify, setTransferNotify] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [resetStatus, setResetStatus] = useState(false);
+  const [clearHistoryStatus, setClearHistoryStatus] = useState(false);
   const [appVersion, setAppVersion] = useState("");
 
   useEffect(() => {
@@ -157,6 +168,12 @@ export function SettingsPage() {
           savedSelectionBg,
           savedConfirmDanger,
           savedKeepAlive,
+          savedChunkSize,
+          savedMaxConcurrent,
+          savedTransferTimeout,
+          savedRetryCount,
+          savedDownloadPath,
+          savedTransferNotify,
           savedBgSource,
           savedBgColor,
           savedBgImagePath,
@@ -166,6 +183,7 @@ export function SettingsPage() {
           savedUiFontFamily,
           savedUiFontSize,
           savedEncoding,
+          savedSetLocale,
         ] = await Promise.all([
           api.settingGet("theme"),
           api.settingGet("terminal.fontFamily"),
@@ -178,6 +196,12 @@ export function SettingsPage() {
           api.settingGet("terminal.selectionBg"),
           api.settingGet("confirmDangerousActions"),
           api.settingGet("session.keepAlive"),
+          api.settingGet("transfer.chunkSize"),
+          api.settingGet("transfer.maxConcurrent"),
+          api.settingGet("transfer.timeout"),
+          api.settingGet("transfer.retryCount"),
+          api.settingGet("transfer.downloadPath"),
+          api.settingGet("transfer.notify"),
           api.settingGet("terminal.bgSource"),
           api.settingGet("terminal.bgColor"),
           api.settingGet("terminal.bgImagePath"),
@@ -187,6 +211,7 @@ export function SettingsPage() {
           api.settingGet("ui.fontFamily"),
           api.settingGet("ui.fontSize"),
           api.settingGet("terminal.encoding"),
+          api.settingGet("terminal.setLocale"),
         ]);
 
         if (savedTheme) setTheme(savedTheme as ThemeOption);
@@ -207,10 +232,17 @@ export function SettingsPage() {
           bgOpacity: savedBgOpacity ? parseInt(savedBgOpacity) : DEFAULT_TERMINAL.bgOpacity,
           bgBlur: savedBgBlur ? parseInt(savedBgBlur) : DEFAULT_TERMINAL.bgBlur,
           encoding: savedEncoding || DEFAULT_TERMINAL.encoding,
+          setLocale: savedSetLocale === "true",
         });
 
         setConfirmDanger(savedConfirmDanger !== "false");
         setSessionTimeout(savedKeepAlive || "30");
+        setChunkSize(savedChunkSize || "256");
+        setMaxConcurrent(savedMaxConcurrent || "3");
+        setTransferTimeout(savedTransferTimeout || "300");
+        setRetryCount(savedRetryCount || "3");
+        setDownloadPath(savedDownloadPath || "");
+        setTransferNotify(savedTransferNotify !== "false");
 
         setUiFontFamily(savedUiFontFamily || DEFAULT_UI_FONT_FAMILY);
         setUiFontSize(savedUiFontSize ? parseInt(savedUiFontSize) : DEFAULT_UI_FONT_SIZE);
@@ -244,6 +276,12 @@ export function SettingsPage() {
         api.settingSet("terminal.selectionBg", terminal.selectionBg),
         api.settingSet("confirmDangerousActions", String(confirmDanger)),
         api.settingSet("session.keepAlive", sessionTimeout),
+        api.settingSet("transfer.chunkSize", chunkSize),
+        api.settingSet("transfer.maxConcurrent", maxConcurrent),
+        api.settingSet("transfer.timeout", transferTimeout),
+        api.settingSet("transfer.retryCount", retryCount),
+        api.settingSet("transfer.downloadPath", downloadPath),
+        api.settingSet("transfer.notify", String(transferNotify)),
         api.settingSet("terminal.bgSource", terminal.bgSource),
         api.settingSet("terminal.bgColor", terminal.bgColor),
         api.settingSet("terminal.bgImagePath", terminal.bgImagePath),
@@ -252,6 +290,7 @@ export function SettingsPage() {
         api.settingSet("ui.fontFamily", uiFontFamily),
         api.settingSet("ui.fontSize", String(uiFontSize)),
         api.settingSet("terminal.encoding", terminal.encoding),
+        api.settingSet("terminal.setLocale", String(terminal.setLocale)),
       ]);
       window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
       setSaveStatus("saved");
@@ -272,6 +311,23 @@ export function SettingsPage() {
     setSessionTimeout("30");
     setResetStatus(true);
     setTimeout(() => setResetStatus(false), 2000);
+  };
+
+  const handleClearAllHistory = async () => {
+    const ok = await confirm({
+      title: t("settings.clearAllHistory"),
+      description: t("settings.clearAllHistoryConfirm"),
+      confirmLabel: t("settings.clear"),
+      cancelLabel: t("settings.cancel"),
+    });
+    if (!ok) return;
+    try {
+      await api.commandHistoryClear(null);
+      setClearHistoryStatus(true);
+      setTimeout(() => setClearHistoryStatus(false), 2000);
+    } catch {
+      // ignore
+    }
   };
 
   const handleTabChange = (tab: SettingsTab) => {
@@ -322,6 +378,7 @@ export function SettingsPage() {
           className="w-fit"
           options={[
             { value: "general", label: t("settings.tabGeneral") },
+            { value: "transfer", label: t("settings.tabTransfer") },
             { value: "terminal", label: t("settings.tabTerminal") },
             { value: "about", label: t("settings.tabAbout") },
           ]}
@@ -396,6 +453,129 @@ export function SettingsPage() {
             <button
               onClick={() => setConfirmDanger(!confirmDanger)}
               data-state={confirmDanger ? "on" : "off"}
+              className="toggle-switch"
+            >
+              <span className="toggle-thumb" />
+            </button>
+          </SettingRow>
+        </Section>
+        </>)}
+
+        {activeTab === "transfer" && (<>
+        <Section title={t("settings.transfer")}>
+          <SettingRow
+            label={t("settings.chunkSize")}
+            description={t("settings.chunkSizeDesc")}
+          >
+            <Select
+              value={chunkSize}
+              onChange={setChunkSize}
+              options={[
+                { value: "64", label: "64 KB" },
+                { value: "128", label: "128 KB" },
+                { value: "256", label: "256 KB" },
+                { value: "512", label: "512 KB" },
+                { value: "1024", label: "1 MB" },
+                { value: "2048", label: "2 MB" },
+                { value: "4096", label: "4 MB" },
+                { value: "8192", label: "8 MB" },
+                { value: "16384", label: "16 MB" },
+                { value: "32768", label: "32 MB" },
+              ]}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label={t("settings.maxConcurrent")}
+            description={t("settings.maxConcurrentDesc")}
+          >
+            <SegmentedControl
+              value={maxConcurrent}
+              onChange={setMaxConcurrent}
+              options={[
+                { value: "1", label: "1" },
+                { value: "2", label: "2" },
+                { value: "3", label: "3" },
+                { value: "5", label: "5" },
+                { value: "10", label: "10" },
+              ]}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label={t("settings.transferTimeout")}
+            description={t("settings.transferTimeoutDesc")}
+          >
+            <SegmentedControl
+              value={transferTimeout}
+              onChange={setTransferTimeout}
+              options={[
+                { value: "60", label: "60s" },
+                { value: "300", label: "5m" },
+                { value: "600", label: "10m" },
+                { value: "1800", label: "30m" },
+              ]}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label={t("settings.retryCount")}
+            description={t("settings.retryCountDesc")}
+          >
+            <SegmentedControl
+              value={retryCount}
+              onChange={setRetryCount}
+              options={[
+                { value: "0", label: "0" },
+                { value: "1", label: "1" },
+                { value: "2", label: "2" },
+                { value: "3", label: "3" },
+                { value: "5", label: "5" },
+              ]}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label={t("settings.downloadPath")}
+            description={t("settings.downloadPathDesc")}
+          >
+            <div className="flex items-center gap-2">
+              <Input
+                value={downloadPath}
+                onChange={(e) => setDownloadPath(e.target.value)}
+                placeholder={t("settings.downloadPathPlaceholder")}
+                className="flex-1"
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={async () => {
+                  try {
+                    const { open } = await import("@tauri-apps/plugin-dialog");
+                    const selected = await open({
+                      directory: true,
+                      multiple: false,
+                    });
+                    if (selected) {
+                      setDownloadPath(selected as string);
+                    }
+                  } catch {
+                    // Fallback for non-Tauri environment
+                  }
+                }}
+              >
+                {t("settings.browse")}
+              </Button>
+            </div>
+          </SettingRow>
+
+          <SettingRow
+            label={t("settings.transferNotify")}
+            description={t("settings.transferNotifyDesc")}
+          >
+            <button
+              onClick={() => setTransferNotify(!transferNotify)}
+              data-state={transferNotify ? "on" : "off"}
               className="toggle-switch"
             >
               <span className="toggle-thumb" />
@@ -755,6 +935,35 @@ export function SettingsPage() {
               className="w-40"
             />
           </SettingRow>
+          <SettingRow
+            label={t("settings.setLocale")}
+            description={t("settings.setLocaleDesc")}
+          >
+            <button
+              onClick={() => setTerminal((t) => ({ ...t, setLocale: !t.setLocale }))}
+              data-state={terminal.setLocale ? "on" : "off"}
+              className="toggle-switch"
+            >
+              <span className="toggle-thumb" />
+            </button>
+          </SettingRow>
+
+          <div className="flex items-center justify-between py-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[var(--font-size-sm)]">{t("settings.clearAllHistory")}</p>
+              <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                {t("settings.clearAllHistoryDesc")}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleClearAllHistory}
+            >
+              {clearHistoryStatus ? <Check size={12} /> : <Trash2 size={12} />}
+              {clearHistoryStatus ? t("settings.done") : t("settings.clear")}
+            </Button>
+          </div>
         </Section>
         </>)}
 

@@ -15,6 +15,7 @@ use crate::core::ssh::SessionManager;
 pub struct MetricsSnapshot {
     pub timestamp: u64,
     pub uptime: String,
+    pub server_time: String,
     pub load: LoadInfo,
     pub cpu: CpuInfo,
     pub memory: MemoryInfo,
@@ -275,6 +276,7 @@ pub async fn collect_snapshot(
     // Run a combined command to reduce round-trips
     let combined_cmd = concat!(
         "echo '===UPTIME==='; uptime; ",
+        "echo '===DATETIME==='; date '+%Y-%m-%d %H:%M'; ",
         "echo '===LOADAVG==='; cat /proc/loadavg 2>/dev/null || uptime; ",
         "echo '===CPU==='; top -bn1 | head -5; ",
         "echo '===CPUINFO==='; nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo 2>/dev/null || echo 1; ",
@@ -297,6 +299,7 @@ pub async fn collect_snapshot(
     let sections = parse_sections(&output);
 
     let uptime = parse_uptime(sections.get("UPTIME").unwrap_or(&String::new()));
+    let server_time = sections.get("DATETIME").unwrap_or(&String::new()).trim().to_string();
     let load = parse_loadavg(sections.get("LOADAVG").unwrap_or(&String::new()));
     let cpu = parse_cpu(sections.get("CPU").unwrap_or(&String::new()));
     let core_count = sections
@@ -342,6 +345,7 @@ pub async fn collect_snapshot(
     Ok(MetricsSnapshot {
         timestamp,
         uptime,
+        server_time,
         load,
         cpu: cpu_with_core,
         memory,

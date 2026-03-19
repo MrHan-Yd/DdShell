@@ -11,12 +11,14 @@ interface SftpState {
   error: string | null;
   transfers: TransferTask[];
   selectedRemoteEntries: Set<string>;
+  uploadingFiles: Map<string, number>; // name -> totalSize for files being uploaded
 
   setSessionId: (id: string | null) => void;
   navigateRemote: (path: string) => Promise<void>;
   refreshRemote: () => Promise<void>;
   mkdir: (name: string) => Promise<void>;
   remove: (name: string, isDir: boolean) => Promise<void>;
+  removeEntry: (name: string) => void;  // Remove entry from local list without refresh
   rename: (oldName: string, newName: string) => Promise<void>;
   startTransfer: (direction: TransferDirection, localPath: string, remotePath: string) => Promise<string>;
   cancelTransfer: (taskId: string) => Promise<void>;
@@ -24,6 +26,9 @@ interface SftpState {
   clearFinishedTransfers: () => Promise<void>;
   toggleSelectRemote: (name: string) => void;
   clearSelectRemote: () => void;
+  addUploadingEntry: (name: string, totalSize: number) => void;
+  updateUploadingEntry: (name: string, transferredSize: number) => void;
+  clearUploadingEntry: (name: string) => void;
   updateTransferProgress: (taskId: string, transferred: number, total: number) => void;
   markTransferCompleted: (taskId: string) => void;
   markTransferFailed: (taskId: string, error: string) => void;
@@ -37,9 +42,10 @@ export const useSftpStore = create<SftpState>((set, get) => ({
   error: null,
   transfers: [],
   selectedRemoteEntries: new Set(),
+  uploadingFiles: new Map(),
 
   setSessionId: (id) => {
-    set({ sessionId: id, remotePath: "/", remoteEntries: [], error: null });
+    set({ sessionId: id, remotePath: "/", remoteEntries: [], error: null, uploadingFiles: new Map() });
     if (id) {
       get().navigateRemote("/");
     }
@@ -73,12 +79,31 @@ export const useSftpStore = create<SftpState>((set, get) => ({
     await get().refreshRemote();
   },
 
-  remove: async (name, isDir) => {
+  remove: async (name: string, isDir: boolean) => {
     const { sessionId, remotePath } = get();
     if (!sessionId) return;
     const fullPath = remotePath === "/" ? `/${name}` : `${remotePath}/${name}`;
+
+    // If it's a directory, check if it's empty first
+    if (isDir) {
+      const entries = await api.sftpListDir(sessionId, fullPath);
+      // Filter out . and .. - if only those remain, directory is empty
+      const nonHiddenEntries = entries.filter(e => e.name !== "." && e.name !== "..");
+      if (nonHiddenEntries.length > 0) {
+        // Directory is not empty - caller should handle confirmation
+        throw new Error("NON_EMPTY_DIR");
+      }
+    }
+
     await api.sftpRemove(sessionId, fullPath, isDir);
-    await get().refreshRemote();
+    // Remove from local list without refreshing
+    get().removeEntry(name);
+  },
+
+  removeEntry: (name: string) => {
+    set((s) => ({
+      remoteEntries: s.remoteEntries.filter((e) => e.name !== name),
+    }));
   },
 
   rename: async (oldName, newName) => {
@@ -127,14 +152,83 @@ export const useSftpStore = create<SftpState>((set, get) => ({
 
   clearSelectRemote: () => set({ selectedRemoteEntries: new Set() }),
 
-  updateTransferProgress: (taskId, transferred, total) => {
+  // Add a virtual entry for uploading file (not yet on remote server)
+  addUploadingEntry: (name, totalSize) => {
+    set((s) => {
+      // Don't add if already exists
+      if (s.remoteEntries.some((e) => e.name === name)) return s;
+      const newEntry: FileEntry = {
+        name,
+        fileType: "file",
+        size: 0, // Start at 0, will be updated with progress
+        mtime: Date.now() / 1000,
+        permissions: 0o644,
+      };
+      const newUploading = new Map(s.uploadingFiles);
+      newUploading.set(name, totalSize);
+      return { remoteEntries: [...s.remoteEntries, newEntry], uploadingFiles: newUploading };
+    });
+  },
+
+  // Update the transferred size for an uploading file
+  updateUploadingEntry: (name, transferredSize) => {
     set((s) => ({
-      transfers: s.transfers.map((t) =>
-        t.id === taskId
-          ? { ...t, transferredBytes: transferred, totalBytes: total, state: "running" as const }
-          : t,
+      remoteEntries: s.remoteEntries.map((e) =>
+        e.name === name ? { ...e, size: transferredSize } : e,
       ),
     }));
+  },
+
+  // Clear uploading entry after transfer completes
+  clearUploadingEntry: (name) => {
+    set((s) => {
+      const newUploading = new Map(s.uploadingFiles);
+      newUploading.delete(name);
+      // Also remove the virtual entry from remoteEntries
+      const newRemoteEntries = s.remoteEntries.filter((e) => e.name !== name);
+      return { uploadingFiles: newUploading, remoteEntries: newRemoteEntries };
+    });
+  },
+
+  updateTransferProgress: (taskId, transferred, total) => {
+    set((s) => {
+      // Find the task to get the remote filename
+      const task = s.transfers.find((t) => t.id === taskId);
+      let newUploading = s.uploadingFiles;
+
+      // If this is an upload task, update the remote entry's size for progress bar
+      if (task && task.direction === "upload") {
+        // Extract filename from remotePath
+        const remotePath = task.remotePath;
+        const filename = remotePath.split("/").pop() || "";
+
+        // Update the uploading files map with the latest transferred size
+        newUploading = new Map(s.uploadingFiles);
+        newUploading.set(filename, total);
+
+        // Return updated state with both transfers and remoteEntries updated
+        return {
+          transfers: s.transfers.map((t) =>
+            t.id === taskId
+              ? { ...t, transferredBytes: transferred, totalBytes: total, state: "running" as const }
+              : t,
+          ),
+          remoteEntries: s.remoteEntries.map((e) =>
+            e.name === filename ? { ...e, size: transferred } : e,
+          ),
+          uploadingFiles: newUploading,
+        };
+      }
+
+      // For download tasks or if task not found, just update transfers
+      return {
+        transfers: s.transfers.map((t) =>
+          t.id === taskId
+            ? { ...t, transferredBytes: transferred, totalBytes: total, state: "running" as const }
+            : t,
+        ),
+      };
+    });
   },
 
   markTransferCompleted: (taskId) => {
@@ -175,11 +269,34 @@ export function initSftpListeners() {
   );
 
   listen<{ taskId: string }>("transfer:completed", (event) => {
-    useSftpStore.getState().markTransferCompleted(event.payload.taskId);
-    useSftpStore.getState().refreshRemote();
+    const state = useSftpStore.getState();
+    // Find the task to get the filename
+    const task = state.transfers.find((t) => t.id === event.payload.taskId);
+
+    // If this is an upload task, clear the uploading entry
+    if (task && task.direction === "upload") {
+      const remotePath = task.remotePath;
+      const filename = remotePath.split("/").pop() || "";
+      state.clearUploadingEntry(filename);
+    }
+
+    state.markTransferCompleted(event.payload.taskId);
+    // Don't auto-refresh remote directory after upload - let user manually refresh
+    // This prevents the "disappearing items" animation issue
   });
 
   listen<{ taskId: string; error: string }>("transfer:failed", (event) => {
+    const state = useSftpStore.getState();
+    // Find the task to get the filename
+    const task = state.transfers.find((t) => t.id === event.payload.taskId);
+
+    // If this is an upload task, clear the uploading entry
+    if (task && task.direction === "upload") {
+      const remotePath = task.remotePath;
+      const filename = remotePath.split("/").pop() || "";
+      state.clearUploadingEntry(filename);
+    }
+
     useSftpStore
       .getState()
       .markTransferFailed(event.payload.taskId, event.payload.error);

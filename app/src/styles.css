@@ -591,6 +591,14 @@ input[type="number"] {
   animation: fade-in 200ms var(--ease-smooth) both;
 }
 
+@keyframes fade-out {
+  0%   { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(-20px); }
+}
+.animate-fade-out {
+  animation: fade-out 250ms var(--ease-smooth) forwards;
+}
+
 /* List item stagger helper (applied via style="--i:N") */
 @keyframes list-item-in {
   0%   { opacity: 0; transform: translateX(-8px); }
@@ -626,3 +634,56 @@ input[type="number"] {
 .tab-slide-in-left {
   animation: tab-slide-in-left var(--duration-toggle) var(--ease-spring) both;
 }
+
+/* Network card slide animations */
+@keyframes slide-in-from-bottom {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-in-from-top {
+  from { opacity: 0; transform: translateY(-100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-in-from-bottom {
+  animation: slide-in-from-bottom var(--duration-toggle) var(--ease-spring) both;
+}
+.animate-slide-in-from-top {
+  animation: slide-in-from-top var(--duration-toggle) var(--ease-spring) both;
+}
+
+/* Rolling number spring animations */
+@keyframes roll-up {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes roll-down {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-roll-up {
+  animation: roll-up var(--duration-toggle) var(--ease-spring) both;
+}
+.animate-roll-down {
+  animation: roll-down var(--duration-toggle) var(--ease-spring) both;
+}
+
+/* Context menu spring animation */
+@keyframes context-menu-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.animate-context-menu {
+  animation: context-menu-enter 200ms var(--ease-spring) both;
+}
+
+/* Context menu smooth hover transition */
+.context-menu-item {
+  transition: background-color 80ms var(--ease-smooth);
+}
+

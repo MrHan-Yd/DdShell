@@ -1,11 +1,15 @@
 mod core;
 
+use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
 use russh::ChannelMsg;
 use serde::{Deserialize, Serialize};
-use tauri::Manager;
+use tauri::{AppHandle, Manager};
+use tauri_plugin_notification::NotificationExt;
+use tokio::sync::Semaphore;
 
 use crate::core::event;
 use crate::core::metrics::MetricsManager;
@@ -82,15 +86,6 @@ struct SessionConnectReq {
     password: Option<String>,
     cols: Option<u32>,
     rows: Option<u32>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct SftpTransferReq {
-    session_id: String,
-    direction: String,
-    local_path: String,
-    remote_path: String,
 }
 
 // ── Commands: Health ──
@@ -444,6 +439,10 @@ async fn sftp_list_dir(
     session_id: String,
     remote_path: String,
 ) -> Result<Vec<core::sftp::FileEntry>, String> {
+    // Check if session is still connected
+    if !mgr.is_connected(&session_id) {
+        return Err("Session disconnected".to_string());
+    }
     SftpManager::list_dir(&mgr, &session_id, &remote_path)
         .await
         .map_err(|e| e.to_string())
@@ -455,6 +454,10 @@ async fn sftp_mkdir(
     session_id: String,
     remote_path: String,
 ) -> Result<SuccessResponse, String> {
+    // Check if session is still connected
+    if !mgr.is_connected(&session_id) {
+        return Err("Session disconnected".to_string());
+    }
     SftpManager::mkdir(&mgr, &session_id, &remote_path)
         .await
         .map_err(|e| e.to_string())?;
@@ -468,6 +471,11 @@ async fn sftp_remove(
     remote_path: String,
     is_dir: bool,
 ) -> Result<SuccessResponse, String> {
+    // Check if session is still connected
+    if !mgr.is_connected(&session_id) {
+        return Err("Session disconnected".to_string());
+    }
+
     if is_dir {
         SftpManager::remove_dir(&mgr, &session_id, &remote_path)
             .await
@@ -487,6 +495,10 @@ async fn sftp_rename(
     old_path: String,
     new_path: String,
 ) -> Result<SuccessResponse, String> {
+    // Check if session is still connected
+    if !mgr.is_connected(&session_id) {
+        return Err("Session disconnected".to_string());
+    }
     SftpManager::rename(&mgr, &session_id, &old_path, &new_path)
         .await
         .map_err(|e| e.to_string())?;
@@ -498,45 +510,159 @@ async fn sftp_transfer_start(
     app: tauri::AppHandle,
     session_mgr: tauri::State<'_, SessionManager>,
     sftp_mgr: tauri::State<'_, SftpManager>,
-    req: SftpTransferReq,
+    db: tauri::State<'_, Database>,
+    session_id: String,
+    direction: String,
+    local_path: String,
+    remote_path: String,
 ) -> Result<IdResponse, String> {
-    let is_upload = req.direction == "upload";
+    // Validate remote_path
+    if remote_path.is_empty() {
+        return Err("Remote path is empty — please navigate to a directory first".to_string());
+    }
 
+    let is_upload = direction == "upload";
+
+    // Resolve local path for download: use setting or system default download dir
+    let resolved_local_path = if is_upload || !local_path.is_empty() {
+        local_path.clone()
+    } else {
+        // Get download path from settings or use system default.
+        // Empty string is treated as "not set" — fall back to system default.
+        let default_download = dirs::download_dir()
+            .filter(|p| p.to_string_lossy().contains("Downloads"))
+            .unwrap_or_else(|| {
+                dirs::home_dir()
+                    .map(|p| p.join("Downloads"))
+                    .unwrap_or_default()
+            });
+        tracing::info!("default_download resolved to: {:?}", default_download);
+
+        let download_dir: PathBuf = db
+            .get_setting("transfer.downloadPath")
+            .await
+            .unwrap_or(None)
+            .filter(|d| !d.trim().is_empty())
+            .map(PathBuf::from)
+            .unwrap_or(default_download);
+
+        // Combine with remote filename
+        let filename = std::path::Path::new(&remote_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("download");
+        let download_dir_str = download_dir.to_string_lossy();
+        format!("{}/{}", download_dir_str.trim_end_matches('/'), filename)
+    };
+
+    tracing::info!("sftp_transfer_start: direction={}, resolved_local_path={}", direction, resolved_local_path);
     let task_id = if is_upload {
-        sftp_mgr.start_upload(&req.session_id, &req.local_path, &req.remote_path)
+        sftp_mgr.start_upload(&session_id, &resolved_local_path, &remote_path)
     } else {
         // Get remote file size for download progress
-        let remote_size = SftpManager::stat(&session_mgr, &req.session_id, &req.remote_path)
+        let remote_size = SftpManager::stat(&session_mgr, &session_id, &remote_path)
             .await
             .map(|e| e.size)
             .unwrap_or(0);
-        sftp_mgr.start_download(&req.session_id, &req.remote_path, &req.local_path, remote_size)
+        sftp_mgr.start_download(&session_id, &remote_path, &resolved_local_path, remote_size)
     };
 
-    // Spawn background transfer
+    // Get chunk size from settings (default 256KB)
+    let chunk_size: usize = db
+        .get_setting("transfer.chunkSize")
+        .await
+        .unwrap_or(None)
+        .map(|v| v.parse().unwrap_or(256))
+        .unwrap_or(256)
+        * 1024; // Convert KB to bytes
+
+    // Get timeout from settings (default 300 seconds)
+    let timeout_secs: u64 = db
+        .get_setting("transfer.timeout")
+        .await
+        .unwrap_or(None)
+        .map(|v| v.parse().unwrap_or(300))
+        .unwrap_or(300);
+
+    // Get retry count from settings (default 3)
+    let retry_count: u32 = db
+        .get_setting("transfer.retryCount")
+        .await
+        .unwrap_or(None)
+        .map(|v| v.parse().unwrap_or(3))
+        .unwrap_or(3);
+
+    // Get notify setting (default true)
+    let notify_enabled: bool = db
+        .get_setting("transfer.notify")
+        .await
+        .unwrap_or(None)
+        .map(|v| v != "false")
+        .unwrap_or(true);
+
+    // Spawn background transfer with semaphore-based concurrency control
+    let sem = sftp_mgr.concurrency_semaphore();
+
+    // Spawn background transfer with semaphore-based concurrency control
     let sftp_mgr_clone = sftp_mgr.inner().clone();
     let session_mgr_clone = session_mgr.inner().clone();
     let tid = task_id.clone();
     let app_handle = app.clone();
 
     tokio::spawn(async move {
-        let result = if is_upload {
-            sftp_mgr_clone.execute_upload(&session_mgr_clone, &tid).await
-        } else {
-            sftp_mgr_clone.execute_download(&session_mgr_clone, &tid).await
-        };
+        // Acquire permit (waits if at max concurrency — enables queuing)
+        let _permit = sem.acquire().await.unwrap();
 
-        match result {
-            Ok(()) => {
-                if let Some(task) = sftp_mgr_clone.get_task(&tid) {
-                    if task.state == core::sftp::TransferState::Completed {
-                        event::emit_transfer_completed(&app_handle, &tid);
+        let mut attempts = 0;
+        let mut last_error = None;
+
+        while attempts <= retry_count {
+            attempts += 1;
+
+            let result = if is_upload {
+                sftp_mgr_clone.execute_upload(&session_mgr_clone, &app_handle, &tid, chunk_size, timeout_secs).await
+            } else {
+                sftp_mgr_clone.execute_download(&session_mgr_clone, &app_handle, &tid, chunk_size, timeout_secs).await
+            };
+
+            match result {
+                Ok(()) => {
+                    if let Some(task) = sftp_mgr_clone.get_task(&tid) {
+                        if task.state == core::sftp::TransferState::Completed {
+                            event::emit_transfer_completed(&app_handle, &tid);
+
+                            // Send notification if enabled
+                            if notify_enabled {
+                                let filename = std::path::Path::new(&task.remote_path)
+                                    .file_name()
+                                    .and_then(|n| n.to_str())
+                                    .unwrap_or("file");
+                                let direction = if is_upload { "上传" } else { "下载" };
+                                let _ = app_handle.notification()
+                                    .builder()
+                                    .title("传输完成")
+                                    .body(&format!("{} {} 成功", direction, filename))
+                                    .show();
+                            }
+                        }
+                    }
+                    break;
+                }
+                Err(e) => {
+                    last_error = Some(e.to_string());
+                    if attempts <= retry_count {
+                        // Retry after delay
+                        tokio::time::sleep(Duration::from_secs(2)).await;
                     }
                 }
             }
-            Err(e) => {
-                sftp_mgr_clone.mark_failed(&tid, e.to_string());
-                event::emit_transfer_failed(&app_handle, &tid, &e.to_string());
+        }
+
+        // If all retries failed, mark as failed
+        if let Some(error) = last_error {
+            if attempts > retry_count {
+                sftp_mgr_clone.mark_failed(&tid, error.clone());
+                event::emit_transfer_failed(&app_handle, &tid, &error);
             }
         }
     });
@@ -667,6 +793,14 @@ fn local_home_dir() -> Result<String, String> {
         .ok_or_else(|| "Could not determine home directory".to_string())
 }
 
+// ── Commands: Open URL ──
+
+#[tauri::command]
+async fn open_browser(url: String) -> Result<(), String> {
+    tauri_plugin_opener::open_url(&url, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 // ── Commands: System Fonts ──
 
 #[tauri::command]
@@ -758,11 +892,50 @@ async fn sftp_upload_files(
     app: tauri::AppHandle,
     session_mgr: tauri::State<'_, SessionManager>,
     sftp_mgr: tauri::State<'_, SftpManager>,
+    db: tauri::State<'_, Database>,
     session_id: String,
     local_paths: Vec<String>,
     remote_dir: String,
 ) -> Result<Vec<String>, String> {
+    tracing::info!("sftp_upload_files: session_id={}, files={}", session_id, local_paths.len());
     let mut task_ids = Vec::new();
+
+    // Get chunk size from settings (default 256KB)
+    let chunk_size: usize = db
+        .get_setting("transfer.chunkSize")
+        .await
+        .unwrap_or(None)
+        .map(|v| v.parse().unwrap_or(256))
+        .unwrap_or(256)
+        * 1024; // Convert KB to bytes
+
+    // Get timeout from settings (default 300 seconds)
+    let timeout_secs: u64 = db
+        .get_setting("transfer.timeout")
+        .await
+        .unwrap_or(None)
+        .map(|v| v.parse().unwrap_or(300))
+        .unwrap_or(300);
+
+    // Get retry count from settings (default 3)
+    let retry_count: u32 = db
+        .get_setting("transfer.retryCount")
+        .await
+        .unwrap_or(None)
+        .map(|v| v.parse().unwrap_or(3))
+        .unwrap_or(3);
+
+    // Get notify setting (default true)
+    let notify_enabled: bool = db
+        .get_setting("transfer.notify")
+        .await
+        .unwrap_or(None)
+        .map(|v| v != "false")
+        .unwrap_or(true);
+
+    // Create semaphore for concurrency control (DISABLED for testing)
+    let semaphore = Arc::new(Semaphore::new(3));
+    let mut handles = Vec::new();
 
     for local_path in &local_paths {
         let file_name = std::path::Path::new(local_path)
@@ -778,31 +951,70 @@ async fn sftp_upload_files(
         };
 
         let task_id = sftp_mgr.start_upload(&session_id, local_path, &remote_path);
+        tracing::info!("sftp_upload_files: created task {} for session {}", task_id, session_id);
+        task_ids.push(task_id.clone());
 
-        // Spawn background transfer
+        // Clone all values needed for the task
         let sftp_mgr_clone = sftp_mgr.inner().clone();
         let session_mgr_clone = session_mgr.inner().clone();
-        let tid = task_id.clone();
         let app_handle = app.clone();
+        let filename = file_name.clone();
+        let sem_clone = semaphore.clone();
+        let task_id_clone = task_id.clone();
 
-        tokio::spawn(async move {
-            let result = sftp_mgr_clone.execute_upload(&session_mgr_clone, &tid).await;
-            match result {
-                Ok(()) => {
-                    if let Some(task) = sftp_mgr_clone.get_task(&tid) {
-                        if task.state == core::sftp::TransferState::Completed {
-                            event::emit_transfer_completed(&app_handle, &tid);
+        // Spawn background transfer with semaphore control
+        let handle = tokio::spawn(async move {
+            // Acquire permit (wait if at max concurrency)
+            let _permit = sem_clone.acquire().await.unwrap();
+
+            let mut attempts = 0;
+            let mut last_error = None;
+
+            while attempts <= retry_count {
+                attempts += 1;
+
+                let result = sftp_mgr_clone.execute_upload(&session_mgr_clone, &app_handle, &task_id_clone, chunk_size, timeout_secs).await;
+
+                match result {
+                    Ok(()) => {
+                        if let Some(task) = sftp_mgr_clone.get_task(&task_id_clone) {
+                            if task.state == core::sftp::TransferState::Completed {
+                                event::emit_transfer_completed(&app_handle, &task_id_clone);
+
+                                // Send notification if enabled
+                                if notify_enabled {
+                                    let _ = app_handle.notification()
+                                        .builder()
+                                        .title("传输完成")
+                                        .body(&format!("上传 {} 成功", filename))
+                                        .show();
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    Err(e) => {
+                        last_error = Some(e.to_string());
+                        if attempts <= retry_count {
+                            // Retry after delay
+                            tokio::time::sleep(Duration::from_secs(2)).await;
                         }
                     }
                 }
-                Err(e) => {
-                    sftp_mgr_clone.mark_failed(&tid, e.to_string());
-                    event::emit_transfer_failed(&app_handle, &tid, &e.to_string());
+            }
+
+            // If all retries failed, mark as failed
+            if let Some(error) = last_error {
+                if attempts > retry_count {
+                    sftp_mgr_clone.mark_failed(&task_id_clone, error.clone());
+                    event::emit_transfer_failed(&app_handle, &task_id_clone, &error);
                 }
             }
+            // Permit is automatically released when _permit goes out of scope
         });
+        handles.push(handle);
 
-        // Progress reporter
+        // Spawn progress reporter for this task
         let sftp_mgr_progress = sftp_mgr.inner().clone();
         let tid_progress = task_id.clone();
         let app_progress = app.clone();
@@ -812,7 +1024,7 @@ async fn sftp_upload_files(
             loop {
                 tokio::time::sleep(Duration::from_millis(200)).await;
                 if let Some(task) = sftp_mgr_progress.get_task(&tid_progress) {
-                    let speed = ((task.transferred_bytes - last_bytes) as f64 / 0.2) as u64;
+                    let speed = ((task.transferred_bytes.saturating_sub(last_bytes)) as f64 / 0.2) as u64;
                     last_bytes = task.transferred_bytes;
                     event::emit_transfer_progress(
                         &app_progress,
@@ -831,10 +1043,10 @@ async fn sftp_upload_files(
                 }
             }
         });
-
-        task_ids.push(task_id);
     }
 
+    // Don't wait for uploads to complete - return immediately
+    // Frontend will poll for progress via sftp_transfer_list
     Ok(task_ids)
 }
 
@@ -983,6 +1195,7 @@ async fn metrics_history(
 
 #[tauri::command]
 async fn command_history_insert(
+    app: AppHandle,
     db: tauri::State<'_, Database>,
     session_id: String,
     host_id: String,
@@ -992,6 +1205,10 @@ async fn command_history_insert(
         .insert_command(&session_id, &host_id, &command)
         .await
         .map_err(|e| e.to_string())?;
+
+    // Emit event to notify frontend to refresh history
+    event::emit_command_history_updated(&app, &host_id);
+
     Ok(IdResponse { id })
 }
 
@@ -1392,6 +1609,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             // Set window icon (for dev mode)
             if let Some(window) = app.get_webview_window("main") {
@@ -1402,7 +1620,7 @@ pub fn run() {
 
             // Initialize managers immediately (sync)
             app.manage(SessionManager::new());
-            app.manage(SftpManager::new());
+            app.manage(SftpManager::new(3));
             app.manage(MetricsManager::new());
 
             // On Windows/Linux, hide native decorations so we use custom titlebar.
@@ -1495,6 +1713,7 @@ pub fn run() {
             download_update,
             check_update,
             get_install_type,
+            open_browser,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

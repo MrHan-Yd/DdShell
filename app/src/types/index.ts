@@ -125,6 +125,7 @@ export interface TransferTask {
   state: TransferState;
   totalBytes: number;
   transferredBytes: number;
+  speedBytesPerSec?: number | null;
   error?: string | null;
 }
 
@@ -174,6 +175,7 @@ export interface DiskInfo {
 export interface MetricsSnapshot {
   timestamp: number;
   uptime: string;
+  serverTime: string;
   load: LoadInfo;
   cpu: CpuInfo;
   memory: MemoryInfo;

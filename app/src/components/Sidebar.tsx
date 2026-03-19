@@ -100,7 +100,7 @@ export function Sidebar() {
               onClick={() => setCurrentPage(page)}
               data-active={currentPage === page}
               className={cn(
-                "nav-item relative z-[1] flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-[var(--font-size-sm)] transition-colors duration-[var(--duration-base)] ease-[var(--ease-smooth)]",
+                "nav-item relative z-[1] flex select-none items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-[var(--font-size-sm)] transition-colors duration-[var(--duration-base)] ease-[var(--ease-smooth)]",
                 currentPage === page
                   ? "text-[var(--color-accent)]"
                   : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]",
@@ -109,7 +109,7 @@ export function Sidebar() {
               <span className="nav-icon">
                 <Icon size={18} />
               </span>
-              {!collapsed && <span>{t(labelKey)}</span>}
+              {!collapsed && <span className="select-none">{t(labelKey)}</span>}
             </button>
           ))}
         </nav>

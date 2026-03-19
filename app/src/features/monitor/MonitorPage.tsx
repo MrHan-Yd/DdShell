@@ -1,9 +1,12 @@
 import { useEffect, useRef, useCallback, useState, memo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { listen } from "@tauri-apps/api/event";
 import {
   Activity,
   Cpu,
   MemoryStick,
   ArrowDown,
+  ArrowUp,
   Clock,
   Gauge,
   AlertCircle,
@@ -15,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useMetricsStore, initMetricsListeners } from "@/stores/metrics";
 import { useTerminalStore } from "@/stores/terminal";
+import { toast } from "@/stores/toast";
 import * as api from "@/lib/tauri";
 import { useT } from "@/lib/i18n";
 import type { DictKey } from "@/lib/i18n";
@@ -39,6 +43,32 @@ function formatLoad(load: number, coreCount: number): string {
   if (coreCount <= 0) return load.toFixed(2);
   const percent = (load / coreCount) * 100;
   return `${percent.toFixed(0)}%`;
+}
+
+// Extract uptime days from full uptime string (e.g., "5 days, 3:22" -> "5")
+function extractUptimeDays(uptime: string): string {
+  const match = uptime.match(/(\d+)\s*days?/);
+  if (match) return match[1];
+  // If less than 1 day, return the hours part
+  const hourMatch = uptime.match(/(\d+):(\d+)/);
+  if (hourMatch) {
+    const hours = parseInt(hourMatch[1], 10);
+    if (hours > 0) return hours.toString();
+  }
+  return "0";
+}
+
+// Extract time parts from serverTime string (e.g., "2026-03-13 13:11" -> {hours: "13", mins: "11"})
+function extractTimeParts(serverTime: string): { hours: string; mins: string } | null {
+  const match = serverTime.match(/(\d+):(\d+)$/);
+  if (match) return { hours: match[1], mins: match[2] };
+  return null;
+}
+
+// Extract date part from serverTime string (e.g., "2026-03-13 13:11" -> "2026-03-13")
+function extractDatePart(serverTime: string): string {
+  const match = serverTime.match(/^\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : "";
 }
 
 // ── Collapsible Section ──
@@ -101,6 +131,7 @@ const MiniChart = memo(function MiniChart({
   height = 80,
   label,
   valueFormatter,
+  direction = "up",
 }: {
   data: number[];
   color: string;
@@ -108,6 +139,7 @@ const MiniChart = memo(function MiniChart({
   height?: number;
   label: string;
   valueFormatter?: (v: number) => string;
+  direction?: "up" | "down";
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentValue = data[data.length - 1] ?? 0;
@@ -175,7 +207,7 @@ const MiniChart = memo(function MiniChart({
           {label}
         </span>
         <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-text-primary)]">
-          {valueFormatter ? valueFormatter(currentValue) : `${currentValue.toFixed(1)}%`}
+          <RollingNumber value={valueFormatter ? valueFormatter(currentValue) : `${currentValue.toFixed(1)}%`} direction={direction} />
         </span>
       </div>
       <canvas
@@ -184,6 +216,92 @@ const MiniChart = memo(function MiniChart({
         style={{ height }}
       />
     </div>
+  );
+});
+
+// ── Time Window Picker (Elastic Slide) ──
+
+type TimeWindowOption = 5 | 15 | 60;
+
+const TimeWindowPicker = memo(function TimeWindowPicker({
+  value,
+  onChange,
+}: {
+  value: TimeWindowOption;
+  onChange: (v: TimeWindowOption) => void;
+}) {
+  const options: readonly TimeWindowOption[] = [5, 15, 60];
+  const btnRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+
+  useEffect(() => {
+    const btn = btnRefs.current.get(value);
+    if (!btn) return;
+    setPill({ left: btn.offsetLeft, width: btn.offsetWidth });
+  }, [value]);
+
+  return (
+    <div className="relative flex items-center gap-2">
+      {pill && (
+        <motion.div
+          className="absolute top-0 bottom-0 rounded-[var(--radius-control)] bg-[var(--color-accent)]"
+          initial={false}
+          animate={{ left: pill.left, width: pill.width }}
+          transition={{
+            type: "spring",
+            stiffness: 500,
+            damping: 18,
+            mass: 1,
+          }}
+        />
+      )}
+      {options.map((m) => (
+        <button
+          key={m}
+          ref={(el) => {
+            if (el) btnRefs.current.set(m, el);
+          }}
+          onClick={() => onChange(m)}
+          className={cn(
+            "relative z-[1] w-[42px] text-center rounded-[var(--radius-control)] py-1 text-[var(--font-size-xs)] transition-colors duration-150",
+            value === m
+              ? "text-white"
+              : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
+          )}
+        >
+          {m}m
+        </button>
+      ))}
+    </div>
+  );
+});
+
+// ── Rolling Number Animation ──
+
+const RollingNumber = memo(function RollingNumber({
+  value,
+  className,
+  direction = "up",
+}: {
+  value: string;
+  className?: string;
+  direction?: "up" | "down";
+}) {
+  return (
+    <span className={cn("inline-block overflow-hidden", className)}>
+      <AnimatePresence mode="popLayout">
+        <motion.span
+          key={value}
+          initial={{ y: direction === "down" ? -15 : 15, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: direction === "down" ? 15 : -15, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+          className="inline-block"
+        >
+          {value}
+        </motion.span>
+      </AnimatePresence>
+    </span>
   );
 });
 
@@ -196,6 +314,9 @@ const OverviewCard = memo(function OverviewCard({
   subValue,
   colorClass,
   bgClass,
+  animateClass,
+  disableRolling,
+  cornerContent,
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
@@ -203,9 +324,17 @@ const OverviewCard = memo(function OverviewCard({
   subValue?: string;
   colorClass: string;
   bgClass: string;
+  animateClass?: string;
+  disableRolling?: boolean;
+  cornerContent?: React.ReactNode;
 }) {
   return (
-    <div className="glass-card flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-3">
+    <div className="glass-card relative flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-3">
+      {cornerContent && (
+        <div className="absolute right-2 top-2">
+          {cornerContent}
+        </div>
+      )}
       <div
         className={cn("flex h-9 w-9 items-center justify-center rounded-lg", bgClass)}
       >
@@ -215,11 +344,11 @@ const OverviewCard = memo(function OverviewCard({
         <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
           {label}
         </p>
-        <p className="truncate text-[var(--font-size-base)] font-medium text-[var(--color-text-primary)]">
-          {value}
+        <p className={cn("truncate text-[var(--font-size-base)] font-medium text-[var(--color-text-primary)]", animateClass)} title={value}>
+          {disableRolling ? value : <RollingNumber value={value} />}
         </p>
         {subValue && (
-          <p className="truncate text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+          <p className="truncate text-[var(--font-size-xs)] text-[var(--color-text-muted)]" title={subValue}>
             {subValue}
           </p>
         )}
@@ -366,7 +495,10 @@ const ProcessTable = memo(function ProcessTable({
                 <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)]">
                   {p.memPercent.toFixed(1)}
                 </td>
-                <td className="max-w-[300px] truncate px-4 py-1.5 text-[var(--color-text-muted)]">
+                <td
+                  className="max-w-[300px] truncate px-4 py-1.5 text-[var(--color-text-muted)]"
+                  title={p.command}
+                >
                   {p.command}
                 </td>
               </tr>
@@ -457,7 +589,7 @@ const DiskTable = memo(function DiskTable({ disks }: { disks: MetricsSnapshot["d
                 <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)] whitespace-nowrap">
                   {d.total}
                 </td>
-                <td className="px-4 py-1.5 text-[var(--color-text-secondary)]">
+                <td className="px-4 py-1.5 text-[var(--color-text-secondary)]" title={d.mount}>
                   {d.mount}
                 </td>
               </tr>
@@ -609,6 +741,24 @@ export function MonitorPage() {
   const connected = tabs.filter((t) => t.state === "connected");
   const sessionIdRef = useRef<string | null>(null);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [showNetworkTx, setShowNetworkTx] = useState(false);
+  const [prevShowNetworkTx, setPrevShowNetworkTx] = useState(false);
+
+  // Compute animation class based on direction change
+  const networkAnimClass = showNetworkTx !== prevShowNetworkTx
+    ? showNetworkTx
+      ? "animate-slide-in-from-bottom"
+      : "animate-slide-in-from-top"
+    : "";
+
+  // Toggle network display between TX and RX every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPrevShowNetworkTx(showNetworkTx);
+      setShowNetworkTx((prev) => !prev);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [showNetworkTx]);
 
   useEffect(() => {
     initMetricsListeners();
@@ -664,6 +814,33 @@ export function MonitorPage() {
     },
     [startCollector],
   );
+
+  // Use refs to get latest values in event listeners
+  const stopCollectorRef = useRef(stopCollector);
+  stopCollectorRef.current = stopCollector;
+  const collectorIdRef = useRef(collectorId);
+  collectorIdRef.current = collectorId;
+  const tRef = useRef(t);
+  tRef.current = t;
+
+  // Listen for session state changes to handle disconnection
+  useEffect(() => {
+    const unlistenState = listen<{ sessionId: string; state: string }>(
+      "session:state_changed",
+      (event) => {
+        if (collectorIdRef.current && event.payload.sessionId === collectorIdRef.current) {
+          if (event.payload.state === "disconnected" || event.payload.state === "failed") {
+            toast.error(tRef.current("term.disconnected"));
+            stopCollectorRef.current();
+          }
+        }
+      },
+    );
+
+    return () => {
+      unlistenState.then((fn) => fn());
+    };
+  }, []);
 
   // If no collector is running, show session picker
   if (!collectorId || collectorState === "stopped") {
@@ -749,38 +926,39 @@ export function MonitorPage() {
               </span>
             )}
           </div>
-          {systemInfo && (
-            <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)] ml-8">
-              {[
-                systemInfo.distro
-                  ? `${systemInfo.distro}${systemInfo.distroVersion ? ` ${systemInfo.distroVersion}` : ""}`
-                  : systemInfo.os,
-                systemInfo.kernel,
-                systemInfo.shell,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
+          {systemInfo && latest.serverTime && (
+            <span className="flex items-center gap-2 text-[var(--font-size-xs)] text-[var(--color-text-muted)] ml-8">
+              <span>
+                {[
+                  systemInfo.distro
+                    ? `${systemInfo.distro}${systemInfo.distroVersion ? ` ${systemInfo.distroVersion}` : ""}`
+                    : systemInfo.os,
+                  systemInfo.kernel,
+                  systemInfo.shell,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+              <span>· </span>
+              <span>{extractDatePart(latest.serverTime)} </span>
+              {extractTimeParts(latest.serverTime) && (() => {
+                const timeParts = extractTimeParts(latest.serverTime)!;
+                return (
+                  <span className="flex items-center">
+                    <RollingNumber value={timeParts.hours} />
+                    <span>:</span>
+                    <RollingNumber value={timeParts.mins} />
+                  </span>
+                );
+              })()}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          {([5, 15, 60] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => setTimeWindow(m)}
-              className={cn(
-                "rounded-[var(--radius-control)] px-3 py-1 text-[var(--font-size-xs)] transition-colors",
-                timeWindow === m
-                  ? "bg-[var(--color-accent)] text-white"
-                  : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
-              )}
-            >
-              {m}m
-            </button>
-          ))}
+          <TimeWindowPicker value={timeWindow} onChange={setTimeWindow} />
           <button
             onClick={stopCollector}
-            className="ml-2 rounded-[var(--radius-control)] bg-[var(--color-bg-elevated)] px-3 py-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] transition-colors"
+            className="rounded-[var(--radius-control)] bg-[var(--color-bg-elevated)] px-3 py-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] border border-[var(--color-border)]"
           >
             {t("monitor.stop")}
           </button>
@@ -792,7 +970,7 @@ export function MonitorPage() {
         <OverviewCard
           icon={Clock}
           label={t("monitor.uptime")}
-          value={latest.uptime}
+          value={`${extractUptimeDays(latest.uptime)}${t("monitor.days")}`}
           colorClass="text-blue-500"
           bgClass="bg-blue-500/10"
         />
@@ -818,11 +996,13 @@ export function MonitorPage() {
           bgClass="bg-green-500/10"
         />
         <OverviewCard
-          icon={ArrowDown}
+          icon={showNetworkTx ? ArrowUp : ArrowDown}
           label={t("monitor.network")}
-          value={`↓ ${formatBytes(latest.network.rxBytesPerSec)}/s`}
+          value={`${showNetworkTx ? "↑" : "↓"} ${formatBytes(showNetworkTx ? latest.network.txBytesPerSec : latest.network.rxBytesPerSec)}/s`}
           colorClass="text-cyan-500"
           bgClass="bg-cyan-500/10"
+          animateClass={networkAnimClass}
+          disableRolling
         />
         {/* Session Health Card */}
         <div
@@ -848,6 +1028,7 @@ export function MonitorPage() {
               style={{
                 color: healthScore != null ? getHealthColor(healthScore) : undefined,
               }}
+              title={healthScore != null ? `${healthScore.toFixed(0)}` : undefined}
             >
               {healthScore != null ? String(healthScore) : "--"}
             </p>
@@ -882,6 +1063,7 @@ export function MonitorPage() {
             height={100}
             label={t("monitor.networkRx")}
             valueFormatter={(v) => `${formatBytes(v)}/s`}
+            direction="down"
           />
         </div>
         <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4">
@@ -891,6 +1073,7 @@ export function MonitorPage() {
             height={100}
             label={t("monitor.networkTx")}
             valueFormatter={(v) => `${formatBytes(v)}/s`}
+            direction="up"
           />
         </div>
       </div>

@@ -6,7 +6,7 @@ import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app";
 import { cn } from "@/lib/utils";
 import { APP_NAME, getAppVersion } from "@/lib/constants";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openBrowser } from "@/lib/tauri";
 import { checkUpdate as apiCheckUpdate } from "@/lib/tauri";
 
 type HealthLevel = "GOOD" | "FAIR" | "POOR";
@@ -84,8 +84,12 @@ export function StatusBar() {
     }
   }, [updateStatus, appVersion]);
 
-  const openDownloadPage = useCallback(() => {
-    openUrl(GITHUB_REPO_URL);
+  const openDownloadPage = useCallback(async () => {
+    try {
+      await openBrowser(GITHUB_REPO_URL);
+    } catch (err) {
+      console.error("Failed to open browser:", err);
+    }
   }, []);
 
   const connectedCount = tabs.filter((t) => t.state === "connected").length;

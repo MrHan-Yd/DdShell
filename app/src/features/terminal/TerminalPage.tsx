@@ -6,7 +6,7 @@ import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { FitAddon } from "@xterm/addon-fit";
-import { X, Plus, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap } from "lucide-react";
+import { X, Plus, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTerminalStore } from "@/stores/terminal";
 import { useAppStore } from "@/stores/app";
@@ -14,6 +14,7 @@ import * as api from "@/lib/tauri";
 import type { CommandHistoryItem } from "@/types";
 import { useT } from "@/lib/i18n";
 import { confirm } from "@/stores/confirm";
+import { toast } from "@/stores/toast";
 import "@xterm/xterm/css/xterm.css";
 
 /** Strip ANSI escape sequences and trim whitespace */
@@ -228,25 +229,29 @@ function TerminalInstance({
     // Handle user input -> SSH
     const onData = term.onData((data) => {
       const sid = sessionIdRef.current;
-      if (data === "\r" || data === "\n") {
-        const cmd = cmdBufferRef.current.trim();
-        if (cmd.length > 0) {
-          api.commandHistoryInsert(sid, hostId, cmd).then(() => {
-            window.dispatchEvent(new Event("command-history-updated"));
-          }).catch(() => {});
+
+      // Process each character for command history buffering
+      for (const ch of data) {
+        if (ch === "\r" || ch === "\n") {
+          const cmd = cmdBufferRef.current.trim();
+          if (cmd.length > 0) {
+            api.commandHistoryInsert(sid, hostId, cmd).then(() => {
+              window.dispatchEvent(new Event("command-history-updated"));
+            }).catch(() => {});
+          }
+          cmdBufferRef.current = "";
+        } else if (ch === "\x7f" || ch === "\b") {
+          cmdBufferRef.current = cmdBufferRef.current.slice(0, -1);
+        } else if (ch === "\x03") {
+          cmdBufferRef.current = "";
+        } else if (ch.charCodeAt(0) >= 32) {
+          cmdBufferRef.current += ch;
         }
-        cmdBufferRef.current = "";
-      } else if (data === "\x7f" || data === "\b") {
-        cmdBufferRef.current = cmdBufferRef.current.slice(0, -1);
-      } else if (data === "\x03") {
-        cmdBufferRef.current = "";
-      } else if (data.length === 1 && data.charCodeAt(0) >= 32) {
-        cmdBufferRef.current += data;
       }
 
       const encoder = new TextEncoder();
       const bytes = Array.from(encoder.encode(data));
-      api.sessionWrite(sid, bytes).catch(() => {});
+      api.sessionWrite(sid, bytes).catch((err) => toast.error(String(err)));
     });
 
     // Handle resize -> SSH (skip when container is hidden)
@@ -287,7 +292,7 @@ function TerminalInstance({
         if (cleaned) {
           const encoder = new TextEncoder();
           const bytes = Array.from(encoder.encode(cleaned));
-          api.sessionWrite(sessionIdRef.current, bytes).catch(() => {});
+          api.sessionWrite(sessionIdRef.current, bytes).catch((err) => toast.error(String(err)));
         }
       }
     };
@@ -301,7 +306,7 @@ function TerminalInstance({
         if (text) {
           const encoder = new TextEncoder();
           const bytes = Array.from(encoder.encode(text));
-          api.sessionWrite(sessionIdRef.current, bytes).catch(() => {});
+          api.sessionWrite(sessionIdRef.current, bytes).catch((err) => toast.error(String(err)));
         }
       }).catch(() => {});
     };
@@ -381,25 +386,27 @@ function CommandHistoryPanel({
 
   const listRef = useRef<HTMLDivElement>(null);
 
-  const fetchHistory = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await api.commandHistoryList(
-        activeTab?.hostId ?? null,
-        searchQuery || null,
-        200,
-      );
-      setItems(result);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab?.hostId, searchQuery]);
-
+  // Debounce timer ref
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+    // Debounce search to avoid too many API calls
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const result = await api.commandHistoryList(
+          activeTab?.hostId ?? null,
+          searchQuery || null,
+          200,
+        );
+        setItems(result);
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    }, 150);
+  }, [activeTabId, searchQuery]);
 
   // Auto-scroll to bottom when items change
   useEffect(() => {
@@ -408,14 +415,45 @@ function CommandHistoryPanel({
     }
   }, [items]);
 
-  // Listen for new commands inserted (use ref to avoid stale closures)
-  const fetchRef = useRef(fetchHistory);
-  fetchRef.current = fetchHistory;
+  // Listen for new commands inserted
   useEffect(() => {
-    const handler = () => fetchRef.current();
+    const handler = async () => {
+      // Immediately fetch without debounce when new command is added
+      setLoading(true);
+      try {
+        const result = await api.commandHistoryList(
+          activeTab?.hostId ?? null,
+          searchQuery || null,
+          200,
+        );
+        setItems(result);
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    };
     window.addEventListener("command-history-updated", handler);
     return () => window.removeEventListener("command-history-updated", handler);
-  }, []);
+  }, [activeTabId, searchQuery]);
+
+  // Clear history for current host
+  const handleClearHistory = async () => {
+    if (items.length === 0) return;
+    const ok = await confirm({
+      title: t("term.clearHistory"),
+      description: t("term.clearHistoryConfirm"),
+      confirmLabel: t("term.clear"),
+      cancelLabel: t("term.cancel"),
+    });
+    if (!ok) return;
+    try {
+      await api.commandHistoryClear(activeTab?.hostId ?? null);
+      setItems([]);
+    } catch {
+      // ignore
+    }
+  };
 
   return (
     <div className="flex h-full w-[280px] flex-col border-l border-[var(--color-border)] glass-surface">
@@ -424,12 +462,23 @@ function CommandHistoryPanel({
           <History size={14} className="text-[var(--color-text-muted)]" />
           <span className="text-[var(--font-size-sm)] font-medium">{t("term.history")}</span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded p-0.5 hover:bg-[var(--color-bg-hover)]"
-        >
-          <X size={14} />
-        </button>
+        <div className="flex items-center gap-1">
+          {items.length > 0 && (
+            <button
+              onClick={handleClearHistory}
+              className="rounded p-0.5 hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+              title={t("term.clearHistory")}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="rounded p-0.5 hover:bg-[var(--color-bg-hover)]"
+          >
+            <X size={14} />
+          </button>
+        </div>
       </div>
 
       <div className="border-b border-[var(--color-border)] px-3 py-2">
@@ -619,7 +668,7 @@ export function TerminalPage() {
 
       const encoder = new TextEncoder();
       const bytes = Array.from(encoder.encode(command));
-      api.sessionWrite(activeTab.sessionId, bytes).catch(() => {});
+      api.sessionWrite(activeTab.sessionId, bytes).catch((err) => toast.error(String(err)));
     },
     [tabs, activeTabId],
   );
@@ -667,7 +716,7 @@ export function TerminalPage() {
   const bgBlur = termSettings?.bgBlur ?? 0;
 
   return (
-    <div className="flex flex-1 overflow-hidden">
+    <div className="flex flex-1 overflow-hidden" style={{ userSelect: "text" }}>
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Tab bar */}
         {/* [AI-FEATURE]

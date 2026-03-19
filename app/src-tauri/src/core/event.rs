@@ -7,6 +7,7 @@ pub const SESSION_OUTPUT: &str = "session:output";
 pub const TRANSFER_PROGRESS: &str = "transfer:progress";
 pub const TRANSFER_COMPLETED: &str = "transfer:completed";
 pub const TRANSFER_FAILED: &str = "transfer:failed";
+pub const COMMAND_HISTORY_UPDATED: &str = "command-history-updated";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -99,6 +100,10 @@ pub fn emit_transfer_failed(app: &AppHandle, task_id: &str, error: &str) {
             error: error.to_string(),
         },
     );
+}
+
+pub fn emit_command_history_updated(app: &AppHandle, host_id: &str) {
+    let _ = app.emit(COMMAND_HISTORY_UPDATED, serde_json::json!({ "host_id": host_id }));
 }
 
 // ── Metrics events ──
