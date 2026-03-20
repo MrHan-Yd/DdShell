@@ -1021,6 +1021,17 @@ struct ConnectionTestResult {
 }
 
 #[tauri::command]
+async fn ssh_ping(
+    ssh_mgr: tauri::State<'_, SessionManager>,
+    session_id: String,
+) -> Result<u64, String> {
+    ssh_mgr
+        .ping_session(&session_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn connection_test(
     db: tauri::State<'_, Database>,
     host_id: String,
@@ -1654,6 +1665,7 @@ pub fn run() {
             sftp_upload_files,
             system_detect,
             connection_test,
+            ssh_ping,
             metrics_start,
             metrics_stop,
             metrics_snapshot,

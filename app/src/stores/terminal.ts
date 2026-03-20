@@ -9,6 +9,7 @@ interface TerminalState {
   activeTabId: string | null;
   splitDirection: SplitDirection;
   splitSessionId: string | null; // second pane session ID
+  latencyMap: Map<string, number>; // sessionId -> ms
 
   openSession: (hostId: string, hostName: string, password?: string) => Promise<string>;
   closeSession: (tabId: string) => Promise<void>;
@@ -18,6 +19,7 @@ interface TerminalState {
   reconnectSession: (tabId: string) => Promise<void>;
   splitPane: (direction: "horizontal" | "vertical") => void;
   closeSplit: () => void;
+  pingActiveSession: () => Promise<void>;
 }
 
 export const useTerminalStore = create<TerminalState>((set, get) => ({
@@ -25,6 +27,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   activeTabId: null,
   splitDirection: null,
   splitSessionId: null,
+  latencyMap: new Map(),
 
   openSession: async (hostId, hostName, password) => {
     const { id: sessionId } = await api.sessionConnect(hostId, password);
@@ -133,4 +136,21 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   },
 
   closeSplit: () => set({ splitDirection: null, splitSessionId: null }),
+
+  pingActiveSession: async () => {
+    const { activeTabId, tabs } = get();
+    if (!activeTabId) return;
+    const tab = tabs.find((t) => t.id === activeTabId);
+    if (!tab || tab.state !== "connected") return;
+    try {
+      const ms = await api.sshPing(tab.sessionId);
+      set((s) => {
+        const next = new Map(s.latencyMap);
+        next.set(tab.sessionId, ms);
+        return { latencyMap: next };
+      });
+    } catch {
+      // session may be gone, ignore
+    }
+  },
 }));

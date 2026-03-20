@@ -202,6 +202,10 @@ export async function connectionTest(
   return invoke("connection_test", { hostId });
 }
 
+export async function sshPing(sessionId: string): Promise<number> {
+  return invoke("ssh_ping", { sessionId });
+}
+
 // ── Password commands ──
 
 export async function passwordDecrypt(encrypted: string): Promise<string> {

@@ -48,10 +48,23 @@ function computeHealthLevel(sessionHealth?: number): HealthLevel {
 
 export function StatusBar() {
   const tabs = useTerminalStore((s) => s.tabs);
+  const activeTabId = useTerminalStore((s) => s.activeTabId);
+  const latencyMap = useTerminalStore((s) => s.latencyMap);
+  const pingActiveSession = useTerminalStore((s) => s.pingActiveSession);
   const transfers = useSftpStore((s) => s.transfers);
   const latest = useMetricsStore((s) => s.latest);
   const locale = useAppStore((s) => s.locale);
   const t = useT();
+
+  // Ping active session every 5 seconds
+  useEffect(() => {
+    pingActiveSession();
+    const id = setInterval(pingActiveSession, 5000);
+    return () => clearInterval(id);
+  }, [activeTabId, pingActiveSession]);
+
+  const activeTab = tabs.find((t) => t.id === activeTabId);
+  const latency = activeTab ? latencyMap.get(activeTab.sessionId) : undefined;
 
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const [appVersion, setAppVersion] = useState("");
@@ -204,6 +217,18 @@ export function StatusBar() {
         )}
 
         {connectedCount > 0 && latest && <HealthBadge level={healthLevel} />}
+
+        {latency !== undefined && activeTab?.state === "connected" && (
+          <span className="flex items-center gap-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                latency < 100 ? "bg-[var(--color-good)]" : latency < 300 ? "bg-[var(--color-fair)]" : "bg-[var(--color-poor)]",
+              )}
+            />
+            {latency}ms
+          </span>
+        )}
 
         {connectedCount === 0 && activeTransfers === 0 && (
           <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">

@@ -291,6 +291,13 @@ impl SshSession {
         Ok(String::from_utf8_lossy(&output).to_string())
     }
 
+    /// Ping the session by running a no-op command and measuring RTT
+    pub async fn ping(&self) -> anyhow::Result<u64> {
+        let start = std::time::Instant::now();
+        self.exec_command("echo 1").await?;
+        Ok(start.elapsed().as_millis() as u64)
+    }
+
     /// Close the session
     pub async fn disconnect(&mut self) {
         self.pty_cmd_tx = None;
@@ -395,5 +402,17 @@ impl SessionManager {
 
         session.lock().await.disconnect().await;
         Ok(())
+    }
+
+    /// Ping an active session and return RTT in ms
+    pub async fn ping_session(&self, session_id: &str) -> anyhow::Result<u64> {
+        let session = self
+            .sessions
+            .lock()
+            .get(session_id)
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
+        let result = session.lock().await.ping().await;
+        result
     }
 }
