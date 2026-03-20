@@ -72,7 +72,7 @@ pub fn emit_transfer_progress(
     total_bytes: u64,
     speed_bytes_per_sec: u64,
 ) {
-    let _ = app.emit(
+    let result = app.emit(
         TRANSFER_PROGRESS,
         TransferProgressEvent {
             task_id: task_id.to_string(),
@@ -81,6 +81,9 @@ pub fn emit_transfer_progress(
             speed_bytes_per_sec,
         },
     );
+    if let Err(e) = result {
+        tracing::warn!("emit_transfer_progress failed: {}", e);
+    }
 }
 
 pub fn emit_transfer_completed(app: &AppHandle, task_id: &str) {

@@ -92,6 +92,8 @@ const dict = {
   "sftp.emptyDirectory": { zh: "空目录", en: "Empty directory" },
   "sftp.newFolderName": { zh: "新文件夹名称", en: "New folder name" },
   "sftp.transfers": { zh: "传输", en: "Transfers" },
+  "sftp.transferring": { zh: "个传输中", en: "transferring" },
+  "sftp.minimize": { zh: "最小化", en: "Minimize" },
   "sftp.clearFinished": { zh: "清除已完成", en: "Clear finished" },
   "sftp.noActiveSessions": { zh: "暂无活动 SSH 会话", en: "No active SSH sessions" },
   "sftp.connectFirst": { zh: "请先连接到主机以使用 SFTP", en: "Connect to a host first to use SFTP." },

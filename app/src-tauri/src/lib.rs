@@ -1,7 +1,6 @@
 mod core;
 
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
@@ -9,7 +8,6 @@ use russh::ChannelMsg;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::NotificationExt;
-use tokio::sync::Semaphore;
 
 use crate::core::event;
 use crate::core::metrics::MetricsManager;
@@ -651,6 +649,7 @@ async fn sftp_transfer_start(
                 Err(e) => {
                     last_error = Some(e.to_string());
                     if attempts <= retry_count {
+                        sftp_mgr_clone.reset_task_progress(&tid);
                         // Retry after delay
                         tokio::time::sleep(Duration::from_secs(2)).await;
                     }
@@ -663,38 +662,6 @@ async fn sftp_transfer_start(
             if attempts > retry_count {
                 sftp_mgr_clone.mark_failed(&tid, error.clone());
                 event::emit_transfer_failed(&app_handle, &tid, &error);
-            }
-        }
-    });
-
-    // Spawn a progress reporter
-    let sftp_mgr_progress = sftp_mgr.inner().clone();
-    let tid_progress = task_id.clone();
-    let app_progress = app.clone();
-
-    tokio::spawn(async move {
-        let mut last_bytes: u64 = 0;
-        loop {
-            tokio::time::sleep(Duration::from_millis(200)).await;
-            if let Some(task) = sftp_mgr_progress.get_task(&tid_progress) {
-                let speed = ((task.transferred_bytes - last_bytes) as f64 / 0.2) as u64;
-                last_bytes = task.transferred_bytes;
-
-                event::emit_transfer_progress(
-                    &app_progress,
-                    &tid_progress,
-                    task.transferred_bytes,
-                    task.total_bytes,
-                    speed,
-                );
-
-                if task.state != core::sftp::TransferState::Running
-                    && task.state != core::sftp::TransferState::Queued
-                {
-                    break;
-                }
-            } else {
-                break;
             }
         }
     });
@@ -933,9 +900,22 @@ async fn sftp_upload_files(
         .map(|v| v != "false")
         .unwrap_or(true);
 
-    // Create semaphore for concurrency control (DISABLED for testing)
-    let semaphore = Arc::new(Semaphore::new(3));
+    // Use global concurrency semaphore
+    let semaphore = sftp_mgr.concurrency_semaphore();
     let mut handles = Vec::new();
+
+    // Ensure the remote directory exists before uploading
+    {
+        let target_dir = remote_dir.trim_end_matches('/');
+        let escaped = target_dir.replace("'", "'\\''");
+        let cmd = format!("mkdir -p '{}'", escaped);
+        let session = session_mgr
+            .get(&session_id)
+            .ok_or_else(|| "Session not found".to_string())?;
+        let sess = session.lock().await;
+        sess.exec_command(&cmd).await.map_err(|e| e.to_string())?;
+        drop(sess);
+    }
 
     for local_path in &local_paths {
         let file_name = std::path::Path::new(local_path)
@@ -996,6 +976,7 @@ async fn sftp_upload_files(
                     Err(e) => {
                         last_error = Some(e.to_string());
                         if attempts <= retry_count {
+                            sftp_mgr_clone.reset_task_progress(&task_id_clone);
                             // Retry after delay
                             tokio::time::sleep(Duration::from_secs(2)).await;
                         }
@@ -1013,36 +994,6 @@ async fn sftp_upload_files(
             // Permit is automatically released when _permit goes out of scope
         });
         handles.push(handle);
-
-        // Spawn progress reporter for this task
-        let sftp_mgr_progress = sftp_mgr.inner().clone();
-        let tid_progress = task_id.clone();
-        let app_progress = app.clone();
-
-        tokio::spawn(async move {
-            let mut last_bytes: u64 = 0;
-            loop {
-                tokio::time::sleep(Duration::from_millis(200)).await;
-                if let Some(task) = sftp_mgr_progress.get_task(&tid_progress) {
-                    let speed = ((task.transferred_bytes.saturating_sub(last_bytes)) as f64 / 0.2) as u64;
-                    last_bytes = task.transferred_bytes;
-                    event::emit_transfer_progress(
-                        &app_progress,
-                        &tid_progress,
-                        task.transferred_bytes,
-                        task.total_bytes,
-                        speed,
-                    );
-                    if task.state != core::sftp::TransferState::Running
-                        && task.state != core::sftp::TransferState::Queued
-                    {
-                        break;
-                    }
-                } else {
-                    break;
-                }
-            }
-        });
     }
 
     // Don't wait for uploads to complete - return immediately

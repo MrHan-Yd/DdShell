@@ -363,72 +363,82 @@ impl SftpManager {
             .get(&session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
-        // Read local file
-        tracing::info!("execute_upload: reading local file: {}", local_path);
-        let local_data = tokio::fs::read(&local_path).await?;
-        let total = local_data.len() as u64;
-        tracing::info!("execute_upload: file read, size={}", total);
+        // Get file size without reading the entire file into memory
+        let file_metadata = tokio::fs::metadata(&local_path).await?;
+        let total = file_metadata.len();
+        tracing::info!("execute_upload: file size={}", total);
 
-        // Update total_bytes BEFORE releasing the lock — progress reporter reads from
-        // this map and must see the correct value before any event is emitted.
+        // Update total_bytes and emit initial progress event
         {
             let mut tasks = self.tasks.lock();
             if let Some(task) = tasks.get_mut(task_id) {
                 task.total_bytes = total;
             }
         }
+        event::emit_transfer_progress(app, task_id, 0, total, 0);
 
         // Track start time for speed calculation
         let start_time = std::time::Instant::now();
 
         // Init SFTP session (short lock)
-        tracing::info!("execute_upload: initializing SFTP");
         let sftp = {
             let sess = session.lock().await;
             sess.init_sftp().await?
         };
-        // Lock released here — sftp is an independent session
-        tracing::info!("execute_upload: SFTP initialized, creating remote file");
 
-        use tokio::io::AsyncWriteExt;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let mut local_file = tokio::fs::File::open(&local_path).await?;
         let mut remote_file = sftp.create(&remote_path).await?;
-        tracing::info!("execute_upload: remote file created, starting upload");
 
-        // Transfer in chunks with configurable size and timeout
+        // Stream in chunks — symmetric with download logic
+        let mut buf = vec![0u8; chunk_size];
         let mut transferred: u64 = 0;
+        let mut last_emit_time = std::time::Instant::now();
 
-        for (chunk_idx, chunk) in local_data.chunks(chunk_size).enumerate() {
-            // Check for cancellation
-            if self.canceled.lock().contains(task_id) {
+        loop {
+            // Check for cancellation (single lock)
+            let was_canceled = {
+                let mut set = self.canceled.lock();
+                set.remove(task_id)
+            };
+            if was_canceled {
                 self.update_task_state(task_id, TransferState::Canceled, None);
-                self.canceled.lock().remove(task_id);
                 return Ok(());
             }
 
-            // Log first few chunks only
-            if chunk_idx < 3 {
-                tracing::info!("execute_upload: writing chunk {}, size={}", chunk_idx, chunk.len());
+            // Read a chunk from local file
+            let n = if timeout_secs > 0 {
+                match tokio::time::timeout(
+                    Duration::from_secs(timeout_secs),
+                    local_file.read(&mut buf),
+                ).await {
+                    Ok(Ok(n)) => n,
+                    Ok(Err(e)) => return Err(anyhow::anyhow!("Local read failed: {}", e)),
+                    Err(_) => {
+                        self.update_task_state(task_id, TransferState::Failed, Some("Transfer timeout".to_string()));
+                        return Err(anyhow::anyhow!("Transfer timeout after {} seconds", timeout_secs));
+                    }
+                }
+            } else {
+                local_file.read(&mut buf).await?
+            };
+
+            if n == 0 {
+                break;
             }
 
-            // Apply timeout to each chunk write
+            // Write chunk to remote file
             let write_result = if timeout_secs > 0 {
                 tokio::time::timeout(
                     Duration::from_secs(timeout_secs),
-                    remote_file.write_all(chunk)
+                    remote_file.write_all(&buf[..n]),
                 ).await
             } else {
-                match remote_file.write_all(chunk).await {
-                    Ok(()) => Ok(Ok(())),
-                    Err(e) => Ok(Err(e)),
-                }
+                Ok(remote_file.write_all(&buf[..n]).await)
             };
 
             match write_result {
-                Ok(Ok(())) => {
-                    if chunk_idx < 3 {
-                        tracing::info!("execute_upload: chunk {} done", chunk_idx);
-                    }
-                }
+                Ok(Ok(())) => {}
                 Ok(Err(e)) => return Err(anyhow::anyhow!("Write failed: {}", e)),
                 Err(_) => {
                     self.update_task_state(task_id, TransferState::Failed, Some("Transfer timeout".to_string()));
@@ -436,26 +446,26 @@ impl SftpManager {
                 }
             }
 
-            transferred += chunk.len() as u64;
+            transferred += n as u64;
 
-            // Update progress and emit event
-            let chunk_len = chunk.len() as u64;
-            let should_emit = transferred == chunk_len || transferred == total || transferred % (1024 * 1024) < chunk_len;
-            let elapsed = start_time.elapsed().as_secs_f64();
-            let speed = if elapsed > 0.0 {
-                (transferred as f64 / elapsed) as u64
-            } else {
-                0
-            };
-            if should_emit {
+            // Emit progress every ~200ms for smooth UI, plus first and last chunk
+            if transferred >= total || last_emit_time.elapsed() >= Duration::from_millis(200) {
+                last_emit_time = std::time::Instant::now();
+                let elapsed = start_time.elapsed().as_secs_f64();
+                let speed = if elapsed > 0.0 {
+                    (transferred as f64 / elapsed) as u64
+                } else {
+                    0
+                };
                 event::emit_transfer_progress(app, task_id, transferred, total, speed);
-            }
-            {
-                let mut tasks = self.tasks.lock();
-                if let Some(task) = tasks.get_mut(task_id) {
-                    task.transferred_bytes = transferred;
-                    task.total_bytes = total;
-                    task.speed_bytes_per_sec = speed;
+                tracing::debug!("[PROGRESS] transferred={}, total={}, speed={}", transferred, total, speed);
+                {
+                    let mut tasks = self.tasks.lock();
+                    if let Some(task) = tasks.get_mut(task_id) {
+                        task.transferred_bytes = transferred;
+                        task.total_bytes = total;
+                        task.speed_bytes_per_sec = speed;
+                    }
                 }
             }
         }
@@ -556,12 +566,16 @@ impl SftpManager {
 
         // Track start time for speed calculation
         let start_time = std::time::Instant::now();
+        let mut last_emit_time = std::time::Instant::now();
 
         loop {
-            // Check for cancellation
-            if self.canceled.lock().contains(task_id) {
+            // Check for cancellation (single lock)
+            let was_canceled = {
+                let mut set = self.canceled.lock();
+                set.remove(task_id)
+            };
+            if was_canceled {
                 self.update_task_state(task_id, TransferState::Canceled, None);
-                self.canceled.lock().remove(task_id);
                 let _ = tokio::fs::remove_file(&local_path).await;
                 return Ok(());
             }
@@ -592,25 +606,25 @@ impl SftpManager {
             local_file.write_all(&buf[..n]).await?;
             transferred += n as u64;
 
-            // Calculate speed and update progress
-            let elapsed = start_time.elapsed().as_secs_f64();
-            let speed = if elapsed > 0.0 {
-                (transferred as f64 / elapsed) as u64
-            } else {
-                0
-            };
-
-            // Emit progress event periodically (every 1MB)
-            if transferred == n as u64 || transferred >= total || transferred % (1024 * 1024) < buf.len() as u64 {
+            // Emit progress every ~200ms for smooth UI, plus last chunk
+            if transferred >= total || last_emit_time.elapsed() >= Duration::from_millis(200) {
+                last_emit_time = std::time::Instant::now();
+                // Calculate speed and update progress
+                let elapsed = start_time.elapsed().as_secs_f64();
+                let speed = if elapsed > 0.0 {
+                    (transferred as f64 / elapsed) as u64
+                } else {
+                    0
+                };
                 event::emit_transfer_progress(app, task_id, transferred, total, speed);
-            }
-
-            {
-                let mut tasks = self.tasks.lock();
-                if let Some(task) = tasks.get_mut(task_id) {
-                    task.transferred_bytes = transferred;
-                    task.total_bytes = total;
-                    task.speed_bytes_per_sec = speed;
+                tracing::debug!("[DOWNLOAD PROGRESS] transferred={}, total={}, speed={}", transferred, total, speed);
+                {
+                    let mut tasks = self.tasks.lock();
+                    if let Some(task) = tasks.get_mut(task_id) {
+                        task.transferred_bytes = transferred;
+                        task.total_bytes = total;
+                        task.speed_bytes_per_sec = speed;
+                    }
                 }
             }
         }
@@ -664,5 +678,16 @@ impl SftpManager {
     /// Mark a task as failed
     pub fn mark_failed(&self, task_id: &str, error: String) {
         self.update_task_state(task_id, TransferState::Failed, Some(error));
+    }
+
+    /// Reset transferred bytes to 0 for retry
+    pub fn reset_task_progress(&self, task_id: &str) {
+        let mut tasks = self.tasks.lock();
+        if let Some(task) = tasks.get_mut(task_id) {
+            task.transferred_bytes = 0;
+            task.speed_bytes_per_sec = 0;
+            task.state = TransferState::Queued;
+            task.error = None;
+        }
     }
 }

@@ -12,6 +12,7 @@ import {
   Pencil,
   ChevronRight,
   X,
+  Minus,
   Loader2,
   HardDrive,
   Upload,
@@ -412,7 +413,6 @@ function LocalFileList({
 
   const refreshTransfers = useSftpStore((s) => s.refreshTransfers);
   const addUploadingEntry = useSftpStore((s) => s.addUploadingEntry);
-  const updateUploadingEntry = useSftpStore((s) => s.updateUploadingEntry);
 
   const handleUploadSelected = useCallback(async () => {
     const selectedNames = Array.from(selected);
@@ -468,48 +468,22 @@ function LocalFileList({
     }
 
     try {
-      // Add virtual entries for uploading files to remote list
-      const uploadingNames: string[] = [];
+      // Upload files and register each with its taskId for reliable progress tracking
       for (const task of uploadTasks) {
-        for (const localPath of task.localPaths) {
-          const fileName = localPath.split("/").pop() || "";
+        const taskIds = await api.sftpUploadFiles(sessionId, task.localPaths, task.remoteDir);
+        // taskIds[i] corresponds to task.localPaths[i] — map by index
+        for (let i = 0; i < taskIds.length; i++) {
+          const lp = task.localPaths[i];
+          const fileName = lp?.split("/").pop() || "";
           const localEntry = entries.find((e) => e.name === fileName);
-          if (localEntry) {
-            addUploadingEntry(fileName, localEntry.size);
-            uploadingNames.push(fileName);
+          if (localEntry && taskIds[i]) {
+            addUploadingEntry(fileName, localEntry.size, taskIds[i]);
           }
         }
       }
 
-      // Start polling for transfer progress
-      let polling = true;
-      const pollInterval = setInterval(async () => {
-        if (polling) {
-          await refreshTransfers();
-          // Update virtual entries with transfer progress
-          const transfers = useSftpStore.getState().transfers;
-          for (const name of uploadingNames) {
-            const task = transfers.find(
-              (t) => t.direction === "upload" && t.remotePath.endsWith(`/${name}`),
-            );
-            if (task && task.state === "running") {
-              updateUploadingEntry(name, task.transferredBytes);
-            }
-          }
-        }
-      }, 500);
-
-      for (const task of uploadTasks) {
-        await api.sftpUploadFiles(sessionId, task.localPaths, task.remoteDir);
-      }
-
-      // Wait a bit for last progress update
-      await new Promise((r) => setTimeout(r, 500));
-      polling = false;
-      clearInterval(pollInterval);
-
-      // Refresh to get real file info (this will replace virtual entries)
-      useSftpStore.getState().refreshRemote();
+      // Don't refreshRemote here — uploads run in background, virtual entries
+      // would be wiped. The transfer:completed event triggers refresh instead.
       await refreshTransfers();
       if (totalFiles === 1) {
         toast.success(t("sftp.uploaded"));
@@ -519,7 +493,7 @@ function LocalFileList({
     } catch (err) {
       toast.error(String(err));
     }
-  }, [selected, entries, localPath, sessionId, remotePath, getAllFiles, refreshTransfers, addUploadingEntry, updateUploadingEntry]);
+  }, [selected, entries, localPath, sessionId, remotePath, getAllFiles, refreshTransfers, addUploadingEntry]);
 
   return (
     <div className="flex flex-1 flex-col border rounded-[var(--radius-card)] border-[var(--color-border)] overflow-hidden">
@@ -602,6 +576,7 @@ function RemoteFileList() {
   const t = useT();
   const tabs = useTerminalStore((s) => s.tabs);
   const uploadingFiles = useSftpStore((s) => s.uploadingFiles);
+  const completedUploads = useSftpStore((s) => s.completedUploads);
   const {
     sessionId,
     remotePath,
@@ -842,6 +817,8 @@ function RemoteFileList() {
     }
   }, []);
 
+  const addUploadingEntryDrop = useSftpStore((s) => s.addUploadingEntry);
+
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
       e.preventDefault();
@@ -856,18 +833,28 @@ function RemoteFileList() {
       if (!files || files.length === 0) return;
 
       const paths: string[] = [];
+      const fileSizes: number[] = [];
       for (let i = 0; i < files.length; i++) {
         // In Tauri, File objects have a path property
         const file = files[i] as File & { path?: string };
         if (file.path) {
           paths.push(file.path);
+          fileSizes.push(file.size);
         }
       }
 
       if (paths.length === 0) return;
 
       try {
-        await api.sftpUploadFiles(sessionId, paths, remotePath);
+        const taskIds = await api.sftpUploadFiles(sessionId, paths, remotePath);
+        // Register each file for progress tracking
+        for (let i = 0; i < taskIds.length; i++) {
+          const fileName = paths[i]?.split("/").pop() || "";
+          const size = fileSizes[i] || 0;
+          if (fileName && taskIds[i]) {
+            addUploadingEntryDrop(fileName, size, taskIds[i]);
+          }
+        }
         if (paths.length === 1) {
           toast.success(t("sftp.uploaded"));
         } else {
@@ -877,7 +864,7 @@ function RemoteFileList() {
         toast.error(String(err));
       }
     },
-    [sessionId, remotePath, t],
+    [sessionId, remotePath, t, addUploadingEntryDrop],
   );
 
   const handleDoubleClick = useCallback(
@@ -1031,12 +1018,14 @@ function RemoteFileList() {
 
         {!loading &&
           remoteEntries.map((entry) => {
-            // Check if this file is being uploaded
+            // Check if this file is being uploaded or just completed
             const totalSize = uploadingFiles.get(entry.name);
             const isUploading = totalSize !== undefined;
-            const progress = isUploading && totalSize > 0
-              ? Math.round((entry.size / totalSize) * 100)
-              : 0;
+            const isCompleted = completedUploads.has(entry.name);
+            const showProgress = isUploading || isCompleted;
+            const progress = isUploading && totalSize! > 0
+              ? Math.round((entry.size / totalSize!) * 100)
+              : isCompleted ? 100 : 0;
 
             return (
               <div
@@ -1052,10 +1041,15 @@ function RemoteFileList() {
                 onClick={() => toggleSelectRemote(entry.name)}
                 onDoubleClick={() => handleDoubleClick(entry)}
               >
-                {/* Progress bar background - 从左到右增长 */}
-                {isUploading && (
+                {/* Progress bar background - 从左到右增长，完成后绿色淡出 */}
+                {showProgress && (
                   <div
-                    className="absolute left-0 top-0 bottom-0 bg-[var(--color-accent)] opacity-15 transition-all duration-300"
+                    className={cn(
+                      "absolute left-0 top-0 bottom-0 transition-all duration-300",
+                      isCompleted
+                        ? "bg-[var(--color-success)] opacity-0 duration-1000"
+                        : "bg-[var(--color-accent)] opacity-15",
+                    )}
                     style={{ width: `${progress}%` }}
                   />
                 )}
@@ -1350,6 +1344,7 @@ function TransferQueue() {
   const transfers = useSftpStore((s) => s.transfers);
   const cancelTransfer = useSftpStore((s) => s.cancelTransfer);
   const clearFinishedTransfers = useSftpStore((s) => s.clearFinishedTransfers);
+  const [minimized, setMinimized] = useState(false);
 
   // Only show active transfers (running or queued)
   const activeTransfers = transfers.filter(
@@ -1364,9 +1359,31 @@ function TransferQueue() {
   // Only show drawer when there are transfers
   if (transfers.length === 0) return null;
 
+  // Minimized: small pill in bottom-right corner
+  if (minimized) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50">
+        <button
+          onClick={() => setMinimized(false)}
+          className="flex items-center gap-2 px-3 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg shadow-lg hover:bg-[var(--color-bg-hover)] transition-colors"
+        >
+          {activeTransfers.length > 0 && (
+            <span className="h-2 w-2 rounded-full bg-[var(--color-accent)] animate-pulse shrink-0" />
+          )}
+          <Upload size={14} className="text-[var(--color-accent)] shrink-0" />
+          <span className="text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)] whitespace-nowrap">
+            {activeTransfers.length > 0
+              ? `${activeTransfers.length} ${t("sftp.transferring")}`
+              : `${transfers.length} ${t("sftp.transfers")}`}
+          </span>
+        </button>
+      </div>
+    );
+  }
+
   // Floating drawer in bottom right corner
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-80">
+    <div className="fixed bottom-4 right-4 z-50 w-[480px]">
       <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg shadow-lg overflow-hidden animate-fade-in-up">
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border)]">
@@ -1379,15 +1396,24 @@ function TransferQueue() {
               <span className="h-2 w-2 rounded-full bg-[var(--color-accent)] animate-pulse" />
             )}
           </div>
-          {recentFinished.length > 0 && (
-            <Button size="sm" variant="ghost" onClick={clearFinishedTransfers}>
-              {t("sftp.clearFinished")}
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {recentFinished.length > 0 && (
+              <Button size="sm" variant="ghost" onClick={clearFinishedTransfers}>
+                {t("sftp.clearFinished")}
+              </Button>
+            )}
+            <button
+              onClick={() => setMinimized(true)}
+              className="p-1 rounded hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] transition-colors"
+              title={t("sftp.minimize")}
+            >
+              <Minus size={14} />
+            </button>
+          </div>
         </div>
 
         {/* Transfer list */}
-        <div className="max-h-[300px] overflow-y-auto">
+        <div className="max-h-[192px] overflow-y-auto">
           {transfers.map((task) => (
             <TransferRow key={task.id} task={task} onCancel={cancelTransfer} />
           ))}
@@ -1422,23 +1448,23 @@ function TransferRow({
   };
 
   const formatSpeed = (bytesPerSec: number) => {
-    if (bytesPerSec === 0) return "";
+    if (bytesPerSec === 0) return "0 B/s";
     return formatBytes(bytesPerSec) + "/s";
   };
 
   return (
-    <div className="flex flex-col gap-1 px-3 py-2 text-[var(--font-size-xs)] border-b border-[var(--color-border-subtle)] last:border-0">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-1 px-3 py-2 text-[var(--font-size-xs)] border-b border-[var(--color-border-subtle)] last:border-0 overflow-hidden">
+      <div className="flex items-center gap-2 min-w-0">
         {task.direction === "upload" ? (
-          <ArrowUp size={12} className="text-[var(--color-accent)]" />
+          <ArrowUp size={12} className="text-[var(--color-accent)] shrink-0" />
         ) : (
-          <ArrowDown size={12} className="text-[var(--color-success)]" />
+          <ArrowDown size={12} className="text-[var(--color-success)] shrink-0" />
         )}
-        <span className="flex-1 truncate font-medium">{fileName}</span>
+        <span className="flex-1 truncate font-medium min-w-0">{fileName}</span>
         {(task.state === "running" || task.state === "queued") && (
           <button
             onClick={() => onCancel(task.id)}
-            className="p-0.5 rounded hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)]"
+            className="p-0.5 rounded hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] shrink-0"
             title="Cancel"
           >
             <X size={12} />
@@ -1446,28 +1472,24 @@ function TransferRow({
         )}
       </div>
       {task.state === "running" && (
-        <>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-[var(--color-bg-base)] rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[var(--color-accent)] rounded-full transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <span className="text-[var(--color-text-muted)] whitespace-nowrap">
-              {formatBytes(task.transferredBytes)} / {formatBytes(task.totalBytes)}
-              {task.speedBytesPerSec ? (
-                <span className="ml-2 text-[var(--color-accent)]">{formatSpeed(task.speedBytesPerSec)}</span>
-              ) : null}
-            </span>
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex-1 h-1.5 bg-[var(--color-bg-base)] rounded-full overflow-hidden min-w-0">
+            <div
+              className="h-full bg-[var(--color-accent)] rounded-full transition-all"
+              style={{ width: `${progress}%` }}
+            />
           </div>
-        </>
+          <span className="shrink-0 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)] whitespace-nowrap">
+            {formatBytes(task.transferredBytes)} / {formatBytes(task.totalBytes)}
+            <span className="ml-2 text-[var(--color-accent)]">{formatSpeed(task.speedBytesPerSec || 0)}</span>
+          </span>
+        </div>
       )}
       {task.state === "completed" && (
         <span className="text-[var(--color-success)]">Completed - {formatBytes(task.totalBytes)}</span>
       )}
       {task.state === "failed" && (
-        <span className="text-[var(--color-error)]">Failed: {task.error}</span>
+        <span className="text-[var(--color-error)] truncate" title={task.error || undefined}>Failed: {task.error}</span>
       )}
       {task.state === "queued" && (
         <span className="text-[var(--color-text-muted)]">Waiting...</span>
