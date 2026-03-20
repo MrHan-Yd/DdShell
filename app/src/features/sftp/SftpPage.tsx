@@ -1217,13 +1217,11 @@ function RemoteFileList() {
                   if (allFiles.length === 0) {
                     toast.info(t("sftp.emptyDir"));
                   } else {
-                    // Get download directory: settings > ~/Downloads
-                    const downloadDir = await api.settingGet("transfer.downloadPath").catch(() => null)
-                      ?? await api.localHomeDir() + "/Downloads";
                     // Start all downloads in parallel (they'll queue at semaphore)
+                    // Pass empty local_path and let backend resolve download dir
                     const promises = allFiles.map((file) => {
-                      const localPath = `${downloadDir.replace(/\/$/, "")}/${entry.name}/${file.relative}`;
-                      return api.sftpTransferStart(sessionId!, "download", localPath, file.remote)
+                      const subPath = `${entry.name}/${file.relative}`;
+                      return api.sftpTransferStart(sessionId!, "download", "", file.remote, subPath)
                         .catch((err) => ({ error: err, file: file.remote }));
                     });
                     const results = await Promise.all(promises);

@@ -513,6 +513,7 @@ async fn sftp_transfer_start(
     direction: String,
     local_path: String,
     remote_path: String,
+    sub_path: Option<String>,
 ) -> Result<IdResponse, String> {
     // Validate remote_path
     if remote_path.is_empty() {
@@ -528,7 +529,6 @@ async fn sftp_transfer_start(
         // Get download path from settings or use system default.
         // Empty string is treated as "not set" — fall back to system default.
         let default_download = dirs::download_dir()
-            .filter(|p| p.to_string_lossy().contains("Downloads"))
             .unwrap_or_else(|| {
                 dirs::home_dir()
                     .map(|p| p.join("Downloads"))
@@ -544,13 +544,17 @@ async fn sftp_transfer_start(
             .map(PathBuf::from)
             .unwrap_or(default_download);
 
-        // Combine with remote filename
-        let filename = std::path::Path::new(&remote_path)
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("download");
-        let download_dir_str = download_dir.to_string_lossy();
-        format!("{}/{}", download_dir_str.trim_end_matches('/'), filename)
+        if let Some(sub) = sub_path.as_deref().filter(|s| !s.is_empty()) {
+            // Directory download: preserve sub-path structure under download_dir
+            download_dir.join(sub).to_string_lossy().into_owned()
+        } else {
+            // Single file download: use remote filename
+            let filename = std::path::Path::new(&remote_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("download");
+            download_dir.join(filename).to_string_lossy().into_owned()
+        }
     };
 
     tracing::info!("sftp_transfer_start: direction={}, resolved_local_path={}", direction, resolved_local_path);

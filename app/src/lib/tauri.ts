@@ -161,12 +161,14 @@ export async function sftpTransferStart(
   direction: TransferDirection,
   localPath: string,
   remotePath: string,
+  subPath?: string,
 ): Promise<{ id: string }> {
   return invoke("sftp_transfer_start", {
     sessionId,
     direction,
     localPath,
     remotePath,
+    subPath: subPath ?? null,
   });
 }
 
