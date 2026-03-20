@@ -1345,6 +1345,7 @@ function TransferQueue() {
   const cancelTransfer = useSftpStore((s) => s.cancelTransfer);
   const clearFinishedTransfers = useSftpStore((s) => s.clearFinishedTransfers);
   const [minimized, setMinimized] = useState(false);
+  const [animatingOut, setAnimatingOut] = useState(false);
 
   // Only show active transfers (running or queued)
   const activeTransfers = transfers.filter(
@@ -1356,15 +1357,30 @@ function TransferQueue() {
     (t) => t.state === "completed" || t.state === "failed",
   );
 
+  const [panelKey, setPanelKey] = useState(0);
+
+  const handleMinimize = useCallback(() => {
+    setAnimatingOut(true);
+    setTimeout(() => {
+      setAnimatingOut(false);
+      setMinimized(true);
+    }, 200);
+  }, []);
+
+  const handleExpand = useCallback(() => {
+    setMinimized(false);
+    setPanelKey((k) => k + 1);
+  }, []);
+
   // Only show drawer when there are transfers
   if (transfers.length === 0) return null;
 
   // Minimized: small pill in bottom-right corner
   if (minimized) {
     return (
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-4 right-4 z-50 animate-transfer-panel-in">
         <button
-          onClick={() => setMinimized(false)}
+          onClick={handleExpand}
           className="flex items-center gap-2 px-3 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg shadow-lg hover:bg-[var(--color-bg-hover)] transition-colors"
         >
           {activeTransfers.length > 0 && (
@@ -1383,8 +1399,8 @@ function TransferQueue() {
 
   // Floating drawer in bottom right corner
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-[480px]">
-      <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg shadow-lg overflow-hidden animate-fade-in-up">
+    <div key={panelKey} className={`fixed bottom-4 right-4 z-50 w-[480px] ${animatingOut ? "animate-transfer-panel-out" : "animate-transfer-panel-in"}`}>
+      <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg shadow-lg overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border)]">
           <div className="flex items-center gap-2">
@@ -1403,7 +1419,7 @@ function TransferQueue() {
               </Button>
             )}
             <button
-              onClick={() => setMinimized(true)}
+              onClick={handleMinimize}
               className="p-1 rounded hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] transition-colors"
               title={t("sftp.minimize")}
             >

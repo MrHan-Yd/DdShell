@@ -667,6 +667,39 @@ input[type="number"] {
   animation: roll-down var(--duration-toggle) var(--ease-spring) both;
 }
 
+/* Transfer panel spring animations */
+@keyframes transfer-panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82) translateY(16px);
+    transform-origin: bottom right;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    transform-origin: bottom right;
+  }
+}
+.animate-transfer-panel-in {
+  animation: transfer-panel-in 320ms var(--ease-spring) both;
+}
+
+@keyframes transfer-panel-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    transform-origin: bottom right;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.82) translateY(16px);
+    transform-origin: bottom right;
+  }
+}
+.animate-transfer-panel-out {
+  animation: transfer-panel-out 200ms var(--ease-smooth) both;
+}
+
 /* Context menu spring animation */
 @keyframes context-menu-enter {
   from {
