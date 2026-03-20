@@ -1364,7 +1364,7 @@ function TransferQueue() {
     setTimeout(() => {
       setAnimatingOut(false);
       setMinimized(true);
-    }, 200);
+    }, 250);
   }, []);
 
   const handleExpand = useCallback(() => {

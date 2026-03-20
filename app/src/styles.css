@@ -697,7 +697,7 @@ input[type="number"] {
   }
 }
 .animate-transfer-panel-out {
-  animation: transfer-panel-out 200ms var(--ease-smooth) both;
+  animation: transfer-panel-out 250ms var(--ease-smooth) both;
 }
 
 /* Context menu spring animation */
