@@ -686,6 +686,15 @@ async fn sftp_transfer_list(
 }
 
 #[tauri::command]
+async fn sftp_transfer_remove(
+    sftp_mgr: tauri::State<'_, SftpManager>,
+    task_id: String,
+) -> Result<SuccessResponse, String> {
+    sftp_mgr.remove_task(&task_id);
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
 async fn sftp_transfer_clear(
     sftp_mgr: tauri::State<'_, SftpManager>,
 ) -> Result<SuccessResponse, String> {
@@ -1639,6 +1648,7 @@ pub fn run() {
             sftp_rename,
             sftp_transfer_start,
             sftp_transfer_cancel,
+            sftp_transfer_remove,
             sftp_transfer_list,
             sftp_transfer_clear,
             sftp_upload_files,

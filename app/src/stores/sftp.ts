@@ -148,7 +148,8 @@ export const useSftpStore = create<SftpState>((set, get) => ({
 
   cancelTransfer: async (taskId) => {
     await api.sftpTransferCancel(taskId);
-    await get().refreshTransfers();
+    await api.sftpTransferRemove(taskId);
+    set((s) => ({ transfers: s.transfers.filter((t) => t.id !== taskId) }));
   },
 
   refreshTransfers: async () => {

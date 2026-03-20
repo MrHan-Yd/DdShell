@@ -174,6 +174,10 @@ export async function sftpTransferCancel(taskId: string): Promise<{ success: boo
   return invoke("sftp_transfer_cancel", { taskId });
 }
 
+export async function sftpTransferRemove(taskId: string): Promise<{ success: boolean }> {
+  return invoke("sftp_transfer_remove", { taskId });
+}
+
 export async function sftpTransferList(): Promise<TransferTask[]> {
   return invoke("sftp_transfer_list");
 }

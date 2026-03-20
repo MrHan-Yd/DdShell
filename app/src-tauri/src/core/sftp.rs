@@ -662,6 +662,11 @@ impl SftpManager {
         });
     }
 
+    /// Remove a single task by id
+    pub fn remove_task(&self, task_id: &str) {
+        self.tasks.lock().remove(task_id);
+    }
+
     fn update_task_state(
         &self,
         task_id: &str,
