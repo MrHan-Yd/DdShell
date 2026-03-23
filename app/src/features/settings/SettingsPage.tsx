@@ -11,6 +11,7 @@ import { getAppVersion } from "@/lib/constants";
 import type { Locale } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
 import { confirm } from "@/stores/confirm";
+import { toast } from "@/stores/toast";
 import type { TerminalBgSource } from "@/types";
 
 const TABS = ["general", "transfer", "terminal", "about"] as const;
@@ -120,6 +121,142 @@ function SettingRow({
 
 const DEFAULT_UI_FONT_FAMILY = "";
 const DEFAULT_UI_FONT_SIZE = 14;
+
+// ── Command Assist Settings ──
+
+function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
+  const [enabled, setEnabled] = useState(false);
+  const [confirmKeyVal, setConfirmKeyVal] = useState<"tab" | "enter">("tab");
+  const [positionVal, setPositionVal] = useState<string>("bottom-left");
+  const [resetDone, setResetDone] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const [savedEnabled, savedConfirmKey, savedPosition] = await Promise.all([
+        api.settingGet("commandAssist.enabled"),
+        api.settingGet("commandAssist.confirmKey"),
+        api.settingGet("commandAssist.position"),
+      ]);
+      setEnabled(savedEnabled === "true");
+      if (savedConfirmKey === "tab" || savedConfirmKey === "enter") {
+        setConfirmKeyVal(savedConfirmKey);
+      }
+      if (savedPosition) setPositionVal(savedPosition);
+    })();
+  }, []);
+
+  const handleToggleEnabled = async (newVal: boolean) => {
+    setEnabled(newVal);
+    await api.settingSet("commandAssist.enabled", String(newVal));
+    window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
+  };
+
+  const handleConfirmKeyChange = async (newVal: string) => {
+    if (newVal === "enter") {
+      const ok = await confirm({
+        title: t("commandAssist.confirmKey"),
+        description: t("commandAssist.enterWarning"),
+        confirmLabel: t("confirm.ok"),
+        cancelLabel: t("confirm.cancel"),
+      });
+      if (!ok) return;
+    }
+    setConfirmKeyVal(newVal as "tab" | "enter");
+    await api.settingSet("commandAssist.confirmKey", newVal);
+    window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
+  };
+
+  const handlePositionChange = async (newVal: string) => {
+    setPositionVal(newVal);
+    await api.settingSet("commandAssist.position", newVal);
+    window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
+  };
+
+  const handleResetWeights = async () => {
+    const ok = await confirm({
+      title: t("commandAssist.resetWeights"),
+      description: t("commandAssist.resetWeightsConfirm"),
+      confirmLabel: t("confirm.ok"),
+      cancelLabel: t("confirm.cancel"),
+    });
+    if (!ok) return;
+    try {
+      await api.commandAssistWeightReset();
+      setResetDone(true);
+      toast.success(t("commandAssist.resetDone"));
+      setTimeout(() => setResetDone(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
+
+  return (
+    <Section title={t("commandAssist.enabled")}>
+      <SettingRow
+        label={t("commandAssist.enabled")}
+        description={t("commandAssist.enabledDesc")}
+      >
+        <button
+          onClick={() => handleToggleEnabled(!enabled)}
+          data-state={enabled ? "on" : "off"}
+          className="toggle-switch"
+        >
+          <span className="toggle-thumb" />
+        </button>
+      </SettingRow>
+
+      {enabled && (
+        <>
+          <SettingRow
+            label={t("commandAssist.confirmKey")}
+            description={t("commandAssist.confirmKeyDesc")}
+          >
+            <SegmentedControl
+              value={confirmKeyVal}
+              onChange={handleConfirmKeyChange}
+              options={[
+                { value: "tab", label: t("commandAssist.tab") },
+                { value: "enter", label: t("commandAssist.enter") },
+              ]}
+            />
+          </SettingRow>
+
+          <SettingRow
+            label={t("commandAssist.position")}
+            description={t("commandAssist.positionDesc")}
+          >
+            <SegmentedControl
+              value={positionVal}
+              onChange={handlePositionChange}
+              options={[
+                { value: "bottom-left", label: t("commandAssist.posBottomLeft") },
+                { value: "bottom-right", label: t("commandAssist.posBottomRight") },
+                { value: "follow-cursor", label: t("commandAssist.posFollowCursor") },
+              ]}
+            />
+          </SettingRow>
+
+          <div className="flex items-center justify-between py-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[var(--font-size-sm)]">{t("commandAssist.resetWeights")}</p>
+              <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                {t("commandAssist.resetWeightsDesc")}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleResetWeights}
+            >
+              {resetDone ? <Check size={12} /> : <RotateCcw size={12} />}
+              {resetDone ? t("settings.done") : t("settings.reset")}
+            </Button>
+          </div>
+        </>
+      )}
+    </Section>
+  );
+}
 
 export function SettingsPage() {
   const theme = useAppStore((s) => s.theme);
@@ -965,6 +1102,8 @@ export function SettingsPage() {
             </Button>
           </div>
         </Section>
+
+        <CommandAssistSettings t={t} />
         </>)}
 
         {activeTab === "about" && (<>

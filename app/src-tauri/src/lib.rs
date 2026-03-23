@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::NotificationExt;
 
+use crate::core::command_assist::CommandAssistEngine;
 use crate::core::event;
 use crate::core::metrics::MetricsManager;
 use crate::core::sftp::SftpManager;
@@ -284,6 +285,59 @@ async fn snippet_list(
     db: tauri::State<'_, Database>,
 ) -> Result<Vec<core::store::Snippet>, String> {
     db.list_snippets().await.map_err(|e| e.to_string())
+}
+
+// ── Commands: Settings ──
+
+// ── Commands: Command Assist ──
+
+#[tauri::command]
+async fn command_assist_search(
+    engine: tauri::State<'_, std::sync::Arc<CommandAssistEngine>>,
+    query: String,
+    os_type: Option<String>,
+    page: Option<u32>,
+) -> Result<core::command_assist::SearchResult, String> {
+    let result = engine
+        .search(&query, os_type.as_deref(), page.unwrap_or(0))
+        .await;
+    Ok(result)
+}
+
+#[tauri::command]
+async fn command_assist_weight_update(
+    engine: tauri::State<'_, std::sync::Arc<CommandAssistEngine>>,
+    key: String,
+) -> Result<SuccessResponse, String> {
+    engine
+        .update_weight(&key)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn command_assist_weight_reset(
+    engine: tauri::State<'_, std::sync::Arc<CommandAssistEngine>>,
+) -> Result<SuccessResponse, String> {
+    engine
+        .reset_weights()
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn command_assist_rebuild_index(
+    db: tauri::State<'_, Database>,
+    engine: tauri::State<'_, std::sync::Arc<CommandAssistEngine>>,
+) -> Result<SuccessResponse, String> {
+    let snippets = db.list_snippets().await.map_err(|e| e.to_string())?;
+    engine
+        .rebuild_index(&snippets)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
 }
 
 // ── Commands: Settings ──
@@ -1625,6 +1679,17 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 match Database::init(&app_data_dir).await {
                     Ok(db) => {
+                        // Initialize CommandAssistEngine with the DB pool
+                        let engine = CommandAssistEngine::new(db.pool().clone());
+
+                        // Build initial index from user snippets
+                        if let Ok(snippets) = db.list_snippets().await {
+                            if let Err(e) = engine.rebuild_index(&snippets).await {
+                                tracing::warn!("command assist index build failed: {}", e);
+                            }
+                        }
+
+                        handle.manage(engine);
                         handle.manage(db);
                         tracing::info!("database initialized");
                     }
@@ -1651,6 +1716,10 @@ pub fn run() {
             snippet_update,
             snippet_delete,
             snippet_list,
+            command_assist_search,
+            command_assist_weight_update,
+            command_assist_weight_reset,
+            command_assist_rebuild_index,
             setting_get,
             setting_set,
             session_connect,

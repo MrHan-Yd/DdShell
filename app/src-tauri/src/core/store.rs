@@ -123,6 +123,11 @@ impl Database {
         Ok(db)
     }
 
+    /// Expose the underlying connection pool (e.g. for CommandAssistEngine).
+    pub fn pool(&self) -> &SqlitePool {
+        &self.pool
+    }
+
     async fn migrate(&self) -> anyhow::Result<()> {
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS host_groups (
@@ -239,6 +244,16 @@ impl Database {
 
         sqlx::query(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_recent_paths_session_path ON recent_paths(session_id, path)",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS snippet_weights (
+                snippet_key TEXT PRIMARY KEY,
+                score REAL NOT NULL DEFAULT 0.0,
+                updated_at TEXT NOT NULL
+            )",
         )
         .execute(&self.pool)
         .await?;

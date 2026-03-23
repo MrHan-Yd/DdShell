@@ -58,6 +58,51 @@ export async function groupList(): Promise<HostGroup[]> {
 
 // ── Snippet commands ──
 
+// ── Command Assist ──
+
+export interface CandidateItem {
+  id: string;
+  title: string;
+  command: string;
+  description: string | null;
+  source: "user" | "system";
+  distro: string | null;
+  weight: number;
+}
+
+export interface SearchResult {
+  items: CandidateItem[];
+  total: number;
+  page: number;
+  hasMore: boolean;
+}
+
+export async function commandAssistSearch(
+  query: string,
+  osType?: string | null,
+  page?: number,
+): Promise<SearchResult> {
+  return invoke("command_assist_search", {
+    query,
+    osType: osType ?? null,
+    page: page ?? 0,
+  });
+}
+
+export async function commandAssistWeightUpdate(key: string): Promise<{ success: boolean }> {
+  return invoke("command_assist_weight_update", { key });
+}
+
+export async function commandAssistWeightReset(): Promise<{ success: boolean }> {
+  return invoke("command_assist_weight_reset");
+}
+
+export async function commandAssistRebuildIndex(): Promise<{ success: boolean }> {
+  return invoke("command_assist_rebuild_index");
+}
+
+// ── Snippet commands ──
+
 export async function snippetCreate(
   title: string,
   command: string,

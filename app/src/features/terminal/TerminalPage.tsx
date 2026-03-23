@@ -15,6 +15,8 @@ import type { CommandHistoryItem } from "@/types";
 import { useT } from "@/lib/i18n";
 import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
+import { CommandAssist } from "./CommandAssist";
+import type { AssistPosition } from "./CommandAssist";
 import "@xterm/xterm/css/xterm.css";
 
 /** Strip ANSI escape sequences and trim whitespace */
@@ -63,6 +65,195 @@ function TerminalInstance({
   const termSettingsRef = useRef(termSettings);
   termSettingsRef.current = termSettings;
   const t = useT();
+
+  // ── Command Assist state ──
+  const [assistVisible, setAssistVisible] = useState(false);
+  const [assistQuery, setAssistQuery] = useState("");
+  const [assistEnabled, setAssistEnabled] = useState(false);
+  const [assistConfirmKey, setAssistConfirmKey] = useState<"tab" | "enter">("tab");
+  const [assistPosition, setAssistPosition] = useState<AssistPosition>("bottom-left");
+  // Cursor position relative to the terminal container (not screen)
+  const [cursorPos, setCursorPos] = useState<{ col: number; row: number; charW: number; charH: number; offsetX: number; offsetY: number }>({ col: 0, row: 0, charW: 8, charH: 18, offsetX: 0, offsetY: 0 });
+  const [osType, setOsType] = useState<string | null>(null);
+  const assistVisibleRef = useRef(false);
+  const composingRef = useRef(false);
+
+  // Load command assist settings
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [enabled, confirmKeyVal, positionVal] = await Promise.all([
+          api.settingGet("commandAssist.enabled"),
+          api.settingGet("commandAssist.confirmKey"),
+          api.settingGet("commandAssist.position"),
+        ]);
+        setAssistEnabled(enabled === "true");
+        if (confirmKeyVal === "tab" || confirmKeyVal === "enter") {
+          setAssistConfirmKey(confirmKeyVal);
+        }
+        if (positionVal === "bottom-left" || positionVal === "bottom-right" || positionVal === "follow-cursor") {
+          setAssistPosition(positionVal);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    load();
+
+    // Listen for settings changes
+    const handler = () => load();
+    window.addEventListener("terminal:settings-changed", handler);
+    return () => window.removeEventListener("terminal:settings-changed", handler);
+  }, []);
+
+  // Detect OS type after connection (delay to let shell stabilize)
+  useEffect(() => {
+    if (!sessionId) return;
+    const timer = setTimeout(() => {
+      api.systemDetect(sessionId).then((info) => {
+        const distro = info.distro?.toLowerCase() ?? "";
+        if (distro.includes("ubuntu") || distro.includes("debian")) {
+          setOsType("ubuntu");
+        } else if (distro.includes("centos") || distro.includes("rhel") || distro.includes("red hat") || distro.includes("fedora") || distro.includes("rocky") || distro.includes("alma")) {
+          setOsType("centos");
+        } else {
+          setOsType(null);
+        }
+      }).catch(() => {});
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [sessionId]);
+
+  // Keep ref in sync
+  useEffect(() => {
+    assistVisibleRef.current = assistVisible;
+  }, [assistVisible]);
+
+  // Use ref for assistEnabled to avoid stale closure in onData
+  const assistEnabledRef = useRef(assistEnabled);
+  useEffect(() => {
+    assistEnabledRef.current = assistEnabled;
+  }, [assistEnabled]);
+
+  const assistConfirmKeyRef = useRef(assistConfirmKey);
+  useEffect(() => {
+    assistConfirmKeyRef.current = assistConfirmKey;
+  }, [assistConfirmKey]);
+
+  // ── Command Assist: extract // trigger from buffer ──
+  const checkAssistTrigger = useCallback((buffer: string) => {
+    if (!assistEnabledRef.current) {
+      // If disabled but user typed //, show one-time hint
+      if (buffer.includes("//") && !buffer.includes("://") && !buffer.includes("///")) {
+        const slashPos = buffer.lastIndexOf("//");
+        const afterSlash = buffer.substring(slashPos + 2);
+        if (afterSlash.length >= 1 && afterSlash.trim().length >= 1) {
+          // Show hint toast once
+          const hintShown = sessionStorage.getItem("commandAssist.hintShown");
+          if (!hintShown) {
+            sessionStorage.setItem("commandAssist.hintShown", "1");
+            toast.info(t("commandAssist.enableHint"));
+          }
+        }
+      }
+      return;
+    }
+
+    // Find last occurrence of //
+    const slashPos = buffer.lastIndexOf("//");
+    if (slashPos < 0) {
+      if (assistVisibleRef.current) {
+        setAssistVisible(false);
+        setAssistQuery("");
+      }
+      return;
+    }
+
+    // Exclusion rules
+    // 1. :// (URL protocol)
+    if (slashPos > 0 && buffer[slashPos - 1] === ":") return;
+    // 2. /// (path-like)
+    if (slashPos + 2 < buffer.length && buffer[slashPos + 2] === "/") return;
+    // 3. \\ (UNC path) — check surrounding context
+    if (buffer.includes("\\\\")) return;
+
+    const afterSlash = buffer.substring(slashPos + 2);
+
+    // Need at least 1 non-whitespace char after //
+    if (afterSlash.length < 1 || afterSlash.trim().length < 1) {
+      if (assistVisibleRef.current) {
+        setAssistVisible(false);
+        setAssistQuery("");
+      }
+      return;
+    }
+
+    // Trigger!
+    setAssistQuery(afterSlash.trim());
+    setAssistVisible(true);
+    assistVisibleRef.current = true;
+
+    // Compute cursor position relative to the terminal container.
+    // NOTE: cursorX/Y are updated by onCursorMove below (after SSH echo).
+    // Here we just trigger the popup; position will update on next cursor move.
+    const term = termRef.current;
+    if (term && containerRef.current) {
+      const rowsEl = term.element?.querySelector('.xterm-rows') as HTMLElement;
+      if (rowsEl) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const rowsRect = rowsEl.getBoundingClientRect();
+        const charW = rowsRect.width / term.cols;
+        const charH = rowsRect.height / term.rows;
+        const offsetX = rowsRect.left - containerRect.left;
+        const offsetY = rowsRect.top - containerRect.top;
+        // Store charW/charH/offset so onCursorMove only needs to update col/row
+        setCursorPos(prev => ({
+          ...prev,
+          charW, charH, offsetX, offsetY
+        }));
+      }
+    }
+  }, [t]);
+
+  // ── Command Assist: handle selection ──
+  const handleAssistSelect = useCallback((command: string, id: string) => {
+    const buffer = cmdBufferRef.current;
+    const slashPos = buffer.lastIndexOf("//");
+    if (slashPos < 0) return;
+
+    // Calculate the text to replace: everything from // to end of buffer
+    const textToReplace = buffer.substring(slashPos);
+
+    // Send backspaces to erase the // prefix + query, then type the command
+    const encoder = new TextEncoder();
+
+    // Erase: send backspace for each char of the trigger text
+    const backspaces = "\x7f".repeat(textToReplace.length);
+    const eraseBytes = Array.from(encoder.encode(backspaces));
+    api.sessionWrite(sessionIdRef.current, eraseBytes).catch(() => {});
+
+    // Type the command
+    setTimeout(() => {
+      const cmdBytes = Array.from(encoder.encode(command));
+      api.sessionWrite(sessionIdRef.current, cmdBytes).catch(() => {});
+    }, 20);
+
+    // Update buffer
+    cmdBufferRef.current = buffer.substring(0, slashPos) + command;
+
+    // Update weight
+    api.commandAssistWeightUpdate(id).catch(() => {});
+
+    // Close assist
+    setAssistVisible(false);
+    setAssistQuery("");
+  }, []);
+
+  const handleAssistClose = useCallback(() => {
+    setAssistVisible(false);
+    assistVisibleRef.current = false;
+    setAssistQuery("");
+  }, []);
 
   // Effect 1: Create xterm instance (once, independent of sessionId)
   useEffect(() => {
@@ -228,11 +419,19 @@ function TerminalInstance({
 
     // Handle user input -> SSH
     const onData = term.onData((data) => {
+      // Skip if IME is composing
+      if (composingRef.current) return;
+
       const sid = sessionIdRef.current;
 
       // Process each character for command history buffering
       for (const ch of data) {
         if (ch === "\r" || ch === "\n") {
+          // If assist is visible and confirmKey is enter, don't send enter to terminal
+          // (handled by CommandAssist keydown handler)
+          if (assistVisibleRef.current && assistConfirmKeyRef.current === "enter") {
+            return;
+          }
           const cmd = cmdBufferRef.current.trim();
           if (cmd.length > 0) {
             api.commandHistoryInsert(sid, hostId, cmd).then(() => {
@@ -240,14 +439,38 @@ function TerminalInstance({
             }).catch(() => {});
           }
           cmdBufferRef.current = "";
+          // Close assist on enter
+          if (assistVisibleRef.current) {
+            setAssistVisible(false);
+            setAssistQuery("");
+          }
         } else if (ch === "\x7f" || ch === "\b") {
           cmdBufferRef.current = cmdBufferRef.current.slice(0, -1);
         } else if (ch === "\x03") {
           cmdBufferRef.current = "";
+          // Close assist on Ctrl+C
+          if (assistVisibleRef.current) {
+            setAssistVisible(false);
+            setAssistQuery("");
+          }
+        } else if (ch === "\t") {
+          // If assist is visible and confirmKey is tab, don't send tab to terminal
+          // (handled by CommandAssist keydown handler)
+          if (assistVisibleRef.current && assistConfirmKeyRef.current === "tab") {
+            return;
+          }
+        } else if (ch === "\x1b") {
+          // Esc — handled by CommandAssist keydown handler
+          if (assistVisibleRef.current) {
+            return;
+          }
         } else if (ch.charCodeAt(0) >= 32) {
           cmdBufferRef.current += ch;
         }
       }
+
+      // Check for // trigger after buffer update
+      checkAssistTrigger(cmdBufferRef.current);
 
       const encoder = new TextEncoder();
       const bytes = Array.from(encoder.encode(data));
@@ -258,6 +481,16 @@ function TerminalInstance({
     const onResize = term.onResize(({ cols, rows }) => {
       if (cols <= 1 || rows <= 1) return;
       api.sessionResize(sessionIdRef.current, cols, rows).catch(() => {});
+    });
+
+    // Track cursor movement for follow-cursor command assist positioning
+    const onCursorMove = term.onCursorMove(() => {
+      if (!assistVisibleRef.current) return;
+      setCursorPos(prev => ({
+        ...prev,
+        col: term.buffer.active.cursorX,
+        row: term.buffer.active.cursorY,
+      }));
     });
 
     // Listen for SSH output events
@@ -298,6 +531,13 @@ function TerminalInstance({
     };
     window.addEventListener("terminal:insert-selection", handleInsertSelection);
 
+    // IME composition handling
+    const termEl = term.element;
+    const handleCompositionStart = () => { composingRef.current = true; };
+    const handleCompositionEnd = () => { composingRef.current = false; };
+    termEl?.addEventListener("compositionstart", handleCompositionStart);
+    termEl?.addEventListener("compositionend", handleCompositionEnd);
+
     // Middle-click paste (via Tauri clipboard plugin, no permission prompt)
     const handleMiddleClick = (e: MouseEvent) => {
       if (e.button !== 1) return;
@@ -310,8 +550,8 @@ function TerminalInstance({
         }
       }).catch(() => {});
     };
-    const termEl = term.element;
-    termEl?.addEventListener("mousedown", handleMiddleClick);
+    const termElForMouse = term.element;
+    termElForMouse?.addEventListener("mousedown", handleMiddleClick);
 
     // Initial resize notification
     api.sessionResize(sessionId, term.cols, term.rows).catch(() => {});
@@ -321,12 +561,15 @@ function TerminalInstance({
     return () => {
       onData.dispose();
       onResize.dispose();
+      onCursorMove.dispose();
       unlisten.then((fn) => fn());
       unlistenState.then((fn) => fn());
       window.removeEventListener("terminal:insert-selection", handleInsertSelection);
-      termEl?.removeEventListener("mousedown", handleMiddleClick);
+      termEl?.removeEventListener("compositionstart", handleCompositionStart);
+      termEl?.removeEventListener("compositionend", handleCompositionEnd);
+      termElForMouse?.removeEventListener("mousedown", handleMiddleClick);
     };
-  }, [sessionId, hostId, tabId, updateTabState]);
+  }, [sessionId, hostId, tabId, updateTabState, checkAssistTrigger]);
 
   const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
   const isDisconnected = tabState === "disconnected" || tabState === "failed";
@@ -346,6 +589,24 @@ function TerminalInstance({
         ref={containerRef}
         className={cn("h-full w-full", hasBgImage && "xterm-bg-transparent")}
         style={{ padding: "2px 4px 0" }}
+      />
+      {/* Command Assist floating panel */}
+      <CommandAssist
+        visible={assistVisible}
+        query={assistQuery}
+        osType={osType}
+        position={assistPosition}
+        cursorCol={cursorPos.col}
+        cursorRow={cursorPos.row}
+        charW={cursorPos.charW}
+        charH={cursorPos.charH}
+        offsetX={cursorPos.offsetX}
+        offsetY={cursorPos.offsetY}
+        containerWidth={containerRef.current?.clientWidth ?? 0}
+        containerHeight={containerRef.current?.clientHeight ?? 0}
+        confirmKey={assistConfirmKey}
+        onSelect={handleAssistSelect}
+        onClose={handleAssistClose}
       />
       {isDisconnected && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60">

@@ -319,6 +319,28 @@ const dict = {
   "snippets.formTags": { zh: "标签（逗号分隔）", en: "Tags (comma separated)" },
   "snippets.createdAt": { zh: "创建于", en: "Created" },
   "snippets.updatedAt": { zh: "更新于", en: "Updated" },
+
+  // ── Command Assist ──
+  "commandAssist.matches": { zh: "条匹配", en: "matches" },
+  "commandAssist.user": { zh: "自定义", en: "Custom" },
+  "commandAssist.scrollMore": { zh: "继续滚动加载更多", en: "Scroll for more" },
+  "commandAssist.enableHint": { zh: "提示：可在 设置 → 终端 中开启 // 快捷命令触发", en: "Tip: Enable // command trigger in Settings → Terminal" },
+  "commandAssist.enabled": { zh: "// 命令触发", en: "// Command Trigger" },
+  "commandAssist.enabledDesc": { zh: "在终端中输入 // 后触发命令候选提示", en: "Trigger command suggestions by typing // in terminal" },
+  "commandAssist.confirmKey": { zh: "回填确认键", en: "Confirm Key" },
+  "commandAssist.confirmKeyDesc": { zh: "选择用于确认回填的按键", en: "Choose the key to confirm command insertion" },
+  "commandAssist.position": { zh: "弹出位置", en: "Popup Position" },
+  "commandAssist.positionDesc": { zh: "命令候选提示框的显示位置", en: "Where to show the command suggestion popup" },
+  "commandAssist.posBottomLeft": { zh: "左下角", en: "Bottom Left" },
+  "commandAssist.posBottomRight": { zh: "右下角", en: "Bottom Right" },
+  "commandAssist.posFollowCursor": { zh: "跟随光标", en: "Follow Cursor" },
+  "commandAssist.tab": { zh: "Tab", en: "Tab" },
+  "commandAssist.enter": { zh: "Enter", en: "Enter" },
+  "commandAssist.enterWarning": { zh: "使用 Enter 键可能导致误触执行命令，确定要切换吗？", en: "Using Enter may accidentally execute commands. Are you sure?" },
+  "commandAssist.resetWeights": { zh: "重置命令偏好", en: "Reset Command Preferences" },
+  "commandAssist.resetWeightsDesc": { zh: "清除所有命令候选的排序权重", en: "Clear all command suggestion sorting weights" },
+  "commandAssist.resetWeightsConfirm": { zh: "确定要重置命令偏好吗？", en: "Reset command preferences?" },
+  "commandAssist.resetDone": { zh: "已重置", en: "Reset done" },
 } as const;
 
 export type DictKey = keyof typeof dict;

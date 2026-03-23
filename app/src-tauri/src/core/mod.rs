@@ -1,3 +1,4 @@
+pub mod command_assist;
 pub mod event;
 pub mod metrics;
 pub mod secret;
