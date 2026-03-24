@@ -185,7 +185,6 @@ export function CommandAssist({
       const cursorBottom = cursorY + charH;
 
       const spaceBelow = ch - cursorBottom - EDGE_MARGIN;
-      const spaceAbove = cursorY - EDGE_MARGIN;
 
       let top: number;
       if (spaceBelow >= popupH) {

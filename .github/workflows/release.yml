@@ -63,6 +63,14 @@ jobs:
             suffix: windows-x64
 
     runs-on: ${{ matrix.platform }}
+    env:
+      APPLE_CERTIFICATE: ${{ startsWith(matrix.platform, 'macos') && secrets.APPLE_CERTIFICATE || '' }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ startsWith(matrix.platform, 'macos') && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+      APPLE_SIGNING_IDENTITY: ${{ startsWith(matrix.platform, 'macos') && secrets.APPLE_SIGNING_IDENTITY || '' }}
+      APPLE_ID: ${{ startsWith(matrix.platform, 'macos') && secrets.APPLE_ID || '' }}
+      APPLE_PASSWORD: ${{ startsWith(matrix.platform, 'macos') && secrets.APPLE_PASSWORD || '' }}
+      APPLE_TEAM_ID: ${{ startsWith(matrix.platform, 'macos') && secrets.APPLE_TEAM_ID || '' }}
+      HAS_APPLE_SIGNING: ${{ startsWith(matrix.platform, 'macos') && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_SIGNING_IDENTITY != '' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -107,9 +115,59 @@ jobs:
         working-directory: app
         run: pnpm install --frozen-lockfile
 
+      - name: Validate macOS signing secrets
+        if: startsWith(matrix.platform, 'macos') && env.HAS_APPLE_SIGNING == 'true'
+        run: |
+          missing=0
+          for name in \
+            APPLE_CERTIFICATE \
+            APPLE_CERTIFICATE_PASSWORD \
+            APPLE_SIGNING_IDENTITY \
+            APPLE_ID \
+            APPLE_PASSWORD \
+            APPLE_TEAM_ID
+          do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub secret: $name"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "macOS release requires code signing and notarization secrets."
+            exit 1
+          fi
+
       - name: Build Tauri app
         working-directory: app
         run: pnpm tauri build ${{ matrix.args }}
+
+      - name: Re-sign macOS app bundle with ad-hoc signature
+        if: startsWith(matrix.platform, 'macos') && env.HAS_APPLE_SIGNING != 'true'
+        run: |
+          APP_PATH=$(find app/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos -maxdepth 1 -name "*.app" -print -quit)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::Built .app bundle not found"
+            exit 1
+          fi
+
+          xattr -cr "$APP_PATH"
+          codesign --force --deep --sign - "$APP_PATH"
+
+      - name: Verify macOS app signature
+        if: startsWith(matrix.platform, 'macos')
+        run: |
+          APP_PATH=$(find app/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos -maxdepth 1 -name "*.app" -print -quit)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::Built .app bundle not found"
+            exit 1
+          fi
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          if [ "${HAS_APPLE_SIGNING}" = "true" ]; then
+            spctl --assess --type exec --verbose=2 "$APP_PATH"
+          else
+            codesign -dv --verbose=4 "$APP_PATH"
+          fi
 
       # ── Rename & Upload (macOS) ──
       - name: Rename macOS dmg
