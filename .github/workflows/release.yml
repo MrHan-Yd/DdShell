@@ -34,6 +34,19 @@ jobs:
             | Windows | `DdShell-${{ github.ref_name }}-windows-x64.exe` | 64位免安装 |
             | Linux | `DdShell-${{ github.ref_name }}-linux-amd64.deb` | Debian/Ubuntu |
             | Linux | `DdShell-${{ github.ref_name }}-linux-amd64.AppImage` | 通用格式 |
+
+            ### macOS 用户须知
+
+            由于本应用为开源免费软件，未购买 Apple 开发者签名，首次打开可能会遇到以下提示：
+
+            **提示"已损坏"：** 在终端执行以下命令后重新打开：
+            ```bash
+            xattr -cr /Applications/DdShell.app
+            ```
+
+            **提示"不安全"或"无法验证开发者"：** 打开「系统设置」→「隐私与安全性」，下滑找到提示"DdShell 已被阻止"，点击「仍要打开」
+
+            > 以上操作只需执行一次，之后可正常使用。
           draft: false
           prerelease: false
 
@@ -161,20 +174,8 @@ jobs:
         working-directory: app
         run: pnpm tauri build ${{ matrix.args }}
 
-      - name: Re-sign macOS app bundle with ad-hoc signature
-        if: startsWith(matrix.platform, 'macos') && env.HAS_APPLE_SIGNING != 'true'
-        run: |
-          APP_PATH=$(find app/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos -maxdepth 1 -name "*.app" -print -quit)
-          if [ -z "$APP_PATH" ]; then
-            echo "::error::Built .app bundle not found"
-            exit 1
-          fi
-
-          xattr -cr "$APP_PATH"
-          codesign --force --deep --sign - "$APP_PATH"
-
       - name: Verify macOS app signature
-        if: startsWith(matrix.platform, 'macos')
+        if: startsWith(matrix.platform, 'macos') && env.HAS_APPLE_SIGNING == 'true'
         run: |
           APP_PATH=$(find app/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos -maxdepth 1 -name "*.app" -print -quit)
           if [ -z "$APP_PATH" ]; then
@@ -182,11 +183,7 @@ jobs:
             exit 1
           fi
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-          if [ "${HAS_APPLE_SIGNING}" = "true" ]; then
-            spctl --assess --type exec --verbose=2 "$APP_PATH"
-          else
-            codesign -dv --verbose=4 "$APP_PATH"
-          fi
+          spctl --assess --type exec --verbose=2 "$APP_PATH"
 
       # ── Rename & Upload (macOS) ──
       - name: Rename macOS dmg

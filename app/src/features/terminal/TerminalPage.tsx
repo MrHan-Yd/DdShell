@@ -74,6 +74,7 @@ function TerminalInstance({
   const [assistPosition, setAssistPosition] = useState<AssistPosition>("bottom-left");
   // Cursor position relative to the terminal container (not screen)
   const [cursorPos, setCursorPos] = useState<{ col: number; row: number; charW: number; charH: number; offsetX: number; offsetY: number }>({ col: 0, row: 0, charW: 8, charH: 18, offsetX: 0, offsetY: 0 });
+  const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [osType, setOsType] = useState<string | null>(null);
   const assistVisibleRef = useRef(false);
   const composingRef = useRef(false);
@@ -197,21 +198,19 @@ function TerminalInstance({
     // NOTE: cursorX/Y are updated by onCursorMove below (after SSH echo).
     // Here we just trigger the popup; position will update on next cursor move.
     const term = termRef.current;
-    if (term && containerRef.current) {
-      const rowsEl = term.element?.querySelector('.xterm-rows') as HTMLElement;
-      if (rowsEl) {
-        const containerRect = containerRef.current.getBoundingClientRect();
-        const rowsRect = rowsEl.getBoundingClientRect();
-        const charW = rowsRect.width / term.cols;
-        const charH = rowsRect.height / term.rows;
-        const offsetX = rowsRect.left - containerRect.left;
-        const offsetY = rowsRect.top - containerRect.top;
-        // Store charW/charH/offset so onCursorMove only needs to update col/row
-        setCursorPos(prev => ({
-          ...prev,
-          charW, charH, offsetX, offsetY
-        }));
-      }
+    if (term && containerRef.current && term.element) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const termRect = term.element.getBoundingClientRect();
+      const charW = termRect.width / term.cols;
+      const charH = termRect.height / term.rows;
+      const offsetX = termRect.left - containerRect.left;
+      const offsetY = termRect.top - containerRect.top;
+      // Store charW/charH/offset AND current cursor position
+      setCursorPos({
+        col: term.buffer.active.cursorX,
+        row: term.buffer.active.cursorY,
+        charW, charH, offsetX, offsetY
+      });
     }
   }, [t]);
 
@@ -392,6 +391,7 @@ function TerminalInstance({
       const { width, height } = entries[0].contentRect;
       if (width === 0 || height === 0) return;
       try { fitAddon.fit(); } catch { /* ignore if disposed */ }
+      setContainerSize({ w: width, h: height });
     });
     resizeObserver.observe(containerRef.current);
 
@@ -485,12 +485,18 @@ function TerminalInstance({
 
     // Track cursor movement for follow-cursor command assist positioning
     const onCursorMove = term.onCursorMove(() => {
-      if (!assistVisibleRef.current) return;
-      setCursorPos(prev => ({
-        ...prev,
+      if (!assistVisibleRef.current || !containerRef.current || !term.element) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const termRect = term.element.getBoundingClientRect();
+      const charW = termRect.width / term.cols;
+      const charH = termRect.height / term.rows;
+      const offsetX = termRect.left - containerRect.left;
+      const offsetY = termRect.top - containerRect.top;
+      setCursorPos({
         col: term.buffer.active.cursorX,
         row: term.buffer.active.cursorY,
-      }));
+        charW, charH, offsetX, offsetY,
+      });
     });
 
     // Listen for SSH output events
@@ -602,8 +608,8 @@ function TerminalInstance({
         charH={cursorPos.charH}
         offsetX={cursorPos.offsetX}
         offsetY={cursorPos.offsetY}
-        containerWidth={containerRef.current?.clientWidth ?? 0}
-        containerHeight={containerRef.current?.clientHeight ?? 0}
+        containerWidth={containerSize.w || (containerRef.current?.clientWidth ?? 0)}
+        containerHeight={containerSize.h || (containerRef.current?.clientHeight ?? 0)}
         confirmKey={assistConfirmKey}
         onSelect={handleAssistSelect}
         onClose={handleAssistClose}

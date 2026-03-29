@@ -220,14 +220,13 @@ impl SshSession {
             )
             .await?;
 
-        channel.request_shell(true).await?;
-
-        // Set locale to avoid garbled characters (if enabled by user)
+        // Set locale via SSH env request (before shell starts, no terminal output)
         if set_locale {
-            let _ = self.handle
-                .data(channel_id, CryptoVec::from_slice(b"export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8\n"))
-                .await;
+            let _ = channel.set_env(false, "LANG", "en_US.UTF-8").await;
+            let _ = channel.set_env(false, "LC_ALL", "en_US.UTF-8").await;
         }
+
+        channel.request_shell(true).await?;
 
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         self.pty_channel_id = Some(channel_id);
