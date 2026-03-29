@@ -559,8 +559,12 @@ function TerminalInstance({
     const termElForMouse = term.element;
     termElForMouse?.addEventListener("mousedown", handleMiddleClick);
 
-    // Initial resize notification
-    api.sessionResize(sessionId, term.cols, term.rows).catch(() => {});
+    // Initial resize notification — delay slightly so the server has time
+    // to finish sending MOTD/login banner before we trigger a redraw that
+    // causes some shells to re-emit the prompt and corrupt the display.
+    setTimeout(() => {
+      api.sessionResize(sessionId, term.cols, term.rows).catch(() => {});
+    }, 800);
 
     term.focus();
 

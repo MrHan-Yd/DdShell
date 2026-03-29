@@ -1553,6 +1553,26 @@ async fn download_update(app: tauri::AppHandle, url: String, filename: String) -
     Ok(dest_str)
 }
 
+/// Normalize \r\r\n -> \r\n in raw SSH output.
+/// Some servers/PAM modules send double CR which causes xterm to render
+/// the cursor mid-line over MOTD text.
+fn normalize_crlf(data: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(data.len());
+    let mut i = 0;
+    while i < data.len() {
+        // \r\r\n -> \r\n
+        if data[i] == b'\r' && i + 2 < data.len() && data[i + 1] == b'\r' && data[i + 2] == b'\n' {
+            out.push(b'\r');
+            out.push(b'\n');
+            i += 3;
+        } else {
+            out.push(data[i]);
+            i += 1;
+        }
+    }
+    out
+}
+
 /// Background async loop that reads SSH output and emits events.
 /// Owns the Channel exclusively — write goes through Handle, resize goes through mpsc.
 async fn output_reader_loop(
@@ -1580,13 +1600,16 @@ async fn output_reader_loop(
                 match msg {
                     Some(ChannelMsg::Data { ref data }) => {
                         tracing::debug!("[output_reader_loop] received {} bytes for session {}", data.len(), session_id);
+                        // Normalize \r\r\n -> \r\n: some servers/PAM send double CR
+                        // which causes the cursor to sit mid-line over MOTD text.
+                        let normalized: Vec<u8> = normalize_crlf(data);
+                        let output_data: &[u8] = &normalized;
                         if let Some(ref mut dec) = decoder {
-                            // Decode from source encoding to UTF-8
-                            let mut output = String::with_capacity(data.len() * 2);
-                            let (_result, _read, _had_errors) = dec.decode_to_string(data, &mut output, false);
+                            let mut output = String::with_capacity(output_data.len() * 2);
+                            let (_result, _read, _had_errors) = dec.decode_to_string(output_data, &mut output, false);
                             event::emit_session_output(&app, session_id, output.into_bytes());
                         } else {
-                            event::emit_session_output(&app, session_id, data.to_vec());
+                            event::emit_session_output(&app, session_id, output_data.to_vec());
                         }
                     }
                     Some(ChannelMsg::Eof) => {

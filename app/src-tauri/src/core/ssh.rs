@@ -208,6 +208,9 @@ impl SshSession {
         let channel = self.handle.channel_open_session().await?;
         let channel_id = channel.id();
 
+        // Set terminal modes: disable ICRNL (don't convert CR->NL on input)
+        // and enable OPOST+ONLCR (convert NL->CRNL on output).
+        // This matches what openssh client sends and ensures correct rendering.
         channel
             .request_pty(
                 true,
@@ -216,7 +219,11 @@ impl SshSession {
                 rows,
                 0,
                 0,
-                &[],
+                &[
+                    (russh::Pty::ICRNL, 0),   // disable: don't map CR to NL on input
+                    (russh::Pty::OPOST, 1),   // enable: output processing
+                    (russh::Pty::ONLCR, 1),   // enable: map NL to CR+NL on output
+                ],
             )
             .await?;
 
