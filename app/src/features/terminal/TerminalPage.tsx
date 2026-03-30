@@ -17,6 +17,7 @@ import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
 import { CommandAssist } from "./CommandAssist";
 import type { AssistPosition } from "./CommandAssist";
+import { useCommandAssistStore } from "@/stores/commandAssist";
 import "@xterm/xterm/css/xterm.css";
 
 /** Strip ANSI escape sequences and trim whitespace */
@@ -74,6 +75,8 @@ function TerminalInstance({
   const [assistPosition, setAssistPosition] = useState<AssistPosition>("bottom-left");
   // Cursor position relative to the terminal container (not screen)
   const [cursorPos, setCursorPos] = useState<{ col: number; row: number; charW: number; charH: number; offsetX: number; offsetY: number }>({ col: 0, row: 0, charW: 8, charH: 18, offsetX: 0, offsetY: 0 });
+  const geoRef = useRef({ charW: 8, charH: 18, offsetX: 0, offsetY: 0 });
+  const cursorRafRef = useRef<number | null>(null);
   const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [osType, setOsType] = useState<string | null>(null);
   const assistVisibleRef = useRef(false);
@@ -190,26 +193,17 @@ function TerminalInstance({
     }
 
     // Trigger!
+    assistVisibleRef.current = true;
+    const term = termRef.current;
+    const { charW, charH, offsetX, offsetY } = geoRef.current;
+    // Batch all state updates together to avoid multiple renders
     setAssistQuery(afterSlash.trim());
     setAssistVisible(true);
-    assistVisibleRef.current = true;
-
-    // Compute cursor position relative to the terminal container.
-    // NOTE: cursorX/Y are updated by onCursorMove below (after SSH echo).
-    // Here we just trigger the popup; position will update on next cursor move.
-    const term = termRef.current;
-    if (term && containerRef.current && term.element) {
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const termRect = term.element.getBoundingClientRect();
-      const charW = termRect.width / term.cols;
-      const charH = termRect.height / term.rows;
-      const offsetX = termRect.left - containerRect.left;
-      const offsetY = termRect.top - containerRect.top;
-      // Store charW/charH/offset AND current cursor position
+    if (term) {
       setCursorPos({
         col: term.buffer.active.cursorX,
         row: term.buffer.active.cursorY,
-        charW, charH, offsetX, offsetY
+        charW, charH, offsetX, offsetY,
       });
     }
   }, [t]);
@@ -240,8 +234,9 @@ function TerminalInstance({
     // Update buffer
     cmdBufferRef.current = buffer.substring(0, slashPos) + command;
 
-    // Update weight
+    // Update weight — also update local store weight
     api.commandAssistWeightUpdate(id).catch(() => {});
+    useCommandAssistStore.getState().updateLocalWeight(id);
 
     // Close assist
     setAssistVisible(false);
@@ -385,6 +380,17 @@ function TerminalInstance({
     fitAddonRef.current = fitAddon;
 
     fitAddon.fit();
+    const updateGeo = () => {
+      if (!containerRef.current || !term.element) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const termRect = term.element.getBoundingClientRect();
+      geoRef.current = {
+        charW: termRect.width / term.cols,
+        charH: termRect.height / term.rows,
+        offsetX: termRect.left - containerRect.left,
+        offsetY: termRect.top - containerRect.top,
+      };
+    };
     const resizeObserver = new ResizeObserver((entries) => {
       // Skip fit when container is hidden (width/height = 0) to avoid
       // sending bogus resize sequences that show up as visible characters
@@ -392,6 +398,7 @@ function TerminalInstance({
       if (width === 0 || height === 0) return;
       try { fitAddon.fit(); } catch { /* ignore if disposed */ }
       setContainerSize({ w: width, h: height });
+      updateGeo();
     });
     resizeObserver.observe(containerRef.current);
 
@@ -469,12 +476,12 @@ function TerminalInstance({
         }
       }
 
-      // Check for // trigger after buffer update
-      checkAssistTrigger(cmdBufferRef.current);
-
       const encoder = new TextEncoder();
       const bytes = Array.from(encoder.encode(data));
       api.sessionWrite(sid, bytes).catch((err) => toast.error(String(err)));
+
+      // Check for // trigger after sending data (async to avoid blocking input)
+      setTimeout(() => checkAssistTrigger(cmdBufferRef.current), 0);
     });
 
     // Handle resize -> SSH (skip when container is hidden)
@@ -485,17 +492,16 @@ function TerminalInstance({
 
     // Track cursor movement for follow-cursor command assist positioning
     const onCursorMove = term.onCursorMove(() => {
-      if (!assistVisibleRef.current || !containerRef.current || !term.element) return;
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const termRect = term.element.getBoundingClientRect();
-      const charW = termRect.width / term.cols;
-      const charH = termRect.height / term.rows;
-      const offsetX = termRect.left - containerRect.left;
-      const offsetY = termRect.top - containerRect.top;
-      setCursorPos({
-        col: term.buffer.active.cursorX,
-        row: term.buffer.active.cursorY,
-        charW, charH, offsetX, offsetY,
+      if (!assistVisibleRef.current) return;
+      if (cursorRafRef.current !== null) return;
+      cursorRafRef.current = requestAnimationFrame(() => {
+        cursorRafRef.current = null;
+        const { charW, charH, offsetX, offsetY } = geoRef.current;
+        setCursorPos({
+          col: term.buffer.active.cursorX,
+          row: term.buffer.active.cursorY,
+          charW, charH, offsetX, offsetY,
+        });
       });
     });
 
@@ -569,6 +575,10 @@ function TerminalInstance({
     term.focus();
 
     return () => {
+      if (cursorRafRef.current !== null) {
+        cancelAnimationFrame(cursorRafRef.current);
+        cursorRafRef.current = null;
+      }
       onData.dispose();
       onResize.dispose();
       onCursorMove.dispose();

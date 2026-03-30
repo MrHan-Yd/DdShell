@@ -101,6 +101,10 @@ export async function commandAssistRebuildIndex(): Promise<{ success: boolean }>
   return invoke("command_assist_rebuild_index");
 }
 
+export async function commandAssistGetAll(): Promise<CandidateItem[]> {
+  return invoke("command_assist_get_all");
+}
+
 // ── Snippet commands ──
 
 export async function snippetCreate(

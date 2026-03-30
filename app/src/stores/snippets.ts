@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Snippet } from "@/types";
 import * as api from "@/lib/tauri";
+import { useCommandAssistStore } from "@/stores/commandAssist";
 
 interface SnippetsState {
   snippets: Snippet[];
@@ -54,12 +55,14 @@ export const useSnippetsStore = create<SnippetsState>((set, get) => ({
   createSnippet: async (title, command, description, tags) => {
     const { id } = await api.snippetCreate(title, command, description, tags);
     await get().fetchSnippets();
+    useCommandAssistStore.getState().load();
     return id;
   },
 
   updateSnippet: async (id, title, command, description, tags) => {
     await api.snippetUpdate(id, title, command, description, tags);
     await get().fetchSnippets();
+    useCommandAssistStore.getState().load();
   },
 
   deleteSnippet: async (id) => {
@@ -69,5 +72,6 @@ export const useSnippetsStore = create<SnippetsState>((set, get) => ({
       set({ selectedSnippetId: null });
     }
     await get().fetchSnippets();
+    useCommandAssistStore.getState().load();
   },
 }));

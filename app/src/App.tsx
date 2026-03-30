@@ -12,6 +12,7 @@ import { SftpPage } from "@/features/sftp/SftpPage";
 import { SnippetsPage } from "@/features/snippets/SnippetsPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { MonitorPage } from "@/features/monitor/MonitorPage";
+import { useCommandAssistStore } from "@/stores/commandAssist";
 import * as api from "@/lib/tauri";
 import type { Locale } from "@/lib/i18n";
 import type { Page } from "@/types";
@@ -56,6 +57,11 @@ export default function App() {
 
   // Register global + page shortcuts
   useShortcuts();
+
+  // Load command assist data into memory on mount
+  useEffect(() => {
+    useCommandAssistStore.getState().load();
+  }, []);
 
   // Load locale and UI font settings from backend on mount + when settings change
   useEffect(() => {

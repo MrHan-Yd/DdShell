@@ -118,6 +118,46 @@ impl LruCache {
     }
 }
 
+// ── LRU cache for weights (hot-key protection) ──
+
+struct WeightsLruCache {
+    capacity: usize,
+    entries: Vec<(String, f64)>,
+}
+
+impl WeightsLruCache {
+    fn new(capacity: usize) -> Self {
+        Self {
+            capacity,
+            entries: Vec::with_capacity(capacity.min(64)),
+        }
+    }
+
+    fn get(&mut self, key: &str) -> Option<f64> {
+        if let Some(pos) = self.entries.iter().position(|(k, _)| k == key) {
+            let entry = self.entries.remove(pos);
+            let val = entry.1;
+            self.entries.push(entry);
+            Some(val)
+        } else {
+            None
+        }
+    }
+
+    fn insert(&mut self, key: String, value: f64) {
+        if let Some(pos) = self.entries.iter().position(|(k, _)| k == &key) {
+            self.entries.remove(pos);
+        } else if self.entries.len() >= self.capacity {
+            self.entries.remove(0); // evict LRU
+        }
+        self.entries.push((key, value));
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+    }
+}
+
 // ── Built-in Commands ──
 
 struct BuiltinCommand {
@@ -220,6 +260,7 @@ fn builtin_commands() -> Vec<BuiltinCommand> {
 pub struct CommandAssistEngine {
     trie: Mutex<TrieNode>,
     cache: Mutex<LruCache>,
+    weights_cache: Mutex<WeightsLruCache>,
     pool: SqlitePool,
 }
 
@@ -228,6 +269,7 @@ impl CommandAssistEngine {
         let engine = Arc::new(Self {
             trie: Mutex::new(TrieNode::default()),
             cache: Mutex::new(LruCache::new(128)),
+            weights_cache: Mutex::new(WeightsLruCache::new(500)),
             pool,
         });
         engine
@@ -274,6 +316,14 @@ impl CommandAssistEngine {
         *self.trie.lock() = trie;
         self.cache.lock().clear();
 
+        // Reload weights into memory cache
+        let weights = self.load_weights().await;
+        let mut wc = self.weights_cache.lock();
+        wc.clear();
+        for (k, v) in weights {
+            wc.insert(k, v);
+        }
+
         Ok(())
     }
 
@@ -319,14 +369,11 @@ impl CommandAssistEngine {
                 .collect()
         };
 
-        // Load weights from DB asynchronously
-        let weights = self.load_weights().await;
-
         // Build candidates with weights + OS priority
         let mut candidates: Vec<CandidateItem> = matched_entries
             .into_iter()
             .map(|e| {
-                let weight = weights.get(&e.id).copied().unwrap_or(0.0);
+                let weight = self.weights_cache.lock().get(&e.id).unwrap_or(0.0);
                 CandidateItem {
                     id: e.id.clone(),
                     title: e.title.clone(),
@@ -383,15 +430,8 @@ impl CommandAssistEngine {
     pub async fn update_weight(&self, key: &str) -> anyhow::Result<()> {
         let now = chrono::Utc::now().to_rfc3339();
 
-        // Get current score
-        let current: Option<(f64,)> = sqlx::query_as(
-            "SELECT score FROM snippet_weights WHERE snippet_key = ?",
-        )
-        .bind(key)
-        .fetch_optional(&self.pool)
-        .await?;
-
-        let old_score = current.map(|(s,)| s).unwrap_or(0.0);
+        // Get current score from memory cache
+        let old_score = self.weights_cache.lock().get(key).unwrap_or(0.0);
         let new_score = old_score * 0.9 + 1.0;
 
         sqlx::query(
@@ -404,7 +444,8 @@ impl CommandAssistEngine {
         .execute(&self.pool)
         .await?;
 
-        // Invalidate cache since weights changed
+        // Update memory cache and invalidate search cache
+        self.weights_cache.lock().insert(key.to_string(), new_score);
         self.cache.lock().clear();
 
         Ok(())
@@ -415,6 +456,7 @@ impl CommandAssistEngine {
         sqlx::query("DELETE FROM snippet_weights")
             .execute(&self.pool)
             .await?;
+        self.weights_cache.lock().clear();
         self.cache.lock().clear();
         Ok(())
     }
@@ -429,5 +471,42 @@ impl CommandAssistEngine {
         .unwrap_or_default();
 
         rows.into_iter().collect()
+    }
+
+    /// Return all candidates with current weights, deduplicated by id.
+    pub async fn get_all(&self) -> Vec<CandidateItem> {
+        let all_entries: Vec<TrieEntry> = {
+            let trie = self.trie.lock();
+            let mut stack: Vec<&TrieNode> = vec![&*trie];
+            let mut entries: Vec<&TrieEntry> = Vec::new();
+            while let Some(node) = stack.pop() {
+                entries.extend(node.entries.iter());
+                for child in node.children.values() {
+                    stack.push(child);
+                }
+            }
+            let mut seen = std::collections::HashSet::new();
+            entries
+                .into_iter()
+                .filter(|e| seen.insert(e.id.clone()))
+                .cloned()
+                .collect()
+        };
+
+        all_entries
+            .into_iter()
+            .map(|e| {
+                let weight = self.weights_cache.lock().get(&e.id).unwrap_or(0.0);
+                CandidateItem {
+                    id: e.id,
+                    title: e.title,
+                    command: e.command,
+                    description: e.description,
+                    source: e.source,
+                    distro: e.distro,
+                    weight,
+                }
+            })
+            .collect()
     }
 }

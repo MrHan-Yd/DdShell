@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useCallback, useLayoutEffect } from "react";
 import { Command, Globe, User, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import * as api from "@/lib/tauri";
 import type { CandidateItem } from "@/lib/tauri";
+import { useCommandAssistStore } from "@/stores/commandAssist";
 import { useT } from "@/lib/i18n";
 
 export type AssistPosition = "bottom-left" | "bottom-right" | "follow-cursor";
@@ -50,18 +50,17 @@ export function CommandAssist({
   onClose,
 }: CommandAssistProps) {
   const t = useT();
+  const storeSearch = useCommandAssistStore((s) => s.search);
   const [items, setItems] = useState<CandidateItem[]>([]);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [computedStyle, setComputedStyle] = useState<React.CSSProperties>({});
 
-  // Search when query changes
+  // Synchronous search — no IPC, no debounce needed
   useEffect(() => {
     if (!visible || !query) {
       setItems([]);
@@ -71,45 +70,23 @@ export function CommandAssist({
       setSelectedIndex(0);
       return;
     }
+    const result = storeSearch(query, osType, 0);
+    setItems(result.items);
+    setTotal(result.total);
+    setHasMore(result.hasMore);
+    setPage(0);
+    setSelectedIndex(0);
+  }, [query, osType, visible, storeSearch]);
 
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const result = await api.commandAssistSearch(query, osType, 0);
-        setItems(result.items);
-        setTotal(result.total);
-        setHasMore(result.hasMore);
-        setPage(0);
-        setSelectedIndex(0);
-      } catch {
-        setItems([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 80);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [query, osType, visible]);
-
-  // Load more pages
-  const loadMore = useCallback(async () => {
-    if (!hasMore || loading) return;
+  // Load more pages (still synchronous)
+  const loadMore = useCallback(() => {
+    if (!hasMore) return;
     const nextPage = page + 1;
-    setLoading(true);
-    try {
-      const result = await api.commandAssistSearch(query, osType, nextPage);
-      setItems((prev) => [...prev, ...result.items]);
-      setHasMore(result.hasMore);
-      setPage(nextPage);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
-  }, [hasMore, loading, page, query, osType]);
+    const result = storeSearch(query, osType, nextPage);
+    setItems((prev) => [...prev, ...result.items]);
+    setHasMore(result.hasMore);
+    setPage(nextPage);
+  }, [hasMore, page, query, osType, storeSearch]);
 
   // Keyboard handler
   const handleKeyDown = useCallback(
@@ -168,7 +145,6 @@ export function CommandAssist({
   }, [visible]);
 
   // ── Position calculation (all coordinates relative to container) ──
-  // Run after every render so popupRef.current?.offsetHeight is accurate.
   useLayoutEffect(() => {
     if (!visible || items.length === 0 || !popupRef.current) return;
 
@@ -188,15 +164,12 @@ export function CommandAssist({
 
       let top: number;
       if (spaceBelow >= popupH) {
-        // Room below: place just under cursor line
         top = cursorBottom + 2;
       } else {
-        // Not enough below: place just above cursor line, as close as possible
         top = cursorY - popupH - 2;
         if (top < EDGE_MARGIN) top = EDGE_MARGIN;
       }
 
-      // Horizontal: start from left edge of container, offset by cursor position
       let left = cursorX + charW * 2;
       if (left + popupW > cw - EDGE_MARGIN) left = cw - EDGE_MARGIN - popupW;
       if (left < EDGE_MARGIN) left = EDGE_MARGIN;
@@ -208,7 +181,6 @@ export function CommandAssist({
       if (right + popupW > cw - EDGE_MARGIN) right = cw - EDGE_MARGIN - popupW;
       style = { right, bottom };
     } else {
-      // bottom-left
       let left = EDGE_MARGIN;
       const bottom = EDGE_MARGIN;
       if (left + popupW > cw - EDGE_MARGIN) left = cw - EDGE_MARGIN - popupW;
@@ -306,13 +278,17 @@ export function CommandAssist({
             </div>
           </div>
         ))}
+        {hasMore && (
+          <div className="px-3 py-1.5 text-center">
+            <button
+              onClick={loadMore}
+              className="text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+            >
+              {t("commandAssist.scrollMore")}
+            </button>
+          </div>
+        )}
       </div>
-
-      {hasMore && (
-        <div className="border-t border-[var(--color-border)] px-3 py-1 text-center text-[9px] text-[var(--color-text-muted)]">
-          {t("commandAssist.scrollMore")}
-        </div>
-      )}
     </div>
   );
 }

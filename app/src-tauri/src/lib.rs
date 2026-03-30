@@ -340,6 +340,13 @@ async fn command_assist_rebuild_index(
     Ok(SuccessResponse { success: true })
 }
 
+#[tauri::command]
+async fn command_assist_get_all(
+    engine: tauri::State<'_, std::sync::Arc<CommandAssistEngine>>,
+) -> Result<Vec<core::command_assist::CandidateItem>, String> {
+    Ok(engine.get_all().await)
+}
+
 // ── Commands: Settings ──
 
 #[tauri::command]
@@ -1743,6 +1750,7 @@ pub fn run() {
             command_assist_weight_update,
             command_assist_weight_reset,
             command_assist_rebuild_index,
+            command_assist_get_all,
             setting_get,
             setting_set,
             session_connect,
