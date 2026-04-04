@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { TerminalTab, SessionState } from "@/types";
 import * as api from "@/lib/tauri";
+import { useSftpStore } from "@/stores/sftp";
 
 export type SplitDirection = "horizontal" | "vertical" | null;
 
@@ -56,6 +57,14 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         await api.sessionDisconnect(tab.sessionId);
       } catch {
         // session may already be gone
+      }
+    }
+
+    // Close associated SFTP session if connected to this terminal
+    if (tab) {
+      const sftpState = useSftpStore.getState();
+      if (sftpState.sessionId === tab.sessionId) {
+        sftpState.setSessionId(null);
       }
     }
 
