@@ -319,12 +319,96 @@ function LocalFileIcon({ entry }: { entry: LocalFileEntry }) {
   return <File size={16} className="text-[var(--color-text-muted)]" />;
 }
 
+// ── Upload fly animation ──
+
+function UploadFlyAnimation({
+  containerRef,
+  onAnimationEnd,
+}: {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  onAnimationEnd: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const el = ref.current;
+    if (!container || !el) {
+      onAnimationEnd();
+      return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const pad = 12; // p-3
+    const gap = 12; // gap-3
+    const panelW = (rect.width - pad * 2 - gap) / 2;
+
+    // Start: local panel center
+    const sx = pad + panelW * 0.5;
+    const sy = rect.height * 0.38;
+    // Wall: remote panel RIGHT border (subtract icon width so icon's right edge aligns with border)
+    const iconW = 28; // w-7 = 28px
+    const wallX = pad + panelW + gap + panelW - iconW;
+    // End: bounce back just a tiny bit from wall
+    const ex = wallX - panelW * 0.04;
+
+    // Pre-compute deltas from start point for GPU-accelerated transform animation.
+    // Using translate() instead of left/top avoids layout thrashing — silky smooth.
+    const midDx = (wallX - sx) / 2;
+    const wallDx = wallX - sx;
+    const bounceDx = ex - sx;
+
+    // Set base position once — all movement is done via transform (compositor thread)
+    el.style.left = `${sx}px`;
+    el.style.top = `${sy}px`;
+
+    const anim = el.animate(
+      [
+        // 0% — appear
+        { transform: "translate(0px, 0px) scale(0.5)", opacity: 0 },
+        // 5% — pop up
+        { transform: "translate(0px, 0px) scale(1)", opacity: 1 },
+        // 30% — mid-flight, rising arc
+        { transform: `translate(${midDx}px, -40px) scale(1)`, opacity: 1 },
+        // 55% — hit wall + squish (merged: no pause between reach and squish)
+        { transform: `translate(${wallDx}px, 0px) scaleX(0.72) scaleY(1.2)`, opacity: 1 },
+        // 68% — tiny bounce back, recovering shape
+        { transform: `translate(${bounceDx}px, 0px) scaleX(1.05) scaleY(0.95)`, opacity: 0.9 },
+        // 82% — settle
+        { transform: `translate(${bounceDx}px, 0px) scale(1)`, opacity: 0.5 },
+        // 100% — fade out
+        { transform: `translate(${bounceDx}px, 0px) scale(0.9)`, opacity: 0 },
+      ],
+      {
+        duration: 900,
+        easing: "linear",
+        fill: "forwards",
+      },
+    );
+    anim.onfinish = onAnimationEnd;
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute z-50 pointer-events-none"
+      style={{ willChange: "transform, opacity" }}
+    >
+      <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[var(--color-accent)] shadow-lg shadow-[var(--color-accent)]/30">
+        <Upload size={14} className="text-white" />
+      </div>
+    </div>
+  );
+}
+
 function LocalFileList({
   sessionId,
   remotePath,
+  onUploadStart,
 }: {
   sessionId: string;
   remotePath: string;
+  onUploadStart?: () => void;
 }) {
   const t = useT();
   const [localPath, setLocalPath] = useState<string>("");
@@ -416,6 +500,7 @@ function LocalFileList({
   const registerBatch = useSftpStore((s) => s.registerBatch);
 
   const handleUploadSelected = useCallback(async () => {
+    onUploadStart?.();
     const selectedNames = Array.from(selected);
 
     if (selectedNames.length === 0) {
@@ -495,7 +580,7 @@ function LocalFileList({
     } catch (err) {
       toast.error(String(err));
     }
-  }, [selected, entries, localPath, sessionId, remotePath, getAllFiles, refreshTransfers, addUploadingEntry, registerBatch]);
+  }, [selected, entries, localPath, sessionId, remotePath, getAllFiles, refreshTransfers, addUploadingEntry, registerBatch, onUploadStart]);
 
   return (
     <div className="flex flex-1 flex-col border rounded-[var(--radius-card)] border-[var(--color-border)] overflow-hidden">
@@ -509,7 +594,7 @@ function LocalFileList({
         {selected.size > 0 && (
           <Button size="sm" onClick={handleUploadSelected} title="Upload selected files">
             <Upload size={12} className="mr-1" />
-            Upload ({selected.size})
+            {t("sftp.upload")} ({selected.size})
           </Button>
         )}
         <Button size="icon" variant="ghost" onClick={goUp} title="Go up">
@@ -1577,6 +1662,9 @@ export function SftpPage() {
   const refreshTransfers = useSftpStore((s) => s.refreshTransfers);
   const transfers = useSftpStore((s) => s.transfers);
 
+  const dualPaneRef = useRef<HTMLDivElement>(null);
+  const [showUploadAnim, setShowUploadAnim] = useState(false);
+
   // Use refs to get latest values in event listeners
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
@@ -1638,9 +1726,15 @@ export function SftpPage() {
       </div>
 
       {/* Dual-pane file browser */}
-      <div className="flex flex-1 overflow-hidden p-3 gap-3">
-        <LocalFileList sessionId={sessionId} remotePath={remotePath} />
+      <div className="relative flex flex-1 overflow-hidden p-3 gap-3" ref={dualPaneRef}>
+        <LocalFileList sessionId={sessionId} remotePath={remotePath} onUploadStart={() => setShowUploadAnim(true)} />
         <RemoteFileList />
+        {showUploadAnim && (
+          <UploadFlyAnimation
+            containerRef={dualPaneRef}
+            onAnimationEnd={() => setShowUploadAnim(false)}
+          />
+        )}
       </div>
 
       {/* Transfer queue */}
