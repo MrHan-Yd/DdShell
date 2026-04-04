@@ -572,11 +572,9 @@ function LocalFileList({
 
       // Don't refreshRemote here — uploads run in background, virtual entries
       // would be wiped. The transfer:completed event triggers refresh instead.
+      // Register batch BEFORE refreshTransfers to avoid race condition with fast transfers
+      registerBatch(allTaskIds, "upload");
       await refreshTransfers();
-      // Register batch for summary toast on completion
-      if (allTaskIds.length > 1) {
-        registerBatch(allTaskIds, "upload");
-      }
     } catch (err) {
       toast.error(String(err));
     }
@@ -945,9 +943,7 @@ function RemoteFileList() {
         }
         // Register batch for summary toast on completion
         const validTaskIds = taskIds.filter(Boolean) as string[];
-        if (validTaskIds.length > 1) {
-          registerBatchDrop(validTaskIds, "upload");
-        }
+        registerBatchDrop(validTaskIds, "upload");
       } catch (err) {
         toast.error(String(err));
       }
@@ -1320,9 +1316,7 @@ function RemoteFileList() {
                     useSftpStore.getState().refreshTransfers();
                     // Register batch for summary toast
                     const validIds = results.filter((r): r is { id: string } => "id" in r).map((r) => r.id);
-                    if (validIds.length > 1) {
-                      useSftpStore.getState().registerBatch(validIds, "download");
-                    }
+                    useSftpStore.getState().registerBatch(validIds, "download");
                   }
                 } catch {
                   toast.error("Failed to scan directory");

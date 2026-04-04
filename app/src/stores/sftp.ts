@@ -287,17 +287,36 @@ export const useSftpStore = create<SftpState>((set, get) => ({
   },
 
   registerBatch: (taskIds, direction) => {
-    if (taskIds.length <= 1) return; // Single file doesn't need batch tracking
-    const batchId = `batch_${Date.now()}`;
+    if (taskIds.length === 0) return;
     set((s) => {
       const newBatches = new Map(s.activeBatches);
-      newBatches.set(batchId, {
-        taskIds: new Set(taskIds),
-        completed: 0,
-        failed: 0,
-        total: taskIds.length,
-        direction,
-      });
+      // Merge into existing active batch of the same direction
+      let existingKey: string | null = null;
+      for (const [key, batch] of newBatches) {
+        if (batch.direction === direction) {
+          existingKey = key;
+          break;
+        }
+      }
+      if (existingKey) {
+        const existing = newBatches.get(existingKey)!;
+        const mergedTaskIds = new Set(existing.taskIds);
+        for (const id of taskIds) mergedTaskIds.add(id);
+        newBatches.set(existingKey, {
+          ...existing,
+          taskIds: mergedTaskIds,
+          total: mergedTaskIds.size,
+        });
+      } else {
+        const batchId = `batch_${Date.now()}`;
+        newBatches.set(batchId, {
+          taskIds: new Set(taskIds),
+          completed: 0,
+          failed: 0,
+          total: taskIds.length,
+          direction,
+        });
+      }
       return { activeBatches: newBatches };
     });
   },
@@ -354,10 +373,9 @@ export function initSftpListeners() {
         });
       }, 1500);
 
-      // Single file (not in batch) → refresh and toast
+      // Single file (not in batch) → refresh
+      // Toast is handled by batch completion for all uploads (including single file)
       if (!batchKey) {
-        const locale = useAppStore.getState().locale;
-        toast.success(t("sftp.uploaded", locale));
         setTimeout(() => {
           useSftpStore.getState().refreshRemote();
         }, 1500);
