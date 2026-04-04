@@ -413,6 +413,7 @@ function LocalFileList({
 
   const refreshTransfers = useSftpStore((s) => s.refreshTransfers);
   const addUploadingEntry = useSftpStore((s) => s.addUploadingEntry);
+  const registerBatch = useSftpStore((s) => s.registerBatch);
 
   const handleUploadSelected = useCallback(async () => {
     const selectedNames = Array.from(selected);
@@ -469,6 +470,7 @@ function LocalFileList({
 
     try {
       // Upload files and register each with its taskId for reliable progress tracking
+      const allTaskIds: string[] = [];
       for (const task of uploadTasks) {
         const taskIds = await api.sftpUploadFiles(sessionId, task.localPaths, task.remoteDir);
         // taskIds[i] corresponds to task.localPaths[i] — map by index
@@ -479,21 +481,21 @@ function LocalFileList({
           if (localEntry && taskIds[i]) {
             addUploadingEntry(fileName, localEntry.size, taskIds[i]);
           }
+          if (taskIds[i]) allTaskIds.push(taskIds[i]);
         }
       }
 
       // Don't refreshRemote here — uploads run in background, virtual entries
       // would be wiped. The transfer:completed event triggers refresh instead.
       await refreshTransfers();
-      if (totalFiles === 1) {
-        toast.success(t("sftp.uploaded"));
-      } else {
-        toast.success(t("sftp.uploadedFiles", { n: totalFiles }));
+      // Register batch for summary toast on completion
+      if (allTaskIds.length > 1) {
+        registerBatch(allTaskIds, "upload");
       }
     } catch (err) {
       toast.error(String(err));
     }
-  }, [selected, entries, localPath, sessionId, remotePath, getAllFiles, refreshTransfers, addUploadingEntry]);
+  }, [selected, entries, localPath, sessionId, remotePath, getAllFiles, refreshTransfers, addUploadingEntry, registerBatch]);
 
   return (
     <div className="flex flex-1 flex-col border rounded-[var(--radius-card)] border-[var(--color-border)] overflow-hidden">
@@ -818,6 +820,7 @@ function RemoteFileList() {
   }, []);
 
   const addUploadingEntryDrop = useSftpStore((s) => s.addUploadingEntry);
+  const registerBatchDrop = useSftpStore((s) => s.registerBatch);
 
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
@@ -855,16 +858,16 @@ function RemoteFileList() {
             addUploadingEntryDrop(fileName, size, taskIds[i]);
           }
         }
-        if (paths.length === 1) {
-          toast.success(t("sftp.uploaded"));
-        } else {
-          toast.success(t("sftp.uploadedFiles", { n: paths.length }));
+        // Register batch for summary toast on completion
+        const validTaskIds = taskIds.filter(Boolean) as string[];
+        if (validTaskIds.length > 1) {
+          registerBatchDrop(validTaskIds, "upload");
         }
       } catch (err) {
         toast.error(String(err));
       }
     },
-    [sessionId, remotePath, t, addUploadingEntryDrop],
+    [sessionId, remotePath, t, addUploadingEntryDrop, registerBatchDrop],
   );
 
   const handleDoubleClick = useCallback(
@@ -1230,7 +1233,11 @@ function RemoteFileList() {
                       toast.error(`Failed to start ${failed.length} download(s)`);
                     }
                     useSftpStore.getState().refreshTransfers();
-                    toast.success(t("sftp.downloadStarted"));
+                    // Register batch for summary toast
+                    const validIds = results.filter((r): r is { id: string } => "id" in r).map((r) => r.id);
+                    if (validIds.length > 1) {
+                      useSftpStore.getState().registerBatch(validIds, "download");
+                    }
                   }
                 } catch {
                   toast.error("Failed to scan directory");

@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { listen } from "@tauri-apps/api/event";
 import type { FileEntry, TransferTask, TransferDirection } from "@/types";
+import { t } from "@/lib/i18n";
+import { useAppStore } from "@/stores/app";
+import { toast } from "@/stores/toast";
 import * as api from "@/lib/tauri";
 
 interface SftpState {
@@ -14,6 +17,7 @@ interface SftpState {
   uploadingFiles: Map<string, number>; // name -> totalSize for files being uploaded
   taskIdToName: Map<string, string>; // taskId -> name
   completedUploads: Set<string>; // names of recently completed uploads (for fade-out)
+  activeBatches: Map<string, { taskIds: Set<string>; completed: number; failed: number; total: number; direction: TransferDirection }>;
 
   setSessionId: (id: string | null) => void;
   navigateRemote: (path: string) => Promise<void>;
@@ -34,6 +38,7 @@ interface SftpState {
   updateTransferProgress: (taskId: string, transferred: number, total: number, speed?: number) => void;
   markTransferCompleted: (taskId: string) => void;
   markTransferFailed: (taskId: string, error: string) => void;
+  registerBatch: (taskIds: string[], direction: TransferDirection) => void;
 }
 
 export const useSftpStore = create<SftpState>((set, get) => ({
@@ -47,6 +52,7 @@ export const useSftpStore = create<SftpState>((set, get) => ({
   uploadingFiles: new Map(),
   taskIdToName: new Map(),
   completedUploads: new Set(),
+  activeBatches: new Map(),
 
   setSessionId: (id) => {
     set({ sessionId: id, remotePath: "/", remoteEntries: [], error: null, uploadingFiles: new Map(), taskIdToName: new Map(), completedUploads: new Set() });
@@ -279,6 +285,22 @@ export const useSftpStore = create<SftpState>((set, get) => ({
       ),
     }));
   },
+
+  registerBatch: (taskIds, direction) => {
+    if (taskIds.length <= 1) return; // Single file doesn't need batch tracking
+    const batchId = `batch_${Date.now()}`;
+    set((s) => {
+      const newBatches = new Map(s.activeBatches);
+      newBatches.set(batchId, {
+        taskIds: new Set(taskIds),
+        completed: 0,
+        failed: 0,
+        total: taskIds.length,
+        direction,
+      });
+      return { activeBatches: newBatches };
+    });
+  },
 }));
 
 // Set up event listeners for transfer events
@@ -306,6 +328,15 @@ export function initSftpListeners() {
     const state = useSftpStore.getState();
     const task = state.transfers.find((t) => t.id === event.payload.taskId);
 
+    // Check if this task belongs to a batch
+    let batchKey: string | null = null;
+    for (const [key, batch] of state.activeBatches) {
+      if (batch.taskIds.has(event.payload.taskId)) {
+        batchKey = key;
+        break;
+      }
+    }
+
     if (task && task.direction === "upload") {
       const remotePath = task.remotePath;
       const filename = remotePath.split("/").pop() || "";
@@ -314,18 +345,66 @@ export function initSftpListeners() {
       useSftpStore.setState((s) => ({
         completedUploads: new Set(s.completedUploads).add(filename),
       }));
-      // After fade-out animation, remove and refresh
+      // After fade-out animation, remove from completedUploads
       setTimeout(() => {
         useSftpStore.setState((s) => {
           const next = new Set(s.completedUploads);
           next.delete(filename);
           return { completedUploads: next };
         });
-        useSftpStore.getState().refreshRemote();
       }, 1500);
+
+      // Single file (not in batch) → refresh and toast
+      if (!batchKey) {
+        const locale = useAppStore.getState().locale;
+        toast.success(t("sftp.uploaded", locale));
+        setTimeout(() => {
+          useSftpStore.getState().refreshRemote();
+        }, 1500);
+      }
     }
 
     state.markTransferCompleted(event.payload.taskId);
+
+    // Single file (not upload, not in batch) — e.g. download
+    if (!batchKey && task && task.direction === "download") {
+      const locale = useAppStore.getState().locale;
+      toast.success(t("sftp.downloaded", locale));
+    }
+
+    // Update batch progress
+    if (batchKey) {
+      const batch = useSftpStore.getState().activeBatches.get(batchKey);
+      if (!batch) return;
+      const newCompleted = batch.completed + 1;
+      const allDone = newCompleted + batch.failed >= batch.total;
+
+      if (allDone) {
+        // Remove batch
+        useSftpStore.setState((s) => {
+          const newBatches = new Map(s.activeBatches);
+          newBatches.delete(batchKey!);
+          return { activeBatches: newBatches };
+        });
+        // Show summary toast
+        const locale = useAppStore.getState().locale;
+        if (batch.failed === 0) {
+          toast.success(t("sftp.batchAllSuccess", locale, { n: batch.total }));
+        } else {
+          toast.info(t("sftp.batchSummary", locale, { success: newCompleted, failed: batch.failed }));
+        }
+        // Refresh once for the whole batch (uploads only)
+        if (batch.direction === "upload") {
+          setTimeout(() => useSftpStore.getState().refreshRemote(), 500);
+        }
+      } else {
+        useSftpStore.setState((s) => {
+          const newBatches = new Map(s.activeBatches);
+          newBatches.set(batchKey!, { ...batch, completed: newCompleted });
+          return { activeBatches: newBatches };
+        });
+      }
+    }
   });
 
   listen<{ taskId: string; error: string }>("transfer:failed", (event) => {
@@ -343,5 +422,45 @@ export function initSftpListeners() {
     useSftpStore
       .getState()
       .markTransferFailed(event.payload.taskId, event.payload.error);
+
+    // Update batch progress
+    const currentState = useSftpStore.getState();
+    let batchKey: string | null = null;
+    for (const [key, batch] of currentState.activeBatches) {
+      if (batch.taskIds.has(event.payload.taskId)) {
+        batchKey = key;
+        break;
+      }
+    }
+
+    if (batchKey) {
+      const batch = currentState.activeBatches.get(batchKey);
+      if (!batch) return;
+      const newFailed = batch.failed + 1;
+      const allDone = batch.completed + newFailed >= batch.total;
+
+      if (allDone) {
+        useSftpStore.setState((s) => {
+          const newBatches = new Map(s.activeBatches);
+          newBatches.delete(batchKey!);
+          return { activeBatches: newBatches };
+        });
+        const locale = useAppStore.getState().locale;
+        if (batch.completed === 0) {
+          toast.error(t("sftp.batchSummary", locale, { success: 0, failed: newFailed }));
+        } else {
+          toast.info(t("sftp.batchSummary", locale, { success: batch.completed, failed: newFailed }));
+        }
+        if (batch.direction === "upload") {
+          setTimeout(() => useSftpStore.getState().refreshRemote(), 500);
+        }
+      } else {
+        useSftpStore.setState((s) => {
+          const newBatches = new Map(s.activeBatches);
+          newBatches.set(batchKey!, { ...batch, failed: newFailed });
+          return { activeBatches: newBatches };
+        });
+      }
+    }
   });
 }

@@ -7,7 +7,7 @@ use futures_util::StreamExt;
 use russh::ChannelMsg;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
-use tauri_plugin_notification::NotificationExt;
+
 
 use crate::core::command_assist::CommandAssistEngine;
 use crate::core::event;
@@ -655,14 +655,6 @@ async fn sftp_transfer_start(
         .map(|v| v.parse().unwrap_or(3))
         .unwrap_or(3);
 
-    // Get notify setting (default true)
-    let notify_enabled: bool = db
-        .get_setting("transfer.notify")
-        .await
-        .unwrap_or(None)
-        .map(|v| v != "false")
-        .unwrap_or(true);
-
     // Spawn background transfer with semaphore-based concurrency control
     let sem = sftp_mgr.concurrency_semaphore();
 
@@ -693,20 +685,6 @@ async fn sftp_transfer_start(
                     if let Some(task) = sftp_mgr_clone.get_task(&tid) {
                         if task.state == core::sftp::TransferState::Completed {
                             event::emit_transfer_completed(&app_handle, &tid);
-
-                            // Send notification if enabled
-                            if notify_enabled {
-                                let filename = std::path::Path::new(&task.remote_path)
-                                    .file_name()
-                                    .and_then(|n| n.to_str())
-                                    .unwrap_or("file");
-                                let direction = if is_upload { "上传" } else { "下载" };
-                                let _ = app_handle.notification()
-                                    .builder()
-                                    .title("传输完成")
-                                    .body(&format!("{} {} 成功", direction, filename))
-                                    .show();
-                            }
                         }
                     }
                     break;
@@ -966,14 +944,6 @@ async fn sftp_upload_files(
         .map(|v| v.parse().unwrap_or(3))
         .unwrap_or(3);
 
-    // Get notify setting (default true)
-    let notify_enabled: bool = db
-        .get_setting("transfer.notify")
-        .await
-        .unwrap_or(None)
-        .map(|v| v != "false")
-        .unwrap_or(true);
-
     // Use global concurrency semaphore
     let semaphore = sftp_mgr.concurrency_semaphore();
     let mut handles = Vec::new();
@@ -1012,7 +982,6 @@ async fn sftp_upload_files(
         let sftp_mgr_clone = sftp_mgr.inner().clone();
         let session_mgr_clone = session_mgr.inner().clone();
         let app_handle = app.clone();
-        let filename = file_name.clone();
         let sem_clone = semaphore.clone();
         let task_id_clone = task_id.clone();
 
@@ -1034,15 +1003,6 @@ async fn sftp_upload_files(
                         if let Some(task) = sftp_mgr_clone.get_task(&task_id_clone) {
                             if task.state == core::sftp::TransferState::Completed {
                                 event::emit_transfer_completed(&app_handle, &task_id_clone);
-
-                                // Send notification if enabled
-                                if notify_enabled {
-                                    let _ = app_handle.notification()
-                                        .builder()
-                                        .title("传输完成")
-                                        .body(&format!("上传 {} 成功", filename))
-                                        .show();
-                                }
                             }
                         }
                         break;
