@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, Search, Server, Folder, Trash2, Pencil, Star, StarOff, Loader2, Zap, Upload, Check, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Search, Server, Folder, Trash2, Pencil, Star, StarOff, Zap, Upload, Check, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -222,7 +222,7 @@ function SshConfigImportPanel({
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center p-8">
-        <Loader2 size={20} className="animate-spin text-[var(--color-text-muted)]" />
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-text-muted)] border-t-transparent" />
       </div>
     );
   }
@@ -234,7 +234,7 @@ function SshConfigImportPanel({
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={onDone}>{t("conn.cancel")}</Button>
           <Button onClick={handleImport} disabled={selected.size === 0 || importing}>
-            {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+            {importing ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Upload size={14} />}
             Import ({selected.size})
           </Button>
         </div>
@@ -639,7 +639,7 @@ function HostDetail({
           <dt className="text-[var(--color-text-muted)]">{t("form.username")}</dt>
           <dd>{host.username}</dd>
           <dt className="text-[var(--color-text-muted)]">{t("form.authType")}</dt>
-          <dd className="capitalize">{host.authType}</dd>
+          <dd>{host.authType === "password" ? t("form.password") : t("form.publicKey")}</dd>
           <dt className="text-[var(--color-text-muted)]">{t("form.created")}</dt>
           <dd>{new Date(host.createdAt).toLocaleString()}</dd>
           {host.lastConnectedAt && (
@@ -675,7 +675,7 @@ function HostDetail({
         >
           {connecting ? (
             <>
-              <Loader2 size={16} className="animate-spin" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               {t("conn.connecting")}
             </>
           ) : (
@@ -691,7 +691,7 @@ function HostDetail({
         >
           {testing ? (
             <>
-              <Loader2 size={16} className="animate-spin" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               {t("conn.testing")}
             </>
           ) : (

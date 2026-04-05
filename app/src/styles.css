@@ -114,6 +114,12 @@
   --border-hairline-outer: 0 0.5px 0 rgba(0, 0, 0, 0.08);
 }
 
+/* ── SVG spinner wobble fix ── */
+svg.animate-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 /* ── Base Reset ── */
 *,
 *::before,
@@ -365,6 +371,36 @@ body {
 }
 .toggle-switch[data-state="on"]:active .toggle-thumb {
   left: 18px;
+}
+
+/* ══════════════════════════════════════════════════════
+   Language Chip (multi-select tags)
+   ══════════════════════════════════════════════════════ */
+.lang-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: var(--radius-tiny);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-smooth);
+  user-select: none;
+}
+.lang-chip:hover {
+  border-color: var(--color-text-muted);
+}
+.lang-chip--active {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.lang-chip--active:hover {
+  background: color-mix(in srgb, var(--color-accent) 28%, transparent);
 }
 
 /* ══════════════════════════════════════════════════════

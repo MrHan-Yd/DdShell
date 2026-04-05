@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useAppStore } from "@/stores/app";
+import { useCommandAssistStore } from "@/stores/commandAssist";
 import { useT } from "@/lib/i18n";
 import { getAppVersion } from "@/lib/constants";
 import type { Locale } from "@/lib/i18n";
@@ -14,7 +15,7 @@ import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
 import type { TerminalBgSource } from "@/types";
 
-const TABS = ["general", "transfer", "terminal", "about"] as const;
+const TABS = ["general", "transfer", "terminal", "commandAssist", "about"] as const;
 type SettingsTab = (typeof TABS)[number];
 
 type ThemeOption = "dark" | "light" | "system";
@@ -99,13 +100,15 @@ function SettingRow({
   label,
   description,
   children,
+  indented,
 }: {
   label: string;
   description?: string;
   children: React.ReactNode;
+  indented?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-2">
+    <div className={`flex items-center justify-between py-2${indented ? " pl-6" : ""}`}>
       <div className="min-w-0 flex-1">
         <p className="text-[var(--font-size-sm)]">{label}</p>
         {description && (
@@ -128,20 +131,69 @@ function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
   const [enabled, setEnabled] = useState(false);
   const [confirmKeyVal, setConfirmKeyVal] = useState<"tab" | "enter">("tab");
   const [positionVal, setPositionVal] = useState<string>("bottom-left");
+  const [enabledCategories, setEnabledCategories] = useState<Record<string, boolean>>({});
   const [resetDone, setResetDone] = useState(false);
+
+  const MAIN_CATEGORIES = [
+    { id: "git", label: t("commandAssist.catGit"), desc: t("commandAssist.catGitDesc") },
+    { id: "docker", label: t("commandAssist.catDocker"), desc: t("commandAssist.catDockerDesc") },
+    { id: "webServer", label: t("commandAssist.catWebServer"), desc: t("commandAssist.catWebServerDesc") },
+  ];
+
+  const DEVTOOLS_SUB = [
+    { id: "python", label: t("commandAssist.catPython"), desc: t("commandAssist.catPythonDesc") },
+    { id: "node", label: t("commandAssist.catNode"), desc: t("commandAssist.catNodeDesc") },
+    { id: "java", label: t("commandAssist.catJava"), desc: t("commandAssist.catJavaDesc") },
+    { id: "maven", label: t("commandAssist.catMaven"), desc: t("commandAssist.catMavenDesc") },
+    { id: "gradle", label: t("commandAssist.catGradle"), desc: t("commandAssist.catGradleDesc") },
+    { id: "go", label: t("commandAssist.catGo"), desc: t("commandAssist.catGoDesc") },
+    { id: "jq", label: t("commandAssist.catJq"), desc: t("commandAssist.catJqDesc") },
+    { id: "kotlin", label: t("commandAssist.catKotlin"), desc: t("commandAssist.catKotlinDesc") },
+    { id: "php", label: t("commandAssist.catPhp"), desc: t("commandAssist.catPhpDesc") },
+    { id: "rust", label: t("commandAssist.catRust"), desc: t("commandAssist.catRustDesc") },
+  ];
+
+  const ALL_CAT_IDS = [...MAIN_CATEGORIES, ...DEVTOOLS_SUB].map((c) => c.id);
+
+  const persistCategories = async (cats: Record<string, boolean>) => {
+    const enabled = Object.entries(cats).filter(([, v]) => v).map(([k]) => k);
+    await api.settingSet("commandAssist.enabledAppCategories", JSON.stringify(enabled));
+    window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
+    useCommandAssistStore.getState().load();
+  };
 
   useEffect(() => {
     (async () => {
-      const [savedEnabled, savedConfirmKey, savedPosition] = await Promise.all([
+      const [savedEnabled, savedConfirmKey, savedPosition, savedCats] = await Promise.all([
         api.settingGet("commandAssist.enabled"),
         api.settingGet("commandAssist.confirmKey"),
         api.settingGet("commandAssist.position"),
+        api.settingGet("commandAssist.enabledAppCategories"),
       ]);
       setEnabled(savedEnabled === "true");
       if (savedConfirmKey === "tab" || savedConfirmKey === "enter") {
         setConfirmKeyVal(savedConfirmKey);
       }
       if (savedPosition) setPositionVal(savedPosition);
+
+      // Parse categories — default all enabled when no setting saved
+      const cats: Record<string, boolean> = {};
+      if (!savedCats) {
+        for (const id of ALL_CAT_IDS) {
+          cats[id] = true;
+        }
+      } else {
+        let parsed: string[] = [];
+        try { parsed = JSON.parse(savedCats); } catch { /* ignore */ }
+        // Migration: expand old "devTools" to individual sub-categories
+        if (parsed.includes("devTools")) {
+          parsed = parsed.filter((c) => c !== "devTools").concat(DEVTOOLS_SUB.map((s) => s.id));
+        }
+        for (const id of ALL_CAT_IDS) {
+          cats[id] = parsed.includes(id);
+        }
+      }
+      setEnabledCategories(cats);
     })();
   }, []);
 
@@ -172,6 +224,12 @@ function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
     window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
   };
 
+  const handleToggleCategory = async (catId: string, newVal: boolean) => {
+    const updated = { ...enabledCategories, [catId]: newVal };
+    setEnabledCategories(updated);
+    await persistCategories(updated);
+  };
+
   const handleResetWeights = async () => {
     const ok = await confirm({
       title: t("commandAssist.resetWeights"),
@@ -191,70 +249,128 @@ function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
   };
 
   return (
-    <Section title={t("commandAssist.enabled")}>
-      <SettingRow
-        label={t("commandAssist.enabled")}
-        description={t("commandAssist.enabledDesc")}
-      >
-        <button
-          onClick={() => handleToggleEnabled(!enabled)}
-          data-state={enabled ? "on" : "off"}
-          className="toggle-switch"
+    <>
+      <Section title={t("commandAssist.triggerSection")}>
+        <SettingRow
+          label={t("commandAssist.enabled")}
+          description={t("commandAssist.enabledDesc")}
         >
-          <span className="toggle-thumb" />
-        </button>
-      </SettingRow>
+          <button
+            onClick={() => handleToggleEnabled(!enabled)}
+            data-state={enabled ? "on" : "off"}
+            className="toggle-switch"
+          >
+            <span className="toggle-thumb" />
+          </button>
+        </SettingRow>
+
+        <SettingRow
+          label={t("commandAssist.confirmKey")}
+          description={t("commandAssist.confirmKeyDesc")}
+        >
+          <SegmentedControl
+            value={confirmKeyVal}
+            onChange={handleConfirmKeyChange}
+            options={[
+              { value: "tab", label: t("commandAssist.tab") },
+              { value: "enter", label: t("commandAssist.enter") },
+            ]}
+          />
+        </SettingRow>
+
+        <SettingRow
+          label={t("commandAssist.position")}
+          description={t("commandAssist.positionDesc")}
+        >
+          <SegmentedControl
+            value={positionVal}
+            onChange={handlePositionChange}
+            options={[
+              { value: "bottom-left", label: t("commandAssist.posBottomLeft") },
+              { value: "bottom-right", label: t("commandAssist.posBottomRight") },
+              { value: "follow-cursor", label: t("commandAssist.posFollowCursor") },
+            ]}
+          />
+        </SettingRow>
+
+        <div className="flex items-center justify-between py-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-[var(--font-size-sm)]">{t("commandAssist.resetWeights")}</p>
+            <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+              {t("commandAssist.resetWeightsDesc")}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleResetWeights}
+          >
+            {resetDone ? <Check size={12} /> : <RotateCcw size={12} />}
+            {resetDone ? t("settings.done") : t("settings.reset")}
+          </Button>
+        </div>
+      </Section>
 
       {enabled && (
-        <>
-          <SettingRow
-            label={t("commandAssist.confirmKey")}
-            description={t("commandAssist.confirmKeyDesc")}
-          >
-            <SegmentedControl
-              value={confirmKeyVal}
-              onChange={handleConfirmKeyChange}
-              options={[
-                { value: "tab", label: t("commandAssist.tab") },
-                { value: "enter", label: t("commandAssist.enter") },
-              ]}
-            />
-          </SettingRow>
-
-          <SettingRow
-            label={t("commandAssist.position")}
-            description={t("commandAssist.positionDesc")}
-          >
-            <SegmentedControl
-              value={positionVal}
-              onChange={handlePositionChange}
-              options={[
-                { value: "bottom-left", label: t("commandAssist.posBottomLeft") },
-                { value: "bottom-right", label: t("commandAssist.posBottomRight") },
-                { value: "follow-cursor", label: t("commandAssist.posFollowCursor") },
-              ]}
-            />
-          </SettingRow>
-
-          <div className="flex items-center justify-between py-2">
-            <div className="min-w-0 flex-1">
-              <p className="text-[var(--font-size-sm)]">{t("commandAssist.resetWeights")}</p>
-              <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-                {t("commandAssist.resetWeightsDesc")}
-              </p>
-            </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleResetWeights}
-            >
-              {resetDone ? <Check size={12} /> : <RotateCcw size={12} />}
-              {resetDone ? t("settings.done") : t("settings.reset")}
-            </Button>
+        <Section title={t("commandAssist.appCategories")}>
+          <div className="pb-2">
+            <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+              {t("commandAssist.appCategoriesDesc")}
+            </p>
           </div>
-        </>
+          {MAIN_CATEGORIES.map((cat) => (
+            <SettingRow
+              key={cat.id}
+              label={cat.label}
+              description={cat.desc}
+            >
+              <button
+                onClick={() => handleToggleCategory(cat.id, !enabledCategories[cat.id])}
+                data-state={enabledCategories[cat.id] !== false ? "on" : "off"}
+                className="toggle-switch"
+              >
+                <span className="toggle-thumb" />
+              </button>
+            </SettingRow>
+          ))}
+
+          <SettingRow
+            label={t("commandAssist.catDevTools")}
+            description={t("commandAssist.catDevToolsDesc")}
+          >
+            <button
+              onClick={() => {
+                const subIds = DEVTOOLS_SUB.map((s) => s.id);
+                const allOn = subIds.every((id) => enabledCategories[id] !== false);
+                const updated = { ...enabledCategories };
+                for (const id of subIds) updated[id] = !allOn;
+                setEnabledCategories(updated);
+                persistCategories(updated);
+              }}
+              data-state={DEVTOOLS_SUB.some((s) => enabledCategories[s.id] !== false) ? "on" : "off"}
+              className="toggle-switch"
+            >
+              <span className="toggle-thumb" />
+            </button>
+          </SettingRow>
+          <div className="flex flex-wrap gap-2 pl-4 py-1">
+            {DEVTOOLS_SUB.map((sub) => {
+              const active = enabledCategories[sub.id] !== false;
+              return (
+                <button
+                  key={sub.id}
+                  onClick={() => handleToggleCategory(sub.id, !active)}
+                  className={`lang-chip${active ? " lang-chip--active" : ""}`}
+                >
+                  {sub.label}
+                </button>
+              );
+            })}
+          </div>
+
+        </Section>
       )}
-    </Section>
+    </>
   );
 }
 
@@ -517,6 +633,7 @@ export function SettingsPage() {
             { value: "general", label: t("settings.tabGeneral") },
             { value: "transfer", label: t("settings.tabTransfer") },
             { value: "terminal", label: t("settings.tabTerminal") },
+            { value: "commandAssist", label: t("settings.tabCommandAssist") },
             { value: "about", label: t("settings.tabAbout") },
           ]}
         />
@@ -1102,7 +1219,9 @@ export function SettingsPage() {
             </Button>
           </div>
         </Section>
+        </>)}
 
+        {activeTab === "commandAssist" && (<>
         <CommandAssistSettings t={t} />
         </>)}
 

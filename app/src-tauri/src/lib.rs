@@ -332,10 +332,11 @@ async fn command_assist_rebuild_index(
     db: tauri::State<'_, Database>,
     engine: tauri::State<'_, std::sync::Arc<CommandAssistEngine>>,
     locale: String,
+    enabled_app_categories: Option<Vec<String>>,
 ) -> Result<SuccessResponse, String> {
     let snippets = db.list_snippets().await.map_err(|e| e.to_string())?;
     engine
-        .rebuild_index(&snippets, &locale)
+        .rebuild_index(&snippets, &locale, &enabled_app_categories.unwrap_or_default())
         .await
         .map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
@@ -1675,7 +1676,8 @@ pub fn run() {
 
                         // Build initial index from user snippets
                         if let Ok(snippets) = db.list_snippets().await {
-                            if let Err(e) = engine.rebuild_index(&snippets, "zh").await {
+                            let all_cats: Vec<String> = ["git", "docker", "webServer", "devTools"].iter().map(|s| s.to_string()).collect();
+                            if let Err(e) = engine.rebuild_index(&snippets, "zh", &all_cats).await {
                                 tracing::warn!("command assist index build failed: {}", e);
                             }
                         }

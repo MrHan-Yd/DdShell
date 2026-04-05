@@ -68,6 +68,7 @@ export interface CandidateItem {
   source: "user" | "system";
   distro: string | null;
   weight: number;
+  category: string | null;
 }
 
 export interface SearchResult {
@@ -97,8 +98,11 @@ export async function commandAssistWeightReset(): Promise<{ success: boolean }> 
   return invoke("command_assist_weight_reset");
 }
 
-export async function commandAssistRebuildIndex(locale: string): Promise<{ success: boolean }> {
-  return invoke("command_assist_rebuild_index", { locale });
+export async function commandAssistRebuildIndex(locale: string, enabledAppCategories?: string[]): Promise<{ success: boolean }> {
+  return invoke("command_assist_rebuild_index", {
+    locale,
+    enabledAppCategories: enabledAppCategories ?? [],
+  });
 }
 
 export async function commandAssistGetAll(): Promise<CandidateItem[]> {

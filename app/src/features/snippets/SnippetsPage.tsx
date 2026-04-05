@@ -56,7 +56,7 @@ function SnippetForm({
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Restart nginx"
+          placeholder={t("snippets.placeholderTitle")}
           required
         />
       </div>
@@ -67,7 +67,7 @@ function SnippetForm({
         <textarea
           value={command}
           onChange={(e) => setCommand(e.target.value)}
-          placeholder="sudo systemctl restart nginx"
+          placeholder={t("snippets.placeholderCommand")}
           required
           rows={4}
           className="w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-[var(--font-size-sm)] text-[var(--color-text-primary)] font-mono focus:border-[var(--color-border-focus)] focus:outline-none resize-y"
@@ -80,7 +80,7 @@ function SnippetForm({
         <Input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Gracefully restart the nginx web server"
+          placeholder={t("snippets.placeholderDescription")}
         />
       </div>
       <div>
@@ -90,7 +90,7 @@ function SnippetForm({
         <Input
           value={tagsInput}
           onChange={(e) => setTagsInput(e.target.value)}
-          placeholder="nginx, server, restart"
+          placeholder={t("snippets.placeholderTags")}
         />
       </div>
       <div className="flex justify-end gap-2 pt-2">

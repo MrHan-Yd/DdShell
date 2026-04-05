@@ -25,7 +25,19 @@ export const useCommandAssistStore = create<CommandAssistState>((set, get) => ({
 
   load: async () => {
     const locale = useAppStore.getState().locale;
-    await api.commandAssistRebuildIndex(locale);
+    const ALL_DEVTOOLS_SUB = ["python", "node", "java", "maven", "gradle", "go", "jq", "kotlin", "php", "rust"];
+const allCats = ["git", "docker", "webServer", ...ALL_DEVTOOLS_SUB];
+    const setting = await api.settingGet("commandAssist.enabledAppCategories");
+    let enabledCategories: string[] = setting
+      ? JSON.parse(setting)
+      : allCats;
+    // Migration: expand old "devTools" to individual sub-categories
+    if (enabledCategories.includes("devTools")) {
+      enabledCategories = enabledCategories
+        .filter((c) => c !== "devTools")
+        .concat(ALL_DEVTOOLS_SUB.filter((s) => !enabledCategories.includes(s)));
+    }
+    await api.commandAssistRebuildIndex(locale, enabledCategories);
     const items = await api.commandAssistGetAll();
     set({ items, loaded: true });
   },

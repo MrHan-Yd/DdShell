@@ -5,6 +5,25 @@ import type { CandidateItem } from "@/lib/tauri";
 import { useCommandAssistStore } from "@/stores/commandAssist";
 import { useT } from "@/lib/i18n";
 
+const CATEGORY_I18N_KEYS: Record<string, string> = {
+  system: "commandAssist.catSystem",
+  ubuntu: "commandAssist.catUbuntu",
+  centos: "commandAssist.catCentos",
+  git: "commandAssist.catGit",
+  docker: "commandAssist.catDocker",
+  webServer: "commandAssist.catWebServer",
+  python: "commandAssist.catPython",
+  node: "commandAssist.catNode",
+  java: "commandAssist.catJava",
+  maven: "commandAssist.catMaven",
+  gradle: "commandAssist.catGradle",
+  go: "commandAssist.catGo",
+  jq: "commandAssist.catJq",
+  kotlin: "commandAssist.catKotlin",
+  php: "commandAssist.catPhp",
+  rust: "commandAssist.catRust",
+};
+
 export type AssistPosition = "bottom-left" | "bottom-right" | "follow-cursor";
 
 interface CommandAssistProps {
@@ -265,16 +284,15 @@ export function CommandAssist({
               )}
             </div>
             <div className="flex flex-shrink-0 items-center gap-1 mt-0.5">
-              {item.source === "user" && (
+              {item.source === "user" ? (
                 <span className="rounded-full border border-[var(--color-accent)] px-1.5 py-0 text-[9px] text-[var(--color-accent)]">
                   {t("commandAssist.user")}
                 </span>
-              )}
-              {item.distro && item.distro !== "common" && (
+              ) : item.category && CATEGORY_I18N_KEYS[item.category] ? (
                 <span className="rounded-full border border-[var(--color-border)] px-1.5 py-0 text-[9px] text-[var(--color-text-muted)]">
-                  {item.distro}
+                  {t(CATEGORY_I18N_KEYS[item.category])}
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
         ))}
