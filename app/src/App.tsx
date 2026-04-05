@@ -51,6 +51,7 @@ function PageRenderer() {
 
 export default function App() {
   const theme = useAppStore((s) => s.theme);
+  const locale = useAppStore((s) => s.locale);
   const setLocale = useAppStore((s) => s.setLocale);
   const [uiFontFamily, setUiFontFamily] = useState("");
   const [uiFontSize, setUiFontSize] = useState(14);
@@ -58,10 +59,10 @@ export default function App() {
   // Register global + page shortcuts
   useShortcuts();
 
-  // Load command assist data into memory on mount
+  // Load command assist data into memory on mount and when locale changes
   useEffect(() => {
     useCommandAssistStore.getState().load();
-  }, []);
+  }, [locale]);
 
   // Load locale and UI font settings from backend on mount + when settings change
   useEffect(() => {

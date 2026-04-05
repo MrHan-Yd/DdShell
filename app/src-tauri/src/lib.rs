@@ -331,10 +331,11 @@ async fn command_assist_weight_reset(
 async fn command_assist_rebuild_index(
     db: tauri::State<'_, Database>,
     engine: tauri::State<'_, std::sync::Arc<CommandAssistEngine>>,
+    locale: String,
 ) -> Result<SuccessResponse, String> {
     let snippets = db.list_snippets().await.map_err(|e| e.to_string())?;
     engine
-        .rebuild_index(&snippets)
+        .rebuild_index(&snippets, &locale)
         .await
         .map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
@@ -1674,7 +1675,7 @@ pub fn run() {
 
                         // Build initial index from user snippets
                         if let Ok(snippets) = db.list_snippets().await {
-                            if let Err(e) = engine.rebuild_index(&snippets).await {
+                            if let Err(e) = engine.rebuild_index(&snippets, "zh").await {
                                 tracing::warn!("command assist index build failed: {}", e);
                             }
                         }

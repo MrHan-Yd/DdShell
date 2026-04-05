@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { CandidateItem } from "@/lib/tauri";
 import * as api from "@/lib/tauri";
+import { useAppStore } from "@/stores/app";
 
 interface CommandAssistState {
   items: CandidateItem[];
@@ -23,13 +24,10 @@ export const useCommandAssistStore = create<CommandAssistState>((set, get) => ({
   loaded: false,
 
   load: async () => {
-    try {
-      await api.commandAssistRebuildIndex();
-      const items = await api.commandAssistGetAll();
-      set({ items, loaded: true });
-    } catch {
-      // ignore — feature degrades silently
-    }
+    const locale = useAppStore.getState().locale;
+    await api.commandAssistRebuildIndex(locale);
+    const items = await api.commandAssistGetAll();
+    set({ items, loaded: true });
   },
 
   search: (query, osType, page) => {

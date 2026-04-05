@@ -97,8 +97,8 @@ export async function commandAssistWeightReset(): Promise<{ success: boolean }> 
   return invoke("command_assist_weight_reset");
 }
 
-export async function commandAssistRebuildIndex(): Promise<{ success: boolean }> {
-  return invoke("command_assist_rebuild_index");
+export async function commandAssistRebuildIndex(locale: string): Promise<{ success: boolean }> {
+  return invoke("command_assist_rebuild_index", { locale });
 }
 
 export async function commandAssistGetAll(): Promise<CandidateItem[]> {
