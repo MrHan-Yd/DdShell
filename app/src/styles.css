@@ -736,19 +736,47 @@ input[type="number"] {
   animation: transfer-panel-out 250ms var(--ease-smooth) both;
 }
 
-/* Context menu spring animation */
-@keyframes context-menu-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+/* Context menu entrance — opacity first, then transform */
+@keyframes context-menu-opacity {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
+
+@keyframes context-menu-transform {
+  from { transform: scale(0.95) translateY(-5px); }
+  to { transform: scale(1) translateY(0); }
+}
+
 .animate-context-menu {
-  animation: context-menu-enter 200ms var(--ease-spring) both;
+  animation:
+    context-menu-opacity 120ms var(--ease-smooth) both,
+    context-menu-transform 200ms var(--ease-spring) both;
+}
+
+/* Context menu exit — clean disappearance */
+@keyframes context-menu-exit-opacity {
+  to { opacity: 0; }
+}
+
+@keyframes context-menu-exit-transform {
+  to { transform: scale(0.97) translateY(-3px); }
+}
+
+.animate-context-menu-exit {
+  animation:
+    context-menu-exit-opacity 100ms var(--ease-smooth) both,
+    context-menu-exit-transform 140ms var(--ease-smooth) both;
+}
+
+/* Menu item stagger entrance */
+@keyframes menu-item-enter {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-menu-item {
+  animation: menu-item-enter 140ms var(--ease-smooth) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
 }
 
 /* Drawer expand/collapse animation (grid-template-rows trick) */
