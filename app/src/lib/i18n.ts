@@ -333,7 +333,7 @@ const dict = {
   "snippets.groupName": { zh: "分组名称", en: "Group name" },
   "snippets.groupPlaceholder": { zh: "输入分组名称", en: "Enter group name" },
   "snippets.deleteGroup": { zh: "删除分组", en: "Delete group" },
-  "snippets.deleteGroupDesc": { zh: "删除分组后，组内片段将变为未分组。", en: "Snippets in this group will become ungrouped." },
+  "snippets.deleteGroupDesc": { zh: "将删除该分组及分组下的所有命令片段。此操作不可撤销。", en: "This will delete the group and all snippets in it. This cannot be undone." },
   "snippets.renameGroup": { zh: "重命名分组", en: "Rename group" },
   "snippets.ungrouped": { zh: "未分组", en: "Ungrouped" },
   "snippets.noGroup": { zh: "无分组", en: "No group" },
@@ -344,6 +344,13 @@ const dict = {
   "snippets.removeFromGroup": { zh: "移出分组", en: "Remove from Group" },
   "snippets.enterGroup": { zh: "进入分组", en: "Enter Group" },
   "snippets.backToAll": { zh: "返回全部", en: "Back to All" },
+  "snippets.batchDelete": { zh: "批量删除", en: "Batch Delete" },
+  "snippets.batchDeleteDesc": { zh: "确定要删除选中的 {n} 个片段吗？此操作不可撤销。", en: "Delete {n} selected snippets? This cannot be undone." },
+  "snippets.batchDeleted": { zh: "已删除 {n} 个片段", en: "Deleted {n} snippets" },
+  "snippets.selectedCount": { zh: "已选 {n} 项", en: "{n} selected" },
+  "snippets.selectAll": { zh: "全选", en: "Select All" },
+  "snippets.batchSelect": { zh: "多选", en: "Select" },
+  "snippets.cancelSelect": { zh: "取消选择", en: "Cancel" },
 
   // ── Command Assist ──
   "commandAssist.matches": { zh: "条匹配", en: "matches" },

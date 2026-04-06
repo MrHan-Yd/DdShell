@@ -35,6 +35,7 @@ interface SnippetsState {
   createGroup: (name: string) => Promise<string>;
   updateGroup: (id: string, name: string) => Promise<void>;
   deleteGroup: (id: string) => Promise<void>;
+  batchDeleteSnippets: (ids: string[]) => Promise<void>;
   moveSnippetToGroup: (snippetId: string, groupId: string | null) => Promise<void>;
 }
 
@@ -93,13 +94,19 @@ export const useSnippetsStore = create<SnippetsState>((set, get) => ({
   },
 
   deleteGroup: async (id) => {
+    const { selectedGroupId, selectedSnippetId, snippets } = get();
+    const snippetInGroup = selectedSnippetId &&
+      snippets.find((s) => s.id === selectedSnippetId)?.groupId === id;
+
     await api.snippetGroupDelete(id);
-    const { selectedGroupId } = get();
-    if (selectedGroupId === id) {
-      set({ selectedGroupId: null });
-    }
+
+    set({
+      selectedGroupId: selectedGroupId === id ? null : selectedGroupId,
+      selectedSnippetId: snippetInGroup ? null : selectedSnippetId,
+    });
     await get().fetchGroups();
     await get().fetchSnippets();
+    useCommandAssistStore.getState().load();
   },
 
   createGroup: async (name) => {
@@ -111,6 +118,18 @@ export const useSnippetsStore = create<SnippetsState>((set, get) => ({
   updateGroup: async (id, name) => {
     await api.snippetGroupUpdate(id, name);
     await get().fetchGroups();
+  },
+
+  batchDeleteSnippets: async (ids) => {
+    for (const id of ids) {
+      await api.snippetDelete(id);
+    }
+    const { selectedSnippetId } = get();
+    if (selectedSnippetId && ids.includes(selectedSnippetId)) {
+      set({ selectedSnippetId: null });
+    }
+    await get().fetchSnippets();
+    useCommandAssistStore.getState().load();
   },
 
   moveSnippetToGroup: async (snippetId, groupId) => {

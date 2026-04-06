@@ -16,6 +16,7 @@ import {
   ChevronRight,
   X,
   Check,
+  ListChecks,
 } from "lucide-react";
 import { ContextMenu, useContextMenu } from "@/components/ui/ContextMenu";
 import type { MenuItem } from "@/components/ui/ContextMenu";
@@ -142,28 +143,54 @@ function SnippetItem({
   selected,
   onSelect,
   onContextMenu,
+  selectable = false,
+  checked = false,
+  onToggleSelect,
 }: {
   snippet: Snippet;
   selected: boolean;
   onSelect: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  selectable?: boolean;
+  checked?: boolean;
+  onToggleSelect?: () => void;
 }) {
   return (
     <button
-      onClick={onSelect}
+      onClick={() => {
+        if (selectable) {
+          onToggleSelect?.();
+        } else {
+          onSelect();
+        }
+      }}
       onContextMenu={onContextMenu}
       className={cn(
         "flex w-full flex-col gap-1 rounded-[var(--radius-control)] px-3 py-2.5 text-left transition-colors duration-[var(--duration-fast)]",
-        selected
+        selectable && checked
           ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
-          : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
+          : selected && !selectable
+            ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
+            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
       )}
     >
       <div className="flex items-center gap-2">
+        {selectable && (
+          <span
+            className={cn(
+              "flex-shrink-0 flex items-center justify-center w-4 h-4 rounded-[3px] border transition-colors",
+              checked
+                ? "bg-[var(--color-accent)] border-[var(--color-accent)]"
+                : "border-[var(--color-border)]",
+            )}
+          >
+            {checked && <Check size={10} className="text-white" />}
+          </span>
+        )}
         <Code2
           size={14}
           className={
-            selected
+            (selectable ? checked : selected)
               ? "text-[var(--color-accent)]"
               : "text-[var(--color-text-muted)]"
           }
@@ -172,11 +199,11 @@ function SnippetItem({
           {snippet.title}
         </span>
       </div>
-      <p className="truncate pl-[22px] text-[var(--font-size-xs)] text-[var(--color-text-muted)] font-mono">
+      <p className={cn("truncate font-mono text-[var(--font-size-xs)] text-[var(--color-text-muted)]", selectable ? "pl-6" : "pl-[22px]")}>
         {snippet.command}
       </p>
       {snippet.tags && snippet.tags.length > 0 && (
-        <div className="flex gap-1 pl-[22px] flex-wrap">
+        <div className={cn("flex gap-1 flex-wrap", selectable ? "pl-6" : "pl-[22px]")}>
           {snippet.tags.map((tag) => (
             <span
               key={tag}
@@ -281,7 +308,6 @@ function GroupHeader({
   group,
   selected,
   expanded,
-  snippetCount,
   onSelect,
   onToggle,
   onContextMenu,
@@ -289,7 +315,6 @@ function GroupHeader({
   group: SnippetGroup;
   selected: boolean;
   expanded: boolean;
-  snippetCount: number;
   onSelect: () => void;
   onToggle: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
@@ -547,6 +572,7 @@ export function SnippetsPage() {
     createGroup,
     updateGroup,
     deleteGroup,
+    batchDeleteSnippets,
     moveSnippetToGroup,
   } = useSnippetsStore();
 
@@ -555,6 +581,8 @@ export function SnippetsPage() {
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [moveTargetSnippetId, setMoveTargetSnippetId] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
   const newGroupInputRef = useRef<HTMLInputElement>(null);
   const listContainerRef = useRef<HTMLDivElement>(null);
@@ -638,6 +666,36 @@ export function SnippetsPage() {
       ]
     : [];
 
+  // ── Batch selection handlers ──
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleBatchDelete = async () => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    const ok = await confirm({
+      title: t("snippets.batchDelete"),
+      description: t("snippets.batchDeleteDesc", { n: count }),
+      confirmLabel: t("confirm.delete"),
+    });
+    if (!ok) return;
+    const ids = Array.from(selectedIds);
+    exitSelectionMode();
+    await batchDeleteSnippets(ids);
+    toast.success(t("snippets.batchDeleted", { n: count }));
+  };
+
   useEffect(() => {
     fetchSnippets();
     fetchGroups();
@@ -706,6 +764,17 @@ export function SnippetsPage() {
           </Button>
           <Button
             size="icon"
+            variant={selectionMode ? "secondary" : "ghost"}
+            onClick={() => {
+              if (selectionMode) exitSelectionMode();
+              else setSelectionMode(true);
+            }}
+            title={selectionMode ? t("snippets.cancelSelect") : t("snippets.batchSelect")}
+          >
+            {selectionMode ? <X size={16} /> : <ListChecks size={16} />}
+          </Button>
+          <Button
+            size="icon"
             variant="secondary"
             onClick={() => {
               setEditingSnippet(null);
@@ -770,7 +839,6 @@ export function SnippetsPage() {
                   group={group}
                   selected={group.id === selectedGroupId}
                   expanded={isExpanded}
-                  snippetCount={groupSnippets.length}
                   onSelect={() => {
                     setSelectedGroupId(group.id);
                     setSelectedSnippetId(null);
@@ -803,6 +871,9 @@ export function SnippetsPage() {
                           key={s.id}
                           snippet={s}
                           selected={s.id === selectedSnippetId}
+                          selectable={selectionMode}
+                          checked={selectedIds.has(s.id)}
+                          onToggleSelect={() => toggleSelect(s.id)}
                           onSelect={() => {
                             setSelectedSnippetId(s.id);
                             setSelectedGroupId(null);
@@ -828,6 +899,9 @@ export function SnippetsPage() {
                   key={s.id}
                   snippet={s}
                   selected={s.id === selectedSnippetId}
+                  selectable={selectionMode}
+                  checked={selectedIds.has(s.id)}
+                  onToggleSelect={() => toggleSelect(s.id)}
                   onSelect={() => {
                     setSelectedSnippetId(s.id);
                     setSelectedGroupId(null);
@@ -840,6 +914,38 @@ export function SnippetsPage() {
             </div>
           )}
         </div>
+
+        {/* Batch selection action bar */}
+        {selectionMode && (
+          <div className="border-t border-[var(--color-border)] px-3 py-2 flex items-center gap-2 flex-shrink-0">
+            <span className="text-[var(--font-size-xs)] text-[var(--color-text-secondary)] flex-1">
+              {t("snippets.selectedCount", { n: selectedIds.size })}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                if (selectedIds.size === filteredSnippets.length) {
+                  setSelectedIds(new Set());
+                } else {
+                  setSelectedIds(new Set(filteredSnippets.map((s) => s.id)));
+                }
+              }}
+            >
+              {t("snippets.selectAll")}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={selectedIds.size === 0}
+              onClick={handleBatchDelete}
+              className="text-[var(--color-error)]"
+            >
+              <Trash2 size={14} />
+              {t("confirm.delete")}
+            </Button>
+          </div>
+        )}
 
         {/* Context menu (snippet) */}
         {menuState && (
