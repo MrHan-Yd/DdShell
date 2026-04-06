@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, Search, Server, Folder, Trash2, Pencil, Star, StarOff, Zap, Upload, Check, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Search, Server, Folder, FolderOpen, FolderInput, FolderX, Trash2, Pencil, Star, StarOff, Zap, Upload, Check, ChevronUp, ChevronDown, ChevronRight, FolderPlus, ListChecks, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -10,6 +10,8 @@ import { useAppStore } from "@/stores/app";
 import { toast } from "@/stores/toast";
 import { confirm } from "@/stores/confirm";
 import { useT } from "@/lib/i18n";
+import { useContextMenu, ContextMenu } from "@/components/ui/ContextMenu";
+import type { MenuItem } from "@/components/ui/ContextMenu";
 import * as api from "@/lib/tauri";
 import type { Host, HostGroup, AuthType, SshConfigEntry } from "@/types";
 
@@ -291,6 +293,183 @@ function SshConfigImportPanel({
   );
 }
 
+// ── Inline rename input ──
+
+function InlineRename({
+  initialValue,
+  onConfirm,
+  onCancel,
+}: {
+  initialValue: string;
+  onConfirm: (value: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(initialValue);
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    ref.current?.focus();
+    ref.current?.select();
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && value.trim()) {
+      onConfirm(value.trim());
+    } else if (e.key === "Escape") {
+      onCancel();
+    }
+  };
+
+  return (
+    <input
+      ref={ref}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={handleKeyDown}
+      onBlur={() => {
+        if (value.trim() && value.trim() !== initialValue) {
+          onConfirm(value.trim());
+        } else {
+          onCancel();
+        }
+      }}
+      className="w-full rounded border border-[var(--color-border-focus)] bg-[var(--color-bg-elevated)] px-2 py-0.5 text-[var(--font-size-xs)] text-[var(--color-text-primary)] outline-none"
+    />
+  );
+}
+
+// ── Group Header ──
+
+function GroupHeader({
+  group,
+  expanded,
+  onToggle,
+  onContextMenu,
+}: {
+  group: HostGroup;
+  expanded: boolean;
+  onToggle: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <div className="flex w-full items-center gap-1 rounded-[var(--radius-control)] transition-colors duration-[var(--duration-fast)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]">
+      <button
+        onClick={onToggle}
+        className="flex-shrink-0 p-1 rounded transition-colors hover:bg-[var(--color-bg-hover)]"
+      >
+        <ChevronRight
+          size={12}
+          className={cn(
+            "transition-transform duration-[var(--duration-fast)]",
+            expanded && "rotate-90",
+          )}
+        />
+      </button>
+      <button
+        onContextMenu={onContextMenu}
+        onClick={onToggle}
+        className="flex flex-1 items-center gap-2 px-1 py-1.5 text-left min-w-0"
+      >
+        {expanded ? (
+          <FolderOpen size={14} className="text-[var(--color-text-muted)]" />
+        ) : (
+          <Folder size={14} className="text-[var(--color-text-muted)]" />
+        )}
+        <span className="flex-1 text-[var(--font-size-xs)] font-medium uppercase tracking-wide truncate">
+          {group.name}
+        </span>
+      </button>
+    </div>
+  );
+}
+
+// ── Move to group modal ──
+
+function MoveToGroupModal({
+  currentGroupId,
+  groups,
+  onSelect,
+  onClose,
+}: {
+  currentGroupId: string | null;
+  groups: HostGroup[];
+  onSelect: (groupId: string | null) => void;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    listRef.current?.focus();
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") onClose();
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+        <div
+          className="pointer-events-auto w-[320px] rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg animate-context-menu"
+          onKeyDown={handleKeyDown}
+        >
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+            <h3 className="text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
+              {t("conn.moveToGroupTitle")}
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          <div
+            ref={listRef}
+            tabIndex={-1}
+            className="max-h-[300px] overflow-y-auto p-1.5"
+          >
+            <button
+              onClick={() => onSelect(null)}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors",
+                currentGroupId === null
+                  ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
+                  : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
+              )}
+            >
+              <FolderX size={16} className={currentGroupId === null ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"} />
+              <span className="text-[var(--font-size-sm)]">{t("conn.noGroup")}</span>
+            </button>
+
+            {groups.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => onSelect(g.id)}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors",
+                  currentGroupId === g.id
+                    ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
+                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
+                )}
+              >
+                <Folder size={16} className={currentGroupId === g.id ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"} />
+                <span className="flex-1 truncate text-[var(--font-size-sm)]">{g.name}</span>
+                {currentGroupId === g.id && (
+                  <Check size={14} className="text-[var(--color-accent)]" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function ConnectionsPage() {
   const t = useT();
   const {
@@ -306,13 +485,153 @@ export function ConnectionsPage() {
     createHost,
     updateHost,
     deleteHost,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    batchDeleteHosts,
   } = useConnectionsStore();
 
   const [showForm, setShowForm] = useState(false);
   const [editingHost, setEditingHost] = useState<Host | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [detailAnim, setDetailAnim] = useState("animate-fade-in-up");
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [moveTargetHostId, setMoveTargetHostId] = useState<string | null>(null);
   const prevHostIdRef = useRef<string | null>(null);
+  const newGroupInputRef = useRef<HTMLInputElement>(null);
+  const listContainerRef = useRef<HTMLDivElement>(null);
+
+  // ── Right-click context menu (group) ──
+  const {
+    menuState: groupMenuState,
+    onContextMenu: onGroupContextMenu,
+    closeMenu: closeGroupMenu,
+  } = useContextMenu<HostGroup>();
+
+  // ── Right-click context menu (host) ──
+  const {
+    menuState: hostMenuState,
+    onContextMenu: onHostContextMenu,
+    closeMenu: closeHostMenu,
+  } = useContextMenu<Host>();
+
+  const hostContextMenuItems: MenuItem[] = hostMenuState
+    ? [
+        {
+          label: t("conn.editConnection"),
+          icon: <Pencil size={14} />,
+          onClick: () => {
+            setEditingHost(hostMenuState.data);
+            setSelectedHostId(hostMenuState.data.id);
+            setShowForm(true);
+          },
+        },
+        {
+          label: t("conn.testConnection"),
+          icon: <Zap size={14} />,
+          onClick: async () => {
+            try {
+              const result = await api.connectionTest(hostMenuState.data.id);
+              if (result.success) toast.success(result.message);
+              else toast.error(result.message);
+            } catch (e) {
+              toast.error(String(e));
+            }
+          },
+        },
+        { type: "separator" as const },
+        {
+          label: hostMenuState.data.isFavorite ? t("conn.unfavorite") : t("conn.favorite"),
+          icon: hostMenuState.data.isFavorite ? <StarOff size={14} /> : <Star size={14} />,
+          onClick: () => {
+            updateHost({
+              id: hostMenuState.data.id,
+              isFavorite: !hostMenuState.data.isFavorite,
+            });
+          },
+        },
+        ...(groups.length > 0
+          ? [
+              {
+                label: t("conn.moveToGroup"),
+                icon: <FolderInput size={14} />,
+                onClick: () => setMoveTargetHostId(hostMenuState.data.id),
+              } as MenuItem,
+            ]
+          : []),
+        { type: "separator" as const },
+        {
+          label: t("conn.deleteConnection"),
+          icon: <Trash2 size={14} />,
+          danger: true,
+          onClick: async () => {
+            const ok = await confirm({
+              title: t("confirm.deleteConnectionTitle"),
+              description: t("confirm.deleteConnectionDesc"),
+              confirmLabel: t("confirm.delete"),
+            });
+            if (ok) await deleteHost(hostMenuState.data.id);
+          },
+        },
+      ]
+    : [];
+
+  const groupContextMenuItems: MenuItem[] = groupMenuState
+    ? [
+        {
+          label: t("conn.renameGroup"),
+          icon: <Pencil size={14} />,
+          onClick: () => setRenamingGroupId(groupMenuState.data.id),
+        },
+        {
+          label: t("conn.deleteGroup"),
+          icon: <Trash2 size={14} />,
+          danger: true,
+          onClick: async () => {
+            const ok = await confirm({
+              title: t("conn.deleteGroup"),
+              description: t("conn.deleteGroupDesc"),
+              confirmLabel: t("confirm.delete"),
+            });
+            if (ok) await deleteGroup(groupMenuState.data.id);
+          },
+        },
+      ]
+    : [];
+
+  // ── Batch selection handlers ──
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleBatchDelete = async () => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+    const ok = await confirm({
+      title: t("conn.batchDelete"),
+      description: t("conn.batchDeleteDesc", { n: count }),
+      confirmLabel: t("confirm.delete"),
+    });
+    if (!ok) return;
+    const ids = Array.from(selectedIds);
+    exitSelectionMode();
+    await batchDeleteHosts(ids);
+    toast.success(t("conn.batchDeleted", { n: count }));
+  };
 
   useEffect(() => {
     fetchHosts();
@@ -347,10 +666,39 @@ export function ConnectionsPage() {
   }));
   const ungroupedHosts = filteredHosts.filter((h) => !h.groupId);
 
+  const handleCreateGroup = () => {
+    setCreatingGroup(true);
+    setTimeout(() => newGroupInputRef.current?.focus(), 0);
+  };
+
+  const handleCreateGroupConfirm = async (name: string) => {
+    setCreatingGroup(false);
+    if (name.trim()) {
+      const id = await createGroup(name.trim());
+      setExpandedGroupIds((prev) => new Set(prev).add(id));
+    }
+  };
+
+  const handleRenameConfirm = async (groupId: string, newName: string) => {
+    setRenamingGroupId(null);
+    if (newName.trim()) {
+      await updateGroup(groupId, newName);
+    }
+  };
+
+  const toggleGroupExpand = (groupId: string) => {
+    setExpandedGroupIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
+
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Left: Connection List */}
-      <div className="flex w-[280px] flex-col border-r border-[var(--color-border)]">
+      <div className="flex w-[280px] flex-col border-r border-[var(--color-border)]" ref={listContainerRef} data-context-menu-container>
         <div className="flex items-center gap-2 border-b border-[var(--color-border)] p-3">
           <div className="relative flex-1">
             <Search
@@ -364,6 +712,25 @@ export function ConnectionsPage() {
               className="pl-8"
             />
           </div>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleCreateGroup}
+            title={t("conn.newGroup")}
+          >
+            <FolderPlus size={16} />
+          </Button>
+          <Button
+            size="icon"
+            variant={selectionMode ? "secondary" : "ghost"}
+            onClick={() => {
+              if (selectionMode) exitSelectionMode();
+              else setSelectionMode(true);
+            }}
+            title={selectionMode ? t("conn.cancelSelect") : t("conn.batchSelect")}
+          >
+            {selectionMode ? <X size={16} /> : <ListChecks size={16} />}
+          </Button>
           <Button
             size="icon"
             variant="secondary"
@@ -409,26 +776,66 @@ export function ConnectionsPage() {
           )}
 
           {/* Grouped hosts */}
-          {groupedHosts.map(
-            ({ group, hosts: groupHosts }) =>
-              groupHosts.length > 0 && (
-                <div key={group.id} className="mb-2">
-                  <div className="flex items-center gap-2 px-2 py-1">
-                    <Folder size={14} className="text-[var(--color-text-muted)]" />
-                    <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
-                      {group.name}
-                    </span>
-                  </div>
-                  {groupHosts.map((h) => (
-                    <HostItem
-                      key={h.id}
-                      host={h}
-                      selected={h.id === selectedHostId}
-                      onSelect={() => selectHost(h.id)}
+          {groupedHosts.map(({ group, hosts: groupHosts }) => {
+            const expanded = expandedGroupIds.has(group.id);
+            const isRenaming = renamingGroupId === group.id;
+            return (
+              <div key={group.id} className="mb-2">
+                {isRenaming ? (
+                  <div className="px-2 py-1">
+                    <InlineRename
+                      initialValue={group.name}
+                      onConfirm={(name) => handleRenameConfirm(group.id, name)}
+                      onCancel={() => setRenamingGroupId(null)}
                     />
-                  ))}
-                </div>
-              ),
+                  </div>
+                ) : (
+                  <GroupHeader
+                    group={group}
+                    expanded={expanded}
+                    onToggle={() => toggleGroupExpand(group.id)}
+                    onContextMenu={(e) => onGroupContextMenu(e, group)}
+                  />
+                )}
+                {groupHosts.length > 0 && (
+                  <div className={cn("drawer-wrapper", expanded && "expanded")}>
+                    <div className="drawer-inner">
+                      <div className="border border-[var(--color-border)] rounded-2xl">
+                        {groupHosts.map((h) => (
+                          <HostItem
+                            key={h.id}
+                            host={h}
+                            selected={h.id === selectedHostId}
+                            onSelect={() => selectHost(h.id)}
+                            onContextMenu={(e) => onHostContextMenu(e, h)}
+                            selectable={selectionMode}
+                            checked={selectedIds.has(h.id)}
+                            onToggleSelect={() => toggleSelect(h.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* New group inline input */}
+          {creatingGroup && (
+            <div className="flex items-center gap-2 px-2 py-1">
+              <Folder size={14} className="flex-shrink-0 text-[var(--color-accent)]" />
+              <input
+                ref={newGroupInputRef}
+                className="flex-1 bg-transparent text-[var(--font-size-sm)] text-[var(--color-text-primary)] outline-none"
+                placeholder={t("conn.groupPlaceholder")}
+                onBlur={(e) => handleCreateGroupConfirm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateGroupConfirm((e.target as HTMLInputElement).value);
+                  if (e.key === "Escape") setCreatingGroup(false);
+                }}
+              />
+            </div>
           )}
 
           {/* Ungrouped hosts */}
@@ -438,9 +845,84 @@ export function ConnectionsPage() {
               host={h}
               selected={h.id === selectedHostId}
               onSelect={() => selectHost(h.id)}
+              onContextMenu={(e) => onHostContextMenu(e, h)}
+              selectable={selectionMode}
+              checked={selectedIds.has(h.id)}
+              onToggleSelect={() => toggleSelect(h.id)}
             />
           ))}
+
+          {/* Group context menu */}
+          {groupMenuState && (
+            <ContextMenu
+              x={groupMenuState.x}
+              y={groupMenuState.y}
+              onClose={closeGroupMenu}
+              containerRef={listContainerRef}
+              items={groupContextMenuItems}
+            />
+          )}
+
+          {/* Host context menu */}
+          {hostMenuState && (
+            <ContextMenu
+              x={hostMenuState.x}
+              y={hostMenuState.y}
+              onClose={closeHostMenu}
+              containerRef={listContainerRef}
+              items={hostContextMenuItems}
+            />
+          )}
         </div>
+
+        {/* Move to group modal */}
+        {moveTargetHostId && (() => {
+          const targetHost = hosts.find((h) => h.id === moveTargetHostId);
+          if (!targetHost) return null;
+          return (
+            <MoveToGroupModal
+              currentGroupId={targetHost.groupId ?? null}
+              groups={groups}
+              onSelect={async (groupId) => {
+                await updateHost({ id: moveTargetHostId, groupId });
+                setMoveTargetHostId(null);
+              }}
+              onClose={() => setMoveTargetHostId(null)}
+            />
+          );
+        })()}
+
+        {/* Batch selection action bar */}
+        {selectionMode && (
+          <div className="border-t border-[var(--color-border)] px-3 py-2 flex items-center gap-2 flex-shrink-0">
+            <span className="text-[var(--font-size-xs)] text-[var(--color-text-secondary)] flex-1">
+              {t("conn.selectedCount", { n: selectedIds.size })}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                if (selectedIds.size === filteredHosts.length) {
+                  setSelectedIds(new Set());
+                } else {
+                  setSelectedIds(new Set(filteredHosts.map((h) => h.id)));
+                }
+              }}
+            >
+              {t("conn.selectAll")}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={selectedIds.size === 0}
+              onClick={handleBatchDelete}
+              className="text-[var(--color-error)]"
+            >
+              <Trash2 size={14} />
+              {t("confirm.delete")}
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Right: Detail / Form / Import */}
@@ -516,26 +998,55 @@ function HostItem({
   host,
   selected,
   onSelect,
+  onContextMenu,
+  selectable = false,
+  checked = false,
+  onToggleSelect,
 }: {
   host: Host;
   selected: boolean;
   onSelect: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  selectable?: boolean;
+  checked?: boolean;
+  onToggleSelect?: () => void;
 }) {
   return (
     <button
-      onClick={onSelect}
+      onClick={() => {
+        if (selectable) {
+          onToggleSelect?.();
+        } else {
+          onSelect();
+        }
+      }}
+      onContextMenu={onContextMenu}
       className={cn(
         "flex w-full items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-left transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)] active:scale-[0.98]",
-        selected
+        selectable && checked
           ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
-          : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
+          : selected && !selectable
+            ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
+            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
       )}
     >
+      {selectable && (
+        <span
+          className={cn(
+            "flex-shrink-0 flex items-center justify-center w-4 h-4 rounded-[3px] border transition-colors",
+            checked
+              ? "bg-[var(--color-accent)] border-[var(--color-accent)]"
+              : "border-[var(--color-border)]",
+          )}
+        >
+          {checked && <Check size={10} className="text-white" />}
+        </span>
+      )}
       <Server
         size={16}
         className={cn(
           "transition-colors duration-[var(--duration-base)]",
-          selected ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]",
+          (selectable ? checked : selected) ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]",
         )}
       />
       <div className="min-w-0 flex-1">
@@ -544,7 +1055,7 @@ function HostItem({
           {host.username}@{host.host}:{host.port}
         </p>
       </div>
-      {host.isFavorite && (
+      {!selectable && host.isFavorite && (
         <span className="animate-star-pop">
           <Star size={14} className="text-[var(--color-warning)] fill-[var(--color-warning)]" />
         </span>

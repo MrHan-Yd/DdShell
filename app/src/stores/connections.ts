@@ -19,6 +19,7 @@ interface ConnectionsState {
   createGroup: (name: string, parentId?: string | null) => Promise<string>;
   updateGroup: (id: string, name: string) => Promise<void>;
   deleteGroup: (id: string) => Promise<void>;
+  batchDeleteHosts: (ids: string[]) => Promise<void>;
 }
 
 export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
@@ -78,7 +79,27 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   },
 
   deleteGroup: async (id) => {
+    const { selectedHostId, hosts } = get();
+    const hostInGroup = selectedHostId &&
+      hosts.find((h) => h.id === selectedHostId)?.groupId === id;
+
     await api.groupDelete(id);
+
+    set({
+      selectedHostId: hostInGroup ? null : selectedHostId,
+    });
     await get().fetchGroups();
+    await get().fetchHosts();
+  },
+
+  batchDeleteHosts: async (ids) => {
+    for (const id of ids) {
+      await api.connectionDelete(id);
+    }
+    const { selectedHostId } = get();
+    if (selectedHostId && ids.includes(selectedHostId)) {
+      set({ selectedHostId: null });
+    }
+    await get().fetchHosts();
   },
 }));

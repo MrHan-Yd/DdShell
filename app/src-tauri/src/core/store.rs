@@ -455,7 +455,7 @@ impl Database {
     }
 
     pub async fn delete_group(&self, id: &str) -> anyhow::Result<()> {
-        sqlx::query("UPDATE hosts SET group_id = NULL WHERE group_id = ?")
+        sqlx::query("DELETE FROM hosts WHERE group_id = ?")
             .bind(id)
             .execute(&self.pool)
             .await?;
