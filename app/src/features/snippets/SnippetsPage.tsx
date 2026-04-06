@@ -973,7 +973,7 @@ export function SnippetsPage() {
       {/* Right: Detail / Form */}
       <div className="flex flex-1 flex-col overflow-y-auto p-6">
         {showForm ? (
-          <div className="mx-auto w-full max-w-md">
+          <div key="form" className="animate-fade-in-up mx-auto w-full max-w-md">
             <h2 className="mb-4 text-[var(--font-size-lg)] font-medium">
               {editingSnippet ? t("snippets.editSnippet") : t("snippets.newSnippet")}
             </h2>
@@ -1016,7 +1016,8 @@ export function SnippetsPage() {
             />
           </div>
         ) : selectedSnippet ? (
-          <SnippetDetail
+          <div key="detail" className="animate-fade-in-up mx-auto w-full max-w-lg">
+            <SnippetDetail
             snippet={selectedSnippet}
             onEdit={() => {
               setEditingSnippet(selectedSnippet);
@@ -1032,8 +1033,10 @@ export function SnippetsPage() {
               await deleteSnippet(selectedSnippet.id);
             }}
           />
+          </div>
         ) : selectedGroup ? (
-          <GroupDetail
+          <div key="group-detail" className="animate-fade-in-up mx-auto w-full max-w-lg">
+            <GroupDetail
             group={selectedGroup}
             snippetCount={snippets.filter((s) => s.groupId === selectedGroup.id).length}
             onRename={() => setRenamingGroupId(selectedGroup.id)}
@@ -1047,8 +1050,9 @@ export function SnippetsPage() {
               await deleteGroup(selectedGroup.id);
             }}
           />
+          </div>
         ) : (
-          <div className="flex flex-1 items-center justify-center text-center">
+          <div key="empty" className="animate-fade-in flex flex-1 items-center justify-center text-center">
             <div>
               <Code2 size={48} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
               <p className="text-[var(--font-size-base)] text-[var(--color-text-secondary)]">
