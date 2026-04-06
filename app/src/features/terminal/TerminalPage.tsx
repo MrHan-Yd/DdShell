@@ -20,6 +20,21 @@ import type { AssistPosition } from "./CommandAssist";
 import { useCommandAssistStore } from "@/stores/commandAssist";
 import "@xterm/xterm/css/xterm.css";
 
+const DEFAULT_DANGEROUS_COMMANDS = [
+  "rm -rf /",
+  "rm -rf /*",
+  "mkfs",
+  "dd if=",
+  ":(){ :|:& };:",
+  "shutdown",
+  "poweroff",
+  "reboot",
+  "init 0",
+  "init 6",
+  "drop database",
+  "truncate table",
+];
+
 /** Strip ANSI escape sequences and trim whitespace */
 function cleanSelection(text: string): string {
   // eslint-disable-next-line no-control-regex
@@ -43,12 +58,18 @@ function TerminalInstance({
     fontLigatures?: boolean;
     foreground?: string;
     cursor?: string;
+    cursorStyle?: "block" | "underline" | "bar";
+    cursorWidth?: number;
     selectionBg?: string;
     bgSource?: string;
     bgColor?: string;
     bgImagePath?: string | null;
     bgOpacity?: number;
     bgBlur?: number;
+    ansiColors?: Record<string, string>;
+    dangerousCmdProtection?: boolean;
+    disabledBuiltinCmds?: string[];
+    customDangerousCommands?: string[];
   };
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,6 +82,7 @@ function TerminalInstance({
   );
   const [reconnecting, setReconnecting] = useState(false);
   const cmdBufferRef = useRef<string>("");
+  const dangerousCmdPendingRef = useRef(false);
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
   const termSettingsRef = useRef(termSettings);
@@ -256,6 +278,8 @@ function TerminalInstance({
     const ts = termSettingsRef.current;
     const term = new Terminal({
       cursorBlink: true,
+      cursorStyle: (ts?.cursorStyle ?? "bar") as "block" | "underline" | "bar",
+      cursorWidth: ts?.cursorWidth ?? 2,
       fontSize: ts?.fontSize ?? 14,
       fontFamily: ts?.fontFamily ?? "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace",
       fontWeight: (ts?.fontWeight ?? 400) as any,
@@ -269,22 +293,22 @@ function TerminalInstance({
         foreground: ts?.foreground ?? "#E5E7EB",
         cursor: ts?.cursor ?? "#3B82F6",
         selectionBackground: ts?.selectionBg ?? "rgba(59, 130, 246, 0.3)",
-        black: "#1B2130",
-        red: "#EF4444",
-        green: "#22C55E",
-        yellow: "#F59E0B",
-        blue: "#3B82F6",
-        magenta: "#A855F7",
-        cyan: "#06B6D4",
-        white: "#E5E7EB",
-        brightBlack: "#6B7280",
-        brightRed: "#F87171",
-        brightGreen: "#4ADE80",
-        brightYellow: "#FBBF24",
-        brightBlue: "#60A5FA",
-        brightMagenta: "#C084FC",
-        brightCyan: "#22D3EE",
-        brightWhite: "#F9FAFB",
+        black: ts?.ansiColors?.black ?? "#1B2130",
+        red: ts?.ansiColors?.red ?? "#EF4444",
+        green: ts?.ansiColors?.green ?? "#22C55E",
+        yellow: ts?.ansiColors?.yellow ?? "#F59E0B",
+        blue: ts?.ansiColors?.blue ?? "#3B82F6",
+        magenta: ts?.ansiColors?.magenta ?? "#A855F7",
+        cyan: ts?.ansiColors?.cyan ?? "#06B6D4",
+        white: ts?.ansiColors?.white ?? "#E5E7EB",
+        brightBlack: ts?.ansiColors?.brightBlack ?? "#6B7280",
+        brightRed: ts?.ansiColors?.brightRed ?? "#F87171",
+        brightGreen: ts?.ansiColors?.brightGreen ?? "#4ADE80",
+        brightYellow: ts?.ansiColors?.brightYellow ?? "#FBBF24",
+        brightBlue: ts?.ansiColors?.brightBlue ?? "#60A5FA",
+        brightMagenta: ts?.ansiColors?.brightMagenta ?? "#C084FC",
+        brightCyan: ts?.ansiColors?.brightCyan ?? "#22D3EE",
+        brightWhite: ts?.ansiColors?.brightWhite ?? "#F9FAFB",
       },
     });
 
@@ -426,10 +450,15 @@ function TerminalInstance({
 
     // Handle user input -> SSH
     const onData = term.onData((data) => {
+      // Block all input while dangerous command dialog is pending
+      if (dangerousCmdPendingRef.current) return;
+
       // Skip if IME is composing
       if (composingRef.current) return;
 
       const sid = sessionIdRef.current;
+
+      let pendingCommand = "";
 
       // Process each character for command history buffering
       for (const ch of data) {
@@ -439,9 +468,9 @@ function TerminalInstance({
           if (assistVisibleRef.current && assistConfirmKeyRef.current === "enter") {
             return;
           }
-          const cmd = cmdBufferRef.current.trim();
-          if (cmd.length > 0) {
-            api.commandHistoryInsert(sid, hostId, cmd).then(() => {
+          pendingCommand = cmdBufferRef.current.trim();
+          if (pendingCommand.length > 0) {
+            api.commandHistoryInsert(sid, hostId, pendingCommand).then(() => {
               window.dispatchEvent(new Event("command-history-updated"));
             }).catch(() => {});
           }
@@ -473,6 +502,37 @@ function TerminalInstance({
           }
         } else if (ch.charCodeAt(0) >= 32) {
           cmdBufferRef.current += ch;
+        }
+      }
+
+      // Check dangerous command protection
+      const ts = termSettingsRef.current;
+      if (pendingCommand && ts?.dangerousCmdProtection) {
+        const disabled = new Set(ts.disabledBuiltinCmds ?? []);
+        const patterns = [
+          ...DEFAULT_DANGEROUS_COMMANDS.filter((c) => !disabled.has(c)),
+          ...(ts.customDangerousCommands ?? []),
+        ];
+        if (patterns.length) {
+          const cmdLower = pendingCommand.toLowerCase();
+          const matched = patterns.some((p) => cmdLower.includes(p.toLowerCase()));
+          if (matched) {
+            dangerousCmdPendingRef.current = true;
+            confirm({
+              title: t("settings.cmdConfirmTitle"),
+              description: t("settings.cmdConfirmDesc").replace("{cmd}", pendingCommand),
+            }).then((ok) => {
+              dangerousCmdPendingRef.current = false;
+              if (ok) {
+                const encoder = new TextEncoder();
+                const bytes = Array.from(encoder.encode(data));
+                api.sessionWrite(sid, bytes).catch((err) => toast.error(String(err)));
+              } else {
+                api.sessionWrite(sid, [3]).catch(() => {});
+              }
+            });
+            return;
+          }
         }
       }
 
@@ -889,8 +949,9 @@ export function TerminalPage() {
       try {
         const [
           fontFamily, fontSize, fontWeight, lineHeight, fontLigatures,
-          foreground, cursor, selectionBg,
+          foreground, cursor, cursorStyle, cursorWidth, selectionBg,
           bgSource, bgColor, bgImagePath, bgOpacity, bgBlur,
+          ansiColors, dangerousCmdProtection, disabledBuiltinCmds, customDangerousCommands,
         ] = await Promise.all([
           api.settingGet("terminal.fontFamily"),
           api.settingGet("terminal.fontSize"),
@@ -899,12 +960,18 @@ export function TerminalPage() {
           api.settingGet("terminal.fontLigatures"),
           api.settingGet("terminal.foreground"),
           api.settingGet("terminal.cursor"),
+          api.settingGet("terminal.cursorStyle"),
+          api.settingGet("terminal.cursorWidth"),
           api.settingGet("terminal.selectionBg"),
           api.settingGet("terminal.bgSource"),
           api.settingGet("terminal.bgColor"),
           api.settingGet("terminal.bgImagePath"),
           api.settingGet("terminal.bgOpacity"),
           api.settingGet("terminal.bgBlur"),
+          api.settingGet("terminal.ansiColors"),
+          api.settingGet("terminal.dangerousCmdProtection"),
+          api.settingGet("terminal.disabledBuiltinCmds"),
+          api.settingGet("terminal.customDangerousCommands"),
         ]);
         setTermSettings({
           fontFamily: fontFamily || undefined,
@@ -914,12 +981,18 @@ export function TerminalPage() {
           fontLigatures: fontLigatures === "true",
           foreground: foreground || undefined,
           cursor: cursor || undefined,
+          cursorStyle: (cursorStyle === "block" || cursorStyle === "underline" || cursorStyle === "bar") ? cursorStyle : undefined,
+          cursorWidth: cursorWidth ? parseInt(cursorWidth) : undefined,
           selectionBg: selectionBg || undefined,
           bgSource: bgSource || undefined,
           bgColor: bgColor || undefined,
           bgImagePath: bgImagePath || null,
           bgOpacity: bgOpacity ? parseInt(bgOpacity) : undefined,
           bgBlur: bgBlur ? parseInt(bgBlur) : undefined,
+          ansiColors: (() => { try { return JSON.parse(ansiColors || ""); } catch { return undefined; } })(),
+          dangerousCmdProtection: dangerousCmdProtection !== "false",
+          disabledBuiltinCmds: (() => { try { const arr = JSON.parse(disabledBuiltinCmds || ""); return Array.isArray(arr) ? arr : undefined; } catch { return undefined; } })(),
+          customDangerousCommands: (() => { try { const arr = JSON.parse(customDangerousCommands || ""); return Array.isArray(arr) ? arr : undefined; } catch { return undefined; } })(),
         });
       } catch {
         setTermSettings({});

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check, Trash2 } from "lucide-react";
+import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check, Trash2, Plus } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -28,6 +28,8 @@ interface TerminalSettings {
   fontLigatures: boolean;
   foreground: string;
   cursor: string;
+  cursorStyle: "block" | "underline" | "bar";
+  cursorWidth: number;
   selectionBg: string;
   bgSource: TerminalBgSource;
   bgColor: string;
@@ -36,7 +38,37 @@ interface TerminalSettings {
   bgBlur: number;
   encoding: string;
   setLocale: boolean;
+  ansiColors: Record<string, string>;
+  dangerousCmdProtection: boolean;
+  disabledBuiltinCmds: string[];
+  customDangerousCommands: string[];
 }
+
+const COLOR_THEMES: { id: string; label: string; colors: Record<string, string> }[] = [
+  { id: "default", label: "默认", colors: { black: "#1B2130", red: "#EF4444", green: "#22C55E", yellow: "#F59E0B", blue: "#3B82F6", magenta: "#A855F7", cyan: "#06B6D4", white: "#E5E7EB" } },
+  { id: "dracula", label: "Dracula", colors: { black: "#21222C", red: "#FF5555", green: "#50FA7B", yellow: "#F1FA8C", blue: "#BD93F9", magenta: "#FF79C6", cyan: "#8BE9FD", white: "#F8F8F2" } },
+  { id: "nord", label: "Nord", colors: { black: "#3B4252", red: "#BF616A", green: "#A3BE8C", yellow: "#EBCB8B", blue: "#81A1C1", magenta: "#B48EAD", cyan: "#88C0D0", white: "#E5E9F0" } },
+  { id: "solarized", label: "Solarized", colors: { black: "#073642", red: "#DC322F", green: "#859900", yellow: "#B58900", blue: "#268BD2", magenta: "#D33682", cyan: "#2AA198", white: "#EEE8D5" } },
+  { id: "monokai", label: "Monokai", colors: { black: "#272822", red: "#F92672", green: "#A6E22E", yellow: "#F4BF75", blue: "#66D9EF", magenta: "#AE81FF", cyan: "#A1EFE4", white: "#F8F8F2" } },
+  { id: "github", label: "GitHub", colors: { black: "#3E3E3E", red: "#970B16", green: "#07962A", yellow: "#F8EEC7", blue: "#003E8A", magenta: "#E94691", cyan: "#89D1EC", white: "#FFFFFF" } },
+];
+
+const DEFAULT_ANSI = COLOR_THEMES[0].colors;
+
+const DEFAULT_DANGEROUS_COMMANDS = [
+  "rm -rf /",
+  "rm -rf /*",
+  "mkfs",
+  "dd if=",
+  ":(){ :|:& };:",
+  "shutdown",
+  "poweroff",
+  "reboot",
+  "init 0",
+  "init 6",
+  "drop database",
+  "truncate table",
+];
 
 const DEFAULT_TERMINAL: TerminalSettings = {
   fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace",
@@ -46,6 +78,8 @@ const DEFAULT_TERMINAL: TerminalSettings = {
   fontLigatures: false,
   foreground: "#E5E7EB",
   cursor: "#3B82F6",
+  cursorStyle: "bar",
+  cursorWidth: 2,
   selectionBg: "rgba(59, 130, 246, 0.3)",
   bgSource: "color",
   bgColor: "#0F1115",
@@ -54,6 +88,10 @@ const DEFAULT_TERMINAL: TerminalSettings = {
   bgBlur: 0,
   encoding: "utf-8",
   setLocale: false,
+  ansiColors: { ...DEFAULT_ANSI },
+  dangerousCmdProtection: true,
+  disabledBuiltinCmds: [],
+  customDangerousCommands: [],
 };
 
 /** Compute relative luminance (WCAG formula) */
@@ -90,7 +128,7 @@ function Section({
 }) {
   return (
     <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5">
-      <h3 className="mb-4 text-[var(--font-size-base)] font-medium">{title}</h3>
+      <h3 className="mb-4 border-b border-[var(--color-border)] pb-2 text-[var(--font-size-base)] font-semibold">{title}</h3>
       {children}
     </div>
   );
@@ -418,6 +456,9 @@ export function SettingsPage() {
           savedFontLigatures,
           savedForeground,
           savedCursor,
+          savedCursorStyle,
+          savedCursorWidth,
+          savedAnsiColors,
           savedSelectionBg,
           savedConfirmDanger,
           savedKeepAlive,
@@ -437,6 +478,9 @@ export function SettingsPage() {
           savedUiFontSize,
           savedEncoding,
           savedSetLocale,
+          savedDangerousCmdProtection,
+          savedDisabledBuiltinCmds,
+          savedCustomDangerousCommands,
         ] = await Promise.all([
           api.settingGet("theme"),
           api.settingGet("terminal.fontFamily"),
@@ -446,6 +490,9 @@ export function SettingsPage() {
           api.settingGet("terminal.fontLigatures"),
           api.settingGet("terminal.foreground"),
           api.settingGet("terminal.cursor"),
+          api.settingGet("terminal.cursorStyle"),
+          api.settingGet("terminal.cursorWidth"),
+          api.settingGet("terminal.ansiColors"),
           api.settingGet("terminal.selectionBg"),
           api.settingGet("confirmDangerousActions"),
           api.settingGet("session.keepAlive"),
@@ -465,6 +512,9 @@ export function SettingsPage() {
           api.settingGet("ui.fontSize"),
           api.settingGet("terminal.encoding"),
           api.settingGet("terminal.setLocale"),
+          api.settingGet("terminal.dangerousCmdProtection"),
+          api.settingGet("terminal.disabledBuiltinCmds"),
+          api.settingGet("terminal.customDangerousCommands"),
         ]);
 
         if (savedTheme) setTheme(savedTheme as ThemeOption);
@@ -478,6 +528,8 @@ export function SettingsPage() {
           fontLigatures: savedFontLigatures === "true",
           foreground: savedForeground || DEFAULT_TERMINAL.foreground,
           cursor: savedCursor || DEFAULT_TERMINAL.cursor,
+          cursorStyle: (["block", "underline", "bar"].includes(savedCursorStyle || "") ? savedCursorStyle : DEFAULT_TERMINAL.cursorStyle) as "block" | "underline" | "bar",
+          cursorWidth: savedCursorWidth ? parseInt(savedCursorWidth) : DEFAULT_TERMINAL.cursorWidth,
           selectionBg: savedSelectionBg || DEFAULT_TERMINAL.selectionBg,
           bgSource: (savedBgSource as TerminalBgSource) || DEFAULT_TERMINAL.bgSource,
           bgColor: savedBgColor || DEFAULT_TERMINAL.bgColor,
@@ -486,6 +538,10 @@ export function SettingsPage() {
           bgBlur: savedBgBlur ? parseInt(savedBgBlur) : DEFAULT_TERMINAL.bgBlur,
           encoding: savedEncoding || DEFAULT_TERMINAL.encoding,
           setLocale: savedSetLocale === "true",
+          ansiColors: (() => { try { const p = JSON.parse(savedAnsiColors || ""); return { ...DEFAULT_ANSI, ...p }; } catch { return { ...DEFAULT_ANSI }; } })(),
+          dangerousCmdProtection: savedDangerousCmdProtection !== "false",
+          disabledBuiltinCmds: (() => { try { const arr = JSON.parse(savedDisabledBuiltinCmds || ""); return Array.isArray(arr) ? arr : []; } catch { return []; } })(),
+          customDangerousCommands: (() => { try { const arr = JSON.parse(savedCustomDangerousCommands || ""); return Array.isArray(arr) ? arr : []; } catch { return []; } })(),
         });
 
         setConfirmDanger(savedConfirmDanger !== "false");
@@ -526,6 +582,9 @@ export function SettingsPage() {
         api.settingSet("terminal.fontLigatures", String(terminal.fontLigatures)),
         api.settingSet("terminal.foreground", terminal.foreground),
         api.settingSet("terminal.cursor", terminal.cursor),
+        api.settingSet("terminal.cursorStyle", terminal.cursorStyle),
+        api.settingSet("terminal.cursorWidth", String(terminal.cursorWidth)),
+        api.settingSet("terminal.ansiColors", JSON.stringify(terminal.ansiColors)),
         api.settingSet("terminal.selectionBg", terminal.selectionBg),
         api.settingSet("confirmDangerousActions", String(confirmDanger)),
         api.settingSet("session.keepAlive", sessionTimeout),
@@ -544,6 +603,9 @@ export function SettingsPage() {
         api.settingSet("ui.fontSize", String(uiFontSize)),
         api.settingSet("terminal.encoding", terminal.encoding),
         api.settingSet("terminal.setLocale", String(terminal.setLocale)),
+        api.settingSet("terminal.dangerousCmdProtection", String(terminal.dangerousCmdProtection)),
+        api.settingSet("terminal.disabledBuiltinCmds", JSON.stringify(terminal.disabledBuiltinCmds)),
+        api.settingSet("terminal.customDangerousCommands", JSON.stringify(terminal.customDangerousCommands)),
       ]);
       window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
       setSaveStatus("saved");
@@ -922,8 +984,119 @@ export function SettingsPage() {
           </div>
         </Section>
 
-        <Section title={t("settings.terminalColors")}>
+        <Section title={t("settings.cursor")}>
           <div className="space-y-3">
+            <SettingRow label={t("settings.cursorColor")}>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={terminal.cursor}
+                  onChange={(e) =>
+                    setTerminal((t) => ({ ...t, cursor: e.target.value }))
+                  }
+                  className="h-8 w-8 cursor-pointer rounded border border-[var(--color-border)]"
+                />
+                <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                  {terminal.cursor}
+                </span>
+              </div>
+            </SettingRow>
+
+            <SettingRow label={t("settings.cursorStyle")} description={t("settings.cursorStyleDesc")}>
+              <div className="flex items-center gap-2">
+                {(["bar", "block", "underline"] as const).map((style) => {
+                  const active = terminal.cursorStyle === style;
+                  const label = style === "bar" ? t("settings.cursorBar") : style === "block" ? t("settings.cursorBlock") : t("settings.cursorUnderline");
+                  return (
+                    <button
+                      key={style}
+                      onClick={() => setTerminal((prev) => ({ ...prev, cursorStyle: style }))}
+                      className={active ? "lang-chip lang-chip--active" : "lang-chip"}
+                    >
+                      <span
+                        className="inline-block"
+                        style={{
+                          width: style === "bar" ? 2 : 12,
+                          height: 14,
+                          backgroundColor: active ? "var(--color-accent)" : "var(--color-text-muted)",
+                          borderRadius: style === "bar" ? 1 : (style === "underline" ? "0 0 1px 1px" : 1),
+                          ...(style === "underline" ? { height: 3, marginTop: 11 } : {}),
+                        }}
+                      />
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </SettingRow>
+
+            <SettingRow label={t("settings.cursorWidth")} description="1 - 5">
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min={1}
+                  max={5}
+                  value={terminal.cursorWidth}
+                  onChange={(e) =>
+                    setTerminal((t) => ({ ...t, cursorWidth: parseInt(e.target.value) }))
+                  }
+                  className="range-mac"
+                />
+                <span className="w-4 text-right text-[var(--font-size-sm)]">
+                  {terminal.cursorWidth}
+                </span>
+              </div>
+            </SettingRow>
+          </div>
+        </Section>
+
+        <Section title={t("settings.terminalBg")}>
+          <div className="space-y-3">
+            {/* Preview */}
+            <div>
+              <p className="mb-2 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                {t("settings.preview")}
+              </p>
+              <div
+                className="rounded-[var(--radius-card)] border border-[var(--color-border)] p-4"
+                style={{
+                  background: terminal.bgColor,
+                  fontFamily: terminal.fontFamily,
+                  fontSize: `${terminal.fontSize}px`,
+                  fontWeight: terminal.fontWeight,
+                  lineHeight: terminal.lineHeight,
+                  color: terminal.foreground,
+                }}
+              >
+                <div>
+                  <span style={{ color: terminal.ansiColors.green }}>user</span>
+                  <span>@</span>
+                  <span style={{ color: terminal.ansiColors.cyan }}>server</span>
+                  <span>:</span>
+                  <span style={{ color: terminal.ansiColors.blue }}>~</span>
+                  <span style={{ color: terminal.ansiColors.white }}>$ </span>
+                  <span style={{ color: terminal.ansiColors.yellow }}>ls</span>
+                  <span> --color</span>
+                </div>
+                <div>
+                  <span style={{ color: terminal.ansiColors.blue }}>drwxr-xr-x</span>{" "}
+                  <span>src/ </span>
+                  <span style={{ color: terminal.ansiColors.cyan }}>README.md</span>{" "}
+                  <span style={{ color: terminal.ansiColors.green }}>config.toml</span>
+                </div>
+                <div>
+                  <span style={{ color: terminal.ansiColors.green }}>-rw-r--r--</span>{" "}
+                  <span>package.json </span>
+                  <span style={{ color: terminal.ansiColors.magenta }}>deploy.sh</span>
+                </div>
+                <div>
+                  <span style={{ color: terminal.ansiColors.red }}>-rwxr-xr-x</span>{" "}
+                  <span>build </span>
+                  <span style={{ color: terminal.ansiColors.yellow }}>warning.log</span>
+                </div>
+              </div>
+            </div>
+
             <SettingRow label={t("settings.foreground")}>
               <div className="flex items-center gap-2">
                 <input
@@ -940,21 +1113,36 @@ export function SettingsPage() {
               </div>
             </SettingRow>
 
-            <SettingRow label={t("settings.cursor")}>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={terminal.cursor}
-                  onChange={(e) =>
-                    setTerminal((t) => ({ ...t, cursor: e.target.value }))
-                  }
-                  className="h-8 w-8 cursor-pointer rounded border border-[var(--color-border)]"
-                />
-                <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-                  {terminal.cursor}
-                </span>
+            {/* ANSI Color Theme */}
+            <div className="py-2">
+              <p className="text-[var(--font-size-sm)]">{t("settings.ansiColors")}</p>
+              <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                {t("settings.ansiColorsDesc")}
+              </p>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {COLOR_THEMES.map((theme) => {
+                  const active = JSON.stringify(terminal.ansiColors) === JSON.stringify(theme.colors);
+                  return (
+                    <button
+                      key={theme.id}
+                      onClick={() => setTerminal((prev) => ({ ...prev, ansiColors: { ...theme.colors } }))}
+                      className={active ? "lang-chip lang-chip--active" : "lang-chip"}
+                    >
+                      <span className="flex items-center gap-0.5">
+                        {(["red", "green", "yellow", "blue", "magenta", "cyan"] as const).map((c) => (
+                          <span
+                            key={c}
+                            className="inline-block h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: theme.colors[c] }}
+                          />
+                        ))}
+                      </span>
+                      {theme.label}
+                    </button>
+                  );
+                })}
               </div>
-            </SettingRow>
+            </div>
 
             {/* FR-33: Readability Protection */}
             {(() => {
@@ -986,46 +1174,6 @@ export function SettingsPage() {
               ) : null;
             })()}
 
-            {/* Preview */}
-            <div className="mt-4">
-              <p className="mb-2 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-                {t("settings.preview")}
-              </p>
-              <div
-                className="rounded-[var(--radius-card)] border border-[var(--color-border)] p-4"
-                style={{
-                  background: terminal.bgColor,
-                  fontFamily: terminal.fontFamily,
-                  fontSize: `${terminal.fontSize}px`,
-                  fontWeight: terminal.fontWeight,
-                  lineHeight: terminal.lineHeight,
-                  color: terminal.foreground,
-                }}
-              >
-                <div>
-                  <span style={{ color: "#22C55E" }}>user@server</span>
-                  <span style={{ color: "#6B7280" }}>:</span>
-                  <span style={{ color: "#3B82F6" }}>~</span>
-                  <span style={{ color: "#6B7280" }}>$ </span>
-                  <span>ls -la</span>
-                </div>
-                <div style={{ color: "#9CA3AF" }}>total 32K</div>
-                <div>
-                  <span style={{ color: "#3B82F6" }}>drwxr-xr-x</span>{" "}
-                  <span>4 user user 4096 Mar 5 12:00</span>{" "}
-                  <span style={{ color: "#3B82F6" }}>.</span>
-                </div>
-                <div>
-                  <span style={{ color: "#22C55E" }}>-rw-r--r--</span>{" "}
-                  <span>1 user user 2048 Mar 5 11:30 config.toml</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Section>
-
-        <Section title={t("settings.terminalBg")}>
-          <div className="space-y-3">
             <SettingRow label={t("settings.bgSource")}>
               <SegmentedControl
                 value={terminal.bgSource}
@@ -1218,6 +1366,107 @@ export function SettingsPage() {
               {clearHistoryStatus ? t("settings.done") : t("settings.clear")}
             </Button>
           </div>
+        </Section>
+
+        <Section title={t("settings.cmdProtection")}>
+          <SettingRow
+            label={t("settings.cmdProtection")}
+            description={t("settings.cmdProtectionDesc")}
+          >
+            <button
+              onClick={() => setTerminal((t) => ({ ...t, dangerousCmdProtection: !t.dangerousCmdProtection }))}
+              data-state={terminal.dangerousCmdProtection ? "on" : "off"}
+              className="toggle-switch"
+            >
+              <span className="toggle-thumb" />
+            </button>
+          </SettingRow>
+
+          {terminal.dangerousCmdProtection && (
+            <div className="py-2">
+              {/* Built-in commands: toggle only, cannot delete */}
+              <div className="flex flex-col gap-1.5">
+                {DEFAULT_DANGEROUS_COMMANDS.map((cmd) => {
+                  const disabled = terminal.disabledBuiltinCmds.includes(cmd);
+                  return (
+                    <div key={cmd} className="flex items-center justify-between rounded border border-[var(--color-border)] px-2 py-1">
+                      <span className="flex items-center gap-2">
+                        <code className={`text-[var(--font-size-xs)] ${disabled ? "line-through text-[var(--color-text-muted)]" : ""}`}>{cmd}</code>
+                        <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                          {t("settings.builtin")}
+                        </span>
+                      </span>
+                      <button
+                        onClick={() => setTerminal((t) => ({
+                          ...t,
+                          disabledBuiltinCmds: disabled
+                            ? t.disabledBuiltinCmds.filter((c) => c !== cmd)
+                            : [...t.disabledBuiltinCmds, cmd],
+                        }))}
+                        data-state={disabled ? "off" : "on"}
+                        className="toggle-switch"
+                        style={{ transform: "scale(0.7)" }}
+                      >
+                        <span className="toggle-thumb" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Custom commands: can delete */}
+              {terminal.customDangerousCommands.length > 0 && (
+                <div className="mt-3 flex flex-col gap-1.5">
+                  {terminal.customDangerousCommands.map((cmd, i) => (
+                    <div key={i} className="flex items-center justify-between rounded border border-[var(--color-border)] px-2 py-1">
+                      <code className="text-[var(--font-size-xs)]">{cmd}</code>
+                      <button
+                        onClick={() => setTerminal((t) => ({
+                          ...t,
+                          customDangerousCommands: t.customDangerousCommands.filter((_, j) => j !== i),
+                        }))}
+                        className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-2 flex gap-1.5">
+                <input
+                  id="add-dangerous-cmd"
+                  type="text"
+                  placeholder={t("settings.addCommand")}
+                  className="flex-1 rounded border border-[var(--color-border)] bg-transparent px-2 py-1 text-[var(--font-size-xs)] outline-none focus:border-[var(--color-primary)]"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const input = e.currentTarget;
+                      const val = input.value.trim();
+                      if (val && !terminal.customDangerousCommands.includes(val)) {
+                        setTerminal((t) => ({ ...t, customDangerousCommands: [...t.customDangerousCommands, val] }));
+                        input.value = "";
+                      }
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    const input = document.getElementById("add-dangerous-cmd") as HTMLInputElement;
+                    const val = input?.value.trim();
+                    if (val && !terminal.customDangerousCommands.includes(val)) {
+                      setTerminal((t) => ({ ...t, customDangerousCommands: [...t.customDangerousCommands, val] }));
+                      input.value = "";
+                    }
+                  }}
+                  className="flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-1 text-[var(--font-size-xs)] hover:bg-[var(--color-bg-hover)]"
+                >
+                  <Plus size={10} />
+                </button>
+              </div>
+            </div>
+          )}
         </Section>
         </>)}
 

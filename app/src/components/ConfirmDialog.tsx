@@ -20,7 +20,7 @@ export function ConfirmDialog() {
     }
   }, [visible]);
 
-  // Escape key to cancel
+  // Keyboard shortcuts: Escape to cancel, Enter to confirm
   useEffect(() => {
     if (!visible) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -28,6 +28,10 @@ export function ConfirmDialog() {
         e.preventDefault();
         e.stopPropagation();
         respond(false);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        respond(true);
       }
     };
     window.addEventListener("keydown", handleKey, true);
@@ -82,13 +86,13 @@ export function ConfirmDialog() {
             onClick={() => respond(false)}
             className="btn-press rounded-[var(--radius-control)] px-4 py-1.5 text-[var(--font-size-sm)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)]"
           >
-            {cancelLabel}
+            {cancelLabel} <kbd className="ml-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">Esc</kbd>
           </button>
           <button
             onClick={() => respond(true)}
             className="btn-press rounded-[var(--radius-control)] px-4 py-1.5 text-[var(--font-size-sm)] bg-[var(--color-error)] text-white hover:opacity-90 shadow-[var(--shadow-card)] transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)]"
           >
-            {confirmLabel}
+            {confirmLabel} <kbd className="ml-1 text-[var(--font-size-xs)] opacity-70">Enter</kbd>
           </button>
         </div>
       </div>
