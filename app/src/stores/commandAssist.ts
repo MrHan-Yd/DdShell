@@ -94,7 +94,7 @@ const allCats = ["git", "docker", "webServer", ...ALL_DEVTOOLS_SUB];
       items: state.items.map((item) =>
         item.id === id
           ? { ...item, weight: item.weight * 0.9 + 1.0 }
-          : item
+          : { ...item, weight: item.weight * 0.95 }
       ),
     }));
   },

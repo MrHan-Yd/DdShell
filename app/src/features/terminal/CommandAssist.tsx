@@ -158,7 +158,11 @@ export function CommandAssist({
   // Global keyboard listener
   useEffect(() => {
     if (!visible) return;
-    const handler = (e: KeyboardEvent) => { keyHandlerRef.current(e); };
+    const handler = (e: KeyboardEvent) => {
+      if (keyHandlerRef.current(e)) {
+        e.stopImmediatePropagation();
+      }
+    };
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
   }, [visible]);

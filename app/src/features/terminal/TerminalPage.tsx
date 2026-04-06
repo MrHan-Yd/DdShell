@@ -496,8 +496,11 @@ function TerminalInstance({
             return;
           }
         } else if (ch === "\x1b") {
-          // Esc — handled by CommandAssist keydown handler
+          // Esc — close assist if visible
           if (assistVisibleRef.current) {
+            assistVisibleRef.current = false;
+            setAssistVisible(false);
+            setAssistQuery("");
             return;
           }
         } else if (ch.charCodeAt(0) >= 32) {
