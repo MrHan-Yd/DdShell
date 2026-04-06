@@ -3,9 +3,9 @@ import { Command, Globe, User, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CandidateItem } from "@/lib/tauri";
 import { useCommandAssistStore } from "@/stores/commandAssist";
-import { useT } from "@/lib/i18n";
+import { useT, type DictKey } from "@/lib/i18n";
 
-const CATEGORY_I18N_KEYS: Record<string, string> = {
+const CATEGORY_I18N_KEYS: Record<string, DictKey> = {
   system: "commandAssist.catSystem",
   ubuntu: "commandAssist.catUbuntu",
   centos: "commandAssist.catCentos",

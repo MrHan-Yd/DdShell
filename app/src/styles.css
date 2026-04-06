@@ -34,7 +34,7 @@
   --duration-toggle: 280ms;
   --ease-default: ease-out;
   --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
   --ease-bounce: cubic-bezier(0.68, -0.6, 0.32, 1.6);
 
   /* ── Dark Theme (default) ── */
@@ -749,6 +749,28 @@ input[type="number"] {
 }
 .animate-context-menu {
   animation: context-menu-enter 200ms var(--ease-spring) both;
+}
+
+/* Drawer expand/collapse animation (grid-template-rows trick) */
+.drawer-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 300ms cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.drawer-wrapper.expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.drawer-wrapper > .drawer-inner {
+  overflow: hidden;
+  min-height: 0;
+  transform: translateY(-6px);
+  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.drawer-wrapper.expanded > .drawer-inner {
+  transform: translateY(0);
 }
 
 /* Context menu smooth hover transition */

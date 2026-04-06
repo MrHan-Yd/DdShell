@@ -90,7 +90,7 @@ export function Sidebar() {
             style={{
               top: pill.top,
               height: pill.height,
-              transition: "top 400ms cubic-bezier(0.34, 1.56, 0.64, 1), height 400ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+              transition: "top 400ms cubic-bezier(0.175, 0.885, 0.32, 1.1), height 400ms cubic-bezier(0.175, 0.885, 0.32, 1.1)",
             }}
           />
 

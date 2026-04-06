@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ContextMenu, useContextMenu } from "@/components/ui/ContextMenu";
+import type { MenuItem } from "@/components/ui/ContextMenu";
 import { cn } from "@/lib/utils";
 import { useSftpStore, initSftpListeners } from "@/stores/sftp";
 import { useTerminalStore } from "@/stores/terminal";
@@ -679,13 +681,13 @@ function RemoteFileList() {
   const [newDirName, setNewDirName] = useState("");
   const [showRename, setShowRename] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entry: FileEntry } | null>(null);
-  const [hoveredMenuItem, setHoveredMenuItem] = useState<number | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [deletingEntries, setDeletingEntries] = useState<Set<string>>(new Set());
   const mkdir = useSftpStore((s) => s.mkdir);
   const rename = useSftpStore((s) => s.rename);
   const dropRef = useRef<HTMLDivElement>(null);
+
+  const { menuState, onContextMenu, closeMenu } = useContextMenu<FileEntry>();
 
   // Wrap navigateRemote to also track recent paths
   const navigateRemoteWithRecent = useCallback(
@@ -729,6 +731,134 @@ function RemoteFileList() {
     const fullPath = remotePath === "/" ? `/${name}` : `${remotePath}/${name}`;
     await api.sftpRemove(sessionId!, fullPath, true);
   }, [sessionId, remotePath]);
+
+  const buildContextMenuItems = useCallback((entry: FileEntry): MenuItem[] => {
+    const items: MenuItem[] = [];
+
+    if (entry.fileType === "dir") {
+      items.push({
+        icon: <FolderOpen size={14} className="text-[var(--color-accent)]" />,
+        label: t("sftp.open") || "打开",
+        onClick: () => {
+          const newPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
+          navigateRemoteWithRecent(newPath);
+        },
+      });
+    }
+
+    // Download (file or directory)
+    items.push({
+      icon: <Download size={14} />,
+      label: t("sftp.download"),
+      onClick: async () => {
+        if (entry.fileType === "file") {
+          const fullPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
+          api.sftpTransferStart(sessionId!, "download", "", fullPath).then(() => {
+            useSftpStore.getState().refreshTransfers();
+            toast.success(t("sftp.downloadStarted"));
+          });
+        } else {
+          // Directory download
+          const fullPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
+          toast.info(t("sftp.scanningDir"));
+          try {
+            const collectFiles = async (dir: string, base: string): Promise<{ remote: string; relative: string }[]> => {
+              const files: { remote: string; relative: string }[] = [];
+              const entries = await api.sftpListDir(sessionId!, dir);
+              for (const e of entries) {
+                if (e.name === "." || e.name === "..") continue;
+                const fp = dir === "/" ? `/${e.name}` : `${dir}/${e.name}`;
+                const rp = base ? `${base}/${e.name}` : e.name;
+                if (e.fileType === "file") files.push({ remote: fp, relative: rp });
+                else if (e.fileType === "dir") {
+                  const sub = await collectFiles(fp, rp);
+                  files.push(...sub);
+                }
+              }
+              return files;
+            };
+            const allFiles = await collectFiles(fullPath, "");
+            if (allFiles.length === 0) {
+              toast.info(t("sftp.emptyDir"));
+            } else {
+              const promises = allFiles.map((file) => {
+                const subPath = `${entry.name}/${file.relative}`;
+                return api.sftpTransferStart(sessionId!, "download", "", file.remote, subPath)
+                  .catch((err) => ({ error: err, file: file.remote }));
+              });
+              const results = await Promise.all(promises);
+              const failed = results.filter((r): r is { error: unknown; file: string } => "error" in r);
+              if (failed.length > 0) {
+                toast.error(`Failed to start ${failed.length} download(s)`);
+              }
+              useSftpStore.getState().refreshTransfers();
+              const validIds = results.filter((r): r is { id: string } => "id" in r).map((r) => r.id);
+              useSftpStore.getState().registerBatch(validIds, "download");
+            }
+          } catch {
+            toast.error("Failed to scan directory");
+          }
+        }
+      },
+    });
+
+    // Rename
+    items.push({
+      icon: <Pencil size={14} />,
+      label: t("sftp.rename") || "重命名",
+      onClick: () => {
+        setShowRename(entry.name);
+        setRenameValue(entry.name);
+      },
+    });
+
+    // Separator
+    items.push({ type: "separator" });
+
+    // Delete
+    items.push({
+      icon: <Trash2 size={14} />,
+      label: t("confirm.delete"),
+      danger: true,
+      onClick: async () => {
+        const connectedTab = tabs.find((tab) => tab.sessionId === sessionId && tab.state === "connected");
+        if (!connectedTab) {
+          toast.error(t("term.disconnected"));
+          return;
+        }
+
+        if (entry.fileType === "dir") {
+          const fullPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
+          const entries = await api.sftpListDir(sessionId!, fullPath);
+          const nonHiddenEntries = entries.filter((x) => x.name !== "." && x.name !== "..");
+          if (nonHiddenEntries.length > 0) {
+            const ok = await confirm({
+              title: t("confirm.deleteNonEmptyDirTitle"),
+              description: t("confirm.deleteNonEmptyDirDesc", { name: entry.name }),
+              confirmLabel: t("confirm.delete"),
+            });
+            if (!ok) return;
+            setDeletingEntries((prev) => new Set(prev).add(entry.name));
+            await new Promise((resolve) => setTimeout(resolve, 250));
+            await api.sftpRemove(sessionId!, fullPath, true);
+            toast.success(t("sftp.deleted"));
+            return;
+          }
+        }
+        const ok = await confirm({
+          title: t("confirm.deleteFileTitle"),
+          description: t("confirm.deleteFileDesc"),
+          confirmLabel: t("confirm.delete"),
+        });
+        if (ok) {
+          await deleteWithAnimation(entry.name, entry.fileType === "dir");
+          toast.success(t("sftp.deleted"));
+        }
+      },
+    });
+
+    return items;
+  }, [t, remotePath, sessionId, navigateRemoteWithRecent, deleteWithAnimation, tabs]);
 
   // ── SFTP keyboard shortcuts ──
   const handleDelete = useCallback(async () => {
@@ -824,58 +954,6 @@ function RemoteFileList() {
       window.removeEventListener("sftp:mkdir", handleMkdir);
     };
   }, [refreshRemote, selectedRemoteEntries, remoteEntries, remove, handleDelete]);
-
-  // Handle native context menu event
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const fileItem = target.closest("[data-file-entry]");
-      if (fileItem) {
-        const entryName = fileItem.getAttribute("data-file-name");
-        const entryType = fileItem.getAttribute("data-file-type") as "file" | "dir" | "symlink" | null;
-        if (entryName && entryType) {
-          e.preventDefault();
-          const entry: FileEntry = {
-            name: entryName,
-            fileType: entryType,
-            size: 0,
-            mtime: 0,
-            permissions: 0,
-          };
-          if (!selectedRemoteEntries.has(entryName)) {
-            toggleSelectRemote(entryName);
-          }
-          // Calculate position relative to the container
-          const container = dropRef.current;
-          if (container) {
-            const containerRect = container.getBoundingClientRect();
-            let x = e.clientX - containerRect.left;
-            let y = e.clientY - containerRect.top;
-
-            // Menu dimensions
-            const menuWidth = 180;
-            const menuHeight = 120;
-
-            // Adjust if menu would go outside right edge
-            if (x + menuWidth > containerRect.width) {
-              x = containerRect.width - menuWidth;
-            }
-            // Adjust if menu would go outside bottom edge
-            if (y + menuHeight > containerRect.height) {
-              y = containerRect.height - menuHeight;
-            }
-
-            setContextMenu({ x, y, entry });
-          }
-        }
-      }
-    };
-
-    document.addEventListener("contextmenu", handleContextMenu);
-    return () => {
-      document.removeEventListener("contextmenu", handleContextMenu);
-    };
-  }, [selectedRemoteEntries, toggleSelectRemote]);
 
   // Handle native file drag-drop via HTML5 API
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -978,6 +1056,7 @@ function RemoteFileList() {
           ? "border-[var(--color-accent)] bg-[var(--color-accent-subtle)]"
           : "border-[var(--color-border)]",
       )}
+      data-context-menu-container
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -1124,6 +1203,12 @@ function RemoteFileList() {
                 )}
                 onClick={() => toggleSelectRemote(entry.name)}
                 onDoubleClick={() => handleDoubleClick(entry)}
+                onContextMenu={(e) => {
+                  if (!selectedRemoteEntries.has(entry.name)) {
+                    toggleSelectRemote(entry.name);
+                  }
+                  onContextMenu(e, entry);
+                }}
               >
                 {/* Progress bar background - 从左到右增长，完成后绿色淡出 */}
                 {showProgress && (
@@ -1187,236 +1272,15 @@ function RemoteFileList() {
           })}
       </div>
 
+
       {/* Context Menu */}
-      {contextMenu && (
-        <div
-          className="absolute z-50 min-w-[180px] py-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg shadow-lg animate-context-menu"
-          ref={(el) => {
-            if (el && hoveredMenuItem !== null) {
-              const buttons = el.querySelectorAll('.context-menu-item');
-              const btn = buttons[hoveredMenuItem] as HTMLElement;
-              if (btn) {
-                const highlight = el.querySelector('.menu-highlight') as HTMLElement;
-                if (highlight) {
-                  highlight.style.top = (btn.offsetTop) + 'px';
-                  highlight.style.height = btn.offsetHeight + 'px';
-                }
-              }
-            }
-          }}
-          style={{
-            left: contextMenu.x,
-            top: contextMenu.y,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Sliding highlight */}
-          <div
-            className="absolute left-0.5 right-0.5 bg-[var(--color-bg-hover)] rounded transition-all duration-150 ease-spring pointer-events-none menu-highlight"
-          />
-
-          {/* Open - for directories */}
-          {contextMenu.entry.fileType === "dir" && (
-            <button
-              className="w-full px-3 py-1.5 text-left text-[var(--font-size-sm)] flex items-center gap-2 context-menu-item relative z-10"
-              onMouseEnter={(e) => {
-                const buttons = e.currentTarget.parentElement?.querySelectorAll('.context-menu-item');
-                if (buttons) {
-                  setHoveredMenuItem(Array.from(buttons).indexOf(e.currentTarget));
-                }
-              }}
-              onMouseLeave={() => setHoveredMenuItem(null)}
-              onClick={() => {
-                const newPath = remotePath === "/" ? `/${contextMenu.entry.name}` : `${remotePath}/${contextMenu.entry.name}`;
-                navigateRemoteWithRecent(newPath);
-                setContextMenu(null);
-              }}
-            >
-              <FolderOpen size={14} className="text-[var(--color-accent)]" />
-              {t("sftp.open") || "打开"}
-            </button>
-          )}
-
-          {/* Download - for files */}
-          {contextMenu.entry.fileType === "file" && (
-            <button
-              className="w-full px-3 py-1.5 text-left text-[var(--font-size-sm)] flex items-center gap-2 context-menu-item relative z-10"
-              onMouseEnter={(e) => {
-                const buttons = e.currentTarget.parentElement?.querySelectorAll('.context-menu-item');
-                if (buttons) {
-                  setHoveredMenuItem(Array.from(buttons).indexOf(e.currentTarget));
-                }
-              }}
-              onMouseLeave={() => setHoveredMenuItem(null)}
-              onClick={() => {
-                const entry = contextMenu.entry;
-                if (!entry.name) return;
-                const fullPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
-                api.sftpTransferStart(sessionId!, "download", "", fullPath).then(() => {
-                  useSftpStore.getState().refreshTransfers();
-                  toast.success(t("sftp.downloadStarted"));
-                });
-                setContextMenu(null);
-              }}
-            >
-              <Download size={14} className="text-[var(--color-text-muted)]" />
-              {t("sftp.download")}
-            </button>
-          )}
-
-          {/* Download - for directories */}
-          {contextMenu.entry.fileType === "dir" && (
-            <button
-              className="w-full px-3 py-1.5 text-left text-[var(--font-size-sm)] flex items-center gap-2 context-menu-item relative z-10"
-              onMouseEnter={(e) => {
-                const buttons = e.currentTarget.parentElement?.querySelectorAll('.context-menu-item');
-                if (buttons) {
-                  setHoveredMenuItem(Array.from(buttons).indexOf(e.currentTarget));
-                }
-              }}
-              onMouseLeave={() => setHoveredMenuItem(null)}
-              onClick={async () => {
-                const entry = contextMenu.entry;
-                if (!entry) return;
-                const fullPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
-                toast.info(t("sftp.scanningDir"));
-                try {
-                  // Collect all files recursively
-                  const collectFiles = async (dir: string, base: string): Promise<{ remote: string; relative: string }[]> => {
-                    const files: { remote: string; relative: string }[] = [];
-                    const entries = await api.sftpListDir(sessionId!, dir);
-                    for (const e of entries) {
-                      if (e.name === "." || e.name === "..") continue;
-                      const fp = dir === "/" ? `/${e.name}` : `${dir}/${e.name}`;
-                      const rp = base ? `${base}/${e.name}` : e.name;
-                      if (e.fileType === "file") files.push({ remote: fp, relative: rp });
-                      else if (e.fileType === "dir") {
-                        const sub = await collectFiles(fp, rp);
-                        files.push(...sub);
-                      }
-                    }
-                    return files;
-                  };
-                  const allFiles = await collectFiles(fullPath, "");
-                  if (allFiles.length === 0) {
-                    toast.info(t("sftp.emptyDir"));
-                  } else {
-                    // Start all downloads in parallel (they'll queue at semaphore)
-                    // Pass empty local_path and let backend resolve download dir
-                    const promises = allFiles.map((file) => {
-                      const subPath = `${entry.name}/${file.relative}`;
-                      return api.sftpTransferStart(sessionId!, "download", "", file.remote, subPath)
-                        .catch((err) => ({ error: err, file: file.remote }));
-                    });
-                    const results = await Promise.all(promises);
-                    const failed = results.filter((r): r is { error: unknown; file: string } => "error" in r);
-                    if (failed.length > 0) {
-                      toast.error(`Failed to start ${failed.length} download(s)`);
-                    }
-                    useSftpStore.getState().refreshTransfers();
-                    // Register batch for summary toast
-                    const validIds = results.filter((r): r is { id: string } => "id" in r).map((r) => r.id);
-                    useSftpStore.getState().registerBatch(validIds, "download");
-                  }
-                } catch {
-                  toast.error("Failed to scan directory");
-                }
-                setContextMenu(null);
-              }}
-            >
-              <Download size={14} className="text-[var(--color-text-muted)]" />
-              {t("sftp.download")}
-            </button>
-          )}
-
-          {/* Rename */}
-          <button
-            className="w-full px-3 py-1.5 text-left text-[var(--font-size-sm)] flex items-center gap-2 context-menu-item relative z-10"
-            onMouseEnter={(e) => {
-              const buttons = e.currentTarget.parentElement?.querySelectorAll('.context-menu-item');
-              if (buttons) {
-                setHoveredMenuItem(Array.from(buttons).indexOf(e.currentTarget));
-              }
-            }}
-            onMouseLeave={() => setHoveredMenuItem(null)}
-            onClick={() => {
-              setShowRename(contextMenu.entry.name);
-              setRenameValue(contextMenu.entry.name);
-              setContextMenu(null);
-            }}
-          >
-            <Pencil size={14} className="text-[var(--color-text-muted)]" />
-            {t("sftp.rename") || "重命名"}
-          </button>
-
-          <div className="my-1 border-t border-[var(--color-border)]" />
-
-          {/* Delete */}
-          <button
-            className="w-full px-3 py-1.5 text-left text-[var(--font-size-sm)] flex items-center gap-2 text-[var(--color-error)] context-menu-item relative z-10"
-            onMouseEnter={(e) => {
-              const buttons = e.currentTarget.parentElement?.querySelectorAll('.context-menu-item');
-              if (buttons) {
-                setHoveredMenuItem(Array.from(buttons).indexOf(e.currentTarget));
-              }
-            }}
-            onMouseLeave={() => setHoveredMenuItem(null)}
-            onClick={async () => {
-              // Check if session is still connected
-              const connectedTab = tabs.find((tab) => tab.sessionId === sessionId && tab.state === "connected");
-              if (!connectedTab) {
-                toast.error(t("term.disconnected"));
-                setContextMenu(null);
-                return;
-              }
-
-              // Check if directory and has content
-              if (contextMenu.entry.fileType === "dir") {
-                const fullPath = remotePath === "/" ? `/${contextMenu.entry.name}` : `${remotePath}/${contextMenu.entry.name}`;
-                const entries = await api.sftpListDir(sessionId!, fullPath);
-                const nonHiddenEntries = entries.filter((x) => x.name !== "." && x.name !== "..");
-                if (nonHiddenEntries.length > 0) {
-                  const ok = await confirm({
-                    title: t("confirm.deleteNonEmptyDirTitle"),
-                    description: t("confirm.deleteNonEmptyDirDesc", { name: contextMenu.entry.name }),
-                    confirmLabel: t("confirm.delete"),
-                  });
-                  if (!ok) {
-                    setContextMenu(null);
-                    return;
-                  }
-                  // Start animation first
-                  setDeletingEntries((prev) => new Set(prev).add(contextMenu.entry.name));
-                  await new Promise((resolve) => setTimeout(resolve, 250));
-                  await api.sftpRemove(sessionId!, fullPath, true);
-                  toast.success(t("sftp.deleted"));
-                  setContextMenu(null);
-                  return;
-                }
-              }
-              const ok = await confirm({
-                title: t("confirm.deleteFileTitle"),
-                description: t("confirm.deleteFileDesc"),
-                confirmLabel: t("confirm.delete"),
-              });
-              if (ok) {
-                await deleteWithAnimation(contextMenu.entry.name, contextMenu.entry.fileType === "dir");
-                toast.success(t("sftp.deleted"));
-              }
-              setContextMenu(null);
-            }}
-          >
-            <Trash2 size={14} />
-            {t("confirm.delete")}
-          </button>
-        </div>
-      )}
-
-      {/* Click outside to close context menu */}
-      {contextMenu && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setContextMenu(null)}
+      {menuState && (
+        <ContextMenu
+          x={menuState.x}
+          y={menuState.y}
+          onClose={closeMenu}
+          containerRef={dropRef}
+          items={buildContextMenuItems(menuState.data)}
         />
       )}
     </div>

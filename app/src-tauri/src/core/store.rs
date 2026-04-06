@@ -39,12 +39,23 @@ pub struct HostGroup {
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "camelCase")]
+pub struct SnippetGroup {
+    pub id: String,
+    pub name: String,
+    pub sort_order: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct Snippet {
     pub id: String,
     pub title: String,
     pub command: String,
     pub description: Option<String>,
     pub tags: Option<String>,
+    pub group_id: Option<String>,
     pub sort_order: i64,
     pub created_at: String,
     pub updated_at: String,
@@ -164,12 +175,9 @@ impl Database {
         .await?;
 
         sqlx::query(
-            "CREATE TABLE IF NOT EXISTS snippets (
+            "CREATE TABLE IF NOT EXISTS snippet_groups (
                 id TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
-                command TEXT NOT NULL,
-                description TEXT,
-                tags TEXT,
+                name TEXT NOT NULL,
                 sort_order INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
@@ -177,6 +185,35 @@ impl Database {
         )
         .execute(&self.pool)
         .await?;
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS snippets (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                command TEXT NOT NULL,
+                description TEXT,
+                tags TEXT,
+                group_id TEXT,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Migrate: add group_id column if missing (existing databases)
+        let has_group_id: bool = sqlx::query_scalar(
+            "SELECT COUNT(*) > 0 FROM pragma_table_info('snippets') WHERE name = 'group_id'",
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(false);
+        if !has_group_id {
+            sqlx::query("ALTER TABLE snippets ADD COLUMN group_id TEXT")
+                .execute(&self.pool)
+                .await?;
+        }
 
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS settings (
@@ -441,6 +478,62 @@ impl Database {
         Ok(rows)
     }
 
+    // ── Snippet Group CRUD ──
+
+    pub async fn create_snippet_group(&self, name: &str) -> anyhow::Result<String> {
+        let id = Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query(
+            "INSERT INTO snippet_groups (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)",
+        )
+        .bind(&id)
+        .bind(name)
+        .bind(&now)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(id)
+    }
+
+    pub async fn update_snippet_group(&self, id: &str, name: &str) -> anyhow::Result<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query("UPDATE snippet_groups SET name=?, updated_at=? WHERE id=?")
+            .bind(name)
+            .bind(&now)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_snippet_group(&self, id: &str) -> anyhow::Result<()> {
+        sqlx::query("UPDATE snippets SET group_id = NULL WHERE group_id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("DELETE FROM snippet_groups WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn list_snippet_groups(&self) -> anyhow::Result<Vec<SnippetGroup>> {
+        let rows: Vec<SnippetGroup> = sqlx::query_as(
+            "SELECT id, name, sort_order, created_at, updated_at FROM snippet_groups ORDER BY sort_order, name",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
+    }
+
     // ── Snippet CRUD ──
 
     pub async fn create_snippet(
@@ -449,18 +542,20 @@ impl Database {
         command: &str,
         description: Option<&str>,
         tags: Option<&str>,
+        group_id: Option<&str>,
     ) -> anyhow::Result<String> {
         let id = Uuid::new_v4().to_string();
         let now = chrono::Utc::now().to_rfc3339();
 
         sqlx::query(
-            "INSERT INTO snippets (id, title, command, description, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO snippets (id, title, command, description, tags, group_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&id)
         .bind(title)
         .bind(command)
         .bind(description)
         .bind(tags)
+        .bind(group_id)
         .bind(&now)
         .bind(&now)
         .execute(&self.pool)
@@ -476,11 +571,12 @@ impl Database {
         command: Option<&str>,
         description: Option<Option<&str>>,
         tags: Option<Option<&str>>,
+        group_id: Option<Option<&str>>,
     ) -> anyhow::Result<()> {
         let now = chrono::Utc::now().to_rfc3339();
 
         let current: Snippet = sqlx::query_as(
-            "SELECT id, title, command, description, tags, sort_order, created_at, updated_at FROM snippets WHERE id = ?",
+            "SELECT id, title, command, description, tags, group_id, sort_order, created_at, updated_at FROM snippets WHERE id = ?",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -495,14 +591,18 @@ impl Database {
         let tags = tags
             .map(|t| t.map(|s| s.to_string()))
             .unwrap_or(current.tags);
+        let group_id = group_id
+            .map(|g| g.map(|s| s.to_string()))
+            .unwrap_or(current.group_id);
 
         sqlx::query(
-            "UPDATE snippets SET title=?, command=?, description=?, tags=?, updated_at=? WHERE id=?",
+            "UPDATE snippets SET title=?, command=?, description=?, tags=?, group_id=?, updated_at=? WHERE id=?",
         )
         .bind(&title)
         .bind(&command)
         .bind(&description)
         .bind(&tags)
+        .bind(&group_id)
         .bind(&now)
         .bind(id)
         .execute(&self.pool)
@@ -521,7 +621,7 @@ impl Database {
 
     pub async fn list_snippets(&self) -> anyhow::Result<Vec<Snippet>> {
         let rows: Vec<Snippet> = sqlx::query_as(
-            "SELECT id, title, command, description, tags, sort_order, created_at, updated_at FROM snippets ORDER BY sort_order, title",
+            "SELECT id, title, command, description, tags, group_id, sort_order, created_at, updated_at FROM snippets ORDER BY sort_order, title",
         )
         .fetch_all(&self.pool)
         .await?;

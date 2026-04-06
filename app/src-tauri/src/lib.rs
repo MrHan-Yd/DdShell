@@ -231,7 +231,51 @@ async fn group_list(
     db.list_groups().await.map_err(|e| e.to_string())
 }
 
-// ── Commands: Snippet ──
+// ── Commands: Snippet Groups ──
+
+#[tauri::command]
+async fn snippet_group_create(
+    db: tauri::State<'_, Database>,
+    name: String,
+) -> Result<IdResponse, String> {
+    let id = db
+        .create_snippet_group(&name)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(IdResponse { id })
+}
+
+#[tauri::command]
+async fn snippet_group_update(
+    db: tauri::State<'_, Database>,
+    id: String,
+    name: String,
+) -> Result<SuccessResponse, String> {
+    db.update_snippet_group(&id, &name)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn snippet_group_delete(
+    db: tauri::State<'_, Database>,
+    id: String,
+) -> Result<SuccessResponse, String> {
+    db.delete_snippet_group(&id)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn snippet_group_list(
+    db: tauri::State<'_, Database>,
+) -> Result<Vec<core::store::SnippetGroup>, String> {
+    db.list_snippet_groups().await.map_err(|e| e.to_string())
+}
+
+// ── Commands: Snippets ──
 
 #[tauri::command]
 async fn snippet_create(
@@ -240,10 +284,11 @@ async fn snippet_create(
     command: String,
     description: Option<String>,
     tags: Option<Vec<String>>,
+    group_id: Option<String>,
 ) -> Result<IdResponse, String> {
     let tags_json = tags.map(|t| serde_json::to_string(&t).unwrap_or_default());
     let id = db
-        .create_snippet(&title, &command, description.as_deref(), tags_json.as_deref())
+        .create_snippet(&title, &command, description.as_deref(), tags_json.as_deref(), group_id.as_deref())
         .await
         .map_err(|e| e.to_string())?;
     Ok(IdResponse { id })
@@ -257,6 +302,7 @@ async fn snippet_update(
     command: Option<String>,
     description: Option<String>,
     tags: Option<Vec<String>>,
+    group_id: Option<String>,
 ) -> Result<SuccessResponse, String> {
     let tags_json = tags.map(|t| serde_json::to_string(&t).unwrap_or_default());
     db.update_snippet(
@@ -265,6 +311,7 @@ async fn snippet_update(
         command.as_deref(),
         Some(description.as_deref()),
         Some(tags_json.as_deref()),
+        Some(group_id.as_deref()),
     )
     .await
     .map_err(|e| e.to_string())?;
@@ -1705,6 +1752,10 @@ pub fn run() {
             group_update,
             group_delete,
             group_list,
+            snippet_group_create,
+            snippet_group_update,
+            snippet_group_delete,
+            snippet_group_list,
             snippet_create,
             snippet_update,
             snippet_delete,

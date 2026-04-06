@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Plus,
   Search,
@@ -7,26 +7,42 @@ import {
   Pencil,
   Copy,
   Tag,
+  FolderPlus,
+  Folder,
+  FolderOpen,
+  ClipboardCopy,
+  FolderInput,
+  FolderX,
+  ChevronRight,
+  X,
+  Check,
 } from "lucide-react";
+import { ContextMenu, useContextMenu } from "@/components/ui/ContextMenu";
+import type { MenuItem } from "@/components/ui/ContextMenu";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import { useSnippetsStore } from "@/stores/snippets";
 import { confirm } from "@/stores/confirm";
-import type { Snippet } from "@/types";
+import { toast } from "@/stores/toast";
+import type { Snippet, SnippetGroup } from "@/types";
 
 function SnippetForm({
   snippet,
+  groups,
   onSave,
   onCancel,
 }: {
   snippet?: Snippet | null;
+  groups: SnippetGroup[];
   onSave: (data: {
     title: string;
     command: string;
     description: string;
     tags: string[];
+    groupId: string | null;
   }) => void;
   onCancel: () => void;
 }) {
@@ -37,6 +53,9 @@ function SnippetForm({
   const [tagsInput, setTagsInput] = useState(
     snippet?.tags ? snippet.tags.join(", ") : "",
   );
+  const [groupId, setGroupId] = useState<string | null>(
+    snippet?.groupId ?? null,
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +63,7 @@ function SnippetForm({
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
-    onSave({ title, command, description, tags });
+    onSave({ title, command, description, tags, groupId });
   };
 
   return (
@@ -93,6 +112,21 @@ function SnippetForm({
           placeholder={t("snippets.placeholderTags")}
         />
       </div>
+      {groups.length > 0 && (
+        <div>
+          <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
+            {t("snippets.formGroup")}
+          </label>
+          <Select
+            value={groupId ?? ""}
+            onChange={(v) => setGroupId(v || null)}
+            options={[
+              { value: "", label: t("snippets.noGroup") },
+              ...groups.map((g) => ({ value: g.id, label: g.name })),
+            ]}
+          />
+        </div>
+      )}
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="secondary" onClick={onCancel}>
           {t("snippets.cancel")}
@@ -107,14 +141,17 @@ function SnippetItem({
   snippet,
   selected,
   onSelect,
+  onContextMenu,
 }: {
   snippet: Snippet;
   selected: boolean;
   onSelect: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   return (
     <button
       onClick={onSelect}
+      onContextMenu={onContextMenu}
       className={cn(
         "flex w-full flex-col gap-1 rounded-[var(--radius-control)] px-3 py-2.5 text-left transition-colors duration-[var(--duration-fast)]",
         selected
@@ -238,29 +275,376 @@ function SnippetDetail({
   );
 }
 
+// ── Group header (clickable + right-click) ──
+
+function GroupHeader({
+  group,
+  selected,
+  expanded,
+  snippetCount,
+  onSelect,
+  onToggle,
+  onContextMenu,
+}: {
+  group: SnippetGroup;
+  selected: boolean;
+  expanded: boolean;
+  snippetCount: number;
+  onSelect: () => void;
+  onToggle: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex w-full items-center gap-1 rounded-[var(--radius-control)] transition-colors duration-[var(--duration-fast)]",
+        selected
+          ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
+          : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
+      )}
+    >
+      <button
+        onClick={onToggle}
+        className="flex-shrink-0 p-1 rounded transition-colors hover:bg-[var(--color-bg-hover)]"
+      >
+        <ChevronRight
+          size={12}
+          className={cn(
+            "transition-transform duration-[var(--duration-fast)]",
+            expanded && "rotate-90",
+          )}
+        />
+      </button>
+      <button
+        onClick={onSelect}
+        onContextMenu={onContextMenu}
+        className="flex flex-1 items-center gap-2 px-1 py-1.5 text-left min-w-0"
+      >
+        {expanded ? (
+          <FolderOpen
+            size={14}
+            className={selected ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"}
+          />
+        ) : (
+          <Folder
+            size={14}
+            className={selected ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"}
+          />
+        )}
+        <span className="flex-1 text-[var(--font-size-xs)] font-medium uppercase tracking-wide truncate">
+          {group.name}
+        </span>
+      </button>
+    </div>
+  );
+}
+
+// ── Inline rename input ──
+
+function InlineRename({
+  initialValue,
+  onConfirm,
+  onCancel,
+}: {
+  initialValue: string;
+  onConfirm: (value: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(initialValue);
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    ref.current?.focus();
+    ref.current?.select();
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && value.trim()) {
+      onConfirm(value.trim());
+    } else if (e.key === "Escape") {
+      onCancel();
+    }
+  };
+
+  return (
+    <input
+      ref={ref}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={handleKeyDown}
+      onBlur={() => {
+        if (value.trim() && value.trim() !== initialValue) {
+          onConfirm(value.trim());
+        } else {
+          onCancel();
+        }
+      }}
+      className="w-full rounded border border-[var(--color-border-focus)] bg-[var(--color-bg-elevated)] px-2 py-0.5 text-[var(--font-size-xs)] text-[var(--color-text-primary)] outline-none"
+    />
+  );
+}
+
+// ── Move to group modal ──
+
+function MoveToGroupModal({
+  currentGroupId,
+  groups,
+  onSelect,
+  onClose,
+}: {
+  currentGroupId: string | null;
+  groups: SnippetGroup[];
+  onSelect: (groupId: string | null) => void;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    listRef.current?.focus();
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") onClose();
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+        <div
+          className="pointer-events-auto w-[320px] rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] shadow-lg animate-context-menu"
+          onKeyDown={handleKeyDown}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+            <h3 className="text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
+              {t("snippets.moveToGroupTitle")}
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Group list */}
+          <div
+            ref={listRef}
+            tabIndex={-1}
+            className="max-h-[300px] overflow-y-auto p-1.5"
+          >
+            {/* No group option */}
+            <button
+              onClick={() => onSelect(null)}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors",
+                currentGroupId === null
+                  ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
+                  : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
+              )}
+            >
+              <FolderX size={16} className={currentGroupId === null ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"} />
+              <span className="text-[var(--font-size-sm)]">{t("snippets.noGroup")}</span>
+            </button>
+
+            {/* Group items */}
+            {groups.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => onSelect(g.id)}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors",
+                  currentGroupId === g.id
+                    ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
+                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
+                )}
+              >
+                <Folder size={16} className={currentGroupId === g.id ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"} />
+                <span className="flex-1 truncate text-[var(--font-size-sm)]">{g.name}</span>
+                {currentGroupId === g.id && (
+                  <Check size={14} className="text-[var(--color-accent)]" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Group detail (right panel) ──
+
+function GroupDetail({
+  group,
+  snippetCount,
+  onRename,
+  onDelete,
+}: {
+  group: SnippetGroup;
+  snippetCount: number;
+  onRename: () => void;
+  onDelete: () => void;
+}) {
+  const t = useT();
+
+  return (
+    <div className="mx-auto w-full max-w-lg">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Folder size={24} className="text-[var(--color-accent)]" />
+          <h2 className="text-[var(--font-size-xl)] font-medium">{group.name}</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="icon" variant="ghost" onClick={onRename}>
+            <Pencil size={16} />
+          </Button>
+          <Button size="icon" variant="ghost" onClick={onDelete}>
+            <Trash2 size={16} className="text-[var(--color-error)]" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4">
+        <div className="flex items-center justify-between">
+          <span className="text-[var(--font-size-sm)] text-[var(--color-text-secondary)]">
+            {t("snippets.formGroup")}
+          </span>
+          <span className="text-[var(--font-size-sm)] font-medium tabular-nums">
+            {snippetCount}
+          </span>
+        </div>
+        <div className="mt-2 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+          {t("snippets.createdAt")} {new Date(group.createdAt).toLocaleString()}
+          {group.updatedAt !== group.createdAt && (
+            <> · {t("snippets.updatedAt")} {new Date(group.updatedAt).toLocaleString()}</>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SnippetsPage() {
   const t = useT();
   const {
     snippets,
+    groups,
     loading,
     selectedSnippetId,
+    selectedGroupId,
     searchQuery,
     setSelectedSnippetId,
+    setSelectedGroupId,
     setSearchQuery,
     fetchSnippets,
+    fetchGroups,
     createSnippet,
     updateSnippet,
     deleteSnippet,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    moveSnippetToGroup,
   } = useSnippetsStore();
 
   const [showForm, setShowForm] = useState(false);
   const [editingSnippet, setEditingSnippet] = useState<Snippet | null>(null);
+  const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [moveTargetSnippetId, setMoveTargetSnippetId] = useState<string | null>(null);
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
+  const newGroupInputRef = useRef<HTMLInputElement>(null);
+  const listContainerRef = useRef<HTMLDivElement>(null);
+
+  // ── Right-click context menu (snippet) ──
+  const { menuState, onContextMenu, closeMenu } = useContextMenu<Snippet>();
+
+  // ── Right-click context menu (group) ──
+  const {
+    menuState: groupMenuState,
+    onContextMenu: onGroupContextMenu,
+    closeMenu: closeGroupMenu,
+  } = useContextMenu<SnippetGroup>();
+
+  const groupContextMenuItems: MenuItem[] = groupMenuState
+    ? [
+        {
+          label: t("snippets.renameGroup"),
+          icon: <Pencil size={14} />,
+          onClick: () => setRenamingGroupId(groupMenuState.data.id),
+        },
+        {
+          label: t("snippets.deleteGroup"),
+          icon: <Trash2 size={14} />,
+          danger: true,
+          onClick: async () => {
+            const ok = await confirm({
+              title: t("snippets.deleteGroup"),
+              description: t("snippets.deleteGroupDesc"),
+              confirmLabel: t("confirm.delete"),
+            });
+            if (ok) await deleteGroup(groupMenuState.data.id);
+          },
+        },
+      ]
+    : [];
+
+  const contextMenuItems: MenuItem[] = menuState
+    ? [
+        {
+          label: t("snippets.editSnippet"),
+          icon: <Pencil size={14} />,
+          onClick: () => {
+            setEditingSnippet(menuState.data);
+            setSelectedSnippetId(menuState.data.id);
+            setShowForm(true);
+          },
+        },
+        {
+          label: t("snippets.copy"),
+          icon: <ClipboardCopy size={14} />,
+          onClick: () => {
+            navigator.clipboard.writeText(menuState.data.command);
+            toast.success(t("snippets.copied"));
+          },
+        },
+        ...(groups.length > 0
+          ? [
+              { type: "separator" as const },
+              {
+                label: t("snippets.moveToGroup"),
+                icon: <FolderInput size={14} />,
+                onClick: () => setMoveTargetSnippetId(menuState.data.id),
+              },
+            ]
+          : []),
+        { type: "separator" as const },
+        {
+          label: t("snippets.deleteSnippet"),
+          icon: <Trash2 size={14} />,
+          danger: true,
+          onClick: async () => {
+            const ok = await confirm({
+              title: t("confirm.deleteSnippetTitle"),
+              description: t("confirm.deleteSnippetDesc"),
+              confirmLabel: t("confirm.delete"),
+            });
+            if (ok) await deleteSnippet(menuState.data.id);
+          },
+        },
+      ]
+    : [];
 
   useEffect(() => {
     fetchSnippets();
-  }, [fetchSnippets]);
+    fetchGroups();
+  }, [fetchSnippets, fetchGroups]);
 
   const selectedSnippet = snippets.find((s) => s.id === selectedSnippetId) ?? null;
+  const selectedGroup = groups.find((g) => g.id === selectedGroupId) ?? null;
 
   const filteredSnippets = searchQuery
     ? snippets.filter(
@@ -271,10 +655,34 @@ export function SnippetsPage() {
       )
     : snippets;
 
+  // Build grouped view
+  const groupedSnippets = groups.map((g) => ({
+    group: g,
+    snippets: filteredSnippets.filter((s) => s.groupId === g.id),
+  }));
+  const ungroupedSnippets = filteredSnippets.filter((s) => !s.groupId);
+
+  const handleCreateGroup = () => {
+    setCreatingGroup(true);
+    setTimeout(() => newGroupInputRef.current?.focus(), 0);
+  };
+
+  const handleCreateGroupConfirm = async (name: string) => {
+    setCreatingGroup(false);
+    if (name.trim()) {
+      await createGroup(name.trim());
+    }
+  };
+
+  const handleRenameConfirm = async (groupId: string, newName: string) => {
+    setRenamingGroupId(null);
+    await updateGroup(groupId, newName);
+  };
+
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Left: Snippet List */}
-      <div className="flex w-[280px] flex-col border-r border-[var(--color-border)]">
+      <div className="flex w-[280px] flex-col border-r border-[var(--color-border)]" ref={listContainerRef} data-context-menu-container>
         <div className="flex items-center gap-2 border-b border-[var(--color-border)] p-3">
           <div className="relative flex-1">
             <Search
@@ -288,6 +696,14 @@ export function SnippetsPage() {
               className="pl-8"
             />
           </div>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleCreateGroup}
+            title={t("snippets.newGroup")}
+          >
+            <FolderPlus size={16} />
+          </Button>
           <Button
             size="icon"
             variant="secondary"
@@ -307,7 +723,7 @@ export function SnippetsPage() {
             </p>
           )}
 
-          {!loading && filteredSnippets.length === 0 && (
+          {!loading && filteredSnippets.length === 0 && groups.length === 0 && (
             <div className="flex flex-col items-center justify-center p-8 text-center">
               <Code2 size={32} className="mb-3 text-[var(--color-text-muted)]" />
               <p className="text-[var(--font-size-sm)] text-[var(--color-text-secondary)]">
@@ -319,15 +735,133 @@ export function SnippetsPage() {
             </div>
           )}
 
-          {filteredSnippets.map((s) => (
-            <SnippetItem
-              key={s.id}
-              snippet={s}
-              selected={s.id === selectedSnippetId}
-              onSelect={() => setSelectedSnippetId(s.id)}
-            />
-          ))}
+          {/* New group inline input */}
+          {creatingGroup && (
+            <div className="mb-2 flex items-center gap-1.5 rounded-md border border-[var(--color-accent)] bg-[var(--color-accent-subtle)] px-2 py-1">
+              <Folder size={14} className="flex-shrink-0 text-[var(--color-accent)]" />
+              <input
+                ref={newGroupInputRef}
+                className="flex-1 bg-transparent text-[var(--font-size-sm)] text-[var(--color-text-primary)] outline-none"
+                placeholder={t("snippets.groupPlaceholder")}
+                onBlur={(e) => handleCreateGroupConfirm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateGroupConfirm((e.target as HTMLInputElement).value);
+                  if (e.key === "Escape") setCreatingGroup(false);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Grouped snippets */}
+          {groupedSnippets.map(({ group, snippets: groupSnippets }) => {
+            const isExpanded = expandedGroupIds.has(group.id);
+            return (
+            <div key={group.id} className="mb-2">
+              {renamingGroupId === group.id ? (
+                <div className="px-2 py-1">
+                  <InlineRename
+                    initialValue={group.name}
+                    onConfirm={(name) => handleRenameConfirm(group.id, name)}
+                    onCancel={() => setRenamingGroupId(null)}
+                  />
+                </div>
+              ) : (
+                <GroupHeader
+                  group={group}
+                  selected={group.id === selectedGroupId}
+                  expanded={isExpanded}
+                  snippetCount={groupSnippets.length}
+                  onSelect={() => {
+                    setSelectedGroupId(group.id);
+                    setSelectedSnippetId(null);
+                    setShowForm(false);
+                    setEditingSnippet(null);
+                    setExpandedGroupIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(group.id)) next.delete(group.id);
+                      else next.add(group.id);
+                      return next;
+                    });
+                  }}
+                  onToggle={() => {
+                    setExpandedGroupIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(group.id)) next.delete(group.id);
+                      else next.add(group.id);
+                      return next;
+                    });
+                  }}
+                  onContextMenu={(e) => onGroupContextMenu(e, group)}
+                />
+              )}
+              {groupSnippets.length > 0 && (
+                <div className={cn("drawer-wrapper", isExpanded && "expanded")}>
+                  <div className="drawer-inner">
+                    <div className="border border-[var(--color-border)] rounded-2xl">
+                      {groupSnippets.map((s) => (
+                        <SnippetItem
+                          key={s.id}
+                          snippet={s}
+                          selected={s.id === selectedSnippetId}
+                          onSelect={() => {
+                            setSelectedSnippetId(s.id);
+                            setSelectedGroupId(null);
+                            setShowForm(false);
+                            setEditingSnippet(null);
+                          }}
+                          onContextMenu={(e) => onContextMenu(e, s)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            );
+          })}
+
+          {/* Ungrouped snippets */}
+          {ungroupedSnippets.length > 0 && (
+            <div className="mb-2">
+              {ungroupedSnippets.map((s) => (
+                <SnippetItem
+                  key={s.id}
+                  snippet={s}
+                  selected={s.id === selectedSnippetId}
+                  onSelect={() => {
+                    setSelectedSnippetId(s.id);
+                    setSelectedGroupId(null);
+                    setShowForm(false);
+                    setEditingSnippet(null);
+                  }}
+                  onContextMenu={(e) => onContextMenu(e, s)}
+                />
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Context menu (snippet) */}
+        {menuState && (
+          <ContextMenu
+            x={menuState.x}
+            y={menuState.y}
+            onClose={closeMenu}
+            containerRef={listContainerRef}
+            items={contextMenuItems}
+          />
+        )}
+
+        {/* Context menu (group) */}
+        {groupMenuState && (
+          <ContextMenu
+            x={groupMenuState.x}
+            y={groupMenuState.y}
+            onClose={closeGroupMenu}
+            containerRef={listContainerRef}
+            items={groupContextMenuItems}
+          />
+        )}
       </div>
 
       {/* Right: Detail / Form */}
@@ -339,7 +873,15 @@ export function SnippetsPage() {
             </h2>
             <SnippetForm
               snippet={editingSnippet}
+              groups={groups}
               onSave={async (data) => {
+                const dup = snippets.some(
+                  (s) => s.command === data.command && s.id !== editingSnippet?.id,
+                );
+                if (dup) {
+                  toast.warning(t("snippets.duplicateCommand"));
+                  return;
+                }
                 if (editingSnippet) {
                   await updateSnippet(
                     editingSnippet.id,
@@ -347,6 +889,7 @@ export function SnippetsPage() {
                     data.command,
                     data.description || null,
                     data.tags.length > 0 ? data.tags : null,
+                    data.groupId,
                   );
                 } else {
                   await createSnippet(
@@ -354,6 +897,7 @@ export function SnippetsPage() {
                     data.command,
                     data.description || null,
                     data.tags.length > 0 ? data.tags : null,
+                    data.groupId,
                   );
                 }
                 setShowForm(false);
@@ -382,6 +926,21 @@ export function SnippetsPage() {
               await deleteSnippet(selectedSnippet.id);
             }}
           />
+        ) : selectedGroup ? (
+          <GroupDetail
+            group={selectedGroup}
+            snippetCount={snippets.filter((s) => s.groupId === selectedGroup.id).length}
+            onRename={() => setRenamingGroupId(selectedGroup.id)}
+            onDelete={async () => {
+              const ok = await confirm({
+                title: t("snippets.deleteGroup"),
+                description: t("snippets.deleteGroupDesc"),
+                confirmLabel: t("confirm.delete"),
+              });
+              if (!ok) return;
+              await deleteGroup(selectedGroup.id);
+            }}
+          />
         ) : (
           <div className="flex flex-1 items-center justify-center text-center">
             <div>
@@ -393,6 +952,19 @@ export function SnippetsPage() {
           </div>
         )}
       </div>
+
+      {/* Move to group modal */}
+      {moveTargetSnippetId && (
+        <MoveToGroupModal
+          currentGroupId={snippets.find((s) => s.id === moveTargetSnippetId)?.groupId ?? null}
+          groups={groups}
+          onSelect={async (groupId) => {
+            await moveSnippetToGroup(moveTargetSnippetId, groupId);
+            setMoveTargetSnippetId(null);
+          }}
+          onClose={() => setMoveTargetSnippetId(null)}
+        />
+      )}
     </div>
   );
 }

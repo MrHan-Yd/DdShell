@@ -52,6 +52,15 @@ export interface HostGroup {
   updatedAt: string;
 }
 
+/** Snippet group (flat, one level) */
+export interface SnippetGroup {
+  id: string;
+  name: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Command snippet — TECH-SPEC §2 */
 export interface Snippet {
   id: string;
@@ -59,6 +68,7 @@ export interface Snippet {
   command: string;
   description?: string | null;
   tags?: string[] | null;
+  groupId?: string | null;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;

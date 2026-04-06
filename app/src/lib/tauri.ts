@@ -109,6 +109,24 @@ export async function commandAssistGetAll(): Promise<CandidateItem[]> {
   return invoke("command_assist_get_all");
 }
 
+// ── Snippet Group commands ──
+
+export async function snippetGroupCreate(name: string): Promise<{ id: string }> {
+  return invoke("snippet_group_create", { name });
+}
+
+export async function snippetGroupUpdate(id: string, name: string): Promise<{ success: boolean }> {
+  return invoke("snippet_group_update", { id, name });
+}
+
+export async function snippetGroupDelete(id: string): Promise<{ success: boolean }> {
+  return invoke("snippet_group_delete", { id });
+}
+
+export async function snippetGroupList(): Promise<import("@/types").SnippetGroup[]> {
+  return invoke("snippet_group_list");
+}
+
 // ── Snippet commands ──
 
 export async function snippetCreate(
@@ -116,8 +134,15 @@ export async function snippetCreate(
   command: string,
   description?: string | null,
   tags?: string[] | null,
+  groupId?: string | null,
 ): Promise<{ id: string }> {
-  return invoke("snippet_create", { title, command, description: description ?? null, tags: tags ?? null });
+  return invoke("snippet_create", {
+    title,
+    command,
+    description: description ?? null,
+    tags: tags ?? null,
+    groupId: groupId ?? null,
+  });
 }
 
 export async function snippetUpdate(
@@ -126,8 +151,9 @@ export async function snippetUpdate(
   command?: string,
   description?: string | null,
   tags?: string[] | null,
+  groupId?: string | null,
 ): Promise<{ success: boolean }> {
-  return invoke("snippet_update", { id, title, command, description, tags });
+  return invoke("snippet_update", { id, title, command, description, tags, groupId });
 }
 
 export async function snippetDelete(id: string): Promise<{ success: boolean }> {
