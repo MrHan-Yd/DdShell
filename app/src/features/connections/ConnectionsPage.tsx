@@ -823,7 +823,7 @@ export function ConnectionsPage() {
 
           {/* New group inline input */}
           {creatingGroup && (
-            <div className="flex items-center gap-2 px-2 py-1">
+            <div className="mb-2 flex items-center gap-1.5 rounded-md border border-[var(--color-accent)] bg-[var(--color-accent-subtle)] px-2 py-1">
               <Folder size={14} className="flex-shrink-0 text-[var(--color-accent)]" />
               <input
                 ref={newGroupInputRef}
