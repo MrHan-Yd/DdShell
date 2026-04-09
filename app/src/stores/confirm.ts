@@ -6,6 +6,9 @@ export interface ConfirmOptions {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  scanning?: boolean;
+  scanCount?: number;
+  scanLabel?: string;
 }
 
 interface ConfirmState {
@@ -14,6 +17,7 @@ interface ConfirmState {
   _resolve: ((value: boolean) => void) | null;
   _show: (options: ConfirmOptions) => Promise<boolean>;
   _respond: (value: boolean) => void;
+  updateOptions: (partial: Partial<ConfirmOptions>) => void;
 }
 
 export const useConfirmStore = create<ConfirmState>((set, get) => ({
@@ -22,7 +26,6 @@ export const useConfirmStore = create<ConfirmState>((set, get) => ({
   _resolve: null,
 
   _show: (options) => {
-    // Cancel any previous unresolved dialog
     const prev = get()._resolve;
     if (prev) prev(false);
 
@@ -35,6 +38,13 @@ export const useConfirmStore = create<ConfirmState>((set, get) => ({
     const resolve = get()._resolve;
     if (resolve) resolve(value);
     set({ visible: false, options: null, _resolve: null });
+  },
+
+  updateOptions: (partial) => {
+    const current = get().options;
+    if (current) {
+      set({ options: { ...current, ...partial } });
+    }
   },
 }));
 

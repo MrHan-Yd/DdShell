@@ -33,7 +33,7 @@ import { useTerminalStore } from "@/stores/terminal";
 import * as api from "@/lib/tauri";
 import type { LocalFileEntry } from "@/lib/tauri";
 import { toast } from "@/stores/toast";
-import { confirm } from "@/stores/confirm";
+import { confirm, useConfirmStore } from "@/stores/confirm";
 import { useT } from "@/lib/i18n";
 import type { FileEntry, TransferTask, FavoritePath, RecentPath } from "@/types";
 
@@ -614,10 +614,7 @@ function LocalFileList({
       <div className="flex-1 overflow-y-auto">
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <Loader2
-              size={20}
-              className="animate-spin text-[var(--color-text-muted)]"
-            />
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-text-muted)] border-t-transparent" />
           </div>
         )}
 
@@ -674,6 +671,7 @@ function RemoteFileList() {
     navigateRemote,
     refreshRemote,
     remove,
+    removeEntry,
     toggleSelectRemote,
     clearSelectRemote,
   } = useSftpStore();
@@ -705,15 +703,11 @@ function RemoteFileList() {
 
   // Helper to delete with animation
   const deleteWithAnimation = useCallback(async (name: string, isDir: boolean) => {
-    // Start animation
     setDeletingEntries((prev) => new Set(prev).add(name));
-    // Wait for animation to complete
     await new Promise((resolve) => setTimeout(resolve, 250));
-    // Actually delete
     try {
       await remove(name, isDir);
     } catch (err) {
-      // Remove from animation set on error
       setDeletingEntries((prev) => {
         const next = new Set(prev);
         next.delete(name);
@@ -725,12 +719,36 @@ function RemoteFileList() {
 
   // Helper to force delete with animation
   const forceDeleteWithAnimation = useCallback(async (name: string) => {
-    // Start animation
     setDeletingEntries((prev) => new Set(prev).add(name));
     await new Promise((resolve) => setTimeout(resolve, 250));
     const fullPath = remotePath === "/" ? `/${name}` : `${remotePath}/${name}`;
     await api.sftpRemove(sessionId!, fullPath, true);
-  }, [sessionId, remotePath]);
+    removeEntry(name);
+  }, [sessionId, remotePath, removeEntry]);
+
+  // Recursively count files in a remote directory
+  const countDirFiles = useCallback(async (dirPath: string): Promise<number> => {
+    let count = 0;
+    const stack = [dirPath];
+    while (stack.length > 0) {
+      const currentDir = stack.pop()!;
+      try {
+        const entries = await api.sftpListDir(sessionId!, currentDir);
+        for (const e of entries) {
+          if (e.name === "." || e.name === "..") continue;
+          count++;
+          useConfirmStore.getState().updateOptions({ scanCount: count });
+          if (e.fileType === "dir") {
+            const subPath = currentDir === "/" ? `/${e.name}` : `${currentDir}/${e.name}`;
+            stack.push(subPath);
+          }
+        }
+      } catch {
+        // If we can't list a subdirectory, still report what we have
+      }
+    }
+    return count;
+  }, [sessionId]);
 
   const buildContextMenuItems = useCallback((entry: FileEntry): MenuItem[] => {
     const items: MenuItem[] = [];
@@ -828,41 +846,55 @@ function RemoteFileList() {
         }
 
         if (entry.fileType === "dir") {
+          // Show confirm dialog immediately with scanning state
+          const confirmResult = useConfirmStore.getState()._show({
+            title: t("confirm.deleteNonEmptyDirTitle"),
+            description: t("confirm.deleteFileDesc"),
+            confirmLabel: t("confirm.delete"),
+            scanning: true,
+          });
+
           const fullPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
-          const entries = await api.sftpListDir(sessionId!, fullPath);
-          const nonHiddenEntries = entries.filter((x) => x.name !== "." && x.name !== "..");
-          if (nonHiddenEntries.length > 0) {
-            const ok = await confirm({
-              title: t("confirm.deleteNonEmptyDirTitle"),
-              description: t("confirm.deleteNonEmptyDirDesc", { name: entry.name }),
-              confirmLabel: t("confirm.delete"),
-            });
-            if (!ok) return;
-            setDeletingEntries((prev) => new Set(prev).add(entry.name));
-            await new Promise((resolve) => setTimeout(resolve, 250));
-            await api.sftpRemove(sessionId!, fullPath, true);
-            toast.success(t("sftp.deleted"));
-            return;
+          let count = 0;
+          try {
+            count = await countDirFiles(fullPath);
+          } catch {
+            // ignore scan errors
           }
+
+          // Update dialog with scan result
+          useConfirmStore.getState().updateOptions({
+            scanning: false,
+            description: count > 0
+              ? `${t("confirm.deleteNonEmptyDirDesc", { name: entry.name })}\n\n(${count} ${count === 1 ? (t("sftp.file") || "file") : (t("sftp.files") || "files")})`
+              : t("confirm.deleteFileDesc"),
+          });
+
+          const ok = await confirmResult;
+          if (!ok) return;
+
+          await forceDeleteWithAnimation(entry.name);
+          toast.success(t("sftp.deleted"));
+          return;
         }
+
         const ok = await confirm({
           title: t("confirm.deleteFileTitle"),
           description: t("confirm.deleteFileDesc"),
           confirmLabel: t("confirm.delete"),
         });
         if (ok) {
-          await deleteWithAnimation(entry.name, entry.fileType === "dir");
+          await deleteWithAnimation(entry.name, false);
           toast.success(t("sftp.deleted"));
         }
       },
     });
 
     return items;
-  }, [t, remotePath, sessionId, navigateRemoteWithRecent, deleteWithAnimation, tabs]);
+  }, [t, remotePath, sessionId, navigateRemoteWithRecent, deleteWithAnimation, forceDeleteWithAnimation, countDirFiles, tabs]);
 
-  // ── SFTP keyboard shortcuts ──
+// ── SFTP keyboard shortcuts ──
   const handleDelete = useCallback(async () => {
-    // Check if session is still connected
     const connectedTab = tabs.find((tab) => tab.sessionId === sessionId && tab.state === "connected");
     if (!connectedTab) {
       toast.error(t("term.disconnected"));
@@ -870,60 +902,76 @@ function RemoteFileList() {
     }
 
     const selected = Array.from(selectedRemoteEntries);
-    if (selected.length > 0) {
-      // First check if any selected items are non-empty directories
-      const entries = remoteEntries.filter((e) => selectedRemoteEntries.has(e.name));
-      const nonEmptyDirs = entries.filter((e) => e.fileType === "dir");
+    if (selected.length === 0) return;
 
-      if (nonEmptyDirs.length > 0) {
-        // Show warning for non-empty directories
-        const ok = await confirm({
-          title: t("confirm.deleteNonEmptyDirTitle"),
-          description: t("confirm.deleteNonEmptyDirDesc", { name: nonEmptyDirs[0].name }),
-          confirmLabel: t("confirm.delete"),
-        });
-        if (!ok) return;
-      } else {
-        // Empty directories or files - show normal confirmation
-        const ok = await confirm({
-          title: t("confirm.deleteBatchTitle"),
-          description: t("confirm.deleteBatchDesc", { n: selected.length }),
-          confirmLabel: t("confirm.delete"),
-        });
-        if (!ok) return;
-      }
+    const entries = remoteEntries.filter((e) => selectedRemoteEntries.has(e.name));
+    const dirEntries = entries.filter((e) => e.fileType === "dir");
 
-      // Delete each entry sequentially, with small delay between each to avoid channel overload
-      for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i];
+    if (dirEntries.length > 0) {
+      // Show confirm dialog immediately with scanning state
+      const confirmResult = useConfirmStore.getState()._show({
+        title: t("confirm.deleteNonEmptyDirTitle"),
+        description: t("confirm.deleteBatchDesc", { n: selected.length }),
+        confirmLabel: t("confirm.delete"),
+        scanning: true,
+      });
+
+      // Scan directories in background while dialog is showing
+      let totalFileCount = 0;
+      for (const dir of dirEntries) {
+        const fullPath = remotePath === "/" ? `/${dir.name}` : `${remotePath}/${dir.name}`;
         try {
-          await deleteWithAnimation(entry.name, entry.fileType === "dir");
-          // Small delay between deletes to prevent channel overload
-          if (i < entries.length - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 100));
-          }
-        } catch (err) {
-          if (String(err) === "NON_EMPTY_DIR") {
-            // If it's a non-empty directory that we couldn't detect earlier, try with force
-            const ok = await confirm({
-              title: t("confirm.deleteNonEmptyDirTitle"),
-              description: t("confirm.deleteNonEmptyDirDesc", { name: entry.name }),
-              confirmLabel: t("confirm.delete"),
-            });
-            if (ok) {
-              await forceDeleteWithAnimation(entry.name);
-            }
-          } else {
-            console.error("Delete error:", err);
-          }
+          const count = await countDirFiles(fullPath);
+          totalFileCount += count;
+          useConfirmStore.getState().updateOptions({
+            description: totalFileCount > 0
+              ? `${t("confirm.deleteNonEmptyDirDesc", { name: dirEntries.length === 1 ? dirEntries[0].name : dirEntries.map((d) => d.name).join(", ") })}\n\n(${totalFileCount} ${totalFileCount === 1 ? (t("sftp.file") || "file") : (t("sftp.files") || "files")})`
+              : t("confirm.deleteBatchDesc", { n: selected.length }),
+            scanCount: totalFileCount,
+          });
+        } catch {
+          // ignore scan errors
         }
       }
-      // Clear selection after batch delete
-      clearSelectRemote();
-      setDeletingEntries(new Set());
-      toast.success(t("sftp.deletedItems", { n: selected.length }));
+
+      // Scanning complete — enable buttons
+      useConfirmStore.getState().updateOptions({
+        scanning: false,
+        description: totalFileCount > 0
+          ? `${t("confirm.deleteNonEmptyDirDesc", { name: dirEntries.length === 1 ? dirEntries[0].name : dirEntries.map((d) => d.name).join(", ") })}\n\n(${totalFileCount} ${totalFileCount === 1 ? (t("sftp.file") || "file") : (t("sftp.files") || "files")})`
+          : t("confirm.deleteBatchDesc", { n: selected.length }),
+      });
+
+      const ok = await confirmResult;
+      if (!ok) return;
+    } else {
+      const ok = await confirm({
+        title: t("confirm.deleteBatchTitle"),
+        description: t("confirm.deleteBatchDesc", { n: selected.length }),
+        confirmLabel: t("confirm.delete"),
+      });
+      if (!ok) return;
     }
-  }, [tabs, selectedRemoteEntries, remoteEntries, deleteWithAnimation, forceDeleteWithAnimation, clearSelectRemote, sessionId, remotePath, t]);
+
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      try {
+        if (entry.fileType === "dir") {
+          await forceDeleteWithAnimation(entry.name);
+        } else {
+          await deleteWithAnimation(entry.name, false);
+        }
+        if (i < entries.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      } catch (err) {
+        console.error("Delete error:", err);
+      }
+    }
+    clearSelectRemote();
+    setDeletingEntries(new Set());
+    toast.success(t("sftp.deletedItems", { n: selected.length }));
+  }, [tabs, selectedRemoteEntries, remoteEntries, deleteWithAnimation, forceDeleteWithAnimation, clearSelectRemote, sessionId, remotePath, countDirFiles, t]);
 
   useEffect(() => {
     const handleRefresh = () => {
@@ -1163,7 +1211,7 @@ function RemoteFileList() {
       <div className="flex-1 overflow-y-auto relative">
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <Loader2 size={20} className="animate-spin text-[var(--color-text-muted)]" />
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-text-muted)] border-t-transparent" />
           </div>
         )}
 

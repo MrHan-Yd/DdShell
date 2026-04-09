@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Plus, Search, Server, Folder, FolderOpen, FolderInput, FolderX, Trash2, Pencil, Star, StarOff, Zap, Upload, Check, ChevronUp, ChevronDown, ChevronRight, FolderPlus, ListChecks, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -345,14 +345,24 @@ function GroupHeader({
   expanded,
   onToggle,
   onContextMenu,
+  isDropTarget = false,
 }: {
   group: HostGroup;
   expanded: boolean;
   onToggle: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  isDropTarget?: boolean;
 }) {
   return (
-    <div className="flex w-full items-center gap-1 rounded-[var(--radius-control)] transition-colors duration-[var(--duration-fast)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]">
+    <div
+      data-drop-group-id={group.id}
+      className={cn(
+        "flex w-full items-center gap-1 rounded-[var(--radius-control)] transition-colors duration-[var(--duration-fast)]",
+        isDropTarget
+          ? "bg-[var(--color-accent-subtle)] border-2 border-dashed border-[var(--color-accent)] text-[var(--color-accent)]"
+          : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
+      )}
+    >
       <button
         onClick={onToggle}
         className="flex-shrink-0 p-1 rounded transition-colors hover:bg-[var(--color-bg-hover)]"
@@ -371,13 +381,16 @@ function GroupHeader({
         className="flex flex-1 items-center gap-2 px-1 py-1.5 text-left min-w-0"
       >
         {expanded ? (
-          <FolderOpen size={14} className="text-[var(--color-text-muted)]" />
+          <FolderOpen size={14} className={isDropTarget ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"} />
         ) : (
-          <Folder size={14} className="text-[var(--color-text-muted)]" />
+          <Folder size={14} className={isDropTarget ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"} />
         )}
         <span className="flex-1 text-[var(--font-size-xs)] font-medium uppercase tracking-wide truncate">
           {group.name}
         </span>
+        {isDropTarget && (
+          <FolderInput size={14} className="text-[var(--color-accent)]" />
+        )}
       </button>
     </div>
   );
@@ -504,6 +517,104 @@ export function ConnectionsPage() {
   const prevHostIdRef = useRef<string | null>(null);
   const newGroupInputRef = useRef<HTMLInputElement>(null);
   const listContainerRef = useRef<HTMLDivElement>(null);
+
+  // ── Mouse-based drag state ──
+  const dragStartRef = useRef<{ hostId: string; startX: number; startY: number } | null>(null);
+  const isDraggingRef = useRef(false);
+  const hoverGroupIdRef = useRef<string | null>(null);
+  const suppressClickRef = useRef(false);
+  const dragGhostRef = useRef<HTMLDivElement>(null);
+  const autoExpandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expandedGroupIdsRef = useRef<Set<string>>(expandedGroupIds);
+  expandedGroupIdsRef.current = expandedGroupIds;
+  const moveHostToGroupRef = useRef((hostId: string, groupId: string | null) => { updateHost({ id: hostId, groupId }); });
+  moveHostToGroupRef.current = (hostId: string, groupId: string | null) => { updateHost({ id: hostId, groupId }); };
+
+  const [dragHostId, setDragHostId] = useState<string | null>(null);
+  const [hoverGroupId, setHoverGroupId] = useState<string | null>(null);
+
+  const handleHostMouseDown = useCallback((e: React.MouseEvent, hostId: string) => {
+    if (e.button !== 0 || selectionMode) return;
+    dragStartRef.current = { hostId, startX: e.clientX, startY: e.clientY };
+    isDraggingRef.current = false;
+    hoverGroupIdRef.current = null;
+  }, [selectionMode]);
+
+  // ── Document-level drag handlers ──
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragStartRef.current) return;
+
+      if (!isDraggingRef.current) {
+        const dx = e.clientX - dragStartRef.current.startX;
+        const dy = e.clientY - dragStartRef.current.startY;
+        if (dx * dx + dy * dy > 25) {
+          isDraggingRef.current = true;
+          setDragHostId(dragStartRef.current.hostId);
+          document.body.style.userSelect = "none";
+          document.body.style.cursor = "grabbing";
+        }
+      }
+
+      if (isDraggingRef.current) {
+        if (dragGhostRef.current) {
+          dragGhostRef.current.style.transform = `translate(${e.clientX + 12}px, ${e.clientY + 8}px)`;
+        }
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const dropTarget = el?.closest("[data-drop-group-id]") as HTMLElement | null;
+        const newHoverId = dropTarget?.getAttribute("data-drop-group-id") ?? null;
+        if (newHoverId !== hoverGroupIdRef.current) {
+          hoverGroupIdRef.current = newHoverId;
+          setHoverGroupId(newHoverId);
+
+          if (autoExpandTimerRef.current) {
+            clearTimeout(autoExpandTimerRef.current);
+            autoExpandTimerRef.current = null;
+          }
+          if (newHoverId && newHoverId !== "ungrouped" && !expandedGroupIdsRef.current.has(newHoverId)) {
+            const groupId = newHoverId;
+            autoExpandTimerRef.current = setTimeout(() => {
+              setExpandedGroupIds((prev) => {
+                const next = new Set(prev);
+                next.add(groupId);
+                return next;
+              });
+            }, 500);
+          }
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingRef.current && hoverGroupIdRef.current && dragStartRef.current) {
+        const targetGroupId = hoverGroupIdRef.current === "ungrouped" ? null : hoverGroupIdRef.current;
+        moveHostToGroupRef.current(dragStartRef.current.hostId, targetGroupId);
+        suppressClickRef.current = true;
+        requestAnimationFrame(() => { suppressClickRef.current = false; });
+      }
+      if (autoExpandTimerRef.current) {
+        clearTimeout(autoExpandTimerRef.current);
+        autoExpandTimerRef.current = null;
+      }
+      dragStartRef.current = null;
+      isDraggingRef.current = false;
+      hoverGroupIdRef.current = null;
+      setDragHostId(null);
+      setHoverGroupId(null);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      if (autoExpandTimerRef.current) {
+        clearTimeout(autoExpandTimerRef.current);
+      }
+    };
+  }, []);
 
   // ── Right-click context menu (group) ──
   const {
@@ -780,7 +891,7 @@ export function ConnectionsPage() {
             const expanded = expandedGroupIds.has(group.id);
             const isRenaming = renamingGroupId === group.id;
             return (
-              <div key={group.id} className="mb-2">
+              <div key={group.id} className="mb-2" data-drop-group-id={group.id}>
                 {isRenaming ? (
                   <div className="px-2 py-1">
                     <InlineRename
@@ -795,6 +906,7 @@ export function ConnectionsPage() {
                     expanded={expanded}
                     onToggle={() => toggleGroupExpand(group.id)}
                     onContextMenu={(e) => onGroupContextMenu(e, group)}
+                    isDropTarget={hoverGroupId === group.id}
                   />
                 )}
                 {groupHosts.length > 0 && (
@@ -806,11 +918,16 @@ export function ConnectionsPage() {
                             key={h.id}
                             host={h}
                             selected={h.id === selectedHostId}
-                            onSelect={() => selectHost(h.id)}
+                            onSelect={() => {
+                              if (suppressClickRef.current) return;
+                              selectHost(h.id);
+                            }}
                             onContextMenu={(e) => onHostContextMenu(e, h)}
                             selectable={selectionMode}
                             checked={selectedIds.has(h.id)}
                             onToggleSelect={() => toggleSelect(h.id)}
+                            onMouseDown={!selectionMode ? (e: React.MouseEvent) => handleHostMouseDown(e, h.id) : undefined}
+                            isDragging={dragHostId === h.id}
                           />
                         ))}
                       </div>
@@ -839,18 +956,72 @@ export function ConnectionsPage() {
           )}
 
           {/* Ungrouped hosts */}
-          {ungroupedHosts.map((h) => (
-            <HostItem
-              key={h.id}
-              host={h}
-              selected={h.id === selectedHostId}
-              onSelect={() => selectHost(h.id)}
-              onContextMenu={(e) => onHostContextMenu(e, h)}
-              selectable={selectionMode}
-              checked={selectedIds.has(h.id)}
-              onToggleSelect={() => toggleSelect(h.id)}
-            />
-          ))}
+          {groups.length > 0 ? (
+            <div
+              data-drop-group-id="ungrouped"
+              className={cn(
+                "rounded-2xl transition-colors duration-[var(--duration-fast)]",
+                dragHostId && hoverGroupId === "ungrouped"
+                  ? "border-2 border-dashed border-[var(--color-accent)] bg-[var(--color-accent-subtle)]"
+                  : "",
+              )}
+            >
+              {dragHostId && (
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 text-[var(--font-size-xs)] font-medium uppercase tracking-wide",
+                  hoverGroupId === "ungrouped"
+                    ? "text-[var(--color-accent)]"
+                    : "text-[var(--color-text-muted)]",
+                )}>
+                  <FolderX size={14} />
+                  {t("conn.noGroup")}
+                </div>
+              )}
+              {ungroupedHosts.length > 0 && (
+                <div className="mb-2">
+                  {ungroupedHosts.map((h) => (
+                    <HostItem
+                      key={h.id}
+                      host={h}
+                      selected={h.id === selectedHostId}
+                      onSelect={() => {
+                        if (suppressClickRef.current) return;
+                        selectHost(h.id);
+                      }}
+                      onContextMenu={(e) => onHostContextMenu(e, h)}
+                      selectable={selectionMode}
+                      checked={selectedIds.has(h.id)}
+                      onToggleSelect={() => toggleSelect(h.id)}
+                      onMouseDown={!selectionMode ? (e: React.MouseEvent) => handleHostMouseDown(e, h.id) : undefined}
+                      isDragging={dragHostId === h.id}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            ungroupedHosts.length > 0 && (
+              <div className="mb-2">
+                {ungroupedHosts.map((h) => (
+                  <HostItem
+                    key={h.id}
+                    host={h}
+                    selected={h.id === selectedHostId}
+                    onSelect={() => {
+                      if (suppressClickRef.current) return;
+                      selectHost(h.id);
+                    }}
+                    onContextMenu={(e) => onHostContextMenu(e, h)}
+                    selectable={selectionMode}
+                    checked={selectedIds.has(h.id)}
+                    onToggleSelect={() => toggleSelect(h.id)}
+                    onMouseDown={!selectionMode ? (e: React.MouseEvent) => handleHostMouseDown(e, h.id) : undefined}
+                    isDragging={dragHostId === h.id}
+                  />
+                ))}
+              </div>
+            )
+          )}
 
           {/* Group context menu */}
           {groupMenuState && (
@@ -990,6 +1161,24 @@ export function ConnectionsPage() {
           </div>
         )}
       </div>
+
+      {/* Drag ghost */}
+      {dragHostId && (
+        <div
+          ref={dragGhostRef}
+          className="fixed left-0 top-0 z-[100] pointer-events-none rounded-[var(--radius-control)] border border-[var(--color-accent)] bg-[var(--color-bg-elevated)] px-3 py-2 shadow-[var(--shadow-floating)] max-w-[260px] opacity-90"
+        >
+          <div className="flex items-center gap-2">
+            <Server size={14} className="text-[var(--color-accent)]" />
+            <span className="truncate text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
+              {hosts.find((h) => h.id === dragHostId)?.name}
+            </span>
+          </div>
+          <p className="truncate text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            {hosts.find((h) => h.id === dragHostId)?.host}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1002,6 +1191,8 @@ function HostItem({
   selectable = false,
   checked = false,
   onToggleSelect,
+  onMouseDown,
+  isDragging = false,
 }: {
   host: Host;
   selected: boolean;
@@ -1010,9 +1201,12 @@ function HostItem({
   selectable?: boolean;
   checked?: boolean;
   onToggleSelect?: () => void;
+  onMouseDown?: (e: React.MouseEvent) => void;
+  isDragging?: boolean;
 }) {
   return (
     <button
+      onMouseDown={onMouseDown}
       onClick={() => {
         if (selectable) {
           onToggleSelect?.();
@@ -1023,6 +1217,7 @@ function HostItem({
       onContextMenu={onContextMenu}
       className={cn(
         "flex w-full items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-left transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)] active:scale-[0.98]",
+        isDragging && "opacity-40 scale-[0.98]",
         selectable && checked
           ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
           : selected && !selectable

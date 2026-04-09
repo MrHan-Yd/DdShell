@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   Plus,
   Search,
@@ -146,6 +146,8 @@ function SnippetItem({
   selectable = false,
   checked = false,
   onToggleSelect,
+  onMouseDown,
+  isDragging = false,
 }: {
   snippet: Snippet;
   selected: boolean;
@@ -154,9 +156,12 @@ function SnippetItem({
   selectable?: boolean;
   checked?: boolean;
   onToggleSelect?: () => void;
+  onMouseDown?: (e: React.MouseEvent) => void;
+  isDragging?: boolean;
 }) {
   return (
     <button
+      onMouseDown={onMouseDown}
       onClick={() => {
         if (selectable) {
           onToggleSelect?.();
@@ -167,6 +172,7 @@ function SnippetItem({
       onContextMenu={onContextMenu}
       className={cn(
         "flex w-full flex-col gap-1 rounded-[var(--radius-control)] px-3 py-2.5 text-left transition-colors duration-[var(--duration-fast)]",
+        isDragging && "opacity-40 scale-[0.98]",
         selectable && checked
           ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
           : selected && !selectable
@@ -203,7 +209,7 @@ function SnippetItem({
         {snippet.command}
       </p>
       {snippet.tags && snippet.tags.length > 0 && (
-        <div className={cn("flex gap-1 flex-wrap", selectable ? "pl-6" : "pl-[22px]")}>
+        <div className={cn("flex gap-1 flex-wrap", selectable ? "pl-6" : "pl-[22PX]")}>
           {snippet.tags.map((tag) => (
             <span
               key={tag}
@@ -302,7 +308,7 @@ function SnippetDetail({
   );
 }
 
-// ── Group header (clickable + right-click) ──
+// ── Group header ──
 
 function GroupHeader({
   group,
@@ -311,6 +317,7 @@ function GroupHeader({
   onSelect,
   onToggle,
   onContextMenu,
+  isDropTarget = false,
 }: {
   group: SnippetGroup;
   selected: boolean;
@@ -318,14 +325,18 @@ function GroupHeader({
   onSelect: () => void;
   onToggle: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  isDropTarget?: boolean;
 }) {
   return (
     <div
+      data-drop-group-id={group.id}
       className={cn(
         "flex w-full items-center gap-1 rounded-[var(--radius-control)] transition-colors duration-[var(--duration-fast)]",
-        selected
-          ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
-          : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
+        isDropTarget
+          ? "bg-[var(--color-accent-subtle)] border-2 border-dashed border-[var(--color-accent)] text-[var(--color-accent)]"
+          : selected
+            ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
+            : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
       )}
     >
       <button
@@ -348,17 +359,20 @@ function GroupHeader({
         {expanded ? (
           <FolderOpen
             size={14}
-            className={selected ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"}
+            className={isDropTarget ? "text-[var(--color-accent)]" : selected ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"}
           />
         ) : (
           <Folder
             size={14}
-            className={selected ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"}
+            className={isDropTarget ? "text-[var(--color-accent)]" : selected ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"}
           />
         )}
         <span className="flex-1 text-[var(--font-size-xs)] font-medium uppercase tracking-wide truncate">
           {group.name}
         </span>
+        {isDropTarget && (
+          <FolderInput size={14} className="text-[var(--color-accent)]" />
+        )}
       </button>
     </div>
   );
@@ -584,8 +598,106 @@ export function SnippetsPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
+  const expandedGroupIdsRef = useRef<Set<string>>(expandedGroupIds);
+  expandedGroupIdsRef.current = expandedGroupIds;
   const newGroupInputRef = useRef<HTMLInputElement>(null);
   const listContainerRef = useRef<HTMLDivElement>(null);
+  const dragGhostRef = useRef<HTMLDivElement>(null);
+  const autoExpandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Mouse-based drag state ──
+  const dragStartRef = useRef<{ snippetId: string; startX: number; startY: number } | null>(null);
+  const isDraggingRef = useRef(false);
+  const hoverGroupIdRef = useRef<string | null>(null);
+  const suppressClickRef = useRef(false);
+  const moveRef = useRef(moveSnippetToGroup);
+  moveRef.current = moveSnippetToGroup;
+
+  const [dragSnippetId, setDragSnippetId] = useState<string | null>(null);
+  const [hoverGroupId, setHoverGroupId] = useState<string | null>(null);
+
+  // ── Document-level drag handlers ──
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragStartRef.current) return;
+
+      if (!isDraggingRef.current) {
+        const dx = e.clientX - dragStartRef.current.startX;
+        const dy = e.clientY - dragStartRef.current.startY;
+        if (dx * dx + dy * dy > 25) {
+          isDraggingRef.current = true;
+          setDragSnippetId(dragStartRef.current.snippetId);
+          document.body.style.userSelect = "none";
+          document.body.style.cursor = "grabbing";
+        }
+      }
+
+      if (isDraggingRef.current) {
+        if (dragGhostRef.current) {
+          dragGhostRef.current.style.transform = `translate(${e.clientX + 12}px, ${e.clientY + 8}px)`;
+        }
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const dropTarget = el?.closest("[data-drop-group-id]") as HTMLElement | null;
+        const newHoverId = dropTarget?.getAttribute("data-drop-group-id") ?? null;
+        if (newHoverId !== hoverGroupIdRef.current) {
+          hoverGroupIdRef.current = newHoverId;
+          setHoverGroupId(newHoverId);
+
+          if (autoExpandTimerRef.current) {
+            clearTimeout(autoExpandTimerRef.current);
+            autoExpandTimerRef.current = null;
+          }
+          if (newHoverId && newHoverId !== "ungrouped" && !expandedGroupIdsRef.current.has(newHoverId)) {
+            const groupId = newHoverId;
+            autoExpandTimerRef.current = setTimeout(() => {
+              setExpandedGroupIds((prev) => {
+                const next = new Set(prev);
+                next.add(groupId);
+                return next;
+              });
+            }, 500);
+          }
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingRef.current && hoverGroupIdRef.current && dragStartRef.current) {
+        const targetGroupId = hoverGroupIdRef.current === "ungrouped" ? null : hoverGroupIdRef.current;
+        moveRef.current(dragStartRef.current.snippetId, targetGroupId);
+        suppressClickRef.current = true;
+        requestAnimationFrame(() => { suppressClickRef.current = false; });
+      }
+      if (autoExpandTimerRef.current) {
+        clearTimeout(autoExpandTimerRef.current);
+        autoExpandTimerRef.current = null;
+      }
+      dragStartRef.current = null;
+      isDraggingRef.current = false;
+      hoverGroupIdRef.current = null;
+      setDragSnippetId(null);
+      setHoverGroupId(null);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      if (autoExpandTimerRef.current) {
+        clearTimeout(autoExpandTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleSnippetMouseDown = useCallback((e: React.MouseEvent, snippetId: string) => {
+    if (e.button !== 0 || selectionMode) return;
+    dragStartRef.current = { snippetId, startX: e.clientX, startY: e.clientY };
+    isDraggingRef.current = false;
+    hoverGroupIdRef.current = null;
+  }, [selectionMode]);
 
   // ── Right-click context menu (snippet) ──
   const { menuState, onContextMenu, closeMenu } = useContextMenu<Snippet>();
@@ -737,6 +849,25 @@ export function SnippetsPage() {
     await updateGroup(groupId, newName);
   };
 
+  const snippetItemProps = (s: Snippet) => ({
+    key: s.id,
+    snippet: s,
+    selected: s.id === selectedSnippetId,
+    selectable: selectionMode,
+    checked: selectedIds.has(s.id),
+    onToggleSelect: () => toggleSelect(s.id),
+    onSelect: () => {
+      if (suppressClickRef.current) return;
+      setSelectedSnippetId(s.id);
+      setSelectedGroupId(null);
+      setShowForm(false);
+      setEditingSnippet(null);
+    },
+    onContextMenu: (e: React.MouseEvent) => onContextMenu(e, s),
+    onMouseDown: !selectionMode ? (e: React.MouseEvent) => handleSnippetMouseDown(e, s.id) : undefined,
+    isDragging: dragSnippetId === s.id,
+  });
+
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Left: Snippet List */}
@@ -825,7 +956,7 @@ export function SnippetsPage() {
           {groupedSnippets.map(({ group, snippets: groupSnippets }) => {
             const isExpanded = expandedGroupIds.has(group.id);
             return (
-            <div key={group.id} className="mb-2">
+            <div key={group.id} className="mb-2" data-drop-group-id={group.id}>
               {renamingGroupId === group.id ? (
                 <div className="px-2 py-1">
                   <InlineRename
@@ -860,6 +991,7 @@ export function SnippetsPage() {
                     });
                   }}
                   onContextMenu={(e) => onGroupContextMenu(e, group)}
+                  isDropTarget={hoverGroupId === group.id}
                 />
               )}
               {groupSnippets.length > 0 && (
@@ -868,19 +1000,7 @@ export function SnippetsPage() {
                     <div className="border border-[var(--color-border)] rounded-2xl">
                       {groupSnippets.map((s) => (
                         <SnippetItem
-                          key={s.id}
-                          snippet={s}
-                          selected={s.id === selectedSnippetId}
-                          selectable={selectionMode}
-                          checked={selectedIds.has(s.id)}
-                          onToggleSelect={() => toggleSelect(s.id)}
-                          onSelect={() => {
-                            setSelectedSnippetId(s.id);
-                            setSelectedGroupId(null);
-                            setShowForm(false);
-                            setEditingSnippet(null);
-                          }}
-                          onContextMenu={(e) => onContextMenu(e, s)}
+                          {...snippetItemProps(s)}
                         />
                       ))}
                     </div>
@@ -892,23 +1012,43 @@ export function SnippetsPage() {
           })}
 
           {/* Ungrouped snippets */}
-          {ungroupedSnippets.length > 0 && (
+          {groups.length > 0 && (
+            <div
+              data-drop-group-id="ungrouped"
+              className={cn(
+                "rounded-2xl transition-colors duration-[var(--duration-fast)]",
+                dragSnippetId && hoverGroupId === "ungrouped"
+                  ? "border-2 border-dashed border-[var(--color-accent)] bg-[var(--color-accent-subtle)]"
+                  : "",
+              )}
+            >
+              {dragSnippetId && (
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 text-[var(--font-size-xs)] font-medium uppercase tracking-wide",
+                  hoverGroupId === "ungrouped"
+                    ? "text-[var(--color-accent)]"
+                    : "text-[var(--color-text-muted)]",
+                )}>
+                  <FolderX size={14} />
+                  {t("snippets.ungrouped")}
+                </div>
+              )}
+              {ungroupedSnippets.length > 0 && (
+                <div className="mb-2">
+                  {ungroupedSnippets.map((s) => (
+                    <SnippetItem
+                      {...snippetItemProps(s)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {groups.length === 0 && ungroupedSnippets.length > 0 && (
             <div className="mb-2">
               {ungroupedSnippets.map((s) => (
                 <SnippetItem
-                  key={s.id}
-                  snippet={s}
-                  selected={s.id === selectedSnippetId}
-                  selectable={selectionMode}
-                  checked={selectedIds.has(s.id)}
-                  onToggleSelect={() => toggleSelect(s.id)}
-                  onSelect={() => {
-                    setSelectedSnippetId(s.id);
-                    setSelectedGroupId(null);
-                    setShowForm(false);
-                    setEditingSnippet(null);
-                  }}
-                  onContextMenu={(e) => onContextMenu(e, s)}
+                  {...snippetItemProps(s)}
                 />
               ))}
             </div>
@@ -1074,6 +1214,24 @@ export function SnippetsPage() {
           }}
           onClose={() => setMoveTargetSnippetId(null)}
         />
+      )}
+
+      {/* Drag ghost */}
+      {dragSnippetId && (
+        <div
+          ref={dragGhostRef}
+          className="fixed left-0 top-0 z-[100] pointer-events-none rounded-[var(--radius-control)] border border-[var(--color-accent)] bg-[var(--color-bg-elevated)] px-3 py-2 shadow-[var(--shadow-floating)] max-w-[260px] opacity-90"
+        >
+          <div className="flex items-center gap-2">
+            <Code2 size={14} className="text-[var(--color-accent)]" />
+            <span className="truncate text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
+              {snippets.find((s) => s.id === dragSnippetId)?.title}
+            </span>
+          </div>
+          <p className="truncate font-mono text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            {snippets.find((s) => s.id === dragSnippetId)?.command}
+          </p>
+        </div>
       )}
     </div>
   );
