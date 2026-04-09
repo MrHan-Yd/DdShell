@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import {
   Folder,
   File,
@@ -403,6 +404,32 @@ function UploadFlyAnimation({
   );
 }
 
+// Recursively get all files in a local directory
+async function scanLocalDir(
+  dirPath: string,
+  relativeBase: string,
+): Promise<{ local: string; relative: string; isDir: boolean }[]> {
+  const result: { local: string; relative: string; isDir: boolean }[] = [];
+  try {
+    const entries = await api.localListDir(dirPath);
+    for (const entry of entries) {
+      if (entry.name === "." || entry.name === "..") continue;
+      const fullPath = dirPath === "/" ? `/${entry.name}` : `${dirPath}/${entry.name}`;
+      const relativePath = relativeBase ? `${relativeBase}/${entry.name}` : entry.name;
+      if (entry.fileType === "dir") {
+        result.push({ local: fullPath, relative: relativePath, isDir: true });
+        const subFiles = await scanLocalDir(fullPath, relativePath);
+        result.push(...subFiles);
+      } else {
+        result.push({ local: fullPath, relative: relativePath, isDir: false });
+      }
+    }
+  } catch (e) {
+    console.error("Error scanning directory:", dirPath, e);
+  }
+  return result;
+}
+
 function LocalFileList({
   sessionId,
   remotePath,
@@ -476,27 +503,6 @@ function LocalFileList({
     });
   }, []);
 
-  // Recursively get all files in a directory, returning { localPath, relativePath }
-  const getAllFiles = useCallback(async (dirPath: string, relativeBase: string): Promise<{ local: string; relative: string }[]> => {
-    const files: { local: string; relative: string }[] = [];
-    try {
-      const dirEntries = await api.localListDir(dirPath);
-      for (const entry of dirEntries) {
-        const fullPath = dirPath === "/" ? `/${entry.name}` : `${dirPath}/${entry.name}`;
-        const relativePath = relativeBase ? `${relativeBase}/${entry.name}` : entry.name;
-        if (entry.fileType === "file") {
-          files.push({ local: fullPath, relative: relativePath });
-        } else if (entry.fileType === "dir") {
-          const subFiles = await getAllFiles(fullPath, relativePath);
-          files.push(...subFiles);
-        }
-      }
-    } catch (e) {
-      console.error("Error reading directory:", dirPath, e);
-    }
-    return files;
-  }, []);
-
   const refreshTransfers = useSftpStore((s) => s.refreshTransfers);
   const addUploadingEntry = useSftpStore((s) => s.addUploadingEntry);
   const registerBatch = useSftpStore((s) => s.registerBatch);
@@ -525,15 +531,13 @@ function LocalFileList({
     for (const entry of selectedEntries) {
       const fullPath = localPath === "/" ? `/${entry.name}` : `${localPath}/${entry.name}`;
       if (entry.fileType === "file") {
-        // Single file: upload to current remote dir
         uploadTasks.push({ localPaths: [fullPath], remoteDir: remotePath });
       } else if (entry.fileType === "dir") {
-        // Directory: recursively get all files, group by their remote subdirectory
         toast.info(`Scanning directory: ${entry.name}...`);
-        const allFiles = await getAllFiles(fullPath, "");
-        // Group files by their parent directory relative to the selected dir
+        const allFiles = await scanLocalDir(fullPath, "");
         const byDir = new Map<string, string[]>();
         for (const f of allFiles) {
+          if (f.isDir) continue;
           const relativeDir = f.relative.includes("/")
             ? f.relative.substring(0, f.relative.lastIndexOf("/"))
             : "";
@@ -580,7 +584,7 @@ function LocalFileList({
     } catch (err) {
       toast.error(String(err));
     }
-  }, [selected, entries, localPath, sessionId, remotePath, getAllFiles, refreshTransfers, addUploadingEntry, registerBatch, onUploadStart]);
+  }, [selected, entries, localPath, sessionId, remotePath, refreshTransfers, addUploadingEntry, registerBatch, onUploadStart]);
 
   return (
     <div className="flex flex-1 flex-col border rounded-[var(--radius-card)] border-[var(--color-border)] overflow-hidden">
@@ -1003,79 +1007,90 @@ function RemoteFileList() {
     };
   }, [refreshRemote, selectedRemoteEntries, remoteEntries, remove, handleDelete]);
 
-  // Handle native file drag-drop via HTML5 API
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Only set false if we're leaving the container
-    const rect = dropRef.current?.getBoundingClientRect();
-    if (rect) {
-      const { clientX, clientY } = e;
-      if (
-        clientX < rect.left ||
-        clientX > rect.right ||
-        clientY < rect.top ||
-        clientY > rect.bottom
-      ) {
-        setIsDragOver(false);
-      }
-    }
-  }, []);
-
+  // Handle native file drag-drop via Tauri drag events
   const addUploadingEntryDrop = useSftpStore((s) => s.addUploadingEntry);
   const registerBatchDrop = useSftpStore((s) => s.registerBatch);
+  const refreshTransfersAfterDrop = useSftpStore((s) => s.refreshTransfers);
 
-  const handleDrop = useCallback(
-    async (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragOver(false);
+  useEffect(() => {
+    if (!sessionId) return;
 
-      if (!sessionId) return;
+    const unlisten = getCurrentWebview().onDragDropEvent(async (event) => {
+      const payload = event.payload;
+      if (payload.type === "enter" || payload.type === "over") {
+        setIsDragOver(true);
+      } else if (payload.type === "leave") {
+        setIsDragOver(false);
+      } else if (payload.type === "drop") {
+        setIsDragOver(false);
 
-      // Get file paths from Tauri drag event
-      // Tauri injects file paths into dataTransfer
-      const files = e.dataTransfer?.files;
-      if (!files || files.length === 0) return;
+        const paths = payload.paths;
+        if (!paths || paths.length === 0) return;
 
-      const paths: string[] = [];
-      const fileSizes: number[] = [];
-      for (let i = 0; i < files.length; i++) {
-        // In Tauri, File objects have a path property
-        const file = files[i] as File & { path?: string };
-        if (file.path) {
-          paths.push(file.path);
-          fileSizes.push(file.size);
-        }
-      }
+        (async () => {
+          try {
+            toast.info(t("sftp.uploadedFiles", { n: paths.length }));
 
-      if (paths.length === 0) return;
+            const uploadTasks: { localPaths: string[]; remoteDir: string }[] = [];
 
-      try {
-        const taskIds = await api.sftpUploadFiles(sessionId, paths, remotePath);
-        // Register each file for progress tracking
-        for (let i = 0; i < taskIds.length; i++) {
-          const fileName = paths[i]?.split("/").pop() || "";
-          const size = fileSizes[i] || 0;
-          if (fileName && taskIds[i]) {
-            addUploadingEntryDrop(fileName, size, taskIds[i]);
+            for (const localPath of paths) {
+              const fileName = localPath.split("/").pop() || localPath;
+              try {
+                await api.localListDir(localPath);
+                const allFiles = await scanLocalDir(localPath, "");
+                const byDir = new Map<string, string[]>();
+                for (const f of allFiles) {
+                  if (f.isDir) continue;
+                  const relativeDir = f.relative.includes("/")
+                    ? f.relative.substring(0, f.relative.lastIndexOf("/"))
+                    : "";
+                  const remoteSubDir = relativeDir
+                    ? `${remotePath}/${fileName}/${relativeDir}`
+                    : `${remotePath}/${fileName}`;
+                  if (!byDir.has(remoteSubDir)) byDir.set(remoteSubDir, []);
+                  byDir.get(remoteSubDir)!.push(f.local);
+                }
+                for (const [rdir, lpaths] of byDir) {
+                  uploadTasks.push({ localPaths: lpaths, remoteDir: rdir });
+                }
+              } catch {
+                uploadTasks.push({ localPaths: [localPath], remoteDir: remotePath });
+              }
+            }
+
+            if (uploadTasks.length === 0) {
+              toast.error(t("sftp.emptyDirectory") || "No files to upload");
+              return;
+            }
+
+            const allTaskIds: string[] = [];
+            for (const task of uploadTasks) {
+              const taskIds = await api.sftpUploadFiles(sessionId, task.localPaths, task.remoteDir);
+              for (let i = 0; i < taskIds.length; i++) {
+                const lp = task.localPaths[i];
+                const taskFileName = lp?.split("/").pop() || "";
+                if (taskFileName && taskIds[i]) {
+                  addUploadingEntryDrop(taskFileName, 0, taskIds[i]);
+                }
+                if (taskIds[i]) allTaskIds.push(taskIds[i]);
+              }
+            }
+
+            if (allTaskIds.length > 0) {
+              registerBatchDrop(allTaskIds, "upload");
+              await refreshTransfersAfterDrop();
+            }
+          } catch (err) {
+            toast.error(String(err));
           }
-        }
-        // Register batch for summary toast on completion
-        const validTaskIds = taskIds.filter(Boolean) as string[];
-        registerBatchDrop(validTaskIds, "upload");
-      } catch (err) {
-        toast.error(String(err));
+        })();
       }
-    },
-    [sessionId, remotePath, t, addUploadingEntryDrop, registerBatchDrop],
-  );
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [sessionId, remotePath, t, addUploadingEntryDrop, registerBatchDrop, refreshTransfersAfterDrop]);
 
   const handleDoubleClick = useCallback(
     (entry: FileEntry) => {
@@ -1099,15 +1114,12 @@ function RemoteFileList() {
     <div
       ref={dropRef}
       className={cn(
-        "flex flex-1 flex-col border rounded-[var(--radius-card)] overflow-hidden relative transition-colors",
+        "flex flex-1 flex-col rounded-[var(--radius-card)] overflow-hidden relative transition-colors",
         isDragOver
-          ? "border-[var(--color-accent)] bg-[var(--color-accent-subtle)]"
-          : "border-[var(--color-border)]",
+          ? "border-2 border-dashed border-[var(--color-accent)] bg-[var(--color-accent-subtle)]"
+          : "border border-[var(--color-border)]",
       )}
       data-context-menu-container
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
     >
       {/* Drag overlay */}
       {isDragOver && (
