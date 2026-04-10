@@ -100,6 +100,16 @@ pub struct RecentPath {
     pub accessed_at: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalBookmark {
+    pub id: String,
+    pub host_id: String,
+    pub path: String,
+    pub label: Option<String>,
+    pub created_at: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SshConfigEntry {
@@ -290,6 +300,18 @@ impl Database {
                 snippet_key TEXT PRIMARY KEY,
                 score REAL NOT NULL DEFAULT 0.0,
                 updated_at TEXT NOT NULL
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS terminal_bookmarks (
+                id TEXT PRIMARY KEY,
+                host_id TEXT NOT NULL,
+                path TEXT NOT NULL,
+                label TEXT,
+                created_at TEXT NOT NULL
             )",
         )
         .execute(&self.pool)
@@ -881,6 +903,70 @@ impl Database {
         .await?;
 
         Ok(rows)
+    }
+
+    // ── Terminal Bookmarks ──
+
+    pub async fn add_terminal_bookmark(
+        &self,
+        host_id: &str,
+        path: &str,
+        label: Option<&str>,
+    ) -> anyhow::Result<String> {
+        let id = Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query(
+            "INSERT INTO terminal_bookmarks (id, host_id, path, label, created_at) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(&id)
+        .bind(host_id)
+        .bind(path)
+        .bind(label)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(id)
+    }
+
+    pub async fn remove_terminal_bookmark(&self, id: &str) -> anyhow::Result<()> {
+        sqlx::query("DELETE FROM terminal_bookmarks WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn list_terminal_bookmarks(
+        &self,
+        host_id: &str,
+    ) -> anyhow::Result<Vec<TerminalBookmark>> {
+        let rows: Vec<TerminalBookmark> = sqlx::query_as(
+            "SELECT id, host_id, path, label, created_at FROM terminal_bookmarks WHERE host_id = ? ORDER BY created_at",
+        )
+        .bind(host_id)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    pub async fn update_terminal_bookmark(
+        &self,
+        id: &str,
+        path: &str,
+        label: Option<&str>,
+    ) -> anyhow::Result<()> {
+        sqlx::query(
+            "UPDATE terminal_bookmarks SET path = ?, label = ? WHERE id = ?",
+        )
+        .bind(path)
+        .bind(label)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 }
 

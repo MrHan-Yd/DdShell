@@ -232,6 +232,16 @@ export interface RecentPath {
   accessedAt: string;
 }
 
+// ── Terminal Bookmarks ──
+
+export interface TerminalBookmark {
+  id: string;
+  hostId: string;
+  path: string;
+  label?: string | null;
+  createdAt: string;
+}
+
 // ── FR-30: Terminal Background ──
 
 export type TerminalBgSource = "color" | "image";

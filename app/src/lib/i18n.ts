@@ -99,6 +99,16 @@ const dict = {
   "term.disconnected": { zh: "连接已断开", en: "Disconnected" },
   "term.reconnect": { zh: "重新连接", en: "Reconnect" },
   "term.reconnecting": { zh: "重连中...", en: "Reconnecting..." },
+  "term.bookmarks": { zh: "收藏", en: "Bookmarks" },
+  "term.addBookmark": { zh: "添加收藏", en: "Add Bookmark" },
+  "term.bookmarkLabel": { zh: "标签", en: "Label" },
+  "term.bookmarkLabelPlaceholder": { zh: "备注（可选）", en: "Note (optional)" },
+  "term.bookmarkAddFailed": { zh: "获取当前目录失败", en: "Failed to get current directory" },
+  "term.noBookmarks": { zh: "暂无收藏", en: "No bookmarks yet" },
+  "term.removeBookmark": { zh: "删除收藏", en: "Remove bookmark" },
+  "term.removeBookmarkConfirm": { zh: "确定要删除此收藏吗？", en: "Remove this bookmark?" },
+  "term.delete": { zh: "删除", en: "Delete" },
+  "term.goToDir": { zh: "前往", en: "Go to" },
 
   // ── SftpPage ──
   "sftp.local": { zh: "本地", en: "Local" },

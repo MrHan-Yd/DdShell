@@ -13,6 +13,7 @@ import type {
   SystemInfo,
   FavoritePath,
   RecentPath,
+  TerminalBookmark,
   SshConfigImportResult,
 } from "@/types";
 
@@ -383,6 +384,24 @@ export async function pathListRecent(sessionId: string, limit?: number): Promise
 
 export async function pathAddRecent(sessionId: string, path: string): Promise<{ id: string }> {
   return invoke("path_add_recent", { sessionId, path });
+}
+
+// ── Terminal Bookmarks ──
+
+export async function terminalBookmarkAdd(hostId: string, path: string, label?: string): Promise<{ id: string }> {
+  return invoke("terminal_bookmark_add", { hostId, path, label: label ?? null });
+}
+
+export async function terminalBookmarkRemove(id: string): Promise<{ success: boolean }> {
+  return invoke("terminal_bookmark_remove", { id });
+}
+
+export async function terminalBookmarkList(hostId: string): Promise<TerminalBookmark[]> {
+  return invoke("terminal_bookmark_list", { hostId });
+}
+
+export async function terminalBookmarkUpdate(id: string, path: string, label?: string): Promise<{ success: boolean }> {
+  return invoke("terminal_bookmark_update", { id, path, label: label ?? null });
 }
 
 // ── SSH Config Import ──

@@ -1027,9 +1027,9 @@ function RemoteFileList() {
         const paths = payload.paths;
         if (!paths || paths.length === 0) return;
 
-        (async () => {
+        await (async () => {
           try {
-            toast.info(t("sftp.uploadedFiles", { n: paths.length }));
+            toast.info(t("sftp.uploadedFiles", {n: paths.length}));
 
             const uploadTasks: { localPaths: string[]; remoteDir: string }[] = [];
 
@@ -1042,19 +1042,19 @@ function RemoteFileList() {
                 for (const f of allFiles) {
                   if (f.isDir) continue;
                   const relativeDir = f.relative.includes("/")
-                    ? f.relative.substring(0, f.relative.lastIndexOf("/"))
-                    : "";
+                      ? f.relative.substring(0, f.relative.lastIndexOf("/"))
+                      : "";
                   const remoteSubDir = relativeDir
-                    ? `${remotePath}/${fileName}/${relativeDir}`
-                    : `${remotePath}/${fileName}`;
+                      ? `${remotePath}/${fileName}/${relativeDir}`
+                      : `${remotePath}/${fileName}`;
                   if (!byDir.has(remoteSubDir)) byDir.set(remoteSubDir, []);
                   byDir.get(remoteSubDir)!.push(f.local);
                 }
                 for (const [rdir, lpaths] of byDir) {
-                  uploadTasks.push({ localPaths: lpaths, remoteDir: rdir });
+                  uploadTasks.push({localPaths: lpaths, remoteDir: rdir});
                 }
               } catch {
-                uploadTasks.push({ localPaths: [localPath], remoteDir: remotePath });
+                uploadTasks.push({localPaths: [localPath], remoteDir: remotePath});
               }
             }
 

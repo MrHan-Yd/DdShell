@@ -1352,6 +1352,56 @@ async fn path_list_recent(
         .map_err(|e| e.to_string())
 }
 
+// ── Commands: Terminal Bookmarks ──
+
+#[tauri::command]
+async fn terminal_bookmark_add(
+    db: tauri::State<'_, Database>,
+    host_id: String,
+    path: String,
+    label: Option<String>,
+) -> Result<IdResponse, String> {
+    let id = db
+        .add_terminal_bookmark(&host_id, &path, label.as_deref())
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(IdResponse { id })
+}
+
+#[tauri::command]
+async fn terminal_bookmark_remove(
+    db: tauri::State<'_, Database>,
+    id: String,
+) -> Result<SuccessResponse, String> {
+    db.remove_terminal_bookmark(&id)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn terminal_bookmark_list(
+    db: tauri::State<'_, Database>,
+    host_id: String,
+) -> Result<Vec<core::store::TerminalBookmark>, String> {
+    db.list_terminal_bookmarks(&host_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn terminal_bookmark_update(
+    db: tauri::State<'_, Database>,
+    id: String,
+    path: String,
+    label: Option<String>,
+) -> Result<SuccessResponse, String> {
+    db.update_terminal_bookmark(&id, &path, label.as_deref())
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
 // ── Commands: SSH Config Import ──
 
 #[derive(Debug, Clone, Serialize)]
@@ -1799,6 +1849,10 @@ pub fn run() {
             path_list_favorites,
             path_add_recent,
             path_list_recent,
+            terminal_bookmark_add,
+            terminal_bookmark_remove,
+            terminal_bookmark_list,
+            terminal_bookmark_update,
             ssh_config_import,
             list_system_fonts,
             download_update,

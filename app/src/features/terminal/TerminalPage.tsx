@@ -6,12 +6,12 @@ import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { FitAddon } from "@xterm/addon-fit";
-import { X, Plus, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2 } from "lucide-react";
+import { X, Plus, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTerminalStore } from "@/stores/terminal";
 import { useAppStore } from "@/stores/app";
 import * as api from "@/lib/tauri";
-import type { CommandHistoryItem } from "@/types";
+import type { CommandHistoryItem, TerminalBookmark } from "@/types";
 import { useT } from "@/lib/i18n";
 import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
@@ -869,6 +869,232 @@ function CommandHistoryPanel({
   );
 }
 
+// ── Bookmark Panel ──
+
+function BookmarkPanel({
+  hostId,
+  sessionId,
+  onNavigate,
+  onClose,
+}: {
+  hostId: string;
+  sessionId: string;
+  onNavigate: (path: string) => void;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const [bookmarks, setBookmarks] = useState<TerminalBookmark[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addLabel, setAddLabel] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const loadBookmarks = useCallback(async () => {
+    try {
+      const result = await api.terminalBookmarkList(hostId);
+      setBookmarks(result);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }, [hostId]);
+
+  useEffect(() => {
+    setLoading(true);
+    loadBookmarks();
+  }, [hostId, loadBookmarks]);
+
+  const handleAdd = useCallback(async () => {
+    if (adding) return;
+    setAdding(true);
+    try {
+      const path = await new Promise<string | null>((resolve) => {
+        let resolved = false;
+        let buf = "";
+        let cleanBuf = "";
+
+        const timer = setTimeout(() => {
+          if (!resolved) { resolved = true; resolve(null); }
+        }, 3000);
+
+        const cleanup = () => {
+          clearTimeout(timer);
+        };
+
+        listen<{ sessionId: string; data: number[] }>("session:output", (event) => {
+          if (resolved) return;
+          if (event.payload.sessionId !== sessionId) return;
+
+          const text = new TextDecoder().decode(new Uint8Array(event.payload.data));
+          // eslint-disable-next-line no-control-regex
+          const clean = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").replace(/\x1b\].*?(?:\x07|\x1b\\)/g, "");
+          buf += clean;
+          cleanBuf += text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").replace(/\x1b\].*?(?:\x07|\x1b\\)/g, "");
+
+          const lines = cleanBuf.split("\n");
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (/^\/\S+$/.test(trimmed) && trimmed.length > 1) {
+              resolved = true;
+              resolve(trimmed);
+              cleanup();
+              return;
+            }
+          }
+        }).then((unlisten) => {
+          if (resolved) {
+            unlisten();
+            return;
+          }
+          const encoder = new TextEncoder();
+          api.sessionWrite(sessionId, Array.from(encoder.encode("pwd\n"))).catch(() => {});
+        });
+      });
+
+      if (!path) {
+        toast.error(t("term.bookmarkAddFailed"));
+        return;
+      }
+
+      await api.terminalBookmarkAdd(hostId, path, addLabel.trim() || undefined);
+      setAddLabel("");
+      await loadBookmarks();
+    } catch {
+      toast.error(t("term.bookmarkAddFailed"));
+    } finally {
+      setAdding(false);
+    }
+  }, [adding, hostId, sessionId, addLabel, loadBookmarks, t]);
+
+  const handleRemove = async (id: string) => {
+    const ok = await confirm({
+      title: t("term.removeBookmark"),
+      description: t("term.removeBookmarkConfirm"),
+      confirmLabel: t("term.delete"),
+      cancelLabel: t("term.cancel"),
+    });
+    if (!ok) return;
+    try {
+      await api.terminalBookmarkRemove(id);
+      await loadBookmarks();
+    } catch {
+      // ignore
+    }
+  };
+
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const confirmStartRef = useRef<number>(0);
+
+  const handleBookmarkClick = useCallback((id: string, path: string) => {
+    if (confirmId === id) {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+      setConfirmId(null);
+      onNavigate(path);
+    } else {
+      setConfirmId(id);
+      confirmStartRef.current = Date.now();
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+      confirmTimerRef.current = setTimeout(() => {
+        setConfirmId(null);
+      }, 2000);
+    }
+  }, [confirmId, onNavigate]);
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    };
+  }, []);
+
+  return (
+    <div className="flex h-full flex-col glass-surface">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-3 py-2">
+        <div className="flex items-center gap-2">
+          <Bookmark size={14} className="text-[var(--color-text-muted)]" />
+          <span className="text-[var(--font-size-sm)] font-medium">{t("term.bookmarks")}</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded p-0.5 hover:bg-[var(--color-bg-hover)]"
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      <div className="border-b border-[var(--color-border)] px-3 py-2 flex gap-1.5 items-center">
+        <input
+          value={addLabel}
+          onChange={(e) => setAddLabel(e.target.value)}
+          placeholder={t("term.bookmarkLabelPlaceholder")}
+          className="h-7 flex-1 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-2 text-[var(--font-size-xs)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-focus)] focus:outline-none"
+          onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+        />
+        <button
+          onClick={handleAdd}
+          disabled={adding}
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-control)] transition-colors",
+            !adding
+              ? "bg-[var(--color-accent)] text-white hover:opacity-90"
+              : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] cursor-not-allowed",
+          )}
+          title={t("term.addBookmark")}
+        >
+          <Star size={14} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {loading && (
+          <p className="p-4 text-center text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            {t("conn.loading")}
+          </p>
+        )}
+
+        {!loading && bookmarks.length === 0 && (
+          <p className="p-4 text-center text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            {t("term.noBookmarks")}
+          </p>
+        )}
+
+        {bookmarks.map((bm) => (
+          <div
+            key={bm.id}
+            className="group relative flex items-center gap-2 px-3 py-1.5 text-[var(--font-size-xs)] hover:bg-[var(--color-bg-hover)] transition-colors cursor-pointer select-none"
+            onClick={() => handleBookmarkClick(bm.id, bm.path)}
+          >
+            {confirmId === bm.id && (
+              <div
+                className="absolute left-0 bottom-0 h-[2px] bg-[var(--color-accent)] rounded-full"
+                style={{
+                  animation: "bookmark-confirm 2s linear forwards",
+                }}
+              />
+            )}
+            <FolderOpen size={13} className="flex-shrink-0 text-[var(--color-text-muted)]" />
+            <div className="flex-1 min-w-0">
+              {bm.label ? (
+                <div className="truncate text-[var(--color-text-primary)] font-medium">{bm.label}</div>
+              ) : null}
+              <div className={cn("truncate font-mono", bm.label ? "text-[var(--color-text-muted)]" : "text-[var(--color-text-primary)]")} title={bm.path}>
+                {bm.path}
+              </div>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleRemove(bm.id); }}
+              className="opacity-0 group-hover:opacity-100 flex-shrink-0 rounded p-0.5 hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-error)] transition-all"
+              title={t("term.removeBookmark")}
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Resize Handle ──
 
 function ResizeHandle({
@@ -932,6 +1158,7 @@ export function TerminalPage() {
   const closeSplit = useTerminalStore((s) => s.closeSplit);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
   const [showHistory, setShowHistory] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(false);
   const [splitRatio, setSplitRatio] = useState(0.5);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
@@ -942,6 +1169,25 @@ export function TerminalPage() {
   const tabBarRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const containerRef = useRef<HTMLDivElement>(null);
+  const bookmarkDrawerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showBookmarks) return;
+    const handler = (e: PointerEvent) => {
+      const confirmEl = document.querySelector("[data-confirm-dialog]");
+      if (confirmEl) return;
+      if (bookmarkDrawerRef.current && !bookmarkDrawerRef.current.contains(e.target as Node)) {
+        setShowBookmarks(false);
+      }
+    };
+    const timer = setTimeout(() => {
+      document.addEventListener("pointerdown", handler);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("pointerdown", handler);
+    };
+  }, [showBookmarks]);
 
   // Load terminal settings from backend
   const [termSettings, setTermSettings] = useState<Record<string, any> | undefined>(undefined);
@@ -1025,6 +1271,18 @@ export function TerminalPage() {
 
       const encoder = new TextEncoder();
       const bytes = Array.from(encoder.encode(command));
+      api.sessionWrite(activeTab.sessionId, bytes).catch((err) => toast.error(String(err)));
+    },
+    [tabs, activeTabId],
+  );
+
+  const handleNavigateToDir = useCallback(
+    (path: string) => {
+      const activeTab = tabs.find((t) => t.id === activeTabId);
+      if (!activeTab) return;
+
+      const encoder = new TextEncoder();
+      const bytes = Array.from(encoder.encode(`cd ${path}\n`));
       api.sessionWrite(activeTab.sessionId, bytes).catch((err) => toast.error(String(err)));
     },
     [tabs, activeTabId],
@@ -1302,7 +1560,7 @@ export function TerminalPage() {
         </div>
         </div>
 
-        {/* Terminal area */}
+{/* Terminal area */}
         <div
           ref={containerRef}
           className={cn(
@@ -1376,6 +1634,40 @@ export function TerminalPage() {
               </div>
             </>
           )}
+
+          {/* Bookmark drawer: tab peg + slide-out panel */}
+          <div
+            ref={bookmarkDrawerRef}
+            className="absolute right-0 top-0 bottom-0 z-[15] flex transition-transform duration-[var(--duration-panel)] ease-[var(--ease-smooth)]"
+            style={{ transform: showBookmarks ? 'translateX(0)' : 'translateX(280px)' }}
+          >
+            <button
+              onClick={() => setShowBookmarks(!showBookmarks)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1",
+                "w-[22px] self-center py-2",
+                "rounded-l-[var(--radius-control)]",
+                "border border-r-0 border-[var(--color-border)]",
+                "transition-colors duration-150",
+                showBookmarks
+                  ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
+                  : "bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
+              )}
+              title={t("term.bookmarks")}
+            >
+              <Bookmark size={13} />
+            </button>
+            <div className="w-[280px] border-l border-[var(--color-border)]">
+              {activeTab && (
+                <BookmarkPanel
+                  hostId={activeTab.hostId}
+                  sessionId={activeTab.sessionId}
+                  onNavigate={handleNavigateToDir}
+                  onClose={() => setShowBookmarks(false)}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
