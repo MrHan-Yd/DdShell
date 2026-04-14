@@ -10,6 +10,11 @@
 - `host_groups`：连接分组。
 - `sessions`：会话状态记录。
 - `snippets`：命令片段。
+- `workflow_recipes`：命令宏模板（内部能力名：Workflow Recipe）。Recipe 是可复用模板，不绑定主机；主机在 Run 启动时选择。
+- `workflow_recipes.params_json`：流程参数定义（JSON）。参数默认值在定义中指定，不支持 `{{var:default}}` 内联语法。
+- `workflow_recipes.steps_json`：流程步骤定义（JSON）。
+- `workflow_runs`：命令宏运行记录。每次运行必须指定 `hostId`。
+- `workflow_runs.steps_json`：流程步骤执行结果（JSON 快照）。
 - `transfer_tasks`：传输队列。
 - `system_metrics_snapshots`：系统监控采样快照（内存环形缓存）。
 - `disk_usage_snapshots`：磁盘使用快照（按挂载点）。
@@ -32,6 +37,18 @@
 - `COMMAND_HISTORY_UNAVAILABLE`：历史命令不可用。
 - `NETWORK_INTERFACE_UNAVAILABLE`：网卡不可用或不存在。
 - `ARCHIVE_TRANSFER_FAILED`：打包传输失败。
+- `WORKFLOW_RECIPE_NOT_FOUND`：流程模板不存在。
+- `WORKFLOW_RECIPE_INVALID`：流程模板配置非法。
+- `WORKFLOW_RUN_NOT_FOUND`：流程运行记录不存在。
+- `WORKFLOW_RUN_ALREADY_FINISHED`：流程已结束，无法继续操作。
+- `WORKFLOW_HOST_NOT_FOUND`：目标主机不存在。
+- `WORKFLOW_PARAM_MISSING`：缺少必填流程参数。
+- `WORKFLOW_TEMPLATE_RENDER_FAILED`：流程模板渲染失败。
+- `WORKFLOW_STEP_TIMEOUT`：流程步骤执行超时（future，MVP 不实现timeout控制）。
+- `WORKFLOW_STEP_CANCELED`：流程被用户取消（future，MVP 不实现取消）。
+- `WORKFLOW_UNSUPPORTED_INTERACTIVE_COMMAND`：检测到不支持的交互式命令。
+- `WORKFLOW_CONCURRENCY_LIMIT_REACHED`：流程并发超限（future，MVP 同主机只允许一个 running）。
+- `WORKFLOW_EXEC_FAILED`：流程执行失败。
 
 ## 5. 事件契约
 - `session:state_changed`
@@ -45,6 +62,18 @@
 - `command_history:updated`
 - `network_interfaces:updated`
 - `ports:updated`
+- `workflow:run_updated`
+
+## 5.1 Workflow State Enums (MVP)
+- Run state: `running | completed | failed`
+- Step state: `pending | running | completed | failed`
+- 命名约定：统一使用 `state` 字段名（不使用 `status`）；统一使用 `completed`（不使用 `success`）。
+- future 增量状态：`canceled | interrupted | skipped | queued`，仅在对应功能实现时加入。
+
+## 5.2 Workflow Template Syntax (MVP)
+- 仅支持 `{{var}}` 和 `{{ var }}` 两种占位符语法。
+- 参数默认值通过参数定义的 `defaultValue` 字段指定，不支持 `{{var:default}}` 内联默认值语法。
+- MVP 不支持条件模板、循环模板、嵌套模板。
 
 ## 6. Command 接口契约（v1）
 - `connection.create`
@@ -104,6 +133,30 @@
 - `command.quick_name.search`
   - input：`{ sessionId, query }`
   - output：`{ items[] }`
+- `workflow.recipe.create`
+  - input：`{ title, description?, groupId?, paramsJson, stepsJson }`
+  - output：`{ id }`
+- `workflow.recipe.update`
+  - input：`{ id, title?, description?, groupId?, paramsJson?, stepsJson? }`
+  - output：`{ success }`
+- `workflow.recipe.delete`
+  - input：`{ id }`
+  - output：`{ success }`
+- `workflow.recipe.list`
+  - input：`{}`
+  - output：`{ recipes[] }`
+- `workflow.recipe.get`
+  - input：`{ id }`
+  - output：`{ recipe }`
+- `workflow.run.start`
+  - input：`{ recipeId, hostId, params? }`
+  - output：`{ id }`
+- `workflow.run.list`
+  - input：`{ recipeId?, limit? }`
+  - output：`{ runs[] }`
+- `workflow.run.get`
+  - input：`{ runId }`
+  - output：`{ run }`
 - `system.detect`
   - input：`{ sessionId }`
   - output：`{ os, distro?, distroVersion?, shell }`
@@ -146,8 +199,9 @@
 
 ## 9. 自部署同步规范（v1.1）
 - 模式：用户自部署同步服务（单用户优先）。
-- 同步内容：`hosts`（脱敏字段）、`snippets`、`settings`。
+- 同步内容：`hosts`（脱敏字段）、`snippets`、`workflow_recipes`、`settings`。
 - 不同步内容：明文凭据、私钥口令。
+- 不同步内容补充：`workflow_runs`。
 - 冲突策略：`last_write_wins` + 手动冲突查看。
 
 ## 10. Version Baseline Reference

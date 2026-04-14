@@ -1,7 +1,7 @@
 // Core data types aligned with API-CONTRACTS and GLOSSARY
 
 /** Page navigation */
-export type Page = "connections" | "terminal" | "sftp" | "snippets" | "settings" | "monitor";
+export type Page = "connections" | "terminal" | "sftp" | "snippets" | "macros" | "settings" | "monitor";
 
 /** Auth method for SSH connection */
 export type AuthType = "password" | "publickey";
@@ -72,6 +72,81 @@ export interface Snippet {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface WorkflowRecipeParam {
+  key: string;
+  label: string;
+  defaultValue?: string | null;
+  required: boolean;
+}
+
+export interface WorkflowRecipeStep {
+  id: string;
+  title: string;
+  command: string;
+}
+
+export interface WorkflowGroup {
+  id: string;
+  name: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkflowRecipe {
+  id: string;
+  title: string;
+  description?: string | null;
+  groupId?: string | null;
+  paramsJson: string;
+  stepsJson: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateWorkflowRecipeRequest {
+  title: string;
+  description?: string | null;
+  groupId?: string | null;
+  paramsJson: string;
+  stepsJson: string;
+}
+
+export interface UpdateWorkflowRecipeRequest {
+  id: string;
+  title?: string;
+  description?: string | null;
+  groupId?: string | null;
+  paramsJson?: string;
+  stepsJson?: string;
+}
+
+export interface WorkflowRunStepResult {
+  stepId: string;
+  title: string;
+  command: string;
+  renderedCommand: string;
+  state: string;
+  stdout: string;
+  stderr: string;
+  exitCode?: number | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+}
+
+export interface WorkflowRun {
+  id: string;
+  recipeId: string;
+  recipeTitle: string;
+  hostId: string;
+  state: string;
+  startedAt: string;
+  finishedAt?: string | null;
+  params: Record<string, string>;
+  steps: WorkflowRunStepResult[];
+  error?: string | null;
 }
 
 /** API error — API-CONTRACTS §1 */

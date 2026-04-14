@@ -275,7 +275,270 @@ Response:
 }
 ```
 
-## 7. Event Contracts
+## 7. Workflow Commands
+
+说明：本节为内部技术契约，UI / 产品名称为"命令宏"，接口命名保持 `workflow.*` 不变。
+
+命名与字段约定：
+- Command 名称使用 dot notation（如 `workflow.recipe.create`）。
+- JSON 字段使用 camelCase。
+- Recipe 显示名使用 `title`（不使用 `name`）。
+- Run / Step 状态字段使用 `state`（不使用 `status`），枚举值见状态约定。
+- 状态约定：Run — `running | completed | failed`；Step — `pending | running | completed | failed`。future 增量：`canceled | interrupted | skipped | queued`。
+
+### 7.1 `workflow.recipe.create`
+Request:
+```json
+{
+  "title": "部署 nginx",
+  "description": "拉代码并重启服务",
+  "groupId": null,
+  "paramsJson": "[{\"key\":\"release_dir\",\"label\":\"发布目录\",\"required\":true,\"defaultValue\":null}]",
+  "stepsJson": "[{\"id\":\"step-1\",\"title\":\"拉取代码\",\"command\":\"cd {{release_dir}} && git pull\"}]"
+}
+```
+Response:
+```json
+{
+  "id": "workflow-recipe-uuid"
+}
+```
+
+### 7.2 `workflow.recipe.update`
+Request:
+```json
+{
+  "id": "workflow-recipe-uuid",
+  "title": "部署 nginx",
+  "description": "更新代码并重启服务",
+  "groupId": null,
+  "paramsJson": "[]",
+  "stepsJson": "[]"
+}
+```
+Response:
+```json
+{
+  "success": true
+}
+```
+
+### 7.3 `workflow.recipe.list`
+Response:
+```json
+[
+  {
+    "id": "workflow-recipe-uuid",
+    "title": "部署 nginx",
+    "description": "拉代码并重启服务",
+    "groupId": null,
+    "stepCount": 2,
+    "updatedAt": "2026-04-11T10:00:00Z"
+  }
+]
+```
+
+### 7.4 `workflow.recipe.get`
+Response:
+```json
+{
+  "id": "workflow-recipe-uuid",
+  "title": "部署 nginx",
+  "description": "拉代码并重启服务",
+  "groupId": null,
+  "params": [
+    {
+      "id": "param-uuid",
+      "key": "release_dir",
+      "label": "发布目录",
+      "type": "text",
+      "required": true,
+      "defaultValue": null,
+      "sortOrder": 0
+    }
+  ],
+  "steps": [
+    {
+      "id": "step-uuid",
+      "title": "拉取代码",
+      "stepType": "command",
+      "commandTemplate": "git pull",
+      "cwdTemplate": "{{release_dir}}",
+      "timeoutSecs": 60,
+      "continueOnError": false,
+      "sortOrder": 0
+    }
+  ],
+  "createdAt": "2026-04-11T10:00:00Z",
+  "updatedAt": "2026-04-11T10:00:00Z"
+}
+```
+
+### 7.5 `workflow.run.start`
+Request:
+```json
+{
+  "recipeId": "workflow-recipe-uuid",
+  "hostId": "host-uuid",
+  "params": {
+    "release_dir": "/srv/app",
+    "service": "nginx"
+  }
+}
+```
+Response:
+```json
+{
+  "id": "workflow-run-uuid"
+}
+```
+
+说明：`hostId` 为必填字段，在 Run 启动时指定目标主机。Recipe 本身不绑定主机。
+
+### 7.6 `workflow.run.get`
+Response:
+```json
+{
+  "id": "workflow-run-uuid",
+  "recipeId": "workflow-recipe-uuid",
+  "recipeTitle": "部署 nginx",
+  "hostId": "host-uuid",
+  "state": "completed",
+  "params": {
+    "release_dir": "/srv/app",
+    "service": "nginx"
+  },
+  "startedAt": "2026-04-11T10:00:00Z",
+  "finishedAt": "2026-04-11T10:00:04Z",
+  "steps": [
+    {
+      "stepId": "step-1",
+      "title": "拉取代码",
+      "commandTemplate": "cd {{release_dir}} && git pull",
+      "resolvedCommand": "cd /srv/app && git pull",
+      "state": "completed",
+      "stdout": "Already up to date.\n",
+      "stderr": "",
+      "exitCode": 0,
+      "durationMs": 820,
+      "startedAt": "2026-04-11T10:00:00Z",
+      "finishedAt": "2026-04-11T10:00:01Z"
+    }
+  ],
+  "error": null
+}
+```
+
+### 7.7 `workflow.run.list`
+Request:
+```json
+{
+  "recipeId": "workflow-recipe-uuid",
+  "limit": 10
+}
+```
+Response:
+```json
+[
+  {
+    "id": "workflow-run-uuid",
+    "recipeId": "workflow-recipe-uuid",
+    "recipeTitle": "部署 nginx",
+    "hostId": "host-uuid",
+    "state": "failed",
+    "startedAt": "2026-04-11T10:00:00Z",
+    "finishedAt": "2026-04-11T10:00:04Z",
+    "error": "Step '重启服务' failed"
+  }
+]
+```
+Response:
+```json
+{
+  "id": "workflow-recipe-uuid"
+}
+```
+
+### 7.2 `workflow_run_start`
+Request:
+```json
+{
+  "recipeId": "workflow-recipe-uuid",
+  "params": {
+    "release_dir": "/srv/app",
+    "service": "nginx"
+  }
+}
+```
+Response:
+```json
+{
+  "id": "workflow-run-uuid"
+}
+```
+
+### 7.3 `workflow_run_get`
+Response:
+```json
+{
+  "id": "workflow-run-uuid",
+  "recipeId": "workflow-recipe-uuid",
+  "recipeTitle": "部署 nginx",
+  "hostId": "host-uuid",
+  "state": "completed",
+  "startedAt": "2026-04-11T10:00:00Z",
+  "finishedAt": "2026-04-11T10:00:04Z",
+  "params": {
+    "release_dir": "/srv/app",
+    "service": "nginx"
+  },
+  "steps": [
+    {
+      "stepId": "step-1",
+      "title": "拉取代码",
+      "command": "cd {{release_dir}} && git pull",
+      "renderedCommand": "cd /srv/app && git pull",
+      "state": "completed",
+      "stdout": "Already up to date.\n",
+      "stderr": "",
+      "exitCode": 0,
+      "startedAt": "2026-04-11T10:00:00Z",
+      "finishedAt": "2026-04-11T10:00:01Z"
+    }
+  ],
+  "error": null
+}
+```
+
+### 7.4 `workflow_run_list`
+Request:
+```json
+{
+  "recipeId": "workflow-recipe-uuid",
+  "limit": 10
+}
+```
+Response:
+```json
+[
+  {
+    "id": "workflow-run-uuid",
+    "recipeId": "workflow-recipe-uuid",
+    "recipeTitle": "部署 nginx",
+    "hostId": "host-uuid",
+    "state": "failed",
+    "startedAt": "2026-04-11T10:00:00Z",
+    "finishedAt": "2026-04-11T10:00:04Z",
+    "params": {
+      "release_dir": "/srv/app"
+    },
+    "steps": [],
+    "error": "Step '重启服务' failed"
+  }
+]
+```
+
+## 8. Event Contracts
 
 ### 7.1 `session:state_changed`
 ```json
@@ -302,3 +565,22 @@ Response:
 {"hostId":"host-uuid","count":1024}
 ```
 
+### 8.6 `workflow:run_updated`
+```json
+{
+  "run": {
+    "id": "workflow-run-uuid",
+    "recipeId": "workflow-recipe-uuid",
+    "recipeTitle": "部署 nginx",
+    "hostId": "host-uuid",
+    "state": "running",
+    "startedAt": "2026-04-11T10:00:00Z",
+    "finishedAt": null,
+    "params": {
+      "release_dir": "/srv/app"
+    },
+    "steps": [],
+    "error": null
+  }
+}
+```

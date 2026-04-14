@@ -4,6 +4,7 @@ import {
   FolderOpen,
   Terminal,
   Code2,
+  Workflow,
   Settings,
   Activity,
   PanelLeftClose,
@@ -22,6 +23,7 @@ const navItems: { page: Page; labelKey: DictKey; icon: typeof Server }[] = [
   { page: "sftp", labelKey: "nav.sftp", icon: FolderOpen },
   { page: "monitor", labelKey: "nav.monitor", icon: Activity },
   { page: "snippets", labelKey: "nav.snippets", icon: Code2 },
+  { page: "macros", labelKey: "nav.macros", icon: Workflow },
   { page: "settings", labelKey: "nav.settings", icon: Settings },
 ];
 

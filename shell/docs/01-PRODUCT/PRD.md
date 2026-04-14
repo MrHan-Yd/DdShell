@@ -52,6 +52,7 @@
 - 打包传输（自动压缩/解压，可开关）。
 - 快速输入路径与命令名。
 - 历史命令字段级选择输入。
+- 命令宏（Workflow Recipe）：可参数化、可追踪的单主机顺序命令流程；首版提供运行历史，取消/重试后续补齐。
 
 ## 5. 需求清单（含验收）
 - FR-01 连接新增编辑删除：保存后立即生效。
@@ -128,3 +129,17 @@
 - FR-41 Structured output extraction: extract IP/path/error-code/URL from terminal output for quick actions.
 - FR-42 Monitoring alerts: configurable thresholds for CPU/memory/disk/session health with toast + status bar alerts.
 - FR-43 Unified task center: unify transfer/update/retry/reconnect tasks with pause/retry/cancel/history.
+- FR-44 Command Macros (Workflow Recipe):
+  - Provide reusable command macros with params and ordered command steps.
+  - Recipes are reusable templates and are NOT bound to a specific host; host is selected at run start time.
+  - Command macro execution must support explicit host selection, run history, and step-level logs; first shipped version may defer cancel/retry.
+  - Command macros use explicit task semantics and must not be treated as Snippets auto-execution.
+  - MVP scope: single-host execution, sequential steps, `{{var}}` param rendering (no `{{var:default}}`), failure-stops-remaining, per-step state/logs, persisted run history.
+  - MVP explicitly excludes: cancel, retry, timeout, concurrency queueing, DAG/branching, multi-host, interactive commands, SFTP step types, scheduled triggers.
+  - State enums (MVP): Run — `running | completed | failed`; Step — `pending | running | completed | failed`. Additional states (`canceled | interrupted | skipped | queued`) are future increments.
+  - Field naming convention: use `title` (not `name`) for recipe display text; use `state` (not `status`) for run/step state; use camelCase in JSON payloads.
+  - Acceptance:
+    - user can create recipe with params and ordered steps;
+    - user can run recipe against a selected host and inspect per-step state/exit-code/log output;
+    - missing params and failure paths are observable; runtime param values and run history are persisted;
+    - cancel/retry may be delivered in a later increment without changing recipe semantics.

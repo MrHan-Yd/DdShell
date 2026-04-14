@@ -3,6 +3,10 @@ import type {
   Host,
   HostGroup,
   Snippet,
+  WorkflowRecipe,
+  WorkflowRun,
+  CreateWorkflowRecipeRequest,
+  UpdateWorkflowRecipeRequest,
   CreateHostRequest,
   UpdateHostRequest,
   FileEntry,
@@ -128,6 +132,24 @@ export async function snippetGroupList(): Promise<import("@/types").SnippetGroup
   return invoke("snippet_group_list");
 }
 
+// ── Workflow Group commands ──
+
+export async function workflowGroupCreate(name: string): Promise<{ id: string }> {
+  return invoke("workflow_group_create", { name });
+}
+
+export async function workflowGroupUpdate(id: string, name: string): Promise<{ success: boolean }> {
+  return invoke("workflow_group_update", { id, name });
+}
+
+export async function workflowGroupDelete(id: string): Promise<{ success: boolean }> {
+  return invoke("workflow_group_delete", { id });
+}
+
+export async function workflowGroupList(): Promise<import("@/types").WorkflowGroup[]> {
+  return invoke("workflow_group_list");
+}
+
 // ── Snippet commands ──
 
 export async function snippetCreate(
@@ -163,6 +185,50 @@ export async function snippetDelete(id: string): Promise<{ success: boolean }> {
 
 export async function snippetList(): Promise<Snippet[]> {
   return invoke("snippet_list");
+}
+
+// ── Workflow Recipe commands ──
+
+export async function workflowRecipeCreate(req: CreateWorkflowRecipeRequest): Promise<{ id: string }> {
+  return invoke("workflow_recipe_create", { req });
+}
+
+export async function workflowRecipeUpdate(req: UpdateWorkflowRecipeRequest): Promise<{ success: boolean }> {
+  return invoke("workflow_recipe_update", { req });
+}
+
+export async function workflowRecipeDelete(id: string): Promise<{ success: boolean }> {
+  return invoke("workflow_recipe_delete", { id });
+}
+
+export async function workflowRecipeGet(id: string): Promise<WorkflowRecipe> {
+  return invoke("workflow_recipe_get", { id });
+}
+
+export async function workflowRecipeList(): Promise<WorkflowRecipe[]> {
+  return invoke("workflow_recipe_list");
+}
+
+export async function workflowRunStart(
+  recipeId: string,
+  hostId: string,
+  params?: Record<string, string>,
+): Promise<{ id: string }> {
+  return invoke("workflow_run_start", { req: { recipeId, hostId, params: params ?? null } });
+}
+
+export async function workflowRunGet(runId: string): Promise<WorkflowRun> {
+  return invoke("workflow_run_get", { runId });
+}
+
+export async function workflowRunList(
+  recipeId?: string | null,
+  limit?: number,
+): Promise<WorkflowRun[]> {
+  return invoke("workflow_run_list", {
+    recipeId: recipeId ?? null,
+    limit: limit ?? 20,
+  });
 }
 
 // ── Settings commands ──

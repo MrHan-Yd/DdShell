@@ -63,6 +63,44 @@ pub struct Snippet {
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "camelCase")]
+pub struct WorkflowGroup {
+    pub id: String,
+    pub name: String,
+    pub sort_order: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRecipe {
+    pub id: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub group_id: Option<String>,
+    pub params_json: String,
+    pub steps_json: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunRecord {
+    pub id: String,
+    pub recipe_id: String,
+    pub recipe_title: String,
+    pub host_id: String,
+    pub state: String,
+    pub started_at: String,
+    pub finished_at: Option<String>,
+    pub params_json: String,
+    pub steps_json: String,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[serde(rename_all = "camelCase")]
 pub struct CommandHistoryItem {
     pub id: String,
     pub session_id: String,
@@ -212,6 +250,40 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS workflow_recipes (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT,
+                group_id TEXT,
+                params_json TEXT NOT NULL DEFAULT '[]',
+                steps_json TEXT NOT NULL DEFAULT '[]',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS workflow_runs (
+                id TEXT PRIMARY KEY,
+                recipe_id TEXT NOT NULL,
+                recipe_title TEXT NOT NULL,
+                host_id TEXT NOT NULL,
+                state TEXT NOT NULL,
+                started_at TEXT NOT NULL,
+                finished_at TEXT,
+                params_json TEXT NOT NULL DEFAULT '{}',
+                steps_json TEXT NOT NULL DEFAULT '[]',
+                error TEXT,
+                FOREIGN KEY (recipe_id) REFERENCES workflow_recipes(id) ON DELETE CASCADE,
+                FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+
         // Migrate: add group_id column if missing (existing databases)
         let has_group_id: bool = sqlx::query_scalar(
             "SELECT COUNT(*) > 0 FROM pragma_table_info('snippets') WHERE name = 'group_id'",
@@ -221,6 +293,70 @@ impl Database {
         .unwrap_or(false);
         if !has_group_id {
             sqlx::query("ALTER TABLE snippets ADD COLUMN group_id TEXT")
+                .execute(&self.pool)
+                .await?;
+        }
+
+        // Workflow groups table
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS workflow_groups (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Migrate: add group_id column to workflow_recipes if missing
+        let has_wf_group_id: bool = sqlx::query_scalar(
+            "SELECT COUNT(*) > 0 FROM pragma_table_info('workflow_recipes') WHERE name = 'group_id'",
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(false);
+        if !has_wf_group_id {
+            sqlx::query("ALTER TABLE workflow_recipes ADD COLUMN group_id TEXT")
+                .execute(&self.pool)
+                .await?;
+        }
+
+        // Migrate: remove target_host_id column from workflow_recipes
+        // SQLite < 3.35 does not support DROP COLUMN, so we recreate the table.
+        let has_wf_target_host_id: bool = sqlx::query_scalar(
+            "SELECT COUNT(*) > 0 FROM pragma_table_info('workflow_recipes') WHERE name = 'target_host_id'",
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(false);
+        if has_wf_target_host_id {
+            sqlx::query(
+                "CREATE TABLE workflow_recipes_new (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    group_id TEXT,
+                    params_json TEXT NOT NULL DEFAULT '[]',
+                    steps_json TEXT NOT NULL DEFAULT '[]',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )",
+            )
+            .execute(&self.pool)
+            .await?;
+            sqlx::query(
+                "INSERT INTO workflow_recipes_new (id, title, description, group_id, params_json, steps_json, created_at, updated_at)
+                 SELECT id, title, description, group_id, params_json, steps_json, created_at, updated_at
+                 FROM workflow_recipes",
+            )
+            .execute(&self.pool)
+            .await?;
+            sqlx::query("DROP TABLE workflow_recipes")
+                .execute(&self.pool)
+                .await?;
+            sqlx::query("ALTER TABLE workflow_recipes_new RENAME TO workflow_recipes")
                 .execute(&self.pool)
                 .await?;
         }
@@ -648,6 +784,268 @@ impl Database {
         .fetch_all(&self.pool)
         .await?;
 
+        Ok(rows)
+    }
+
+    // ── Workflow Group CRUD ──
+
+    pub async fn create_workflow_group(&self, name: &str) -> anyhow::Result<String> {
+        let id = Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query(
+            "INSERT INTO workflow_groups (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)",
+        )
+        .bind(&id)
+        .bind(name)
+        .bind(&now)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(id)
+    }
+
+    pub async fn update_workflow_group(&self, id: &str, name: &str) -> anyhow::Result<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query("UPDATE workflow_groups SET name=?, updated_at=? WHERE id=?")
+            .bind(name)
+            .bind(&now)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_workflow_group(&self, id: &str) -> anyhow::Result<()> {
+        sqlx::query("DELETE FROM workflow_recipes WHERE group_id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        sqlx::query("DELETE FROM workflow_groups WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn list_workflow_groups(&self) -> anyhow::Result<Vec<WorkflowGroup>> {
+        let rows: Vec<WorkflowGroup> = sqlx::query_as(
+            "SELECT id, name, sort_order, created_at, updated_at FROM workflow_groups ORDER BY sort_order, name",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    // ── Workflow Recipe CRUD ──
+
+    pub async fn create_workflow_recipe(
+        &self,
+        title: &str,
+        description: Option<&str>,
+        params_json: &str,
+        steps_json: &str,
+        group_id: Option<&str>,
+    ) -> anyhow::Result<String> {
+        let id = Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+
+        sqlx::query(
+            "INSERT INTO workflow_recipes (id, title, description, group_id, params_json, steps_json, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(&id)
+        .bind(title)
+        .bind(description)
+        .bind(group_id)
+        .bind(params_json)
+        .bind(steps_json)
+        .bind(&now)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(id)
+    }
+
+    pub async fn get_workflow_recipe(&self, id: &str) -> anyhow::Result<Option<WorkflowRecipe>> {
+        let row: Option<WorkflowRecipe> = sqlx::query_as(
+            "SELECT id, title, description, group_id, params_json, steps_json, created_at, updated_at
+             FROM workflow_recipes WHERE id = ?",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row)
+    }
+
+    pub async fn list_workflow_recipes(&self) -> anyhow::Result<Vec<WorkflowRecipe>> {
+        let rows: Vec<WorkflowRecipe> = sqlx::query_as(
+            "SELECT id, title, description, group_id, params_json, steps_json, created_at, updated_at
+             FROM workflow_recipes ORDER BY updated_at DESC, title",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    pub async fn update_workflow_recipe(
+        &self,
+        id: &str,
+        title: Option<&str>,
+        description: Option<Option<&str>>,
+        group_id: Option<Option<&str>>,
+        params_json: Option<&str>,
+        steps_json: Option<&str>,
+    ) -> anyhow::Result<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        let current = self
+            .get_workflow_recipe(id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Workflow recipe not found"))?;
+
+        let title = title.map(|s| s.to_string()).unwrap_or(current.title);
+        let description = description
+            .map(|value| value.map(|s| s.to_string()))
+            .unwrap_or(current.description);
+        let group_id = group_id
+            .map(|g| g.map(|s| s.to_string()))
+            .unwrap_or(current.group_id);
+        let params_json = params_json
+            .map(|s| s.to_string())
+            .unwrap_or(current.params_json);
+        let steps_json = steps_json
+            .map(|s| s.to_string())
+            .unwrap_or(current.steps_json);
+
+        sqlx::query(
+            "UPDATE workflow_recipes
+             SET title = ?, description = ?, group_id = ?, params_json = ?, steps_json = ?, updated_at = ?
+             WHERE id = ?",
+        )
+        .bind(&title)
+        .bind(&description)
+        .bind(&group_id)
+        .bind(&params_json)
+        .bind(&steps_json)
+        .bind(&now)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_workflow_recipe(&self, id: &str) -> anyhow::Result<()> {
+        sqlx::query("DELETE FROM workflow_recipes WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn insert_workflow_run(
+        &self,
+        id: &str,
+        recipe_id: &str,
+        recipe_title: &str,
+        host_id: &str,
+        state: &str,
+        started_at: &str,
+        finished_at: Option<&str>,
+        params_json: &str,
+        steps_json: &str,
+        error: Option<&str>,
+    ) -> anyhow::Result<()> {
+        sqlx::query(
+            "INSERT INTO workflow_runs (id, recipe_id, recipe_title, host_id, state, started_at, finished_at, params_json, steps_json, error)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(id)
+        .bind(recipe_id)
+        .bind(recipe_title)
+        .bind(host_id)
+        .bind(state)
+        .bind(started_at)
+        .bind(finished_at)
+        .bind(params_json)
+        .bind(steps_json)
+        .bind(error)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn update_workflow_run(
+        &self,
+        id: &str,
+        state: &str,
+        finished_at: Option<&str>,
+        params_json: &str,
+        steps_json: &str,
+        error: Option<&str>,
+    ) -> anyhow::Result<()> {
+        sqlx::query(
+            "UPDATE workflow_runs
+             SET state = ?, finished_at = ?, params_json = ?, steps_json = ?, error = ?
+             WHERE id = ?",
+        )
+        .bind(state)
+        .bind(finished_at)
+        .bind(params_json)
+        .bind(steps_json)
+        .bind(error)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn get_workflow_run(&self, id: &str) -> anyhow::Result<Option<WorkflowRunRecord>> {
+        let row: Option<WorkflowRunRecord> = sqlx::query_as(
+            "SELECT id, recipe_id, recipe_title, host_id, state, started_at, finished_at, params_json, steps_json, error
+             FROM workflow_runs WHERE id = ?",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    pub async fn list_workflow_runs(
+        &self,
+        recipe_id: Option<&str>,
+        limit: i64,
+    ) -> anyhow::Result<Vec<WorkflowRunRecord>> {
+        let rows: Vec<WorkflowRunRecord> = match recipe_id {
+            Some(recipe_id) => {
+                sqlx::query_as(
+                    "SELECT id, recipe_id, recipe_title, host_id, state, started_at, finished_at, params_json, steps_json, error
+                     FROM workflow_runs WHERE recipe_id = ? ORDER BY started_at DESC LIMIT ?",
+                )
+                .bind(recipe_id)
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await?
+            }
+            None => {
+                sqlx::query_as(
+                    "SELECT id, recipe_id, recipe_title, host_id, state, started_at, finished_at, params_json, steps_json, error
+                     FROM workflow_runs ORDER BY started_at DESC LIMIT ?",
+                )
+                .bind(limit)
+                .fetch_all(&self.pool)
+                .await?
+            }
+        };
         Ok(rows)
     }
 

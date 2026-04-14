@@ -105,7 +105,7 @@
   - raw metrics and percentile (P50/P95)
   - regression comparison against previous baseline
 
-## 7. FR-38~FR-43 Dedicated Test Scope
+## 7. FR-38~FR-44 Dedicated Test Scope
 - FR-38 Recording Search/Export:
   - keyword/time-range query accuracy
   - clip export integrity and masking correctness
@@ -124,3 +124,11 @@
 - FR-43 Unified Task Center:
   - lifecycle consistency across transfer/update/retry/reconnect
   - pause/retry/cancel/history persistence and traceability
+- FR-44 Command Macros (Workflow Recipe):
+  - recipe CRUD and validation correctness
+  - parameter rendering with required/default/missing branches and frontend required-field validation
+  - single-host sequential execution with per-step status, exit code, stdout/stderr capture, and fail-fast behavior
+  - workflow run persistence, history list loading, and persisted run detail reload after restart
+  - runtime param values persisted with run record and displayed in history/detail UI
+  - cancel/retry remains future scope; current test scope should not assert these behaviors as shipped
+  - run history remains local-only and excluded from sync scope

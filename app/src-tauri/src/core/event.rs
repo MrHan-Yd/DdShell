@@ -8,6 +8,7 @@ pub const TRANSFER_PROGRESS: &str = "transfer:progress";
 pub const TRANSFER_COMPLETED: &str = "transfer:completed";
 pub const TRANSFER_FAILED: &str = "transfer:failed";
 pub const COMMAND_HISTORY_UPDATED: &str = "command-history-updated";
+pub const WORKFLOW_RUN_UPDATED: &str = "workflow:run_updated";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -43,6 +44,12 @@ pub struct TransferCompletedEvent {
 pub struct TransferFailedEvent {
     pub task_id: String,
     pub error: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunUpdatedEvent {
+    pub run: crate::core::workflow::WorkflowRun,
 }
 
 pub fn emit_session_state(app: &AppHandle, session_id: &str, state: &str) {
@@ -106,7 +113,14 @@ pub fn emit_transfer_failed(app: &AppHandle, task_id: &str, error: &str) {
 }
 
 pub fn emit_command_history_updated(app: &AppHandle, host_id: &str) {
-    let _ = app.emit(COMMAND_HISTORY_UPDATED, serde_json::json!({ "host_id": host_id }));
+    let _ = app.emit(
+        COMMAND_HISTORY_UPDATED,
+        serde_json::json!({ "host_id": host_id }),
+    );
+}
+
+pub fn emit_workflow_run_updated(app: &AppHandle, run: crate::core::workflow::WorkflowRun) {
+    let _ = app.emit(WORKFLOW_RUN_UPDATED, WorkflowRunUpdatedEvent { run });
 }
 
 // ── Metrics events ──
@@ -177,11 +191,7 @@ pub struct UpdateDownloadFailedEvent {
     pub error: String,
 }
 
-pub fn emit_update_download_progress(
-    app: &AppHandle,
-    downloaded_bytes: u64,
-    total_bytes: u64,
-) {
+pub fn emit_update_download_progress(app: &AppHandle, downloaded_bytes: u64, total_bytes: u64) {
     let _ = app.emit(
         UPDATE_DOWNLOAD_PROGRESS,
         UpdateDownloadProgressEvent {

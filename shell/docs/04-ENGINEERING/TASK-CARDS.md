@@ -240,3 +240,31 @@
 - All supported task types use one consistent lifecycle.
 - Cross-task operations behave consistently.
 - History survives restart and supports tracing.
+
+---
+
+## CARD-13 Command Macros (Workflow Recipe) (FR-44, P1)
+### Goal
+- Add reusable command macros with params, ordered command steps, run history, and a minimal executable sequential engine.
+### Inputs
+- `docs/01-PRODUCT/PRD.md`
+- `docs/02-ARCH/TECH-SPEC.md`
+- `docs/02-ARCH/API-CONTRACTS.md`
+- `docs/02-ARCH/ERROR-CATALOG.md`
+- `docs/04-ENGINEERING/TEST-PLAN.md`
+### Steps
+1. Define recipe/run data models and persistence.
+2. Define parameter rendering and run snapshot rules.
+3. Implement sequential exec engine with fail-fast behavior on first non-zero exit code.
+4. Implement workflow command/event contracts and persisted run reload.
+5. Implement recipe editor, runtime parameter form, run history, and step log UI.
+6. Add tests for happy path, missing params, failure path, history persistence, and local-only run records.
+### Definition of Done
+- User can create a command macro with params and ordered command steps.
+- User can run a command macro against a selected host and inspect per-step status and logs.
+- User can review persisted run history and inspect a prior run after reload.
+- Recipe sync scope and run non-sync scope are documented and respected.
+### Evidence
+- updated docs references
+- test cases and results
+- acceptance report

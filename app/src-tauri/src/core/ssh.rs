@@ -80,6 +80,14 @@ pub struct SshSession {
     pty_cmd_tx: Option<tokio::sync::mpsc::UnboundedSender<PtyCommand>>,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecCommandResult {
+    pub stdout: String,
+    pub stderr: String,
+    pub exit_code: Option<i32>,
+}
+
 impl SshSession {
     /// Establish SSH connection and authenticate
     pub async fn connect(
@@ -276,16 +284,31 @@ impl SshSession {
 
     /// Execute a command and return its stdout output (uses a new exec channel)
     pub async fn exec_command(&self, command: &str) -> anyhow::Result<String> {
+        Ok(self.exec_command_detailed(command).await?.stdout)
+    }
+
+    /// Execute a command and collect stdout/stderr/exit code.
+    pub async fn exec_command_detailed(&self, command: &str) -> anyhow::Result<ExecCommandResult> {
         let channel = self.handle.channel_open_session().await?;
         channel.exec(true, command).await?;
 
-        let mut output = Vec::new();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let mut exit_code = None;
         let mut channel = channel;
 
         loop {
             match channel.wait().await {
                 Some(ChannelMsg::Data { data }) => {
-                    output.extend_from_slice(&data);
+                    stdout.extend_from_slice(&data);
+                }
+                Some(ChannelMsg::ExtendedData { data, ext }) => {
+                    if ext == 1 {
+                        stderr.extend_from_slice(&data);
+                    }
+                }
+                Some(ChannelMsg::ExitStatus { exit_status }) => {
+                    exit_code = Some(exit_status as i32);
                 }
                 Some(ChannelMsg::Eof) | None => {
                     break;
@@ -294,7 +317,11 @@ impl SshSession {
             }
         }
 
-        Ok(String::from_utf8_lossy(&output).to_string())
+        Ok(ExecCommandResult {
+            stdout: String::from_utf8_lossy(&stdout).to_string(),
+            stderr: String::from_utf8_lossy(&stderr).to_string(),
+            exit_code,
+        })
     }
 
     /// Ping the session by running a no-op command and measuring RTT

@@ -15,6 +15,7 @@ use crate::core::metrics::MetricsManager;
 use crate::core::sftp::SftpManager;
 use crate::core::ssh::SessionManager;
 use crate::core::store::Database;
+use crate::core::workflow::WorkflowRunManager;
 
 // ── Request / Response types ──///
 
@@ -57,6 +58,37 @@ struct UpdateHostReq {
     #[serde(default, deserialize_with = "deserialize_optional_field")]
     secret_ref: Option<Option<String>>,
     password: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateWorkflowRecipeReq {
+    title: String,
+    description: Option<String>,
+    group_id: Option<String>,
+    params_json: String,
+    steps_json: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateWorkflowRecipeReq {
+    id: String,
+    title: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_field")]
+    description: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_optional_field")]
+    group_id: Option<Option<String>>,
+    params_json: Option<String>,
+    steps_json: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WorkflowRunStartReq {
+    recipe_id: String,
+    host_id: String,
+    params: Option<std::collections::HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -332,6 +364,334 @@ async fn snippet_list(
     db: tauri::State<'_, Database>,
 ) -> Result<Vec<core::store::Snippet>, String> {
     db.list_snippets().await.map_err(|e| e.to_string())
+}
+
+// ── Commands: Workflow Groups ──
+
+#[tauri::command]
+async fn workflow_group_create(
+    db: tauri::State<'_, Database>,
+    name: String,
+) -> Result<IdResponse, String> {
+    let id = db
+        .create_workflow_group(&name)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(IdResponse { id })
+}
+
+#[tauri::command]
+async fn workflow_group_update(
+    db: tauri::State<'_, Database>,
+    id: String,
+    name: String,
+) -> Result<SuccessResponse, String> {
+    db.update_workflow_group(&id, &name)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn workflow_group_delete(
+    db: tauri::State<'_, Database>,
+    id: String,
+) -> Result<SuccessResponse, String> {
+    db.delete_workflow_group(&id)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn workflow_group_list(
+    db: tauri::State<'_, Database>,
+) -> Result<Vec<core::store::WorkflowGroup>, String> {
+    db.list_workflow_groups().await.map_err(|e| e.to_string())
+}
+
+// ── Commands: Workflow Recipes ──
+
+#[tauri::command]
+async fn workflow_recipe_create(
+    db: tauri::State<'_, Database>,
+    req: CreateWorkflowRecipeReq,
+) -> Result<IdResponse, String> {
+let id = db
+        .create_workflow_recipe(
+            &req.title,
+            req.description.as_deref(),
+            &req.params_json,
+            &req.steps_json,
+            req.group_id.as_deref(),
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(IdResponse { id })
+}
+
+#[tauri::command]
+async fn workflow_recipe_update(
+    db: tauri::State<'_, Database>,
+    req: UpdateWorkflowRecipeReq,
+) -> Result<SuccessResponse, String> {
+    db.update_workflow_recipe(
+        &req.id,
+        req.title.as_deref(),
+        req.description.as_ref().map(|value| value.as_deref()),
+        req.group_id.as_ref().map(|value| value.as_deref()),
+        req.params_json.as_deref(),
+        req.steps_json.as_deref(),
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn workflow_recipe_delete(
+    db: tauri::State<'_, Database>,
+    id: String,
+) -> Result<SuccessResponse, String> {
+    db.delete_workflow_recipe(&id)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn workflow_recipe_get(
+    db: tauri::State<'_, Database>,
+    id: String,
+) -> Result<core::store::WorkflowRecipe, String> {
+    db.get_workflow_recipe(&id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "Workflow recipe not found".to_string())
+}
+
+#[tauri::command]
+async fn workflow_recipe_list(
+    db: tauri::State<'_, Database>,
+) -> Result<Vec<core::store::WorkflowRecipe>, String> {
+    db.list_workflow_recipes().await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn workflow_run_start(
+    app: tauri::AppHandle,
+    db: tauri::State<'_, Database>,
+    run_mgr: tauri::State<'_, WorkflowRunManager>,
+    req: WorkflowRunStartReq,
+) -> Result<IdResponse, String> {
+    let recipe = db
+        .get_workflow_recipe(&req.recipe_id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "Workflow recipe not found".to_string())?;
+    let params = core::workflow::parse_recipe_params(&recipe).map_err(|e| e.to_string())?;
+    let steps = core::workflow::parse_recipe_steps(&recipe).map_err(|e| e.to_string())?;
+    if steps.is_empty() {
+        return Err("Workflow recipe has no steps".to_string());
+    }
+
+    let (host_id, host_addr, username, port, password) = core::workflow::resolve_host_and_password(&db, &req.host_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    let timeout_secs = db
+        .get_setting("session.keepAlive")
+        .await
+        .unwrap_or(None)
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(30);
+
+    let resolved_param_values = core::workflow::resolve_param_values(
+        &params,
+        &req.params.unwrap_or_default(),
+    )
+    .map_err(|e| e.to_string())?;
+
+    let mut run = core::workflow::create_run(&recipe, &host_id, &steps, resolved_param_values.clone());
+    run_mgr.insert(run.clone());
+    let run_record = core::workflow::run_to_record(&run).map_err(|e| e.to_string())?;
+    db.insert_workflow_run(
+        &run_record.id,
+        &run_record.recipe_id,
+        &run_record.recipe_title,
+        &run_record.host_id,
+        &run_record.state,
+        &run_record.started_at,
+        run_record.finished_at.as_deref(),
+        &run_record.params_json,
+        &run_record.steps_json,
+        run_record.error.as_deref(),
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+    event::emit_workflow_run_updated(&app, run.clone());
+
+    let run_id = run.id.clone();
+    let run_id_for_task = run_id.clone();
+    let run_mgr_clone = run_mgr.inner().clone();
+    let app_handle = app.clone();
+    let db_handle = db.inner().clone();
+
+    tokio::spawn(async move {
+        let result: anyhow::Result<()> = async {
+            let mut session = core::ssh::SshSession::connect(
+                &host_addr,
+                port,
+                &username,
+                &password,
+                &host_id,
+                timeout_secs,
+            )
+            .await?;
+
+            let values = resolved_param_values;
+            for (index, step) in steps.iter().enumerate() {
+                run.steps[index].state = "running".to_string();
+                run.steps[index].started_at = Some(chrono::Utc::now().to_rfc3339());
+                run.steps[index].rendered_command = core::workflow::interpolate_command(&step.command, &values);
+                run_mgr_clone.update(run.clone());
+                let run_record = core::workflow::run_to_record(&run)?;
+                db_handle
+                    .update_workflow_run(
+                        &run_record.id,
+                        &run_record.state,
+                        run_record.finished_at.as_deref(),
+                        &run_record.params_json,
+                        &run_record.steps_json,
+                        run_record.error.as_deref(),
+                    )
+                    .await?;
+                event::emit_workflow_run_updated(&app_handle, run.clone());
+
+                let exec = core::workflow::execute_step(&session, &run.steps[index].rendered_command).await?;
+                run.steps[index].stdout = exec.stdout;
+                run.steps[index].stderr = exec.stderr;
+                run.steps[index].exit_code = exec.exit_code;
+                run.steps[index].finished_at = Some(chrono::Utc::now().to_rfc3339());
+
+                if exec.exit_code.unwrap_or(0) == 0 {
+                    run.steps[index].state = "completed".to_string();
+                } else {
+                    run.steps[index].state = "failed".to_string();
+                    run.state = "failed".to_string();
+                    run.error = Some(format!("Step '{}' failed", step.title));
+                    run.finished_at = Some(chrono::Utc::now().to_rfc3339());
+                    run_mgr_clone.update(run.clone());
+                    let run_record = core::workflow::run_to_record(&run)?;
+                    db_handle
+                        .update_workflow_run(
+                            &run_record.id,
+                            &run_record.state,
+                            run_record.finished_at.as_deref(),
+                            &run_record.params_json,
+                            &run_record.steps_json,
+                            run_record.error.as_deref(),
+                        )
+                        .await?;
+                    event::emit_workflow_run_updated(&app_handle, run.clone());
+                    session.disconnect().await;
+                    return Ok(());
+                }
+
+                run_mgr_clone.update(run.clone());
+                let run_record = core::workflow::run_to_record(&run)?;
+                db_handle
+                    .update_workflow_run(
+                        &run_record.id,
+                        &run_record.state,
+                        run_record.finished_at.as_deref(),
+                        &run_record.params_json,
+                        &run_record.steps_json,
+                        run_record.error.as_deref(),
+                    )
+                    .await?;
+                event::emit_workflow_run_updated(&app_handle, run.clone());
+            }
+
+            run.state = "completed".to_string();
+            run.finished_at = Some(chrono::Utc::now().to_rfc3339());
+            run_mgr_clone.update(run.clone());
+            let run_record = core::workflow::run_to_record(&run)?;
+            db_handle
+                .update_workflow_run(
+                    &run_record.id,
+                    &run_record.state,
+                    run_record.finished_at.as_deref(),
+                    &run_record.params_json,
+                    &run_record.steps_json,
+                    run_record.error.as_deref(),
+                )
+                .await?;
+            event::emit_workflow_run_updated(&app_handle, run.clone());
+            session.disconnect().await;
+            Ok(())
+        }
+        .await;
+
+        if let Err(error) = result {
+            if let Some(mut current) = run_mgr_clone.get(&run_id_for_task) {
+                current.state = "failed".to_string();
+                current.error = Some(error.to_string());
+                current.finished_at = Some(chrono::Utc::now().to_rfc3339());
+                run_mgr_clone.update(current.clone());
+                if let Ok(run_record) = core::workflow::run_to_record(&current) {
+                    let _ = db_handle
+                        .update_workflow_run(
+                            &run_record.id,
+                            &run_record.state,
+                            run_record.finished_at.as_deref(),
+                            &run_record.params_json,
+                            &run_record.steps_json,
+                            run_record.error.as_deref(),
+                        )
+                        .await;
+                }
+                event::emit_workflow_run_updated(&app_handle, current);
+            }
+        }
+    });
+
+    Ok(IdResponse { id: run_id })
+}
+
+#[tauri::command]
+async fn workflow_run_get(
+    db: tauri::State<'_, Database>,
+    run_mgr: tauri::State<'_, WorkflowRunManager>,
+    run_id: String,
+) -> Result<core::workflow::WorkflowRun, String> {
+    if let Some(run) = run_mgr.get(&run_id) {
+        return Ok(run);
+    }
+
+    let record = db
+        .get_workflow_run(&run_id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "Workflow run not found".to_string())?;
+
+    core::workflow::record_to_run(record).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn workflow_run_list(
+    db: tauri::State<'_, Database>,
+    recipe_id: Option<String>,
+    limit: Option<i64>,
+) -> Result<Vec<core::workflow::WorkflowRun>, String> {
+    let rows = db
+        .list_workflow_runs(recipe_id.as_deref(), limit.unwrap_or(20))
+        .await
+        .map_err(|e| e.to_string())?;
+
+    rows.into_iter()
+        .map(core::workflow::record_to_run)
+        .collect::<anyhow::Result<Vec<_>>>()
+        .map_err(|e| e.to_string())
 }
 
 // ── Commands: Settings ──
@@ -1740,6 +2100,7 @@ pub fn run() {
             app.manage(SessionManager::new());
             app.manage(SftpManager::new(3));
             app.manage(MetricsManager::new());
+            app.manage(WorkflowRunManager::new());
 
             // On Windows/Linux, hide native decorations so we use custom titlebar.
             // On macOS, keep decorations + overlay titlebar for native traffic lights.
@@ -1810,6 +2171,18 @@ pub fn run() {
             snippet_update,
             snippet_delete,
             snippet_list,
+            workflow_group_create,
+            workflow_group_update,
+            workflow_group_delete,
+            workflow_group_list,
+            workflow_recipe_create,
+            workflow_recipe_update,
+            workflow_recipe_delete,
+            workflow_recipe_get,
+            workflow_recipe_list,
+            workflow_run_start,
+            workflow_run_get,
+            workflow_run_list,
             command_assist_search,
             command_assist_weight_update,
             command_assist_weight_reset,

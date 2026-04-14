@@ -8,7 +8,7 @@
 
 ## 评估口径
 
-- 本文件于 `2026-04-07` 按 `app/` 与 `app/src-tauri/` 静态代码审阅结果更新。
+- 本文件于 `2026-04-11` 按 `app/` 与 `app/src-tauri/` 静态代码审阅结果更新。
 - 本次更新不等于端到端测试通过；无明确测试记录的能力，统一保持 `IN_PROGRESS`，避免误标为 `DONE`。
 - `FR-INDEX.md` 与本文件状态应保持一致。
 
@@ -18,6 +18,7 @@
 - SFTP 双栏：IN_PROGRESS
 - 系统监控：IN_PROGRESS
 - 命令中心：IN_PROGRESS
+- 命令宏（FR-44 / Workflow Recipe）：IN_PROGRESS
 - 自部署同步：TODO
 
 ## 对标补漏能力（FR-20~FR-30）
@@ -41,6 +42,7 @@
 - SFTP：双栏浏览、上传下载、删除、重命名、新建目录、拖拽上传、传输队列、路径收藏/最近路径
 - 监控：CPU / 内存 / 网络图、进程表、磁盘表、命令模板、会话健康分
 - 数据持久化：主机、分组、片段、设置、命令历史、known_hosts、收藏路径、最近路径
+- 命令宏：Recipe CRUD、参数定义、顺序步骤执行、运行时参数输入校验、最近运行历史持久化与查看
 - 更新能力：后端已存在检查更新与下载接口，前端更新中心入口未确认
 
 ## 维护规则
@@ -49,7 +51,7 @@
 - `DONE` 状态必须附测试记录链接或测试任务编号。
 - 如果只有代码原型、尚未完成验收，保持 `IN_PROGRESS`。
 
-## Full FR Status (FR-01~FR-43)
+## Full FR Status (FR-01~FR-44)
 
 - FR-01: IN_PROGRESS
 - FR-02: IN_PROGRESS
@@ -94,3 +96,4 @@
 - FR-41: TODO
 - FR-42: TODO
 - FR-43: TODO
+- FR-44: IN_PROGRESS

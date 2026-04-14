@@ -8,9 +8,9 @@
 - 禁止复用已存在编号，禁止在其他文档定义“平行编号体系”。
 - 本文件只维护一份总表；禁止追加重复的子清单。
 - 状态值仅允许：`TODO`、`IN_PROGRESS`、`DONE`、`BLOCKED`。
-- 本文件当前状态已于 `2026-04-07` 按代码静态审阅结果同步更新；无明确测试记录的实现默认保持 `IN_PROGRESS`。
+- 本文件当前状态已于 `2026-04-11` 按代码静态审阅结果同步更新；无明确测试记录的实现默认保持 `IN_PROGRESS`。
 
-## Canonical FR Registry (FR-01~FR-43)
+## Canonical FR Registry (FR-01~FR-44)
 
 Format: `FR-ID | Name | Priority | Status | Owner`
 
@@ -57,3 +57,4 @@ FR-40 | Folder Sync Mode | P1 | TODO | TBD
 FR-41 | Structured Output Extraction | P1 | TODO | TBD
 FR-42 | Monitoring Alerts | P1 | TODO | TBD
 FR-43 | Unified Task Center | P1 | TODO | TBD
+FR-44 | Command Macros (Workflow Recipe) | P1 | IN_PROGRESS | TBD

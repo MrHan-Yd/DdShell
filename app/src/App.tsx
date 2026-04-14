@@ -10,6 +10,7 @@ import { ConnectionsPage } from "@/features/connections/ConnectionsPage";
 import { TerminalPage } from "@/features/terminal/TerminalPage";
 import { SftpPage } from "@/features/sftp/SftpPage";
 import { SnippetsPage } from "@/features/snippets/SnippetsPage";
+import { WorkflowsPage } from "@/features/workflows/WorkflowsPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { MonitorPage } from "@/features/monitor/MonitorPage";
 import { useCommandAssistStore } from "@/stores/commandAssist";
@@ -17,7 +18,7 @@ import * as api from "@/lib/tauri";
 import type { Locale } from "@/lib/i18n";
 import type { Page } from "@/types";
 
-const PAGE_ORDER: Page[] = ["connections", "terminal", "sftp", "monitor", "snippets", "settings"];
+const PAGE_ORDER: Page[] = ["connections", "terminal", "sftp", "monitor", "snippets", "macros", "settings"];
 
 function PageRenderer() {
   const currentPage = useAppStore((s) => s.currentPage);
@@ -42,6 +43,7 @@ function PageRenderer() {
           {currentPage === "sftp" && <SftpPage />}
           {currentPage === "monitor" && <MonitorPage />}
           {currentPage === "snippets" && <SnippetsPage />}
+          {currentPage === "macros" && <WorkflowsPage />}
           {currentPage === "settings" && <SettingsPage />}
         </div>
       )}

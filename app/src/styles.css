@@ -811,3 +811,291 @@ input[type="number"] {
   transition: background-color 80ms var(--ease-smooth);
 }
 
+/* ══════════════════════════════════════════════════════
+   Workflow Pipeline Step Connector
+   ══════════════════════════════════════════════════════ */
+.wf-pipeline {
+  position: relative;
+}
+.wf-pipeline-step {
+  position: relative;
+  padding-left: 32px;
+  padding-bottom: 20px;
+}
+.wf-pipeline-step:last-child {
+  padding-bottom: 0;
+}
+.wf-pipeline-step::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 24px;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-border);
+}
+.wf-pipeline-step:last-child::before {
+  display: none;
+}
+.wf-pipeline-dot {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-surface);
+  transition: all var(--duration-base) var(--ease-smooth);
+  z-index: 1;
+}
+.wf-pipeline-dot--completed {
+  border-color: var(--color-success);
+  background: var(--color-success);
+}
+.wf-pipeline-dot--running {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  animation: wf-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6);
+}
+
+@keyframes wf-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+.wf-step-card--running {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+  position: relative;
+}
+
+.wf-step-card--running::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  border-radius: inherit;
+  border: 1px solid var(--color-accent);
+  opacity: 0.5;
+  animation: wf-running-border 2s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes wf-running-border {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.6; }
+}
+
+.wf-pipeline-step--active::after {
+  background: linear-gradient(to bottom, var(--color-accent), var(--color-border));
+}
+.wf-pipeline-dot--failed {
+  border-color: var(--color-error);
+  background: var(--color-error);
+}
+.wf-pipeline-dot--completed::after,
+.wf-pipeline-dot--failed::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: white;
+}
+.wf-pipeline-dot--failed::after {
+  background: white;
+  width: 6px;
+  height: 6px;
+}
+.wf-pipeline-step::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 24px;
+  bottom: 0;
+  width: 2px;
+  transition: background var(--duration-base) var(--ease-smooth);
+}
+
+@keyframes wf-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+}
+
+/* ══════════════════════════════════════════════════════
+   Workflow Status Badge
+   ══════════════════════════════════════════════════════ */
+.wf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.wf-badge--completed {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22C55E;
+}
+.wf-badge--running {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3B82F6;
+}
+.wf-badge--failed {
+  background: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
+}
+.wf-badge--pending {
+  background: var(--color-bg-hover);
+  color: var(--color-text-muted);
+}
+
+[data-theme="light"] .wf-badge--completed {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16A34A;
+}
+[data-theme="light"] .wf-badge--running {
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563EB;
+}
+[data-theme="light"] .wf-badge--failed {
+  background: rgba(239, 68, 68, 0.08);
+  color: #DC2626;
+}
+
+/* ══════════════════════════════════════════════════════
+   Workflow Card hover lift effect
+   ══════════════════════════════════════════════════════ */
+.wf-card {
+  transition: transform var(--duration-fast) var(--ease-smooth),
+              box-shadow var(--duration-fast) var(--ease-smooth),
+              border-color var(--duration-fast) var(--ease-smooth);
+}
+.wf-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-floating);
+}
+
+/* ══════════════════════════════════════════════════════
+   Workflow Recipe Item in sidebar
+   ══════════════════════════════════════════════════════ */
+.wf-recipe-item {
+  position: relative;
+  transition: all var(--duration-fast) var(--ease-smooth);
+}
+.wf-recipe-item::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-accent);
+  opacity: 0;
+  transform: scaleY(0);
+  transition: opacity var(--duration-base) var(--ease-smooth),
+              transform var(--duration-toggle) var(--ease-spring);
+}
+.wf-recipe-item[data-active="true"]::after {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+/* ══════════════════════════════════════════════════════
+   Workflow step card with left border accent
+   ══════════════════════════════════════════════════════ */
+.wf-step-card {
+  position: relative;
+  overflow: hidden;
+}
+.wf-step-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-border);
+  border-radius: 0 2px 2px 0;
+  transition: background var(--duration-base) var(--ease-smooth);
+}
+.wf-step-card--completed::before { background: var(--color-success); }
+.wf-step-card--running::before { background: var(--color-accent); }
+.wf-step-card--failed::before { background: var(--color-error); }
+
+/* ══════════════════════════════════════════════════════
+   Workflow step drag handle
+   ══════════════════════════════════════════════════════ */
+.wf-step-drag-handle {
+  cursor: grab;
+  opacity: 0.35;
+  transition: opacity var(--duration-fast) var(--ease-smooth);
+}
+.wf-step-drag-handle:hover {
+  opacity: 0.7;
+}
+.wf-step-drag-handle:active {
+  cursor: grabbing;
+  opacity: 1;
+}
+
+.wf-step-card--dragging {
+  opacity: 0.4;
+  transform: scale(0.98);
+  transition: opacity var(--duration-fast), transform var(--duration-fast);
+}
+
+.wf-step-drop-indicator {
+  position: relative;
+  height: 3px;
+  margin: -1.5px 0;
+  border-radius: 2px;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+  transition: opacity var(--duration-fast) var(--ease-smooth);
+}
+
+@keyframes wf-ghost-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.wf-step-ghost {
+  animation: wf-ghost-in 150ms var(--ease-smooth) both;
+}
+
+/* ══════════════════════════════════════════════════════
+   Workflow terminal output styling
+   ══════════════════════════════════════════════════════ */
+.wf-output-block {
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  font-family: "SF Mono", "Fira Code", "JetBrains Mono", Menlo, monospace;
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  padding: 10px 14px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.wf-output-block--stdout {
+  color: var(--color-text-secondary);
+}
+.wf-output-block--stderr {
+  color: var(--color-error);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
