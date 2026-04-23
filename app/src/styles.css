@@ -806,6 +806,52 @@ input[type="number"] {
   transform: translateY(0);
 }
 
+/* Workflow left step drawer (desktop) */
+.step-drawer-shell {
+  width: 0;
+  overflow: hidden;
+  will-change: width;
+  transition: width 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.step-drawer-shell[data-state="open"] {
+  width: 312px;
+}
+
+.step-drawer-panel {
+  width: 312px;
+  opacity: 0;
+  transition: opacity 120ms ease-in 160ms;
+}
+
+.step-drawer-shell[data-state="open"] .step-drawer-panel {
+  opacity: 1;
+  transition: opacity 160ms ease-out 0ms;
+}
+
+/* Workflow right param drawer (desktop) */
+.param-drawer-shell {
+  width: 0;
+  overflow: hidden;
+  will-change: width;
+  transition: width 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.param-drawer-shell[data-state="open"] {
+  width: 390px;
+}
+
+.param-drawer-panel {
+  width: 390px;
+  opacity: 0;
+  transition: opacity 120ms ease-in 160ms;
+}
+
+.param-drawer-shell[data-state="open"] .param-drawer-panel {
+  opacity: 1;
+  transition: opacity 160ms ease-out 0ms;
+}
+
 /* Context menu smooth hover transition */
 .context-menu-item {
   transition: background-color 80ms var(--ease-smooth);
@@ -1099,3 +1145,68 @@ input[type="number"] {
   border-color: rgba(239, 68, 68, 0.2);
 }
 
+/* Step add animation */
+@keyframes wf-step-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.wf-step-entering {
+  animation: wf-step-enter 280ms var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+
+/* Step remove animation */
+@keyframes wf-step-remove {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+    max-height: 200px;
+  }
+  60% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-20px);
+    max-height: 0;
+    padding: 0;
+    margin: 0;
+  }
+}
+
+.wf-step-removing {
+  animation: wf-step-remove 300ms var(--ease-smooth, ease) forwards;
+  overflow: hidden;
+}
+
+/* Command editor terminal style */
+.wf-command-editor {
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-border-subtle, var(--color-border));
+  border-radius: var(--radius-control);
+  font-family: "SF Mono", "Fira Code", "JetBrains Mono", Menlo, monospace;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  padding: 12px 16px;
+  resize: none;
+  transition: border-color var(--duration-base, 150ms) ease,
+              box-shadow var(--duration-base, 150ms) ease;
+}
+
+.wf-command-editor::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.wf-command-editor:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1),
+              inset 0 0 0 1px var(--color-accent);
+}

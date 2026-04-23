@@ -3,6 +3,7 @@ import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, 
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { DEFAULT_DANGEROUS_COMMANDS } from "@/lib/constants";
 import { Select } from "@/components/ui/Select";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useAppStore } from "@/stores/app";
@@ -54,21 +55,6 @@ const COLOR_THEMES: { id: string; label: string; colors: Record<string, string> 
 ];
 
 const DEFAULT_ANSI = COLOR_THEMES[0].colors;
-
-const DEFAULT_DANGEROUS_COMMANDS = [
-  "rm -rf /",
-  "rm -rf /*",
-  "mkfs",
-  "dd if=",
-  ":(){ :|:& };:",
-  "shutdown",
-  "poweroff",
-  "reboot",
-  "init 0",
-  "init 6",
-  "drop database",
-  "truncate table",
-];
 
 const DEFAULT_TERMINAL: TerminalSettings = {
   fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace",
@@ -663,29 +649,9 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex-1 overflow-x-hidden overflow-y-scroll">
-      <div className="mx-auto max-w-2xl space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-[var(--font-size-xl)] font-medium">{t("settings.title")}</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={handleReset}>
-              {resetStatus
-                ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
-                : <span key="icon" className="icon-spin"><RotateCcw size={14} /></span>}
-              {resetStatus ? t("settings.resetDone") : t("settings.reset")}
-            </Button>
-            <Button onClick={handleSave}>
-              {saveStatus === "saved"
-                ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
-                : <Save size={14} />}
-              {saveStatus === "saved"
-                ? t("settings.saved")
-                : saveStatus === "error"
-                  ? t("settings.saveFailed")
-                  : t("settings.save")}
-            </Button>
-          </div>
-        </div>
+    <div className="relative flex-1 overflow-x-hidden overflow-y-scroll">
+      <div className="mx-auto max-w-2xl space-y-6 p-6 pb-20">
+        <h1 className="text-[var(--font-size-xl)] font-medium">{t("settings.title")}</h1>
 
         <SegmentedControl
           value={activeTab}
@@ -1499,6 +1465,27 @@ export function SettingsPage() {
         </Section>
         </>)}
         </div>
+      </div>
+
+      <div className="absolute bottom-2 right-2 z-10 flex items-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-4 py-2 shadow-[var(--shadow-floating)]">
+        <Button variant="ghost" onClick={handleReset}>
+          {resetStatus
+            ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
+            : <span key="icon" className="icon-spin"><RotateCcw size={14} /></span>}
+          {resetStatus ? t("settings.resetDone") : t("settings.reset")}
+        </Button>
+        <Button onClick={() => {
+          handleSave();
+        }}>
+          {saveStatus === "saved"
+            ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
+            : <Save size={14} />}
+          {saveStatus === "saved"
+            ? t("settings.saved")
+            : saveStatus === "error"
+              ? t("settings.saveFailed")
+              : t("settings.save")}
+        </Button>
       </div>
     </div>
   );

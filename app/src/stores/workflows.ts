@@ -62,6 +62,41 @@ function safeParseJson<T>(json: string, fallback: T): T {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeWorkflowParam(param: unknown): WorkflowRecipeParam {
+  if (!isRecord(param)) {
+    return { key: "", defaultValue: "" };
+  }
+
+  const defaultValue = typeof param.defaultValue === "string" || param.defaultValue === null
+    ? param.defaultValue
+    : typeof param.default_value === "string" || param.default_value === null
+      ? param.default_value
+      : "";
+
+  return {
+    ...param,
+    key: typeof param.key === "string" ? param.key : "",
+    defaultValue,
+  };
+}
+
+function normalizeWorkflowStep(step: unknown): WorkflowRecipeStep {
+  if (!isRecord(step)) {
+    return { id: crypto.randomUUID(), title: "", command: "" };
+  }
+
+  return {
+    ...step,
+    id: typeof step.id === "string" && step.id.trim().length > 0 ? step.id : crypto.randomUUID(),
+    title: typeof step.title === "string" ? step.title : "",
+    command: typeof step.command === "string" ? step.command : "",
+  };
+}
+
 export function createEmptyWorkflowDraft(): WorkflowRecipeDraft {
   return {
     title: "",
@@ -77,8 +112,8 @@ export function workflowRecipeToDraft(recipe: WorkflowRecipe): WorkflowRecipeDra
     title: recipe.title,
     description: recipe.description ?? "",
     groupId: recipe.groupId ?? null,
-    params: safeParseJson<WorkflowRecipeParam[]>(recipe.paramsJson, []),
-    steps: safeParseJson<WorkflowRecipeStep[]>(recipe.stepsJson, []),
+    params: safeParseJson<unknown[]>(recipe.paramsJson, []).map(normalizeWorkflowParam),
+    steps: safeParseJson<unknown[]>(recipe.stepsJson, []).map(normalizeWorkflowStep),
   };
 }
 
@@ -103,6 +138,12 @@ export function draftToUpdateRecipeRequest(id: string, draft: WorkflowRecipeDraf
   };
 }
 
+export function isDraftDirty(draft: WorkflowRecipeDraft, original: WorkflowRecipe | null): boolean {
+  if (!original) return draft.title.trim().length > 0 || draft.steps.length > 0;
+  const originalDraft = workflowRecipeToDraft(original);
+  return JSON.stringify(draft) !== JSON.stringify(originalDraft);
+}
+
 export function validateWorkflowDraft(draft: WorkflowRecipeDraft): string | null {
   if (!draft.title.trim()) {
     return "title";
@@ -117,7 +158,7 @@ export function validateWorkflowDraft(draft: WorkflowRecipeDraft): string | null
     return "steps";
   }
 
-  const hasInvalidParam = draft.params.some((param) => !param.key.trim() || !param.label.trim());
+  const hasInvalidParam = draft.params.some((param) => !param.key.trim());
   if (hasInvalidParam) {
     return "params";
   }
@@ -134,7 +175,7 @@ export function validateWorkflowDraftDetailed(
 
   const invalidParam = draft.params.find((param) => {
     const key = param.key.trim();
-    return !key || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) || !param.label.trim();
+    return !key || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key);
   });
   if (invalidParam) {
     return { field: "params", message: "workflows.validationParams" };
@@ -165,7 +206,10 @@ export function buildWorkflowPreviewValues(
   draft: WorkflowRecipeDraft,
 ): Record<string, string> {
   return Object.fromEntries(
-    draft.params.map((param) => [param.key.trim(), (param.defaultValue ?? "").trim()]),
+    draft.params.map((param) => {
+      const normalizedParam = normalizeWorkflowParam(param);
+      return [normalizedParam.key.trim(), (normalizedParam.defaultValue ?? "").trim()];
+    }),
   );
 }
 

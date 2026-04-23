@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";
@@ -8,32 +8,22 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { FitAddon } from "@xterm/addon-fit";
 import { X, Plus, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DEFAULT_DANGEROUS_COMMANDS, isCommandDangerous } from "@/lib/constants";
 import { useTerminalStore } from "@/stores/terminal";
 import { useAppStore } from "@/stores/app";
 import * as api from "@/lib/tauri";
-import type { CommandHistoryItem, TerminalBookmark } from "@/types";
+import type { CommandHistoryItem, TerminalBookmark, WorkflowRecipe } from "@/types";
 import { useT } from "@/lib/i18n";
 import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
 import { CommandAssist } from "./CommandAssist";
 import type { AssistPosition } from "./CommandAssist";
 import { useCommandAssistStore } from "@/stores/commandAssist";
+import { useWorkflowsStore } from "@/stores/workflows";
+import { useMacroRunner } from "./hooks/useMacroRunner";
+import { MacroRunButton } from "./components/MacroRunButton";
+import { MacroQuickPanel } from "./components/MacroQuickPanel";
 import "@xterm/xterm/css/xterm.css";
-
-const DEFAULT_DANGEROUS_COMMANDS = [
-  "rm -rf /",
-  "rm -rf /*",
-  "mkfs",
-  "dd if=",
-  ":(){ :|:& };:",
-  "shutdown",
-  "poweroff",
-  "reboot",
-  "init 0",
-  "init 6",
-  "drop database",
-  "truncate table",
-];
 
 /** Strip ANSI escape sequences and trim whitespace */
 function cleanSelection(text: string): string {
@@ -41,15 +31,65 @@ function cleanSelection(text: string): string {
   return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").trim();
 }
 
+function escapeRegex(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getTrailingPrefixLength(text: string, pattern: string): number {
+  const max = Math.min(text.length, pattern.length - 1);
+  for (let len = max; len > 0; len--) {
+    if (text.endsWith(pattern.slice(0, len))) {
+      return len;
+    }
+  }
+  return 0;
+}
+
+function filterMacroInternalChunk(
+  text: string,
+  macroOutputFilter: { runId: string } | null,
+): { safeText: string; remain: string } {
+  if (!macroOutputFilter) {
+    return {
+      safeText: text.replace(/stty -echo\r?\n?/g, "").replace(/stty echo\r?\n?/g, ""),
+      remain: "",
+    };
+  }
+
+  const tokenPrefix = `__MACRO_EC__:${macroOutputFilter.runId}:`;
+  let sanitized = text
+    .replace(/stty -echo\r?\n?/g, "")
+    .replace(/stty echo\r?\n?/g, "")
+    .replace(new RegExp(`${escapeRegex(tokenPrefix)}[^:\\s\\r\\n]+:\\d+\\r?\\n?`, "g"), "");
+
+  let safeEnd = sanitized.length;
+  const pendingTokenStart = sanitized.lastIndexOf(tokenPrefix);
+  if (pendingTokenStart >= 0) {
+    safeEnd = Math.min(safeEnd, pendingTokenStart);
+  }
+
+  const pendingTokenPrefixLength = getTrailingPrefixLength(sanitized, tokenPrefix);
+  if (pendingTokenPrefixLength > 0) {
+    safeEnd = Math.min(safeEnd, sanitized.length - pendingTokenPrefixLength);
+  }
+
+  return {
+    safeText: sanitized.slice(0, safeEnd),
+    remain: sanitized.slice(safeEnd),
+  };
+}
+
 function TerminalInstance({
   tabId,
   sessionId,
   hostId,
+  macroOutputFilter,
   termSettings,
 }: {
   tabId: string;
   sessionId: string;
   hostId: string;
+  macroOutputFilter?: { runId: string; stepId: string; displayCommand: string } | null;
   termSettings?: {
     fontFamily?: string;
     fontSize?: number;
@@ -83,11 +123,34 @@ function TerminalInstance({
   const [reconnecting, setReconnecting] = useState(false);
   const cmdBufferRef = useRef<string>("");
   const dangerousCmdPendingRef = useRef(false);
+  const sessionOutputDecoderRef = useRef(new TextDecoder());
+  const macroFilterBufferRef = useRef("");
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
+  const macroOutputFilterRef = useRef<{ runId: string; stepId: string; displayCommand: string } | null>(macroOutputFilter ?? null);
+  macroOutputFilterRef.current = macroOutputFilter ?? null;
+  const lastMacroDisplayKeyRef = useRef<string | null>(null);
   const termSettingsRef = useRef(termSettings);
   termSettingsRef.current = termSettings;
   const t = useT();
+
+  useEffect(() => {
+    if (!macroOutputFilter) {
+      macroFilterBufferRef.current = "";
+      lastMacroDisplayKeyRef.current = null;
+      return;
+    }
+
+    const term = termRef.current;
+    if (!term) return;
+
+    const displayKey = `${macroOutputFilter.runId}:${macroOutputFilter.stepId}`;
+    if (lastMacroDisplayKeyRef.current === displayKey) return;
+
+    lastMacroDisplayKeyRef.current = displayKey;
+    const displayText = macroOutputFilter.displayCommand.replace(/\r?\n/g, "\r\n");
+    term.write(`${displayText}\r\n`);
+  }, [macroOutputFilter]);
 
   // ── Command Assist state ──
   const [assistVisible, setAssistVisible] = useState(false);
@@ -447,6 +510,8 @@ function TerminalInstance({
   useEffect(() => {
     const term = termRef.current;
     if (!term) return;
+    sessionOutputDecoderRef.current = new TextDecoder();
+    macroFilterBufferRef.current = "";
 
     // Handle user input -> SSH
     const onData = term.onData((data) => {
@@ -516,10 +581,7 @@ function TerminalInstance({
           ...DEFAULT_DANGEROUS_COMMANDS.filter((c) => !disabled.has(c)),
           ...(ts.customDangerousCommands ?? []),
         ];
-        if (patterns.length) {
-          const cmdLower = pendingCommand.toLowerCase();
-          const matched = patterns.some((p) => cmdLower.includes(p.toLowerCase()));
-          if (matched) {
+        if (patterns.length && isCommandDangerous(pendingCommand, patterns)) {
             dangerousCmdPendingRef.current = true;
             confirm({
               title: t("settings.cmdConfirmTitle"),
@@ -536,8 +598,7 @@ function TerminalInstance({
             });
             return;
           }
-        }
-      }
+       }
 
       const encoder = new TextEncoder();
       const bytes = Array.from(encoder.encode(data));
@@ -574,7 +635,14 @@ function TerminalInstance({
       (event) => {
         if (event.payload.sessionId === sessionId) {
           const bytes = new Uint8Array(event.payload.data);
-          term.write(bytes);
+          const text = sessionOutputDecoderRef.current.decode(bytes, { stream: true });
+          const activeFilter = macroOutputFilterRef.current;
+          const combined = macroFilterBufferRef.current + text;
+          const { safeText, remain } = filterMacroInternalChunk(combined, activeFilter);
+          macroFilterBufferRef.current = remain;
+          if (safeText) {
+            term.write(safeText);
+          }
         }
       },
     );
@@ -1157,8 +1225,11 @@ export function TerminalPage() {
   const splitPane = useTerminalStore((s) => s.splitPane);
   const closeSplit = useTerminalStore((s) => s.closeSplit);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
+  const recipes = useWorkflowsStore((s) => s.recipes);
+  const fetchRecipes = useWorkflowsStore((s) => s.fetchRecipes);
   const [showHistory, setShowHistory] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showMacroPanel, setShowMacroPanel] = useState(false);
   const [splitRatio, setSplitRatio] = useState(0.5);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
@@ -1170,6 +1241,19 @@ export function TerminalPage() {
   const tabRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarkDrawerRef = useRef<HTMLDivElement>(null);
+  const {
+    activeMacroRun,
+    macroOutputFilter,
+    recentMacroIds,
+    lastRunAtMap,
+    hasFailedBadge,
+    progressText,
+    startRun,
+    stopRun,
+    handleSessionOutput,
+    handleSessionStateChanged,
+    clearFailedBadge,
+  } = useMacroRunner();
 
   useEffect(() => {
     if (!showBookmarks) return;
@@ -1188,6 +1272,28 @@ export function TerminalPage() {
       document.removeEventListener("pointerdown", handler);
     };
   }, [showBookmarks]);
+
+  useEffect(() => {
+    fetchRecipes().catch(() => {});
+  }, [fetchRecipes]);
+
+  useEffect(() => {
+    const unlistenOutput = listen<{ sessionId: string; data: number[] }>("session:output", (event) => {
+      void handleSessionOutput(event.payload.sessionId, event.payload.data);
+    });
+
+    const unlistenState = listen<{ sessionId: string; state: "connected" | "disconnected" | "failed" }>(
+      "session:state_changed",
+      (event) => {
+        handleSessionStateChanged(event.payload.sessionId, event.payload.state);
+      },
+    );
+
+    return () => {
+      unlistenOutput.then((fn) => fn());
+      unlistenState.then((fn) => fn());
+    };
+  }, [handleSessionOutput, handleSessionStateChanged]);
 
   // Load terminal settings from backend
   const [termSettings, setTermSettings] = useState<Record<string, any> | undefined>(undefined);
@@ -1302,6 +1408,103 @@ export function TerminalPage() {
     [splitDirection],
   );
 
+  const activeTab = tabs.find((t) => t.id === activeTabId);
+
+  const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
+  const bgOpacity = (termSettings?.bgOpacity ?? 100) / 100;
+  const bgBlur = termSettings?.bgBlur ?? 0;
+  const recentMacros = useMemo(() => {
+    return recentMacroIds
+      .map((id) => recipes.find((recipe) => recipe.id === id) ?? null)
+      .filter((recipe): recipe is WorkflowRecipe => Boolean(recipe));
+  }, [recentMacroIds, recipes]);
+  const macroState = activeMacroRun?.state ?? "idle";
+  const macroRunning = macroState === "running" || macroState === "cancelling";
+  const macroButtonDisabled = !activeTab;
+
+  const handleToggleMacroPanel = useCallback(() => {
+    if (!activeTab) {
+      toast.error(t("macro.noActiveTab"));
+      return;
+    }
+    setShowMacroPanel((prev) => {
+      const next = !prev;
+      if (next) clearFailedBadge();
+      return next;
+    });
+  }, [activeTab, clearFailedBadge, t]);
+
+  const handleRunMacro = useCallback(async (recipeId: string, runtimeParams?: Record<string, string>) => {
+    const recipe = recipes.find((item) => item.id === recipeId);
+    if (!recipe) return;
+
+    if (!activeTab) {
+      toast.error(t("macro.noActiveTab"));
+      return;
+    }
+    if (activeTab.state !== "connected") {
+      toast.error(t("macro.sessionDisconnected"));
+      return;
+    }
+
+    const protectionOn = termSettings?.dangerousCmdProtection !== false;
+    const disabledBuiltin = Array.isArray(termSettings?.disabledBuiltinCmds) ? termSettings?.disabledBuiltinCmds : [];
+    const customDangerous = Array.isArray(termSettings?.customDangerousCommands)
+      ? termSettings?.customDangerousCommands.filter((item): item is string => typeof item === "string")
+      : [];
+    const dangerousList = [...DEFAULT_DANGEROUS_COMMANDS, ...customDangerous].filter(
+      (item) => !disabledBuiltin.includes(item),
+    );
+
+    const errorKey = await startRun({
+      recipe,
+      sessionId: activeTab.sessionId,
+      sessionState: activeTab.state,
+      runtimeParams,
+      confirmDangerousCommands: protectionOn
+        ? async (commands) => {
+          const hasDangerous = commands.some((cmd) => isCommandDangerous(cmd, dangerousList));
+          if (!hasDangerous) return true;
+          return confirm({
+            title: t("macro.dangerTitle"),
+            description: t("macro.dangerDesc"),
+            confirmLabel: t("macro.run"),
+          });
+        }
+        : undefined,
+    });
+
+    if (errorKey) {
+      if (errorKey === "macro.cancelled") {
+        return;
+      }
+      if (errorKey.startsWith("macro.requiredParamMissing:")) {
+        const key = errorKey.split(":")[1] || "";
+        toast.error(t("macro.requiredParamMissing", { key }));
+      } else {
+        const message = errorKey === "macro.runAlreadyRunning"
+          ? t("macro.runAlreadyRunning")
+          : errorKey === "macro.sessionDisconnected"
+            ? t("macro.sessionDisconnected")
+            : errorKey === "macro.noExecutableSteps"
+              ? t("macro.noExecutableSteps")
+              : errorKey === "macro.startFailed"
+                ? t("macro.startFailed")
+                : errorKey;
+        toast.error(message);
+      }
+      return;
+    }
+
+    setShowMacroPanel(false);
+  }, [activeTab, recipes, startRun, t, termSettings]);
+
+  useEffect(() => {
+    if (!activeTab && showMacroPanel) {
+      setShowMacroPanel(false);
+    }
+  }, [activeTab, showMacroPanel]);
+
   if (tabs.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -1323,12 +1526,6 @@ export function TerminalPage() {
       </div>
     );
   }
-
-  const activeTab = tabs.find((t) => t.id === activeTabId);
-
-  const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
-  const bgOpacity = (termSettings?.bgOpacity ?? 100) / 100;
-  const bgBlur = termSettings?.bgBlur ?? 0;
 
   return (
     <div className="flex flex-1 overflow-hidden" style={{ userSelect: "text" }}>
@@ -1544,6 +1741,31 @@ export function TerminalPage() {
 
           <div className="mx-1 h-4 w-px bg-[var(--color-border)]" />
 
+          <div className="relative">
+            <MacroRunButton
+              open={showMacroPanel}
+              state={macroState}
+              progressText={progressText}
+              hasFailedBadge={hasFailedBadge}
+              disabled={macroButtonDisabled}
+              onClick={handleToggleMacroPanel}
+              onStop={() => {
+                void stopRun();
+              }}
+            />
+            <MacroQuickPanel
+              open={showMacroPanel}
+              recipes={recipes}
+              recentRecipes={recentMacros}
+              lastRunAtMap={lastRunAtMap}
+              running={macroRunning}
+              onRun={(recipe, runtimeParams) => {
+                void handleRunMacro(recipe.id, runtimeParams);
+              }}
+              onClose={() => setShowMacroPanel(false)}
+            />
+          </div>
+
           {/* History toggle */}
           <button
             onClick={() => setShowHistory(!showHistory)}
@@ -1604,7 +1826,14 @@ export function TerminalPage() {
                 )}
               >
                 {termSettings && (
-                  <TerminalInstance key={`${tab.id}-${settingsVersion}`} tabId={tab.id} sessionId={tab.sessionId} hostId={tab.hostId} termSettings={termSettings} />
+                  <TerminalInstance
+                    key={`${tab.id}-${settingsVersion}`}
+                    tabId={tab.id}
+                    sessionId={tab.sessionId}
+                    hostId={tab.hostId}
+                    macroOutputFilter={macroOutputFilter?.sessionId === tab.sessionId ? macroOutputFilter : null}
+                    termSettings={termSettings}
+                  />
                 )}
               </div>
             ))}
@@ -1628,6 +1857,7 @@ export function TerminalPage() {
                     tabId={activeTab?.id ?? ""}
                     sessionId={splitSessionId}
                     hostId={activeTab?.hostId ?? ""}
+                    macroOutputFilter={macroOutputFilter?.sessionId === splitSessionId ? macroOutputFilter : null}
                     termSettings={termSettings}
                   />
                 )}

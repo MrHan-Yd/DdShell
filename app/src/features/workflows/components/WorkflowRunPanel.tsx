@@ -92,9 +92,6 @@ export function WorkflowRunPanel({
         <p className="text-[var(--font-size-sm)] font-medium text-[var(--color-text-secondary)]">
           {t("workflows.noRunYet")}
         </p>
-        <p className="mt-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-          {t("workflows.selectToRunDescription")}
-        </p>
       </div>
     );
   }

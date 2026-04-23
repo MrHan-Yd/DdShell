@@ -165,26 +165,17 @@ export function WorkflowDetail({
             {params.map((param) => (
               <div
                 key={param.key}
-                className="flex items-center gap-3 rounded-[var(--radius-control)] bg-[var(--color-bg-base)] px-3 py-2"
-              >
-                <code className="text-[var(--font-size-xs)] font-mono text-[var(--color-accent)]">
-                  {param.key}
-                </code>
-                <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">—</span>
-                <span className="text-[var(--font-size-sm)] text-[var(--color-text-primary)]">
-                  {param.label}
-                </span>
-                {param.defaultValue && (
-                  <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-                    = {param.defaultValue}
-                  </span>
-                )}
-                {param.required && (
-                  <span className="ml-auto rounded-full bg-[var(--color-accent-subtle)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-accent)]">
-                    {t("workflows.required")}
-                  </span>
-                )}
-              </div>
+className="flex items-center gap-3 rounded-[var(--radius-control)] bg-[var(--color-bg-base)] px-3 py-2"
+               >
+                 <code className="text-[var(--font-size-xs)] font-mono text-[var(--color-accent)]">
+                   {`{{${param.key}}}`}
+                 </code>
+                 {param.defaultValue && (
+                   <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                     = {param.defaultValue}
+                   </span>
+                 )}
+               </div>
             ))}
           </div>
         </div>

@@ -511,9 +511,11 @@ async fn workflow_run_start(
     )
     .map_err(|e| e.to_string())?;
 
+    let secret_keys = core::workflow::collect_secret_keys(&params);
+
     let mut run = core::workflow::create_run(&recipe, &host_id, &steps, resolved_param_values.clone());
     run_mgr.insert(run.clone());
-    let run_record = core::workflow::run_to_record(&run).map_err(|e| e.to_string())?;
+    let run_record = core::workflow::run_to_masked_record(&run, &secret_keys).map_err(|e| e.to_string())?;
     db.insert_workflow_run(
         &run_record.id,
         &run_record.recipe_id,
@@ -528,13 +530,15 @@ async fn workflow_run_start(
     )
     .await
     .map_err(|e| e.to_string())?;
-    event::emit_workflow_run_updated(&app, run.clone());
+    let masked_run = core::workflow::mask_run_for_event(&run, &secret_keys);
+    event::emit_workflow_run_updated(&app, masked_run);
 
     let run_id = run.id.clone();
     let run_id_for_task = run_id.clone();
     let run_mgr_clone = run_mgr.inner().clone();
     let app_handle = app.clone();
     let db_handle = db.inner().clone();
+    let secret_keys_clone = secret_keys.clone();
 
     tokio::spawn(async move {
         let result: anyhow::Result<()> = async {
@@ -554,7 +558,7 @@ async fn workflow_run_start(
                 run.steps[index].started_at = Some(chrono::Utc::now().to_rfc3339());
                 run.steps[index].rendered_command = core::workflow::interpolate_command(&step.command, &values);
                 run_mgr_clone.update(run.clone());
-                let run_record = core::workflow::run_to_record(&run)?;
+                let run_record = core::workflow::run_to_masked_record(&run, &secret_keys_clone)?;
                 db_handle
                     .update_workflow_run(
                         &run_record.id,
@@ -565,7 +569,7 @@ async fn workflow_run_start(
                         run_record.error.as_deref(),
                     )
                     .await?;
-                event::emit_workflow_run_updated(&app_handle, run.clone());
+                event::emit_workflow_run_updated(&app_handle, core::workflow::mask_run_for_event(&run, &secret_keys_clone));
 
                 let exec = core::workflow::execute_step(&session, &run.steps[index].rendered_command).await?;
                 run.steps[index].stdout = exec.stdout;
@@ -581,7 +585,7 @@ async fn workflow_run_start(
                     run.error = Some(format!("Step '{}' failed", step.title));
                     run.finished_at = Some(chrono::Utc::now().to_rfc3339());
                     run_mgr_clone.update(run.clone());
-                    let run_record = core::workflow::run_to_record(&run)?;
+                    let run_record = core::workflow::run_to_masked_record(&run, &secret_keys_clone)?;
                     db_handle
                         .update_workflow_run(
                             &run_record.id,
@@ -592,13 +596,13 @@ async fn workflow_run_start(
                             run_record.error.as_deref(),
                         )
                         .await?;
-                    event::emit_workflow_run_updated(&app_handle, run.clone());
+                    event::emit_workflow_run_updated(&app_handle, core::workflow::mask_run_for_event(&run, &secret_keys_clone));
                     session.disconnect().await;
                     return Ok(());
                 }
 
                 run_mgr_clone.update(run.clone());
-                let run_record = core::workflow::run_to_record(&run)?;
+                let run_record = core::workflow::run_to_masked_record(&run, &secret_keys_clone)?;
                 db_handle
                     .update_workflow_run(
                         &run_record.id,
@@ -609,13 +613,13 @@ async fn workflow_run_start(
                         run_record.error.as_deref(),
                     )
                     .await?;
-                event::emit_workflow_run_updated(&app_handle, run.clone());
+                event::emit_workflow_run_updated(&app_handle, core::workflow::mask_run_for_event(&run, &secret_keys_clone));
             }
 
             run.state = "completed".to_string();
             run.finished_at = Some(chrono::Utc::now().to_rfc3339());
             run_mgr_clone.update(run.clone());
-            let run_record = core::workflow::run_to_record(&run)?;
+            let run_record = core::workflow::run_to_masked_record(&run, &secret_keys_clone)?;
             db_handle
                 .update_workflow_run(
                     &run_record.id,
@@ -626,7 +630,7 @@ async fn workflow_run_start(
                     run_record.error.as_deref(),
                 )
                 .await?;
-            event::emit_workflow_run_updated(&app_handle, run.clone());
+            event::emit_workflow_run_updated(&app_handle, core::workflow::mask_run_for_event(&run, &secret_keys_clone));
             session.disconnect().await;
             Ok(())
         }
@@ -638,7 +642,7 @@ async fn workflow_run_start(
                 current.error = Some(error.to_string());
                 current.finished_at = Some(chrono::Utc::now().to_rfc3339());
                 run_mgr_clone.update(current.clone());
-                if let Ok(run_record) = core::workflow::run_to_record(&current) {
+                if let Ok(run_record) = core::workflow::run_to_masked_record(&current, &secret_keys_clone) {
                     let _ = db_handle
                         .update_workflow_run(
                             &run_record.id,
@@ -650,7 +654,7 @@ async fn workflow_run_start(
                         )
                         .await;
                 }
-                event::emit_workflow_run_updated(&app_handle, current);
+                event::emit_workflow_run_updated(&app_handle, core::workflow::mask_run_for_event(&current, &secret_keys_clone));
             }
         }
     });

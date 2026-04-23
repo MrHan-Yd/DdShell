@@ -76,9 +76,9 @@ export interface Snippet {
 
 export interface WorkflowRecipeParam {
   key: string;
-  label: string;
   defaultValue?: string | null;
-  required: boolean;
+  required?: boolean;
+  secret?: boolean;
 }
 
 export interface WorkflowRecipeStep {
