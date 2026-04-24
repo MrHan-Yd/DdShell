@@ -1246,7 +1246,6 @@ export function TerminalPage() {
     macroOutputFilter,
     recentMacroIds,
     lastRunAtMap,
-    hasFailedBadge,
     progressText,
     startRun,
     stopRun,
@@ -1746,7 +1745,6 @@ export function TerminalPage() {
               open={showMacroPanel}
               state={macroState}
               progressText={progressText}
-              hasFailedBadge={hasFailedBadge}
               disabled={macroButtonDisabled}
               onClick={handleToggleMacroPanel}
               onStop={() => {
@@ -1765,6 +1763,8 @@ export function TerminalPage() {
               onClose={() => setShowMacroPanel(false)}
             />
           </div>
+
+          <div className="mx-1 h-4 w-px bg-[var(--color-border)]" />
 
           {/* History toggle */}
           <button

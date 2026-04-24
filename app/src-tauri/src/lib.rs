@@ -14,7 +14,7 @@ use crate::core::event;
 use crate::core::metrics::MetricsManager;
 use crate::core::sftp::SftpManager;
 use crate::core::ssh::SessionManager;
-use crate::core::store::Database;
+use crate::core::store::{Database, SettingWrite};
 use crate::core::workflow::WorkflowRunManager;
 
 // ── Request / Response types ──///
@@ -777,6 +777,17 @@ async fn setting_set(
     value: String,
 ) -> Result<SuccessResponse, String> {
     db.set_setting(&key, &value)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn setting_set_many(
+    db: tauri::State<'_, Database>,
+    entries: Vec<SettingWrite>,
+) -> Result<SuccessResponse, String> {
+    db.set_settings(&entries)
         .await
         .map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
@@ -2194,6 +2205,7 @@ pub fn run() {
             command_assist_get_all,
             setting_get,
             setting_set,
+            setting_set_many,
             session_connect,
             session_disconnect,
             session_write,

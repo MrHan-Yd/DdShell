@@ -72,8 +72,10 @@ export function MacroQuickPanel({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
   const [runtimeValuesByRecipe, setRuntimeValuesByRecipe] = useState<Record<string, Record<string, string>>>({});
+  const [confirmRunId, setConfirmRunId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -103,9 +105,16 @@ export function MacroQuickPanel({
     if (!open) return;
     setSelectedIndex(0);
     setShowAdvancedParams(false);
+    setConfirmRunId(null);
     const timer = setTimeout(() => inputRef.current?.focus(), 0);
     return () => clearTimeout(timer);
   }, [open]);
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedIndex <= Math.max(filtered.length - 1, 0)) return;
@@ -114,6 +123,28 @@ export function MacroQuickPanel({
 
   const handleRun = (recipe: WorkflowRecipe) => {
     onRun(recipe, runtimeValuesByRecipe[recipe.id] ?? {});
+  };
+
+  const requestRun = (recipe: WorkflowRecipe) => {
+    if (running) return;
+    if (confirmRunId === recipe.id) {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+      setConfirmRunId(null);
+      handleRun(recipe);
+      return;
+    }
+
+    setConfirmRunId(recipe.id);
+    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    confirmTimerRef.current = setTimeout(() => {
+      setConfirmRunId(null);
+    }, 2000);
+  };
+
+  const selectRecipe = (index: number) => {
+    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    setConfirmRunId(null);
+    setSelectedIndex(index);
   };
 
   const updateParamOverride = (recipeId: string, key: string, value: string) => {
@@ -177,12 +208,12 @@ export function MacroQuickPanel({
         event.preventDefault();
         const recipe = filtered[selectedIndex];
         if (!recipe || running) return;
-        handleRun(recipe);
+        requestRun(recipe);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [filtered, onClose, onRun, open, running, runtimeValuesByRecipe, selectedIndex]);
+  }, [confirmRunId, filtered, onClose, open, running, runtimeValuesByRecipe, selectedIndex]);
 
   if (!open) return null;
 
@@ -217,26 +248,42 @@ export function MacroQuickPanel({
               <button
                 key={recipe.id}
                 onClick={() => {
+                  if (showAdvancedParams) {
+                    if (index !== selectedIndex) selectRecipe(index);
+                    if (running) return;
+                    requestRun(recipe);
+                    return;
+                  }
                   if (running) return;
-                  handleRun(recipe);
+                  requestRun(recipe);
                 }}
-                onMouseEnter={() => setSelectedIndex(index)}
+                onMouseEnter={() => {
+                  if (!showAdvancedParams) setSelectedIndex(index);
+                }}
                 className={cn(
-                  "mb-1 w-full rounded-[var(--radius-control)] border px-3 py-2 text-left transition-colors",
+                  "relative mb-1 w-full overflow-hidden rounded-[var(--radius-control)] border px-3 py-2 text-left transition-colors",
                   index === selectedIndex
                     ? "border-[var(--color-accent)] bg-[var(--color-accent-subtle)]"
                     : "border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]",
                   running && "cursor-not-allowed opacity-60",
                 )}
               >
+                {confirmRunId === recipe.id && (
+                  <div
+                    className="absolute bottom-0 left-0 h-[2px] rounded-full bg-[var(--color-accent)]"
+                    style={{ animation: "bookmark-confirm 2s linear forwards" }}
+                  />
+                )}
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">{recipe.title}</p>
-                  <span className="text-[10px] text-[var(--color-text-muted)]">{stepCount} steps</span>
+                  <span className="text-[10px] text-[var(--color-text-muted)]">{stepCount} {t("macro.steps")}</span>
                 </div>
                 <p className="mt-1 line-clamp-1 text-[11px] text-[var(--color-text-muted)]">{recipe.description || "-"}</p>
-                <div className="mt-1.5 flex items-center gap-3 text-[10px] text-[var(--color-text-muted)]">
-                  <span>{paramCount} params</span>
-                  <span>{t("macro.lastRun")}: {formatLastRun(lastRunAtMap[recipe.id])}</span>
+                <div className="mt-1.5 flex min-w-0 items-center gap-3 text-[10px] text-[var(--color-text-muted)]">
+                  <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+                    <span>{paramCount} {t("macro.params")}</span>
+                    <span className="truncate">{t("macro.lastRun")}: {formatLastRun(lastRunAtMap[recipe.id])}</span>
+                  </div>
                 </div>
               </button>
             );
@@ -263,16 +310,19 @@ export function MacroQuickPanel({
                 {t("macro.overrideCount", { n: selectedOverrideCount })}
               </span>
             </div>
+            <p className="mb-2 px-1 text-[10px] text-[var(--color-text-muted)]">
+              点击上方列表切换当前宏并进入确认态，再次点击同一项才会执行。
+            </p>
             {selectedParams.length === 0 ? (
               <p className="px-1 py-1 text-[11px] text-[var(--color-text-muted)]">{t("macro.noParams")}</p>
             ) : (
-              <div className="max-h-[160px] space-y-2 overflow-y-auto pr-1">
+              <div className="max-h-[min(30vh,260px)] space-y-2 overflow-y-auto overscroll-contain pr-1">
                 {selectedParams.map((param) => {
                   const currentValue = selectedOverrides[param.key] ?? param.defaultValue;
                   return (
                     <label key={param.key} className="block">
-                      <div className="mb-1 flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)]">
-                        <span className="font-medium text-[var(--color-text-secondary)]">{param.key}</span>
+                      <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--color-text-muted)]">
+                        <span className="min-w-0 break-all font-medium text-[var(--color-text-secondary)]">{param.key}</span>
                         {param.required && <span className="rounded-full border border-[var(--color-border)] px-1">{t("macro.required")}</span>}
                         {param.secret && <span className="rounded-full border border-[var(--color-border)] px-1">{t("macro.secret")}</span>}
                       </div>
@@ -290,19 +340,12 @@ export function MacroQuickPanel({
                 })}
               </div>
             )}
-            <div className="mt-2 flex items-center justify-between gap-2">
+            <div className="mt-2 flex items-center justify-start gap-2">
               <button
                 onClick={() => clearParamOverrides(selectedRecipe.id, selectedParams)}
                 className="rounded-[var(--radius-control)] border border-[var(--color-border)] px-2 py-1 text-[10px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]"
               >
                 {t("macro.useDefaults")}
-              </button>
-              <button
-                onClick={() => !running && handleRun(selectedRecipe)}
-                className="rounded-[var(--radius-control)] bg-[var(--color-accent)] px-2.5 py-1 text-[10px] text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
-                disabled={running}
-              >
-                {t("macro.run")}
               </button>
             </div>
           </div>
@@ -321,9 +364,15 @@ export function MacroQuickPanel({
             recentRecipes.map((recipe) => (
               <button
                 key={recipe.id}
-                onClick={() => !running && handleRun(recipe)}
-                className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-2 py-1 text-[11px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]"
+                onClick={() => requestRun(recipe)}
+                className="relative inline-flex items-center gap-1 overflow-hidden rounded-full border border-[var(--color-border)] px-2 py-1 text-[11px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]"
               >
+                {confirmRunId === recipe.id && (
+                  <div
+                    className="absolute bottom-0 left-0 h-[2px] rounded-full bg-[var(--color-accent)]"
+                    style={{ animation: "bookmark-confirm 2s linear forwards" }}
+                  />
+                )}
                 <Zap size={10} />
                 <span className="max-w-[120px] truncate">{recipe.title}</span>
               </button>

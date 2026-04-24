@@ -420,7 +420,7 @@ export function SettingsPage() {
   const [transferNotify, setTransferNotify] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [resetStatus, setResetStatus] = useState(false);
   const [clearHistoryStatus, setClearHistoryStatus] = useState(false);
   const [appVersion, setAppVersion] = useState("");
@@ -557,41 +557,42 @@ export function SettingsPage() {
   }, [setTheme, setLocale]);
 
   const handleSave = async () => {
+    setSaveStatus("saving");
     try {
-      await Promise.all([
-        api.settingSet("theme", theme),
-        api.settingSet("locale", locale),
-        api.settingSet("terminal.fontFamily", terminal.fontFamily),
-        api.settingSet("terminal.fontSize", String(terminal.fontSize)),
-        api.settingSet("terminal.fontWeight", String(terminal.fontWeight)),
-        api.settingSet("terminal.lineHeight", String(terminal.lineHeight)),
-        api.settingSet("terminal.fontLigatures", String(terminal.fontLigatures)),
-        api.settingSet("terminal.foreground", terminal.foreground),
-        api.settingSet("terminal.cursor", terminal.cursor),
-        api.settingSet("terminal.cursorStyle", terminal.cursorStyle),
-        api.settingSet("terminal.cursorWidth", String(terminal.cursorWidth)),
-        api.settingSet("terminal.ansiColors", JSON.stringify(terminal.ansiColors)),
-        api.settingSet("terminal.selectionBg", terminal.selectionBg),
-        api.settingSet("confirmDangerousActions", String(confirmDanger)),
-        api.settingSet("session.keepAlive", sessionTimeout),
-        api.settingSet("transfer.chunkSize", chunkSize),
-        api.settingSet("transfer.maxConcurrent", maxConcurrent),
-        api.settingSet("transfer.timeout", transferTimeout),
-        api.settingSet("transfer.retryCount", retryCount),
-        api.settingSet("transfer.downloadPath", downloadPath),
-        api.settingSet("transfer.notify", String(transferNotify)),
-        api.settingSet("terminal.bgSource", terminal.bgSource),
-        api.settingSet("terminal.bgColor", terminal.bgColor),
-        api.settingSet("terminal.bgImagePath", terminal.bgImagePath),
-        api.settingSet("terminal.bgOpacity", String(terminal.bgOpacity)),
-        api.settingSet("terminal.bgBlur", String(terminal.bgBlur)),
-        api.settingSet("ui.fontFamily", uiFontFamily),
-        api.settingSet("ui.fontSize", String(uiFontSize)),
-        api.settingSet("terminal.encoding", terminal.encoding),
-        api.settingSet("terminal.setLocale", String(terminal.setLocale)),
-        api.settingSet("terminal.dangerousCmdProtection", String(terminal.dangerousCmdProtection)),
-        api.settingSet("terminal.disabledBuiltinCmds", JSON.stringify(terminal.disabledBuiltinCmds)),
-        api.settingSet("terminal.customDangerousCommands", JSON.stringify(terminal.customDangerousCommands)),
+      await api.settingSetMany([
+        { key: "theme", value: theme },
+        { key: "locale", value: locale },
+        { key: "terminal.fontFamily", value: terminal.fontFamily },
+        { key: "terminal.fontSize", value: String(terminal.fontSize) },
+        { key: "terminal.fontWeight", value: String(terminal.fontWeight) },
+        { key: "terminal.lineHeight", value: String(terminal.lineHeight) },
+        { key: "terminal.fontLigatures", value: String(terminal.fontLigatures) },
+        { key: "terminal.foreground", value: terminal.foreground },
+        { key: "terminal.cursor", value: terminal.cursor },
+        { key: "terminal.cursorStyle", value: terminal.cursorStyle },
+        { key: "terminal.cursorWidth", value: String(terminal.cursorWidth) },
+        { key: "terminal.ansiColors", value: JSON.stringify(terminal.ansiColors) },
+        { key: "terminal.selectionBg", value: terminal.selectionBg },
+        { key: "confirmDangerousActions", value: String(confirmDanger) },
+        { key: "session.keepAlive", value: sessionTimeout },
+        { key: "transfer.chunkSize", value: chunkSize },
+        { key: "transfer.maxConcurrent", value: maxConcurrent },
+        { key: "transfer.timeout", value: transferTimeout },
+        { key: "transfer.retryCount", value: retryCount },
+        { key: "transfer.downloadPath", value: downloadPath },
+        { key: "transfer.notify", value: String(transferNotify) },
+        { key: "terminal.bgSource", value: terminal.bgSource },
+        { key: "terminal.bgColor", value: terminal.bgColor },
+        { key: "terminal.bgImagePath", value: terminal.bgImagePath },
+        { key: "terminal.bgOpacity", value: String(terminal.bgOpacity) },
+        { key: "terminal.bgBlur", value: String(terminal.bgBlur) },
+        { key: "ui.fontFamily", value: uiFontFamily },
+        { key: "ui.fontSize", value: String(uiFontSize) },
+        { key: "terminal.encoding", value: terminal.encoding },
+        { key: "terminal.setLocale", value: String(terminal.setLocale) },
+        { key: "terminal.dangerousCmdProtection", value: String(terminal.dangerousCmdProtection) },
+        { key: "terminal.disabledBuiltinCmds", value: JSON.stringify(terminal.disabledBuiltinCmds) },
+        { key: "terminal.customDangerousCommands", value: JSON.stringify(terminal.customDangerousCommands) },
       ]);
       window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
       setSaveStatus("saved");
@@ -649,8 +650,9 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="relative flex-1 overflow-x-hidden overflow-y-scroll">
-      <div className="mx-auto max-w-2xl space-y-6 p-6 pb-20">
+    <div className="relative flex-1 overflow-hidden">
+      <div className="h-full overflow-x-hidden overflow-y-scroll">
+        <div className="mx-auto max-w-2xl space-y-6 p-6 pb-20">
         <h1 className="text-[var(--font-size-xl)] font-medium">{t("settings.title")}</h1>
 
         <SegmentedControl
@@ -1465,27 +1467,34 @@ export function SettingsPage() {
         </Section>
         </>)}
         </div>
+        </div>
       </div>
 
-      <div className="absolute bottom-2 right-2 z-10 flex items-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-4 py-2 shadow-[var(--shadow-floating)]">
-        <Button variant="ghost" onClick={handleReset}>
-          {resetStatus
-            ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
-            : <span key="icon" className="icon-spin"><RotateCcw size={14} /></span>}
-          {resetStatus ? t("settings.resetDone") : t("settings.reset")}
-        </Button>
-        <Button onClick={() => {
-          handleSave();
-        }}>
-          {saveStatus === "saved"
-            ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
-            : <Save size={14} />}
-          {saveStatus === "saved"
-            ? t("settings.saved")
-            : saveStatus === "error"
-              ? t("settings.saveFailed")
-              : t("settings.save")}
-        </Button>
+      <div className="pointer-events-none absolute right-2 bottom-2 z-10 flex justify-end">
+        <div className="pointer-events-auto flex items-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)]/95 px-4 py-2 shadow-[var(--shadow-floating)] backdrop-blur-sm">
+          <Button variant="ghost" onClick={handleReset}>
+            {resetStatus
+              ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
+              : <span key="icon" className="icon-spin"><RotateCcw size={14} /></span>}
+            {resetStatus ? t("settings.resetDone") : t("settings.reset")}
+          </Button>
+          <Button disabled={saveStatus === "saving"} onClick={() => {
+            handleSave();
+          }}>
+            {saveStatus === "saved"
+              ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
+              : saveStatus === "saving"
+                ? <span key="icon" className="icon-spin"><Save size={14} /></span>
+                : <Save size={14} />}
+            {saveStatus === "saved"
+              ? t("settings.saved")
+              : saveStatus === "saving"
+                ? t("settings.saving")
+              : saveStatus === "error"
+                ? t("settings.saveFailed")
+                : t("settings.save")}
+          </Button>
+        </div>
       </div>
     </div>
   );

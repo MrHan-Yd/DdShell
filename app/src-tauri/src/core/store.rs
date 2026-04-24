@@ -6,6 +6,13 @@ use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::{FromRow, SqlitePool};
 use uuid::Uuid;
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingWrite {
+    pub key: String,
+    pub value: String,
+}
+
 // ── Data models ──
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -1073,6 +1080,30 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        Ok(())
+    }
+
+    pub async fn set_settings(&self, entries: &[SettingWrite]) -> anyhow::Result<()> {
+        if entries.is_empty() {
+            return Ok(());
+        }
+
+        let now = chrono::Utc::now().to_rfc3339();
+        let mut tx = self.pool.begin().await?;
+
+        for entry in entries {
+            sqlx::query(
+                "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+            )
+            .bind(&entry.key)
+            .bind(&entry.value)
+            .bind(&now)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        tx.commit().await?;
         Ok(())
     }
 

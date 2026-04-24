@@ -241,6 +241,10 @@ export async function settingSet(key: string, value: string): Promise<{ success:
   return invoke("setting_set", { key, value });
 }
 
+export async function settingSetMany(entries: Array<{ key: string; value: string }>): Promise<{ success: boolean }> {
+  return invoke("setting_set_many", { entries });
+}
+
 // ── Health check ──
 
 export async function appHealth(): Promise<{ status: string; message: string }> {
