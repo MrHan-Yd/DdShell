@@ -19,6 +19,7 @@
 - `system_metrics_snapshots`：系统监控采样快照（内存环形缓存）。
 - `disk_usage_snapshots`：磁盘使用快照（按挂载点）。
 - `command_history`：命令历史（按 host/session 维度）。
+- `quick_edit_recent`（future / local-only）：最近编辑文件记录，建议优先采用本地轻量持久化，不进入远端同步范围。
 
 ## 3. 安全规范
 - 敏感信息只存 keyring 引用 ID。
@@ -49,6 +50,13 @@
 - `WORKFLOW_UNSUPPORTED_INTERACTIVE_COMMAND`：检测到不支持的交互式命令。
 - `WORKFLOW_CONCURRENCY_LIMIT_REACHED`：流程并发超限（future，MVP 同主机只允许一个 running）。
 - `WORKFLOW_EXEC_FAILED`：流程执行失败。
+- `FILE_NOT_TEXT`：目标文件不是可编辑文本文件。
+- `FILE_TOO_LARGE`：目标文件超过 Quick Edit 允许大小。
+- `FILE_READ_FAILED`：文本读取失败。
+- `FILE_WRITE_FAILED`：文本保存失败。
+- `FILE_ENCODING_UNSUPPORTED`：文件编码当前不支持。
+- `FILE_CHANGED_CONFLICT`：文件在编辑期间已被远端修改。
+- `FILE_PERMISSION_DENIED`：文件可读但不可直接写回。
 
 ## 5. 事件契约
 - `session:state_changed`
@@ -163,6 +171,15 @@
 - `command.suggest`
   - input：`{ sessionId, input, cursorPos, context? }`
   - output：`{ items[], sourceMeta }`
+- `sftp.read_text`
+  - input：`{ sessionId, remotePath, maxBytes? }`
+  - output：`{ content, size, mtime, encoding, readonly, hash, isText }`
+- `sftp.write_text`
+  - input：`{ sessionId, remotePath, content, expectedMtime?, expectedHash? }`
+  - output：`{ success, size, mtime, hash }`
+- `sftp.write_text_privileged`
+  - input：`{ sessionId, remotePath, content, expectedMtime?, expectedHash?, createBackup? }`
+  - output：`{ success, size, mtime, hash, backupPath?, suggestedActions? }`
 
 ## 7. 系统监控采集规范（v1）
 - 采样方式：通过 SSH 执行远端命令并解析结果。
