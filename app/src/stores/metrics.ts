@@ -32,7 +32,7 @@ export const useMetricsStore = create<MetricsStore>((set, get) => ({
 
     try {
       const result = await api.metricsStart(sessionId, 2);
-      set({ collectorId: result.id, collectorState: "running", snapshots: [] });
+      set({ collectorId: result.id, collectorState: "running", snapshots: [], latest: null });
     } catch (e) {
       console.error("Failed to start metrics collector:", e);
     }
@@ -47,7 +47,7 @@ export const useMetricsStore = create<MetricsStore>((set, get) => ({
     } catch {
       // ignore
     }
-    set({ collectorId: null, collectorState: "stopped" });
+    set({ collectorId: null, collectorState: "stopped", snapshots: [], latest: null });
   },
 
   setTimeWindow: (minutes) => {
@@ -55,12 +55,14 @@ export const useMetricsStore = create<MetricsStore>((set, get) => ({
   },
 
   loadHistory: async () => {
-    const { collectorId } = get();
+    const { collectorId, timeWindow } = get();
     if (!collectorId) return;
 
     try {
       const history = await api.metricsHistory(collectorId);
-      set({ snapshots: history, latest: history[history.length - 1] ?? null });
+      const maxEntries = timeWindow * 30; // 2s interval
+      const snapshots = history.slice(-maxEntries);
+      set({ snapshots, latest: snapshots[snapshots.length - 1] ?? null });
     } catch {
       // ignore
     }

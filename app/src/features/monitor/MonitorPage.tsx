@@ -735,6 +735,7 @@ export function MonitorPage() {
     startCollector,
     stopCollector,
     setTimeWindow,
+    loadHistory,
   } = useMetricsStore();
 
   const tabs = useTerminalStore((s) => s.tabs);
@@ -763,6 +764,11 @@ export function MonitorPage() {
   useEffect(() => {
     initMetricsListeners();
   }, []);
+
+  useEffect(() => {
+    if (!collectorId) return;
+    void loadHistory();
+  }, [collectorId, timeWindow, loadHistory]);
 
   // Scroll to top on mount with smooth animation
   useEffect(() => {
@@ -828,10 +834,10 @@ export function MonitorPage() {
     const unlistenState = listen<{ sessionId: string; state: string }>(
       "session:state_changed",
       (event) => {
-        if (collectorIdRef.current && event.payload.sessionId === collectorIdRef.current) {
+        if (collectorIdRef.current && event.payload.sessionId === sessionIdRef.current) {
           if (event.payload.state === "disconnected" || event.payload.state === "failed") {
             toast.error(tRef.current("term.disconnected"));
-            stopCollectorRef.current();
+            void stopCollectorRef.current();
           }
         }
       },

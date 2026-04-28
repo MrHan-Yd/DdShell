@@ -1577,9 +1577,15 @@ async fn metrics_start(
                 }
             }
 
+            if !mmgr.should_continue(&cid) {
+                break;
+            }
+
             let secs = mmgr.get_config(&cid).map(|(_, i)| i).unwrap_or(2);
             tokio::time::sleep(Duration::from_secs(secs)).await;
         }
+
+        mmgr.remove(&cid);
     });
 
     Ok(IdResponse { id: collector_id })
