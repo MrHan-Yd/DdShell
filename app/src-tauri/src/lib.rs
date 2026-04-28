@@ -848,9 +848,10 @@ async fn session_connect(
     // Spawn async output reader loop — channel is owned exclusively by the reader
     let sid = session_id.clone();
     let app_handle = app.clone();
+    let session_mgr = mgr.inner().clone();
 
     tokio::spawn(async move {
-        output_reader_loop(app_handle, channel, cmd_rx, &sid, encoding).await;
+        output_reader_loop(app_handle, session_mgr, channel, cmd_rx, sid, encoding).await;
     });
 
     Ok(IdResponse { id: session_id })
@@ -2018,9 +2019,10 @@ fn normalize_crlf(data: &[u8]) -> Vec<u8> {
 /// Owns the Channel exclusively — write goes through Handle, resize goes through mpsc.
 async fn output_reader_loop(
     app: tauri::AppHandle,
+    session_mgr: SessionManager,
     mut channel: russh::Channel<russh::client::Msg>,
     mut cmd_rx: tokio::sync::mpsc::UnboundedReceiver<core::ssh::PtyCommand>,
-    session_id: &str,
+    session_id: String,
     encoding: String,
 ) {
     tracing::info!("[output_reader_loop] started for session {} (encoding: {})", session_id, encoding);
@@ -2048,19 +2050,21 @@ async fn output_reader_loop(
                         if let Some(ref mut dec) = decoder {
                             let mut output = String::with_capacity(output_data.len() * 2);
                             let (_result, _read, _had_errors) = dec.decode_to_string(output_data, &mut output, false);
-                            event::emit_session_output(&app, session_id, output.into_bytes());
+                            event::emit_session_output(&app, &session_id, output.into_bytes());
                         } else {
-                            event::emit_session_output(&app, session_id, output_data.to_vec());
+                            event::emit_session_output(&app, &session_id, output_data.to_vec());
                         }
                     }
                     Some(ChannelMsg::Eof) => {
                         tracing::info!("[output_reader_loop] EOF for session {}", session_id);
-                        event::emit_session_state(&app, session_id, "disconnected");
+                        let _ = session_mgr.disconnect(&session_id).await;
+                        event::emit_session_state(&app, &session_id, "disconnected");
                         break;
                     }
                     None => {
                         tracing::info!("[output_reader_loop] channel closed for session {}", session_id);
-                        event::emit_session_state(&app, session_id, "disconnected");
+                        let _ = session_mgr.disconnect(&session_id).await;
+                        event::emit_session_state(&app, &session_id, "disconnected");
                         break;
                     }
                     other => {

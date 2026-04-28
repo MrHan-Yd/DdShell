@@ -9,7 +9,7 @@ interface TerminalState {
   tabs: TerminalTab[];
   activeTabId: string | null;
   splitDirection: SplitDirection;
-  splitSessionId: string | null; // second pane session ID
+  splitTabId: string | null; // second pane tab ID
   latencyMap: Map<string, number>; // sessionId -> ms
 
   openSession: (hostId: string, hostName: string, password?: string) => Promise<string>;
@@ -27,7 +27,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   tabs: [],
   activeTabId: null,
   splitDirection: null,
-  splitSessionId: null,
+  splitTabId: null,
   latencyMap: new Map(),
 
   openSession: async (hostId, hostName, password) => {
@@ -70,8 +70,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
 
     set((s) => {
       const remaining = s.tabs.filter((t) => t.id !== tabId);
-      const closedSplit =
-        s.splitSessionId === tab?.sessionId ? true : false;
+      const closedSplit = s.splitTabId === tab?.id;
       return {
         tabs: remaining,
         activeTabId:
@@ -79,7 +78,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
             ? remaining[remaining.length - 1]?.id ?? null
             : s.activeTabId,
         splitDirection: closedSplit ? null : s.splitDirection,
-        splitSessionId: closedSplit ? null : s.splitSessionId,
+        splitTabId: closedSplit ? null : s.splitTabId,
       };
     });
   },
@@ -139,12 +138,12 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     if (activeTab) {
       set({
         splitDirection: direction,
-        splitSessionId: activeTab.sessionId,
+        splitTabId: activeTab.id,
       });
     }
   },
 
-  closeSplit: () => set({ splitDirection: null, splitSessionId: null }),
+  closeSplit: () => set({ splitDirection: null, splitTabId: null }),
 
   pingActiveSession: async () => {
     const { activeTabId, tabs } = get();

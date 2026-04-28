@@ -35,6 +35,10 @@ function escapeRegex(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function quoteShellArg(input: string): string {
+  return `'${input.replace(/'/g, `'\\''`)}'`;
+}
+
 function getTrailingPrefixLength(text: string, pattern: string): number {
   const max = Math.min(text.length, pattern.length - 1);
   for (let len = max; len > 0; len--) {
@@ -976,46 +980,60 @@ function BookmarkPanel({
     if (adding) return;
     setAdding(true);
     try {
+      const marker = `__BOOKMARK_PWD__:${crypto.randomUUID()}:`;
       const path = await new Promise<string | null>((resolve) => {
-        let resolved = false;
-        let buf = "";
-        let cleanBuf = "";
+        let settled = false;
+        let cleanBuffer = "";
+        let unlistenOutput: null | (() => void) = null;
+        let timer: ReturnType<typeof setTimeout> | null = null;
 
-        const timer = setTimeout(() => {
-          if (!resolved) { resolved = true; resolve(null); }
-        }, 3000);
-
-        const cleanup = () => {
-          clearTimeout(timer);
+        const finish = (value: string | null) => {
+          if (settled) return;
+          settled = true;
+          if (timer) clearTimeout(timer);
+          if (unlistenOutput) unlistenOutput();
+          resolve(value);
         };
 
-        listen<{ sessionId: string; data: number[] }>("session:output", (event) => {
-          if (resolved) return;
+        timer = setTimeout(() => {
+          finish(null);
+        }, 3000);
+
+        void listen<{ sessionId: string; data: number[] }>("session:output", (event) => {
+          if (settled) return;
           if (event.payload.sessionId !== sessionId) return;
 
           const text = new TextDecoder().decode(new Uint8Array(event.payload.data));
           // eslint-disable-next-line no-control-regex
-          const clean = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").replace(/\x1b\].*?(?:\x07|\x1b\\)/g, "");
-          buf += clean;
-          cleanBuf += text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").replace(/\x1b\].*?(?:\x07|\x1b\\)/g, "");
+          cleanBuffer += text
+            .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "")
+            .replace(/\x1b\].*?(?:\x07|\x1b\\)/g, "");
 
-          const lines = cleanBuf.split("\n");
+          const lines = cleanBuffer.split(/\r?\n/);
+          cleanBuffer = lines.pop() ?? "";
           for (const line of lines) {
-            const trimmed = line.trim();
-            if (/^\/\S+$/.test(trimmed) && trimmed.length > 1) {
-              resolved = true;
-              resolve(trimmed);
-              cleanup();
+            const markerIndex = line.indexOf(marker);
+            if (markerIndex >= 0) {
+              const resolvedPath = line.slice(markerIndex + marker.length).trimEnd();
+              finish(resolvedPath || null);
               return;
             }
           }
         }).then((unlisten) => {
-          if (resolved) {
+          if (settled) {
             unlisten();
             return;
           }
+          unlistenOutput = unlisten;
           const encoder = new TextEncoder();
-          api.sessionWrite(sessionId, Array.from(encoder.encode("pwd\n"))).catch(() => {});
+          api.sessionWrite(
+            sessionId,
+            Array.from(encoder.encode(`printf '${marker}%s\\n' "$PWD"\r`)),
+          ).catch(() => {
+            finish(null);
+          });
+        }).catch(() => {
+          finish(null);
         });
       });
 
@@ -1221,7 +1239,7 @@ export function TerminalPage() {
   const closeSession = useTerminalStore((s) => s.closeSession);
   const moveTab = useTerminalStore((s) => s.moveTab);
   const splitDirection = useTerminalStore((s) => s.splitDirection);
-  const splitSessionId = useTerminalStore((s) => s.splitSessionId);
+  const splitTabId = useTerminalStore((s) => s.splitTabId);
   const splitPane = useTerminalStore((s) => s.splitPane);
   const closeSplit = useTerminalStore((s) => s.closeSplit);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
@@ -1387,7 +1405,7 @@ export function TerminalPage() {
       if (!activeTab) return;
 
       const encoder = new TextEncoder();
-      const bytes = Array.from(encoder.encode(`cd ${path}\n`));
+      const bytes = Array.from(encoder.encode(`cd ${quoteShellArg(path)}\r`));
       api.sessionWrite(activeTab.sessionId, bytes).catch((err) => toast.error(String(err)));
     },
     [tabs, activeTabId],
@@ -1408,6 +1426,7 @@ export function TerminalPage() {
   );
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
+  const splitTab = splitTabId ? tabs.find((t) => t.id === splitTabId) ?? null : null;
 
   const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
   const bgOpacity = (termSettings?.bgOpacity ?? 100) / 100;
@@ -1840,7 +1859,7 @@ export function TerminalPage() {
           </div>
 
           {/* Resize handle + second pane */}
-          {splitDirection && splitSessionId && (
+          {splitDirection && splitTab && (
             <>
               <ResizeHandle direction={splitDirection} onResize={handleResize} />
               <div
@@ -1853,11 +1872,11 @@ export function TerminalPage() {
               >
                 {termSettings && (
                   <TerminalInstance
-                    key={`split-${splitSessionId}-${settingsVersion}`}
-                    tabId={activeTab?.id ?? ""}
-                    sessionId={splitSessionId}
-                    hostId={activeTab?.hostId ?? ""}
-                    macroOutputFilter={macroOutputFilter?.sessionId === splitSessionId ? macroOutputFilter : null}
+                    key={`split-${splitTab.id}-${settingsVersion}`}
+                    tabId={splitTab.id}
+                    sessionId={splitTab.sessionId}
+                    hostId={splitTab.hostId}
+                    macroOutputFilter={macroOutputFilter?.sessionId === splitTab.sessionId ? macroOutputFilter : null}
                     termSettings={termSettings}
                   />
                 )}
