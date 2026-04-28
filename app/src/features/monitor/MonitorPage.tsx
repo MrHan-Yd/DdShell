@@ -142,6 +142,8 @@ const MiniChart = memo(function MiniChart({
   direction?: "up" | "down";
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previousDataRef = useRef<number[] | null>(null);
+  const frameRef = useRef<number | null>(null);
   const currentValue = data[data.length - 1] ?? 0;
 
   useEffect(() => {
@@ -160,44 +162,99 @@ const MiniChart = memo(function MiniChart({
     const h = rect.height;
     const padding = 2;
 
-    ctx.clearRect(0, 0, w, h);
+    const drawChart = (series: number[]) => {
+      ctx.clearRect(0, 0, w, h);
 
-    if (data.length < 2) return;
+      if (series.length < 2) return;
 
-    const max = maxValue ?? Math.max(...data, 1);
-    const step = (w - padding * 2) / (data.length - 1);
+      const max = maxValue ?? Math.max(...series, 1);
+      const step = (w - padding * 2) / (series.length - 1);
 
-    // Fill gradient
-    const gradient = ctx.createLinearGradient(0, 0, 0, h);
-    gradient.addColorStop(0, color + "40");
-    gradient.addColorStop(1, color + "05");
+      const gradient = ctx.createLinearGradient(0, 0, 0, h);
+      gradient.addColorStop(0, color + "40");
+      gradient.addColorStop(1, color + "05");
 
-    ctx.beginPath();
-    ctx.moveTo(padding, h);
+      ctx.beginPath();
+      ctx.moveTo(padding, h);
 
-    for (let i = 0; i < data.length; i++) {
-      const x = padding + i * step;
-      const y = h - padding - ((data[i] / max) * (h - padding * 2));
-      if (i === 0) ctx.lineTo(x, y);
-      else ctx.lineTo(x, y);
+      for (let i = 0; i < series.length; i++) {
+        const x = padding + i * step;
+        const y = h - padding - ((series[i] / max) * (h - padding * 2));
+        ctx.lineTo(x, y);
+      }
+
+      ctx.lineTo(padding + (series.length - 1) * step, h);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      ctx.beginPath();
+      for (let i = 0; i < series.length; i++) {
+        const x = padding + i * step;
+        const y = h - padding - ((series[i] / max) * (h - padding * 2));
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    };
+
+    const alignSeriesValue = (series: number[], targetLength: number, index: number) => {
+      if (series.length === 0) return 0;
+      const sourceIndex = index - (targetLength - series.length);
+      if (sourceIndex < 0) return series[0];
+      if (sourceIndex >= series.length) return series[series.length - 1];
+      return series[sourceIndex];
+    };
+
+    const previousData = previousDataRef.current;
+
+    if (!previousData || previousData.length < 2 || data.length < 2) {
+      if (frameRef.current != null) {
+        cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+      drawChart(data);
+      previousDataRef.current = data;
+      return;
     }
 
-    ctx.lineTo(padding + (data.length - 1) * step, h);
-    ctx.closePath();
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    // Line
-    ctx.beginPath();
-    for (let i = 0; i < data.length; i++) {
-      const x = padding + i * step;
-      const y = h - padding - ((data[i] / max) * (h - padding * 2));
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+    if (frameRef.current != null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
     }
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+
+    const fromData = data.map((_, index) => alignSeriesValue(previousData, data.length, index));
+    const startTime = performance.now();
+    const duration = 220;
+
+    const animate = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const interpolated = data.map(
+        (value, index) => fromData[index] + (value - fromData[index]) * eased,
+      );
+
+      drawChart(interpolated);
+
+      if (progress < 1) {
+        frameRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      frameRef.current = null;
+      previousDataRef.current = data;
+    };
+
+    frameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (frameRef.current != null) {
+        cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+    };
   }, [data, color, maxValue, height]);
 
   return (
