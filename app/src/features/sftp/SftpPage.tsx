@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { basename, dirname, downloadDir, join } from "@tauri-apps/api/path";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import {
   Folder,
@@ -37,6 +38,169 @@ import { toast } from "@/stores/toast";
 import { confirm, useConfirmStore } from "@/stores/confirm";
 import { useT } from "@/lib/i18n";
 import type { FileEntry, TransferTask, FavoritePath, RecentPath } from "@/types";
+
+type UploadTask = {
+  localPaths: string[];
+  remoteDir: string;
+};
+
+type Translate = ReturnType<typeof useT>;
+
+const OVERWRITE_PREVIEW_LIMIT = 5;
+
+function getPathName(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  return normalized.split("/").pop() || path;
+}
+
+function joinRemotePath(dir: string, name: string): string {
+  if (dir === "/") return `/${name}`;
+  return dir.endsWith("/") ? `${dir}${name}` : `${dir}/${name}`;
+}
+
+async function collectExistingRemoteUploadTargets(
+  sessionId: string,
+  uploadTasks: UploadTask[],
+): Promise<string[]> {
+  const namesByRemoteDir = new Map<string, Set<string>>();
+
+  for (const task of uploadTasks) {
+    const fileNames = namesByRemoteDir.get(task.remoteDir) ?? new Set<string>();
+    for (const localPath of task.localPaths) {
+      const fileName = getPathName(localPath);
+      if (fileName) fileNames.add(fileName);
+    }
+    namesByRemoteDir.set(task.remoteDir, fileNames);
+  }
+
+  const duplicateLists = await Promise.all(
+    Array.from(namesByRemoteDir.entries()).map(async ([remoteDir, fileNames]) => {
+      try {
+        const entries = await api.sftpListDir(sessionId, remoteDir);
+        const existingNames = new Set(entries.map((entry) => entry.name));
+        return Array.from(fileNames)
+          .filter((fileName) => existingNames.has(fileName))
+          .map((fileName) => joinRemotePath(remoteDir, fileName));
+      } catch {
+        // Missing remote directories are created during upload, so they cannot overwrite yet.
+        return [];
+      }
+    }),
+  );
+
+  return Array.from(new Set(duplicateLists.flat())).sort((a, b) => a.localeCompare(b));
+}
+
+async function resolveDownloadBaseDir(): Promise<string> {
+  const configuredPath = await api.settingGet("transfer.downloadPath");
+  if (configuredPath?.trim()) return configuredPath.trim();
+
+  try {
+    return await downloadDir();
+  } catch {
+    const homeDir = await api.localHomeDir();
+    return join(homeDir, "Downloads");
+  }
+}
+
+async function resolveDownloadTargetPath(
+  baseDir: string,
+  remotePath: string,
+  subPath?: string,
+): Promise<string> {
+  if (subPath?.trim()) return join(baseDir, subPath);
+  return join(baseDir, getPathName(remotePath) || "download");
+}
+
+async function collectExistingLocalTargets(paths: string[]): Promise<string[]> {
+  const uniquePaths = Array.from(new Set(paths));
+  const targetInfo = await Promise.all(
+    uniquePaths.map(async (targetPath) => ({
+      targetPath,
+      parentDir: await dirname(targetPath),
+      fileName: await basename(targetPath),
+    })),
+  );
+
+  const targetsByParent = new Map<string, Map<string, string>>();
+  for (const target of targetInfo) {
+    const filesInParent = targetsByParent.get(target.parentDir) ?? new Map<string, string>();
+    filesInParent.set(target.fileName, target.targetPath);
+    targetsByParent.set(target.parentDir, filesInParent);
+  }
+
+  const duplicateLists = await Promise.all(
+    Array.from(targetsByParent.entries()).map(async ([parentDir, files]) => {
+      try {
+        const entries = await api.localListDir(parentDir);
+        const existingNames = new Set(entries.map((entry) => entry.name));
+        return Array.from(files.entries())
+          .filter(([fileName]) => existingNames.has(fileName))
+          .map(([, targetPath]) => targetPath);
+      } catch {
+        // Nested download directories are created during transfer if they do not exist yet.
+        return [];
+      }
+    }),
+  );
+
+  return Array.from(new Set(duplicateLists.flat())).sort((a, b) => a.localeCompare(b));
+}
+
+async function confirmOverwritePaths(
+  t: Translate,
+  direction: "upload" | "download",
+  loadPaths: () => Promise<string[]>,
+): Promise<boolean> {
+  const confirmResult = useConfirmStore.getState()._show({
+    title: t("confirm.overwriteTitle"),
+    description: t("confirm.overwriteChecking"),
+    confirmLabel: t("confirm.overwriteAction"),
+    cancelLabel: t("confirm.cancel"),
+    scanning: true,
+  });
+  const confirmResolve = useConfirmStore.getState()._resolve;
+
+  let paths: string[];
+  try {
+    paths = await loadPaths();
+  } catch (error) {
+    if (useConfirmStore.getState()._resolve === confirmResolve) {
+      useConfirmStore.getState()._respond(true);
+    }
+    console.warn("overwrite pre-check failed, continuing transfer", error);
+    return true;
+  }
+
+  if (paths.length === 0) {
+    if (useConfirmStore.getState()._resolve === confirmResolve) {
+      useConfirmStore.getState()._respond(true);
+    }
+    return true;
+  }
+
+  const preview = paths
+    .slice(0, OVERWRITE_PREVIEW_LIMIT)
+    .map((path) => `- ${path}`)
+    .join("\n");
+  const moreCount = paths.length - OVERWRITE_PREVIEW_LIMIT;
+  const intro =
+    direction === "upload"
+      ? t("confirm.overwriteUploadDesc", { n: paths.length })
+      : t("confirm.overwriteDownloadDesc", { n: paths.length });
+  const moreLine = moreCount > 0 ? `\n${t("confirm.overwriteMore", { n: moreCount })}` : "";
+
+  if (useConfirmStore.getState()._resolve !== confirmResolve) {
+    return confirmResult;
+  }
+
+  useConfirmStore.getState().updateOptions({
+    scanning: false,
+    description: `${intro}\n\n${preview}${moreLine}`,
+  });
+
+  return confirmResult;
+}
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -526,7 +690,7 @@ function LocalFileList({
       .filter((e): e is LocalFileEntry => !!e);
 
     // Collect upload tasks: each is { localPath, remoteDir }
-    const uploadTasks: { localPaths: string[]; remoteDir: string }[] = [];
+    const uploadTasks: UploadTask[] = [];
 
     for (const entry of selectedEntries) {
       const fullPath = localPath === "/" ? `/${entry.name}` : `${localPath}/${entry.name}`;
@@ -559,6 +723,13 @@ function LocalFileList({
       return;
     }
 
+    const shouldContinue = await confirmOverwritePaths(
+      t,
+      "upload",
+      () => collectExistingRemoteUploadTargets(sessionId, uploadTasks),
+    );
+    if (!shouldContinue) return;
+
     try {
       // Upload files and register each with its taskId for reliable progress tracking
       const allTaskIds: string[] = [];
@@ -567,7 +738,7 @@ function LocalFileList({
         // taskIds[i] corresponds to task.localPaths[i] — map by index
         for (let i = 0; i < taskIds.length; i++) {
           const lp = task.localPaths[i];
-          const fileName = lp?.split("/").pop() || "";
+          const fileName = getPathName(lp || "");
           const localEntry = entries.find((e) => e.name === fileName);
           if (localEntry && taskIds[i]) {
             addUploadingEntry(fileName, localEntry.size, taskIds[i]);
@@ -584,7 +755,7 @@ function LocalFileList({
     } catch (err) {
       toast.error(String(err));
     }
-  }, [selected, entries, localPath, sessionId, remotePath, refreshTransfers, addUploadingEntry, registerBatch, onUploadStart]);
+  }, [selected, entries, localPath, sessionId, remotePath, refreshTransfers, addUploadingEntry, registerBatch, onUploadStart, t]);
 
   return (
     <div className="flex flex-1 flex-col border rounded-[var(--radius-card)] border-[var(--color-border)] overflow-hidden">
@@ -775,6 +946,17 @@ function RemoteFileList() {
       onClick: async () => {
         if (entry.fileType === "file") {
           const fullPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
+          const shouldContinue = await confirmOverwritePaths(
+            t,
+            "download",
+            async () => {
+              const downloadBaseDir = await resolveDownloadBaseDir();
+              const localTargetPath = await resolveDownloadTargetPath(downloadBaseDir, fullPath);
+              return collectExistingLocalTargets([localTargetPath]);
+            },
+          );
+          if (!shouldContinue) return;
+
           api.sftpTransferStart(sessionId!, "download", "", fullPath).then(() => {
             useSftpStore.getState().refreshTransfers();
             toast.success(t("sftp.downloadStarted"));
@@ -803,6 +985,21 @@ function RemoteFileList() {
             if (allFiles.length === 0) {
               toast.info(t("sftp.emptyDir"));
             } else {
+              const shouldContinue = await confirmOverwritePaths(
+                t,
+                "download",
+                async () => {
+                  const downloadBaseDir = await resolveDownloadBaseDir();
+                  const localTargetPaths = await Promise.all(
+                    allFiles.map((file) =>
+                      resolveDownloadTargetPath(downloadBaseDir, file.remote, `${entry.name}/${file.relative}`),
+                    ),
+                  );
+                  return collectExistingLocalTargets(localTargetPaths);
+                },
+              );
+              if (!shouldContinue) return;
+
               const promises = allFiles.map((file) => {
                 const subPath = `${entry.name}/${file.relative}`;
                 return api.sftpTransferStart(sessionId!, "download", "", file.remote, subPath)
@@ -1031,10 +1228,10 @@ function RemoteFileList() {
           try {
             toast.info(t("sftp.uploadedFiles", {n: paths.length}));
 
-            const uploadTasks: { localPaths: string[]; remoteDir: string }[] = [];
+            const uploadTasks: UploadTask[] = [];
 
             for (const localPath of paths) {
-              const fileName = localPath.split("/").pop() || localPath;
+              const fileName = getPathName(localPath);
               try {
                 await api.localListDir(localPath);
                 const allFiles = await scanLocalDir(localPath, "");
@@ -1063,12 +1260,19 @@ function RemoteFileList() {
               return;
             }
 
+            const shouldContinue = await confirmOverwritePaths(
+              t,
+              "upload",
+              () => collectExistingRemoteUploadTargets(sessionId, uploadTasks),
+            );
+            if (!shouldContinue) return;
+
             const allTaskIds: string[] = [];
             for (const task of uploadTasks) {
               const taskIds = await api.sftpUploadFiles(sessionId, task.localPaths, task.remoteDir);
               for (let i = 0; i < taskIds.length; i++) {
                 const lp = task.localPaths[i];
-                const taskFileName = lp?.split("/").pop() || "";
+                const taskFileName = getPathName(lp || "");
                 if (taskFileName && taskIds[i]) {
                   addUploadingEntryDrop(taskFileName, 0, taskIds[i]);
                 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfirmStore } from "@/stores/confirm";
 import { useT } from "@/lib/i18n";
@@ -68,7 +68,9 @@ export function ConfirmDialog() {
       >
         <div className="flex items-center gap-3 mb-2">
           {!scanning && <AlertTriangle size={20} className="shrink-0 text-[var(--color-fair)]" />}
-          {scanning && <Loader2 size={20} className="shrink-0 animate-spin text-[var(--color-accent)]" />}
+          {scanning && (
+            <span className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-[var(--color-accent)] border-t-transparent" />
+          )}
           <h3 className="text-[var(--font-size-lg)] font-semibold text-[var(--color-text-primary)]">
             {options.title}
           </h3>
@@ -80,7 +82,7 @@ export function ConfirmDialog() {
 
         {scanning && (
           <div className="ml-8 mb-4 flex items-center gap-2">
-            <Loader2 size={14} className="animate-spin text-[var(--color-accent)]" />
+            <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-[var(--color-accent)] border-t-transparent" />
             <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
               {options.scanLabel || t("sftp.scanningDir")}
             </span>
