@@ -19,6 +19,8 @@ import type {
   RecentPath,
   TerminalBookmark,
   SshConfigImportResult,
+  RemoteTextFile,
+  RemoteTextWriteResult,
 } from "@/types";
 
 // ── Connection commands ──
@@ -286,6 +288,10 @@ export async function sftpListDir(sessionId: string, remotePath: string): Promis
   return invoke("sftp_list_dir", { sessionId, remotePath });
 }
 
+export async function sftpCanonicalize(sessionId: string, remotePath: string): Promise<string> {
+  return invoke("sftp_canonicalize", { sessionId, remotePath });
+}
+
 export async function sftpMkdir(sessionId: string, remotePath: string): Promise<{ success: boolean }> {
   return invoke("sftp_mkdir", { sessionId, remotePath });
 }
@@ -304,6 +310,54 @@ export async function sftpRename(
   newPath: string,
 ): Promise<{ success: boolean }> {
   return invoke("sftp_rename", { sessionId, oldPath, newPath });
+}
+
+export async function sftpReadText(
+  sessionId: string,
+  remotePath: string,
+  maxBytes?: number | null,
+): Promise<RemoteTextFile> {
+  return invoke("sftp_read_text", {
+    sessionId,
+    remotePath,
+    maxBytes: maxBytes ?? null,
+  });
+}
+
+export async function sftpWriteText(
+  sessionId: string,
+  remotePath: string,
+  content: string,
+  expectedMtime?: number | null,
+  expectedHash?: string | null,
+): Promise<RemoteTextWriteResult> {
+  return invoke("sftp_write_text", {
+    sessionId,
+    remotePath,
+    content,
+    expectedMtime: expectedMtime ?? null,
+    expectedHash: expectedHash ?? null,
+  });
+}
+
+export async function sftpWriteTextPrivileged(
+  sessionId: string,
+  remotePath: string,
+  content: string,
+  expectedMtime?: number | null,
+  expectedHash?: string | null,
+  sudoPassword?: string | null,
+  createBackup?: boolean | null,
+): Promise<import("@/types").RemoteTextPrivilegedWriteResult> {
+  return invoke("sftp_write_text_privileged", {
+    sessionId,
+    remotePath,
+    content,
+    expectedMtime: expectedMtime ?? null,
+    expectedHash: expectedHash ?? null,
+    sudoPassword: sudoPassword ?? null,
+    createBackup: createBackup ?? true,
+  });
 }
 
 export async function sftpTransferStart(
@@ -356,6 +410,10 @@ export async function connectionTest(
 
 export async function sshPing(sessionId: string): Promise<number> {
   return invoke("ssh_ping", { sessionId });
+}
+
+export async function sshEnvGet(sessionId: string, name: string): Promise<string | null> {
+  return invoke("ssh_env_get", { sessionId, name });
 }
 
 // ── Password commands ──

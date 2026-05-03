@@ -289,8 +289,24 @@ impl SshSession {
 
     /// Execute a command and collect stdout/stderr/exit code.
     pub async fn exec_command_detailed(&self, command: &str) -> anyhow::Result<ExecCommandResult> {
+        self.exec_command_with_stdin_detailed(command, None).await
+    }
+
+    /// Execute a command with optional stdin and collect stdout/stderr/exit code.
+    pub async fn exec_command_with_stdin_detailed(
+        &self,
+        command: &str,
+        stdin: Option<&[u8]>,
+    ) -> anyhow::Result<ExecCommandResult> {
         let channel = self.handle.channel_open_session().await?;
         channel.exec(true, command).await?;
+
+        if let Some(stdin) = stdin {
+            if !stdin.is_empty() {
+                channel.data(stdin).await.map_err(|_| anyhow::anyhow!("Failed to send exec stdin"))?;
+            }
+            channel.eof().await?;
+        }
 
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();

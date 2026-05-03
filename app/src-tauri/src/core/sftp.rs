@@ -1,13 +1,19 @@
 use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
 use parking_lot::Mutex;
+use russh_sftp::client::error::Error as SftpClientError;
+use russh_sftp::protocol::{FileAttributes, StatusCode};
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
+use crate::core::secret;
 use crate::core::ssh::SessionManager;
+use crate::core::store::Database;
 use crate::core::event;
 
 /// Convert russh-sftp FilePermissions to unix permission bits
@@ -32,6 +38,122 @@ fn systemtime_to_epoch(t: std::time::SystemTime) -> i64 {
         .unwrap_or(0)
 }
 
+fn sha256_hex(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    let digest = hasher.finalize();
+    let mut hex = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        let _ = write!(&mut hex, "{:02x}", byte);
+    }
+    hex
+}
+
+fn is_probably_text(bytes: &[u8]) -> bool {
+    !bytes.contains(&0)
+}
+
+fn is_permission_denied_message(message: &str) -> bool {
+    message.to_ascii_lowercase().contains("permission denied")
+}
+
+fn is_no_such_file_error(err: &SftpClientError) -> bool {
+    matches!(err, SftpClientError::Status(status) if status.status_code == StatusCode::NoSuchFile)
+}
+
+fn map_write_error(err: &SftpClientError) -> &'static str {
+    if matches!(err, SftpClientError::Status(status) if status.status_code == StatusCode::PermissionDenied)
+        || is_permission_denied_message(&err.to_string())
+    {
+        "FILE_PERMISSION_DENIED"
+    } else if is_no_such_file_error(err) {
+        "FILE_CHANGED_CONFLICT"
+    } else {
+        "FILE_WRITE_FAILED"
+    }
+}
+
+fn map_write_io_error(err: &std::io::Error) -> &'static str {
+    if is_permission_denied_message(&err.to_string()) {
+        "FILE_PERMISSION_DENIED"
+    } else {
+        "FILE_WRITE_FAILED"
+    }
+}
+
+fn split_remote_path(remote_path: &str) -> (&str, &str) {
+    match remote_path.rsplit_once('/') {
+        Some(("", file_name)) => ("/", file_name),
+        Some((parent, file_name)) => (parent, file_name),
+        None => (".", remote_path),
+    }
+}
+
+fn build_sibling_remote_path(parent: &str, file_name: &str, operation_id: &str, suffix: &str) -> String {
+    if parent == "/" {
+        format!("/.{}.quick-edit-{}.{}", file_name, operation_id, suffix)
+    } else {
+        format!("{}/.{}.quick-edit-{}.{}", parent, file_name, operation_id, suffix)
+    }
+}
+
+fn shell_single_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
+}
+
+async fn cleanup_remote_file(sftp: &russh_sftp::client::SftpSession, remote_path: &str) {
+    let _ = sftp.remove_file(remote_path).await;
+}
+
+async fn validate_write_expectations(
+    sftp: &russh_sftp::client::SftpSession,
+    remote_path: &str,
+    expected_mtime: Option<i64>,
+    expected_hash: Option<&str>,
+) -> anyhow::Result<FileAttributes> {
+    use tokio::io::AsyncReadExt;
+
+    let metadata = sftp
+        .metadata(remote_path)
+        .await
+        .map_err(|err| anyhow::anyhow!(map_write_error(&err)))?;
+
+    let current_mtime = metadata.modified().map(systemtime_to_epoch).unwrap_or(0);
+    if let Some(expected_mtime) = expected_mtime {
+        if expected_mtime != current_mtime {
+            anyhow::bail!("FILE_CHANGED_CONFLICT");
+        }
+    }
+
+    if let Some(expected_hash) = expected_hash {
+        let mut current_bytes = Vec::with_capacity(metadata.len() as usize);
+        let mut current_file = sftp
+            .open(remote_path)
+            .await
+            .map_err(|err| anyhow::anyhow!(map_write_error(&err)))?;
+        current_file
+            .read_to_end(&mut current_bytes)
+            .await
+            .map_err(|_| anyhow::anyhow!("FILE_WRITE_FAILED"))?;
+
+        if sha256_hex(&current_bytes) != expected_hash {
+            anyhow::bail!("FILE_CHANGED_CONFLICT");
+        }
+    }
+
+    Ok(metadata)
+}
+
+fn is_sudo_auth_error(output: &str) -> bool {
+    let lower = output.to_ascii_lowercase();
+    lower.contains("sudo")
+        && (lower.contains("password is required")
+            || lower.contains("incorrect password")
+            || lower.contains("try again")
+            || lower.contains("a password is required")
+            || lower.contains("authentication"))
+}
+
 /// A file entry returned by directory listing
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -41,6 +163,37 @@ pub struct FileEntry {
     pub size: u64,
     pub mtime: i64,
     pub permissions: u32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadTextResult {
+    pub content: String,
+    pub size: u64,
+    pub mtime: i64,
+    pub encoding: String,
+    pub readonly: bool,
+    pub hash: String,
+    pub is_text: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WriteTextResult {
+    pub success: bool,
+    pub size: u64,
+    pub mtime: i64,
+    pub hash: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PrivilegedWriteTextResult {
+    pub success: bool,
+    pub size: u64,
+    pub mtime: i64,
+    pub hash: String,
+    pub backup_path: Option<String>,
 }
 
 /// Transfer direction
@@ -99,6 +252,23 @@ impl SftpManager {
     /// Get a clone of the concurrency semaphore
     pub fn concurrency_semaphore(&self) -> Arc<tokio::sync::Semaphore> {
         self.concurrency.clone()
+    }
+
+    pub async fn canonicalize(
+        session_mgr: &SessionManager,
+        session_id: &str,
+        remote_path: &str,
+    ) -> anyhow::Result<String> {
+        let session = session_mgr
+            .get(session_id)
+            .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
+
+        let sftp = {
+            let sess = session.lock().await;
+            sess.init_sftp().await?
+        };
+
+        Ok(sftp.canonicalize(remote_path).await?)
     }
 
     /// List directory on remote host
@@ -262,6 +432,352 @@ impl SftpManager {
             size: metadata.len(),
             mtime: metadata.modified().map(systemtime_to_epoch).unwrap_or(0),
             permissions: permissions_to_u32(&metadata.permissions()),
+        })
+    }
+
+    pub async fn read_text(
+        session_mgr: &SessionManager,
+        session_id: &str,
+        remote_path: &str,
+        max_bytes: Option<u64>,
+    ) -> anyhow::Result<ReadTextResult> {
+        use tokio::io::AsyncReadExt;
+
+        let session = session_mgr
+            .get(session_id)
+            .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
+
+        let sftp = {
+            let sess = session.lock().await;
+            sess.init_sftp().await?
+        };
+
+        let metadata = sftp
+            .metadata(remote_path)
+            .await
+            .map_err(|err| anyhow::anyhow!(if is_permission_denied_message(&err.to_string()) { "FILE_PERMISSION_DENIED" } else { "FILE_READ_FAILED" }))?;
+
+        if metadata.file_type().is_dir() {
+            anyhow::bail!("FILE_NOT_TEXT");
+        }
+
+        let size = metadata.len();
+        let limit = max_bytes.unwrap_or(1024 * 1024);
+        if size > limit {
+            anyhow::bail!("FILE_TOO_LARGE");
+        }
+
+        let mut remote_file = sftp
+            .open(remote_path)
+            .await
+            .map_err(|err| anyhow::anyhow!(if is_permission_denied_message(&err.to_string()) { "FILE_PERMISSION_DENIED" } else { "FILE_READ_FAILED" }))?;
+
+        let mut bytes = Vec::with_capacity(size as usize);
+        remote_file
+            .read_to_end(&mut bytes)
+            .await
+            .map_err(|_| anyhow::anyhow!("FILE_READ_FAILED"))?;
+
+        if !is_probably_text(&bytes) {
+            anyhow::bail!("FILE_NOT_TEXT");
+        }
+
+        let content = String::from_utf8(bytes.clone())
+            .map_err(|_| anyhow::anyhow!("FILE_ENCODING_UNSUPPORTED"))?;
+
+        Ok(ReadTextResult {
+            content,
+            size,
+            mtime: metadata.modified().map(systemtime_to_epoch).unwrap_or(0),
+            encoding: "utf-8".to_string(),
+            readonly: permissions_to_u32(&metadata.permissions()) & 0o222 == 0,
+            hash: sha256_hex(&bytes),
+            is_text: true,
+        })
+    }
+
+    pub async fn write_text(
+        session_mgr: &SessionManager,
+        session_id: &str,
+        remote_path: &str,
+        content: &str,
+        expected_mtime: Option<i64>,
+        expected_hash: Option<&str>,
+    ) -> anyhow::Result<WriteTextResult> {
+        use tokio::io::AsyncWriteExt;
+
+        let session = session_mgr
+            .get(session_id)
+            .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
+
+        let sftp = {
+            let sess = session.lock().await;
+            sess.init_sftp().await?
+        };
+
+        let metadata = validate_write_expectations(&sftp, remote_path, expected_mtime, expected_hash).await?;
+        let current_mtime = metadata.modified().map(systemtime_to_epoch).unwrap_or(0);
+
+        let preserve_path_identity = sftp
+            .symlink_metadata(remote_path)
+            .await
+            .map(|path_meta| path_meta.file_type().is_symlink())
+            .unwrap_or(false);
+
+        if preserve_path_identity {
+            let mut remote_file = sftp
+                .create(remote_path)
+                .await
+                .map_err(|err| anyhow::anyhow!(map_write_error(&err)))?;
+            remote_file
+                .write_all(content.as_bytes())
+                .await
+                .map_err(|err| anyhow::anyhow!(map_write_io_error(&err)))?;
+            remote_file
+                .flush()
+                .await
+                .map_err(|_| anyhow::anyhow!("FILE_WRITE_FAILED"))?;
+            remote_file
+                .sync_all()
+                .await
+                .map_err(|_| anyhow::anyhow!("FILE_WRITE_FAILED"))?;
+        } else {
+            let operation_id = Uuid::new_v4().simple().to_string();
+            let (parent_dir, file_name) = split_remote_path(remote_path);
+            let temp_path = build_sibling_remote_path(parent_dir, file_name, &operation_id, "tmp");
+            let backup_path = build_sibling_remote_path(parent_dir, file_name, &operation_id, "bak");
+
+            let write_result = async {
+                let mut temp_file = sftp
+                    .create(&temp_path)
+                    .await
+                    .map_err(|err| anyhow::anyhow!(map_write_error(&err)))?;
+                temp_file
+                    .write_all(content.as_bytes())
+                    .await
+                    .map_err(|err| anyhow::anyhow!(map_write_io_error(&err)))?;
+                temp_file
+                    .flush()
+                    .await
+                    .map_err(|_| anyhow::anyhow!("FILE_WRITE_FAILED"))?;
+                temp_file
+                    .sync_all()
+                    .await
+                    .map_err(|_| anyhow::anyhow!("FILE_WRITE_FAILED"))?;
+
+                if let Some(permissions) = metadata.permissions {
+                    let mut attrs = FileAttributes::empty();
+                    attrs.permissions = Some(permissions);
+                    sftp
+                        .set_metadata(&temp_path, attrs)
+                        .await
+                        .map_err(|err| anyhow::anyhow!(map_write_error(&err)))?;
+                }
+
+                drop(temp_file);
+
+                validate_write_expectations(&sftp, remote_path, expected_mtime, expected_hash).await?;
+
+                sftp
+                    .rename(remote_path, &backup_path)
+                    .await
+                    .map_err(|err| anyhow::anyhow!(map_write_error(&err)))?;
+
+                if let Err(err) = sftp.rename(&temp_path, remote_path).await {
+                    let _ = sftp.rename(&backup_path, remote_path).await;
+                    cleanup_remote_file(&sftp, &temp_path).await;
+                    return Err(anyhow::anyhow!(map_write_error(&err)));
+                }
+
+                if let Err(err) = sftp.remove_file(&backup_path).await {
+                    tracing::warn!(
+                        remote_path = remote_path,
+                        backup_path = backup_path,
+                        error = %err,
+                        "quick edit save left backup file after rename"
+                    );
+                }
+
+                Ok::<(), anyhow::Error>(())
+            }.await;
+
+            if write_result.is_err() {
+                cleanup_remote_file(&sftp, &temp_path).await;
+            }
+
+            write_result?;
+        }
+
+        let updated = sftp
+            .metadata(remote_path)
+            .await
+            .map_err(|_| anyhow::anyhow!("FILE_WRITE_FAILED"))?;
+
+        Ok(WriteTextResult {
+            success: true,
+            size: updated.len(),
+            mtime: updated.modified().map(systemtime_to_epoch).unwrap_or(current_mtime),
+            hash: sha256_hex(content.as_bytes()),
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn write_text_privileged(
+        db: &Database,
+        session_mgr: &SessionManager,
+        session_id: &str,
+        remote_path: &str,
+        content: &str,
+        expected_mtime: Option<i64>,
+        expected_hash: Option<&str>,
+        sudo_password: Option<&str>,
+        create_backup: bool,
+    ) -> anyhow::Result<PrivilegedWriteTextResult> {
+        use tokio::io::AsyncWriteExt;
+
+        let session = session_mgr
+            .get(session_id)
+            .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
+
+        let host_id = {
+            let sess = session.lock().await;
+            sess.host_id.clone()
+        };
+
+        let resolved_sudo_password = if let Some(password) = sudo_password.filter(|password| !password.is_empty()) {
+            password.to_string()
+        } else {
+            db.get_host(&host_id)
+                .await
+                .ok()
+                .flatten()
+                .and_then(|host| host.secret_ref)
+                .and_then(|encrypted| secret::decrypt(&encrypted).ok())
+                .unwrap_or_default()
+        };
+
+        let sftp = {
+            let sess = session.lock().await;
+            sess.init_sftp().await?
+        };
+
+        let metadata = validate_write_expectations(&sftp, remote_path, expected_mtime, expected_hash).await?;
+        let current_mtime = metadata.modified().map(systemtime_to_epoch).unwrap_or(0);
+
+        let temp_path = {
+            let sess = session.lock().await;
+            let output = sess
+                .exec_command("mktemp /tmp/quick-edit.XXXXXXXXXX")
+                .await
+                .map_err(|_| anyhow::anyhow!("FILE_WRITE_FAILED"))?;
+            let path = output.lines().next().unwrap_or("").trim().to_string();
+            if path.is_empty() {
+                anyhow::bail!("FILE_WRITE_FAILED");
+            }
+            path
+        };
+
+        let write_result = async {
+            let mut temp_file = sftp
+                .create(&temp_path)
+                .await
+                .map_err(|err| anyhow::anyhow!(map_write_error(&err)))?;
+            temp_file
+                .write_all(content.as_bytes())
+                .await
+                .map_err(|err| anyhow::anyhow!(map_write_io_error(&err)))?;
+            temp_file
+                .flush()
+                .await
+                .map_err(|_| anyhow::anyhow!("FILE_WRITE_FAILED"))?;
+            temp_file
+                .sync_all()
+                .await
+                .map_err(|_| anyhow::anyhow!("FILE_WRITE_FAILED"))?;
+            drop(temp_file);
+
+            validate_write_expectations(&sftp, remote_path, expected_mtime, expected_hash).await?;
+
+            let operation_id = Uuid::new_v4().simple().to_string();
+            let (parent_dir, file_name) = split_remote_path(remote_path);
+            let root_temp_template = build_sibling_remote_path(parent_dir, file_name, &operation_id, "root.XXXXXX");
+            let backup_path = create_backup.then(|| {
+                build_sibling_remote_path(parent_dir, file_name, &operation_id, "backup")
+            });
+            let backup_clause = if let Some(backup_path) = backup_path.as_deref() {
+                format!(
+                    "if [ -e \"$target\" ]; then cp -p -- \"$target\" {}; fi;",
+                    shell_single_quote(backup_path),
+                )
+            } else {
+                String::new()
+            };
+
+            // 脚本说明：
+            // - `set -o pipefail` 不是 POSIX，老 dash 不支持，靠 `2>/dev/null || true` 兜底，不影响 set -eu。
+            // - `chmod/chown --reference` 是 GNU 扩展，BSD/macOS 远端不支持。
+            //   改用 `stat` 拿数字模式与 uid:gid，GNU 用 `-c`，BSD 用 `-f`，互为 fallback。
+            //   两个 stat 都失败时返回空串，跳过权限同步而不是中断脚本。
+            let script = format!(
+                "set -o pipefail 2>/dev/null || true; \
+                 set -eu; \
+                 target={target}; user_temp={user_temp}; \
+                 if [ -L \"$target\" ]; then resolved=$(readlink -f -- \"$target\" 2>/dev/null || true); if [ -n \"$resolved\" ]; then target=\"$resolved\"; fi; fi; \
+                 staged=$(mktemp {root_temp}); \
+                 cleanup() {{ rm -f -- \"$staged\" \"$user_temp\"; }}; trap cleanup EXIT; \
+                 {backup_clause} \
+                 cat -- \"$user_temp\" > \"$staged\"; \
+                 if [ -e \"$target\" ]; then \
+                   perm_mode=$(stat -c '%a' -- \"$target\" 2>/dev/null || stat -f '%Lp' -- \"$target\" 2>/dev/null || true); \
+                   perm_owner=$(stat -c '%u:%g' -- \"$target\" 2>/dev/null || stat -f '%u:%g' -- \"$target\" 2>/dev/null || true); \
+                   if [ -n \"$perm_mode\" ]; then chmod -- \"$perm_mode\" \"$staged\" 2>/dev/null || true; fi; \
+                   if [ -n \"$perm_owner\" ]; then chown -- \"$perm_owner\" \"$staged\" 2>/dev/null || true; fi; \
+                 fi; \
+                 mv -f -- \"$staged\" \"$target\"",
+                target = shell_single_quote(remote_path),
+                user_temp = shell_single_quote(&temp_path),
+                root_temp = shell_single_quote(&root_temp_template),
+                backup_clause = backup_clause,
+            );
+            // LC_ALL=C 让 sudo 自身的提示信息走英文，is_sudo_auth_error 字符串匹配才能稳定命中。
+            // sudo 默认会 reset env，所以 LC_ALL=C 只作用于 sudo 进程本身（这正是我们想要的）。
+            let command = format!("LC_ALL=C sudo -S -p '' sh -c {}", shell_single_quote(&script));
+            let stdin_bytes = format!("{}\n", resolved_sudo_password).into_bytes();
+
+            let exec_result = {
+                let sess = session.lock().await;
+                sess.exec_command_with_stdin_detailed(&command, Some(stdin_bytes.as_slice()))
+                    .await
+                    .map_err(|_| anyhow::anyhow!("FILE_WRITE_FAILED"))?
+            };
+
+            let combined_output = format!("{}\n{}", exec_result.stderr, exec_result.stdout);
+            if exec_result.exit_code.unwrap_or(1) != 0 {
+                if is_sudo_auth_error(&combined_output) {
+                    anyhow::bail!("SUDO_AUTH_FAILED");
+                }
+                anyhow::bail!("FILE_WRITE_FAILED");
+            }
+
+            Ok::<Option<String>, anyhow::Error>(backup_path)
+        }
+        .await;
+
+        cleanup_remote_file(&sftp, &temp_path).await;
+
+        let backup_path = write_result?;
+
+        let updated = sftp
+            .metadata(remote_path)
+            .await
+            .map_err(|_| anyhow::anyhow!("FILE_WRITE_FAILED"))?;
+
+        Ok(PrivilegedWriteTextResult {
+            success: true,
+            size: updated.len(),
+            mtime: updated.modified().map(systemtime_to_epoch).unwrap_or(current_mtime),
+            hash: sha256_hex(content.as_bytes()),
+            backup_path,
         })
     }
 

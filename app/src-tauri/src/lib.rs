@@ -933,6 +933,20 @@ async fn sftp_list_dir(
 }
 
 #[tauri::command]
+async fn sftp_canonicalize(
+    mgr: tauri::State<'_, SessionManager>,
+    session_id: String,
+    remote_path: String,
+) -> Result<String, String> {
+    if !mgr.is_connected(&session_id) {
+        return Err("Session disconnected".to_string());
+    }
+    SftpManager::canonicalize(&mgr, &session_id, &remote_path)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn sftp_mkdir(
     mgr: tauri::State<'_, SessionManager>,
     session_id: String,
@@ -987,6 +1001,79 @@ async fn sftp_rename(
         .await
         .map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn sftp_read_text(
+    mgr: tauri::State<'_, SessionManager>,
+    session_id: String,
+    remote_path: String,
+    max_bytes: Option<u64>,
+) -> Result<core::sftp::ReadTextResult, String> {
+    if !mgr.is_connected(&session_id) {
+        return Err("SESSION_DISCONNECTED".to_string());
+    }
+
+    SftpManager::read_text(&mgr, &session_id, &remote_path, max_bytes)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn sftp_write_text(
+    mgr: tauri::State<'_, SessionManager>,
+    session_id: String,
+    remote_path: String,
+    content: String,
+    expected_mtime: Option<i64>,
+    expected_hash: Option<String>,
+) -> Result<core::sftp::WriteTextResult, String> {
+    if !mgr.is_connected(&session_id) {
+        return Err("SESSION_DISCONNECTED".to_string());
+    }
+
+    SftpManager::write_text(
+        &mgr,
+        &session_id,
+        &remote_path,
+        &content,
+        expected_mtime,
+        expected_hash.as_deref(),
+    )
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+async fn sftp_write_text_privileged(
+    db: tauri::State<'_, Database>,
+    mgr: tauri::State<'_, SessionManager>,
+    session_id: String,
+    remote_path: String,
+    content: String,
+    expected_mtime: Option<i64>,
+    expected_hash: Option<String>,
+    sudo_password: Option<String>,
+    create_backup: Option<bool>,
+) -> Result<core::sftp::PrivilegedWriteTextResult, String> {
+    if !mgr.is_connected(&session_id) {
+        return Err("SESSION_DISCONNECTED".to_string());
+    }
+
+    SftpManager::write_text_privileged(
+        &db,
+        &mgr,
+        &session_id,
+        &remote_path,
+        &content,
+        expected_mtime,
+        expected_hash.as_deref(),
+        sudo_password.as_deref(),
+        create_backup.unwrap_or(true),
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1479,6 +1566,31 @@ async fn ssh_ping(
         .ping_session(&session_id)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn ssh_env_get(
+    ssh_mgr: tauri::State<'_, SessionManager>,
+    session_id: String,
+    name: String,
+) -> Result<Option<String>, String> {
+    if !name.chars().enumerate().all(|(idx, ch)| {
+        ch == '_' || ch.is_ascii_alphanumeric() && (idx > 0 || !ch.is_ascii_digit())
+    }) {
+        return Err("Invalid environment variable name".to_string());
+    }
+
+    let session = ssh_mgr
+        .get(&session_id)
+        .ok_or_else(|| "Session not found".to_string())?;
+    let output = session
+        .lock()
+        .await
+        .exec_command(&format!("printenv {}", name))
+        .await
+        .map_err(|e| e.to_string())?;
+    let value = output.trim_end_matches(['\r', '\n']).to_string();
+    Ok(if value.is_empty() { None } else { Some(value) })
 }
 
 #[tauri::command]
@@ -2097,6 +2209,69 @@ async fn output_reader_loop(
     tracing::info!("[output_reader_loop] exited for session {}", session_id);
 }
 
+// ── Quick Edit window ──
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct QuickEditOpenPayload {
+    session_id: String,
+    host_id: Option<String>,
+    host_name: String,
+    remote_path: String,
+}
+
+/// Open the Quick Edit window. Reuses the singleton window if already open,
+/// otherwise creates it with the first file's payload encoded in the URL
+/// (avoids the create→emit race for the very first tab).
+#[tauri::command]
+async fn quick_edit_open(app: AppHandle, payload: QuickEditOpenPayload) -> Result<(), String> {
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+    use tauri::{Emitter, WebviewUrl, WebviewWindowBuilder};
+
+    if let Some(window) = app.get_webview_window("quick-edit") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+        window
+            .emit("quick-edit:open-file", &payload)
+            .map_err(|e| format!("emit open-file failed: {}", e))?;
+        return Ok(());
+    }
+
+    let json = serde_json::to_string(&payload)
+        .map_err(|e| format!("serialize payload failed: {}", e))?;
+    let encoded = URL_SAFE_NO_PAD.encode(json.as_bytes());
+    let url_path = format!("index.html?window=quick-edit&open={}", encoded);
+
+    let builder = WebviewWindowBuilder::new(
+        &app,
+        "quick-edit",
+        WebviewUrl::App(url_path.into()),
+    )
+    .title("DdShell · Quick Edit")
+    .inner_size(1100.0, 760.0)
+    .min_inner_size(700.0, 480.0)
+    .center();
+
+    #[cfg(target_os = "macos")]
+    let builder = builder
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true);
+
+    #[cfg(not(target_os = "macos"))]
+    let builder = builder.decorations(false);
+
+    let window = builder
+        .build()
+        .map_err(|e| format!("build quick-edit window failed: {}", e))?;
+
+    if let Ok(icon) = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")) {
+        let _ = window.set_icon(icon);
+    }
+
+    Ok(())
+}
+
 // ── App entry ──
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -2221,9 +2396,13 @@ pub fn run() {
             session_write,
             session_resize,
             sftp_list_dir,
+            sftp_canonicalize,
             sftp_mkdir,
             sftp_remove,
             sftp_rename,
+            sftp_read_text,
+            sftp_write_text,
+            sftp_write_text_privileged,
             sftp_transfer_start,
             sftp_transfer_cancel,
             sftp_transfer_remove,
@@ -2233,6 +2412,7 @@ pub fn run() {
             system_detect,
             connection_test,
             ssh_ping,
+            ssh_env_get,
             metrics_start,
             metrics_stop,
             metrics_snapshot,
@@ -2258,6 +2438,7 @@ pub fn run() {
             check_update,
             get_install_type,
             open_browser,
+            quick_edit_open,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

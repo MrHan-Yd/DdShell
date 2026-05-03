@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { basename, dirname, downloadDir, join } from "@tauri-apps/api/path";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
@@ -37,7 +37,9 @@ import type { LocalFileEntry } from "@/lib/tauri";
 import { toast } from "@/stores/toast";
 import { confirm, useConfirmStore } from "@/stores/confirm";
 import { useT } from "@/lib/i18n";
-import type { FileEntry, TransferTask, FavoritePath, RecentPath } from "@/types";
+import type { FileEntry, TransferTask, FavoritePath, RecentPath, QuickEditRecentItem } from "@/types";
+import { openQuickEditWindow } from "@/lib/quickEditWindow";
+import { clearQuickEditRecents, readQuickEditRecents, recordQuickEditRecent } from "@/lib/quickEditRecent";
 
 type UploadTask = {
   localPaths: string[];
@@ -47,6 +49,63 @@ type UploadTask = {
 type Translate = ReturnType<typeof useT>;
 
 const OVERWRITE_PREVIEW_LIMIT = 5;
+const QUICK_EDIT_MAX_BYTES = 1024 * 1024;
+const QUICK_EDIT_TEXT_EXTENSIONS = new Set([
+  ".conf",
+  ".config",
+  ".cfg",
+  ".cnf",
+  ".css",
+  ".csv",
+  ".env",
+  ".gitignore",
+  ".graphql",
+  ".h",
+  ".hpp",
+  ".html",
+  ".ini",
+  ".java",
+  ".js",
+  ".json",
+  ".jsx",
+  ".log",
+  ".lua",
+  ".md",
+  ".mjs",
+  ".properties",
+  ".py",
+  ".rs",
+  ".scss",
+  ".service",
+  ".sh",
+  ".sql",
+  ".svg",
+  ".toml",
+  ".ts",
+  ".tsx",
+  ".txt",
+  ".xml",
+  ".yaml",
+  ".yml",
+  ".zsh",
+]);
+const QUICK_EDIT_TEXT_FILENAMES = new Set([
+  ".bash_profile",
+  ".bashrc",
+  ".dockerignore",
+  ".editorconfig",
+  ".env",
+  ".env.example",
+  ".gitconfig",
+  ".npmrc",
+  ".profile",
+  ".zprofile",
+  ".zshrc",
+  "dockerfile",
+  "hosts",
+  "makefile",
+  "nginx.conf",
+]);
 
 function getPathName(path: string): string {
   const normalized = path.replace(/\\/g, "/");
@@ -56,6 +115,26 @@ function getPathName(path: string): string {
 function joinRemotePath(dir: string, name: string): string {
   if (dir === "/") return `/${name}`;
   return dir.endsWith("/") ? `${dir}${name}` : `${dir}/${name}`;
+}
+
+function getRemoteDirPath(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const parts = normalized.split("/").filter(Boolean);
+  parts.pop();
+  return `/${parts.join("/")}` || "/";
+}
+
+function isLikelyQuickEditFile(entry: FileEntry): boolean {
+  if (entry.fileType !== "file") return false;
+  if (entry.size > QUICK_EDIT_MAX_BYTES) return false;
+
+  const lowerName = entry.name.toLowerCase();
+  if (QUICK_EDIT_TEXT_FILENAMES.has(lowerName)) return true;
+  if (lowerName.startsWith(".env")) return true;
+
+  const lastDotIndex = lowerName.lastIndexOf(".");
+  if (lastDotIndex === -1) return false;
+  return QUICK_EDIT_TEXT_EXTENSIONS.has(lowerName.slice(lastDotIndex));
 }
 
 async function collectExistingRemoteUploadTargets(
@@ -264,6 +343,11 @@ function Breadcrumb({
 
 // ── FR-17: Path Tools Dropdown ──
 
+// 本地路径收藏 / 最近访问的 sessionId scope。
+// favorite_paths / recent_paths 表的 session_id 字段无外键约束，仅作 key 使用。
+// 真实 session id 为 UUID，不会与这个保留串冲突；机器只有一台，所有 host 共享。
+const LOCAL_PATH_SCOPE = "__local__";
+
 function PathToolsDropdown({
   sessionId,
   currentPath,
@@ -377,7 +461,7 @@ function PathToolsDropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-72 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-popover)] overflow-hidden">
+        <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-popover)] overflow-hidden">
           {/* Favorites section */}
           <div className="border-b border-[var(--color-border)]">
             <div className="flex items-center justify-between px-3 py-2">
@@ -471,6 +555,122 @@ function PathToolsDropdown({
                   </button>
                 ))}
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuickEditRecentDropdown({
+  hostId,
+  onOpen,
+}: {
+  hostId?: string | null;
+  onOpen: (remotePath: string) => void;
+}) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<QuickEditRecentItem[]>([]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const loadItems = useCallback(() => {
+    const recentItems = readQuickEditRecents().filter((item) => {
+      if (!hostId) return true;
+      return item.hostId === hostId;
+    });
+    setItems(recentItems);
+  }, [hostId]);
+
+  const toggleOpen = useCallback(() => {
+    setOpen((prev) => {
+      const next = !prev;
+      if (next) loadItems();
+      return next;
+    });
+  }, [loadItems]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const handleOpen = useCallback((remotePath: string) => {
+    onOpen(remotePath);
+    setOpen(false);
+  }, [onOpen]);
+
+  const handleClear = useCallback(() => {
+    clearQuickEditRecents(hostId);
+    setItems([]);
+  }, [hostId]);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={toggleOpen}
+        className={cn(
+          "p-1 rounded hover:bg-[var(--color-bg-hover)] transition-colors",
+          open && "bg-[var(--color-bg-hover)]",
+        )}
+        title={t("quickEdit.recent")}
+      >
+        <Clock size={14} className="text-[var(--color-text-muted)]" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 w-80 overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-popover)]">
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-3 py-2">
+            <span className="flex items-center gap-1.5 text-[var(--font-size-xs)] font-medium text-[var(--color-text-secondary)]">
+              <Clock size={12} className="text-[var(--color-text-muted)]" />
+              {t("quickEdit.recent")}
+            </span>
+            {items.length > 0 && (
+              <button
+                onClick={handleClear}
+                className="text-[var(--font-size-xs)] text-[var(--color-accent)] hover:underline"
+              >
+                {t("quickEdit.clearRecent")}
+              </button>
+            )}
+          </div>
+
+          <div className="max-h-[280px] overflow-y-auto py-1">
+            {items.length === 0 && (
+              <div className="px-3 py-2 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                {t("quickEdit.noRecent")}
+              </div>
+            )}
+
+            {items.map((item) => (
+              <button
+                key={`${item.hostId ?? "global"}:${item.remotePath}`}
+                className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-[var(--color-bg-hover)]"
+                onClick={() => handleOpen(item.remotePath)}
+                title={item.remotePath}
+              >
+                <Clock size={12} className="mt-0.5 shrink-0 text-[var(--color-text-muted)]" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[var(--font-size-xs)] font-medium text-[var(--color-text-primary)]">
+                    {item.fileName}
+                  </div>
+                  <div className="truncate text-[11px] text-[var(--color-text-muted)]">
+                    {item.remotePath}
+                  </div>
+                </div>
+                <span className="shrink-0 text-[11px] text-[var(--color-text-muted)]">
+                  {new Date(item.updatedAt).toLocaleDateString()}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -630,12 +830,21 @@ function LocalFileList({
       .finally(() => setLoading(false));
   }, [localPath]);
 
+  // 包装 setLocalPath 同时记录 recent。初始 mount 加载 home 不走这里，
+  // 避免每次开 SFTP 都把 home 写进最近访问列表。
+  const navigateLocalWithRecent = useCallback((path: string) => {
+    setLocalPath(path);
+    api.pathAddRecent(LOCAL_PATH_SCOPE, path).catch(() => {
+      /* ignore errors for recent tracking */
+    });
+  }, []);
+
   const goUp = useCallback(() => {
     const parts = localPath.replace(/\/$/, "").split("/");
     parts.pop();
     const parent = parts.join("/") || "/";
-    setLocalPath(parent);
-  }, [localPath]);
+    navigateLocalWithRecent(parent);
+  }, [localPath, navigateLocalWithRecent]);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -652,10 +861,10 @@ function LocalFileList({
       if (entry.fileType === "dir") {
         const newPath =
           localPath === "/" ? `/${entry.name}` : `${localPath}/${entry.name}`;
-        setLocalPath(newPath);
+        navigateLocalWithRecent(newPath);
       }
     },
-    [localPath],
+    [localPath, navigateLocalWithRecent],
   );
 
   const toggleSelect = useCallback((name: string) => {
@@ -780,9 +989,18 @@ function LocalFileList({
         </Button>
       </div>
 
-      {/* Breadcrumb */}
-      <div className="border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1.5">
-        <Breadcrumb path={localPath || "/"} onNavigate={setLocalPath} />
+      {/* Breadcrumb with Path Tools */}
+      <div className="flex items-center gap-1.5 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1.5">
+        <div className="flex-1 overflow-hidden">
+          <Breadcrumb path={localPath || "/"} onNavigate={navigateLocalWithRecent} />
+        </div>
+        {localPath && (
+          <PathToolsDropdown
+            sessionId={LOCAL_PATH_SCOPE}
+            currentPath={localPath}
+            onNavigate={navigateLocalWithRecent}
+          />
+        )}
       </div>
 
       {/* File list */}
@@ -859,6 +1077,7 @@ function RemoteFileList() {
   const mkdir = useSftpStore((s) => s.mkdir);
   const rename = useSftpStore((s) => s.rename);
   const dropRef = useRef<HTMLDivElement>(null);
+  const currentHostId = tabs.find((tab) => tab.sessionId === sessionId)?.hostId ?? null;
 
   const { menuState, onContextMenu, closeMenu } = useContextMenu<FileEntry>();
 
@@ -925,6 +1144,30 @@ function RemoteFileList() {
     return count;
   }, [sessionId]);
 
+  const openQuickEdit = useCallback((path: string) => {
+    if (!sessionId) return;
+    const tab = tabs.find((t) => t.sessionId === sessionId);
+    if (!tab) return;
+    void openQuickEditWindow({
+      sessionId,
+      hostId: tab.hostId,
+      hostName: tab.title,
+      remotePath: path,
+    });
+    recordQuickEditRecent({
+      hostId: tab.hostId,
+      sessionId,
+      remotePath: path,
+      fileName: getPathName(path),
+      updatedAt: Date.now(),
+    });
+  }, [sessionId, tabs]);
+
+  const reopenQuickEditFromRecent = useCallback((path: string) => {
+    navigateRemoteWithRecent(getRemoteDirPath(path));
+    openQuickEdit(path);
+  }, [navigateRemoteWithRecent, openQuickEdit]);
+
   const buildContextMenuItems = useCallback((entry: FileEntry): MenuItem[] => {
     const items: MenuItem[] = [];
 
@@ -935,6 +1178,16 @@ function RemoteFileList() {
         onClick: () => {
           const newPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
           navigateRemoteWithRecent(newPath);
+        },
+      });
+    }
+
+    if (entry.fileType === "file") {
+      items.push({
+        icon: <Pencil size={14} />,
+        label: t("sftp.quickEdit"),
+        onClick: () => {
+          openQuickEdit(joinRemotePath(remotePath, entry.name));
         },
       });
     }
@@ -1092,7 +1345,7 @@ function RemoteFileList() {
     });
 
     return items;
-  }, [t, remotePath, sessionId, navigateRemoteWithRecent, deleteWithAnimation, forceDeleteWithAnimation, countDirFiles, tabs]);
+  }, [t, remotePath, sessionId, navigateRemoteWithRecent, deleteWithAnimation, forceDeleteWithAnimation, countDirFiles, tabs, openQuickEdit]);
 
 // ── SFTP keyboard shortcuts ──
   const handleDelete = useCallback(async () => {
@@ -1299,13 +1552,24 @@ function RemoteFileList() {
   const handleDoubleClick = useCallback(
     (entry: FileEntry) => {
       if (entry.fileType === "dir") {
-        const newPath =
-          remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
-        navigateRemoteWithRecent(newPath);
+        navigateRemoteWithRecent(joinRemotePath(remotePath, entry.name));
+        return;
+      }
+
+      if (isLikelyQuickEditFile(entry)) {
+        openQuickEdit(joinRemotePath(remotePath, entry.name));
       }
     },
-    [remotePath, navigateRemoteWithRecent],
+    [remotePath, navigateRemoteWithRecent, openQuickEdit],
   );
+
+  const selectedQuickEditEntry = useMemo(() => {
+    if (selectedRemoteEntries.size !== 1) return null;
+    const selectedName = Array.from(selectedRemoteEntries)[0];
+    const entry = remoteEntries.find((item) => item.name === selectedName);
+    if (!entry || !isLikelyQuickEditFile(entry)) return null;
+    return entry;
+  }, [remoteEntries, selectedRemoteEntries]);
 
   const goUp = useCallback(() => {
     if (remotePath === "/") return;
@@ -1363,6 +1627,16 @@ function RemoteFileList() {
         >
           <FolderPlus size={14} />
         </Button>
+        {selectedQuickEditEntry && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => openQuickEdit(joinRemotePath(remotePath, selectedQuickEditEntry.name))}
+            title={t("sftp.quickEdit")}
+          >
+            <Pencil size={14} className="text-[var(--color-accent)]" />
+          </Button>
+        )}
         {selectedRemoteEntries.size > 0 && (
           <Button
             size="icon"
@@ -1380,6 +1654,7 @@ function RemoteFileList() {
         <div className="flex-1 overflow-hidden">
           <Breadcrumb path={remotePath} onNavigate={navigateRemoteWithRecent} />
         </div>
+        <QuickEditRecentDropdown hostId={currentHostId} onOpen={reopenQuickEditFromRecent} />
         {sessionId && (
           <PathToolsDropdown
             sessionId={sessionId}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check, Trash2, Plus } from "lucide-react";
+import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check, Trash2, Plus, Github } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -16,8 +16,10 @@ import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
 import type { TerminalBgSource } from "@/types";
 
-const TABS = ["general", "transfer", "terminal", "commandAssist", "about"] as const;
+const TABS = ["general", "transfer", "terminal", "commandAssist", "shortcuts", "about"] as const;
 type SettingsTab = (typeof TABS)[number];
+const IS_MAC = navigator.platform.toUpperCase().includes("MAC");
+const GITHUB_REPO_URL = "https://github.com/MrHan-Yd/DdShell";
 
 type ThemeOption = "dark" | "light" | "system";
 
@@ -143,6 +145,96 @@ function SettingRow({
       </div>
       <div className="ml-4 shrink-0">{children}</div>
     </div>
+  );
+}
+
+function ShortcutsSettings({ t }: { t: ReturnType<typeof useT> }) {
+  const mod = IS_MAC ? "Cmd" : "Ctrl";
+  const groups = [
+    {
+      title: t("settings.shortcutScopeGlobal"),
+      rows: [
+        [`${mod}+T`, t("settings.shortcutGlobalTerminal")],
+        [`${mod}+N`, t("settings.shortcutGlobalConnections")],
+        [`${mod}+,`, t("settings.shortcutGlobalSettings")],
+        [`${mod}+W`, t("settings.shortcutGlobalCloseSession")],
+      ],
+    },
+    {
+      title: t("settings.shortcutScopeTerminal"),
+      rows: [
+        [`${mod}+L`, t("settings.shortcutTerminalClear")],
+        [`${mod}+Shift+E`, t("settings.shortcutTerminalQuickEdit")],
+        ["Alt+Enter", t("settings.shortcutTerminalInsertSelection")],
+        ["Alt+Shift+-", t("settings.shortcutTerminalSplitHorizontal")],
+        ["Alt+Shift+|", t("settings.shortcutTerminalSplitVertical")],
+      ],
+    },
+    {
+      title: t("settings.shortcutScopeSftp"),
+      rows: [
+        ["F5", t("settings.shortcutSftpRefresh")],
+        ["F2", t("settings.shortcutSftpRename")],
+        ["Delete", t("settings.shortcutSftpDelete")],
+        [`${mod}+Shift+N`, t("settings.shortcutSftpNewFolder")],
+      ],
+    },
+    {
+      title: t("settings.shortcutScopePicker"),
+      rows: [
+        ["↑ / ↓", t("settings.shortcutPickerNavigate")],
+        ["Enter", t("settings.shortcutPickerOpen")],
+        ["← / Backspace", t("settings.shortcutPickerBack")],
+        ["→", t("settings.shortcutPickerUndoBack")],
+        [`${mod}+.`, t("settings.shortcutPickerHidden")],
+        ["Esc", t("settings.shortcutPickerClose")],
+      ],
+    },
+    {
+      title: t("settings.shortcutScopeQuickEdit"),
+      rows: [
+        [`${mod}+S`, t("settings.shortcutQuickEditSave")],
+        [`${mod}+F`, t("settings.shortcutQuickEditFind")],
+        [`${mod}+Alt+F`, t("settings.shortcutQuickEditReplace")],
+      ],
+    },
+    {
+      title: t("settings.shortcutScopeCommandAssist"),
+      rows: [
+        ["//", t("settings.shortcutAssistTrigger")],
+        ["↑ / ↓", t("settings.shortcutAssistNavigate")],
+        ["Tab / Enter", t("settings.shortcutAssistConfirm")],
+        ["Esc", t("settings.shortcutAssistClose")],
+      ],
+    },
+  ];
+
+  return (
+    <Section title={t("settings.shortcuts")}>
+      <div className="space-y-4">
+        {groups.map((group) => (
+          <div key={group.title} className="overflow-hidden rounded-[var(--radius-control)] border border-[var(--color-border)]">
+            <div className="border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
+              {group.title}
+            </div>
+            <div className="grid grid-cols-[150px_1fr] gap-2 border-b border-[var(--color-border-subtle)] px-3 py-1.5 text-[var(--font-size-xs)] font-medium text-[var(--color-text-muted)]">
+              <span>{t("settings.shortcutKeys")}</span>
+              <span>{t("settings.shortcutEffect")}</span>
+            </div>
+            <div className="divide-y divide-[var(--color-border-subtle)]">
+              {group.rows.map(([keys, effect]) => (
+                <div key={`${group.title}-${keys}`} className="grid grid-cols-[150px_1fr] items-center gap-2 px-3 py-2 text-[var(--font-size-sm)]">
+                  <kbd className="w-fit rounded border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--color-text-secondary)] shadow-[var(--border-hairline-inner)]">
+                    {keys}
+                  </kbd>
+                  <span className="text-[var(--color-text-secondary)]">{effect}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
   );
 }
 
@@ -664,6 +756,7 @@ export function SettingsPage() {
             { value: "transfer", label: t("settings.tabTransfer") },
             { value: "terminal", label: t("settings.tabTerminal") },
             { value: "commandAssist", label: t("settings.tabCommandAssist") },
+            { value: "shortcuts", label: t("settings.tabShortcuts") },
             { value: "about", label: t("settings.tabAbout") },
           ]}
         />
@@ -1442,6 +1535,10 @@ export function SettingsPage() {
         <CommandAssistSettings t={t} />
         </>)}
 
+        {activeTab === "shortcuts" && (<>
+        <ShortcutsSettings t={t} />
+        </>)}
+
         {activeTab === "about" && (<>
         <Section title={t("settings.dataPrivacy")}>
           <p className="text-[var(--font-size-sm)] leading-relaxed text-[var(--color-text-secondary)]">
@@ -1462,6 +1559,18 @@ export function SettingsPage() {
             <div className="flex justify-between">
               <span className="text-[var(--color-text-muted)]">{t("settings.license")}</span>
               <span>MIT</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[var(--color-text-muted)]">GitHub</span>
+              <button
+                type="button"
+                onClick={() => void api.openBrowser(GITHUB_REPO_URL)}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-accent)] hover:bg-[var(--color-bg-hover)]"
+                title={GITHUB_REPO_URL}
+                aria-label="GitHub"
+              >
+                <Github size={16} />
+              </button>
             </div>
           </div>
         </Section>

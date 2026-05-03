@@ -8,7 +8,7 @@
 - 禁止复用已存在编号，禁止在其他文档定义“平行编号体系”。
 - 本文件只维护一份总表；禁止追加重复的子清单。
 - 状态值仅允许：`TODO`、`IN_PROGRESS`、`DONE`、`BLOCKED`。
-- 本文件当前状态已于 `2026-04-25` 同步更新；除特别说明外，状态按代码静态审阅结果维护；`FR-44` 已按开发完成状态更新；`FR-45 Quick Edit` 已新增为 TODO。
+- 本文件当前状态已于 `2026-05-01` 同步更新；除特别说明外，状态按代码静态审阅结果维护；`FR-44` 已按开发完成状态更新；`FR-45 Quick Edit` 已从纯设计状态更新为 `IN_PROGRESS`。
 
 ## Canonical FR Registry (FR-01~FR-45)
 
@@ -58,4 +58,4 @@ FR-41 | Structured Output Extraction | P1 | TODO | TBD
 FR-42 | Monitoring Alerts | P1 | TODO | TBD
 FR-43 | Unified Task Center | P1 | TODO | TBD
 FR-44 | Command Macros (Workflow Recipe) | P1 | DONE | TBD
-FR-45 | Quick Edit | P1 | TODO | TBD
+FR-45 | Quick Edit | P1 | IN_PROGRESS | TBD

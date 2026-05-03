@@ -23,12 +23,21 @@ import { useWorkflowsStore } from "@/stores/workflows";
 import { useMacroRunner } from "./hooks/useMacroRunner";
 import { MacroRunButton } from "./components/MacroRunButton";
 import { MacroQuickPanel } from "./components/MacroQuickPanel";
+import { RemoteFilePicker } from "./RemoteFilePicker";
+import { cleanSelectedPath, extractAbsolutePathFromSelection, inferCwdFromBuffer } from "./cwdInfer";
+import { openQuickEditWindow } from "@/lib/quickEditWindow";
+import { getRemoteDirPath, readQuickEditPickerDir, recordQuickEditPickerDir } from "@/lib/quickEditPickerDir";
+import { recordQuickEditRecent } from "@/lib/quickEditRecent";
 import "@xterm/xterm/css/xterm.css";
 
 /** Strip ANSI escape sequences and trim whitespace */
 function cleanSelection(text: string): string {
   // eslint-disable-next-line no-control-regex
   return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "").trim();
+}
+
+function getPathName(path: string): string {
+  return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() ?? path;
 }
 
 function escapeRegex(input: string): string {
@@ -137,6 +146,69 @@ function TerminalInstance({
   const termSettingsRef = useRef(termSettings);
   termSettingsRef.current = termSettings;
   const t = useT();
+
+  // Quick Edit picker（仅活动面板响应快捷键）
+  const hostName = useTerminalStore((s) => s.tabs.find((tb) => tb.id === tabId)?.title) ?? "";
+  const [picker, setPicker] = useState<{
+    initialPath: string;
+    prefilterFileName: string | null;
+  } | null>(null);
+  const pickerOpenRef = useRef(false);
+  pickerOpenRef.current = picker !== null;
+  const oscCwdRef = useRef<string | null>(null);
+  const hostNameRef = useRef(hostName);
+  hostNameRef.current = hostName;
+
+  useEffect(() => {
+    const handler = () => {
+      const term = termRef.current;
+      if (!term) return;
+      if (pickerOpenRef.current) return;
+      // 仅活动面板响应：当前 term DOM 必须拥有焦点（多面板下天然只有一个 term focus）
+      const termEl = term.element;
+      if (!termEl?.contains(document.activeElement)) return;
+
+      const sel = term.getSelection();
+      const cleaned = cleanSelectedPath(sel);
+      const selectedAbsolutePath = extractAbsolutePathFromSelection(sel);
+
+      // 选区是绝对路径，或命令片段中只有一个明确绝对路径 → 直接打开 Quick Edit
+      if (selectedAbsolutePath) {
+        void openQuickEditWindow({
+          sessionId: sessionIdRef.current,
+          hostId,
+          hostName: hostNameRef.current,
+          remotePath: selectedAbsolutePath,
+        });
+        recordQuickEditRecent({
+          hostId,
+          sessionId: sessionIdRef.current,
+          remotePath: selectedAbsolutePath,
+          fileName: getPathName(selectedAbsolutePath),
+          updatedAt: Date.now(),
+        });
+        recordQuickEditPickerDir({
+          hostId,
+          sessionId: sessionIdRef.current,
+          path: getRemoteDirPath(selectedAbsolutePath),
+        });
+        return;
+      }
+
+      // 否则推断 cwd 起点 + 弹文件选择器
+      const cwd = oscCwdRef.current ?? inferCwdFromBuffer(term);
+      const initialPath = cwd ?? readQuickEditPickerDir(sessionIdRef.current, hostId) ?? "/";
+
+      // 选区是单一文件名（不含 / 与空白且长度合理）→ 用作预选高亮
+      const looksLikeFileName =
+        !!cleaned && !cleaned.includes("/") && !cleaned.includes(" ") && cleaned.length <= 256;
+      const prefilter = looksLikeFileName ? cleaned : null;
+
+      setPicker({ initialPath, prefilterFileName: prefilter });
+    };
+    window.addEventListener("terminal:open-quick-edit", handler);
+    return () => window.removeEventListener("terminal:open-quick-edit", handler);
+  }, [hostId]);
 
   useEffect(() => {
     if (!macroOutputFilter) {
@@ -464,6 +536,21 @@ function TerminalInstance({
     term.loadAddon(unicode11);
     term.unicode.activeVersion = "11";
 
+    const osc7Disposable = term.parser.registerOscHandler(7, (data) => {
+      try {
+        const url = new URL(data);
+        if (url.protocol !== "file:") return false;
+        const decodedPath = decodeURIComponent(url.pathname);
+        if (decodedPath.startsWith("/")) {
+          oscCwdRef.current = decodedPath;
+          return true;
+        }
+      } catch {
+        // Ignore malformed OSC 7 payloads from remote shells.
+      }
+      return false;
+    });
+
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
 
@@ -503,6 +590,7 @@ function TerminalInstance({
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener("terminal:clear", handleClear);
+      osc7Disposable.dispose();
       term.dispose();
       termRef.current = null;
       fitAddonRef.current = null;
@@ -678,6 +766,34 @@ function TerminalInstance({
     };
     window.addEventListener("terminal:insert-selection", handleInsertSelection);
 
+    const handleInsertText = (event: Event) => {
+      const detail = (event as CustomEvent<{ sessionId?: string; text?: string }>).detail;
+      if (!detail?.text || detail.sessionId !== sessionIdRef.current) return;
+
+      const encoder = new TextEncoder();
+      const bytes = Array.from(encoder.encode(detail.text));
+      api.sessionWrite(sessionIdRef.current, bytes).catch((err) => toast.error(String(err)));
+      term.focus();
+    };
+    window.addEventListener("terminal:insert-text", handleInsertText);
+
+    // Cross-window variant (e.g. from the Quick Edit window). Tauri global
+    // events fan out to every webview, so we filter by sessionId.
+    let unlistenInsertText: (() => void) | null = null;
+    void (async () => {
+      unlistenInsertText = await listen<{ sessionId?: string; text?: string }>(
+        "terminal:insert-text",
+        (event) => {
+          const payload = event.payload;
+          if (!payload?.text || payload.sessionId !== sessionIdRef.current) return;
+          const encoder = new TextEncoder();
+          const bytes = Array.from(encoder.encode(payload.text));
+          api.sessionWrite(sessionIdRef.current, bytes).catch((err) => toast.error(String(err)));
+          term.focus();
+        },
+      );
+    })();
+
     // IME composition handling
     const termEl = term.element;
     const handleCompositionStart = () => { composingRef.current = true; };
@@ -720,6 +836,8 @@ function TerminalInstance({
       unlisten.then((fn) => fn());
       unlistenState.then((fn) => fn());
       window.removeEventListener("terminal:insert-selection", handleInsertSelection);
+      window.removeEventListener("terminal:insert-text", handleInsertText);
+      unlistenInsertText?.();
       termEl?.removeEventListener("compositionstart", handleCompositionStart);
       termEl?.removeEventListener("compositionend", handleCompositionEnd);
       termElForMouse?.removeEventListener("mousedown", handleMiddleClick);
@@ -778,6 +896,42 @@ function TerminalInstance({
             {reconnecting ? t("term.reconnecting") : t("term.reconnect")}
           </button>
         </div>
+      )}
+      {picker && (
+        <RemoteFilePicker
+          open
+          sessionId={sessionId}
+          hostId={hostId}
+          hostName={hostName}
+          initialPath={picker.initialPath}
+          prefilterFileName={picker.prefilterFileName}
+          onPick={(absolutePath) => {
+            void openQuickEditWindow({
+              sessionId,
+              hostId,
+              hostName,
+              remotePath: absolutePath,
+            });
+            recordQuickEditRecent({
+              hostId,
+              sessionId,
+              remotePath: absolutePath,
+              fileName: getPathName(absolutePath),
+              updatedAt: Date.now(),
+            });
+            recordQuickEditPickerDir({
+              hostId,
+              sessionId,
+              path: getRemoteDirPath(absolutePath),
+            });
+            setPicker(null);
+            termRef.current?.focus();
+          }}
+          onClose={() => {
+            setPicker(null);
+            termRef.current?.focus();
+          }}
+        />
       )}
     </div>
   );

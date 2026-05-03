@@ -1,5 +1,105 @@
 # Quick Edit Design
 
+## 0. 当前实现状态（2026-05-02）
+- 当前代码已完成 Level 1 的一条最小闭环原型，状态应视为 `IN_PROGRESS`，不再是纯设计阶段。
+- 已完成：
+  - `SftpPage` 远程文件右键菜单 `快速编辑` 入口
+  - `SftpPage`：明显是文本的小文件支持双击直接打开 Quick Edit，目录双击仍保持进入目录
+  - 最近编辑记录：前端本地持久化，按当前 host 过滤显示，可从远程路径栏右侧轻量重新打开
+  - 独立窗口外壳：`QuickEditWindow` + 多 tab 容器（zustand store），原 `QuickEditModal` 草案已废弃，详见 0.3 节
+  - `QuickEditor.tsx`，基于 `CodeMirror 6` 的最小编辑器内核接入
+  - 编辑器基础能力：行号、查找替换、跳转到行、`Cmd/Ctrl + S`、`Cmd/Ctrl + F`、只读态、dirty 判定、状态栏行列/换行/缩进信息
+  - 语言支持已覆盖：`JSON / YAML / Markdown / TOML / Shell / .env* / Dockerfile` 等常见远程配置文件场景
+  - Quick Edit header / toolbar / status bar 已补到更接近 mac 工具窗的分层样式
+  - 前端 Tauri 封装：`sftpReadText` / `sftpWriteText` / `sftpWriteTextPrivileged`
+  - 后端 Tauri command：`sftp_read_text` / `sftp_write_text` / `sftp_write_text_privileged`
+  - 后端远程文本读取、UTF-8 校验、二进制阻断、大小限制、保存前 `mtime/hash` 冲突检测，以及同目录临时文件 + rename + 回滚的更安全写回链路
+  - Level 3 最小能力已起步：权限不足时可进入 `sudo` 提权保存，并可选择在保存前创建远端备份
+  - 编辑器区域原生右键菜单白名单
+  - 全局快捷键对 Quick Edit / `contenteditable` 的输入放行
+  - Level 2 能力已补齐：更细文件类型映射、Nginx / systemd / env 等配置文件高亮、查找替换入口、跳转到行、状态栏语言/行列/换行/缩进展示、双击文本文件打开、最近编辑、单选文本文件工具栏快速编辑入口、CRLF 保存保留
+  - Level 3 运维增强已补齐主链路：普通保存失败后的显式 `sudo` 提权保存、保存前备份、备份路径展示、保存后建议动作、建议命令复制、建议命令回填当前终端但不自动执行、高风险配置文件提示、提权保存 symlink 解析保护
+  - 终端辅助入口：`Cmd/Ctrl + Shift + E` 在终端页唤起远程文件选择器（`RemoteFilePicker`）；选区是绝对路径时直接打开 Quick Edit，否则弹选择器并尝试从屏幕缓冲区推断 cwd 作为起点目录，详见 2.1 节
+- 当前明确未完成:
+  - 完整手工回归测试与体验打磨，因此当前仍保持 `IN_PROGRESS`
+
+## 0.1 当前实现边界补充（2026-05-02）
+- 普通保存：
+  - 已使用同目录临时文件 + rename + 回滚链路，尽量避免目标文件进入半写状态。
+- 提权保存：
+  - 当前通过 `sudo -S` + 独立 exec channel 完成，不把密码拼进命令字符串。
+  - 当前会先把草稿写到普通用户可写的临时文件，再在提权命令中把内容落到目标目录下的 root staging file，最后 `mv` 到目标路径。
+  - 当前支持“保存前创建备份”选项，并返回 `backupPath`。
+  - 当前对 symlink 路径会在提权命令内优先解析到真实目标，避免直接替换 symlink 本身。
+
+## 0.2 当前建议回归矩阵
+- 打开与基础编辑：
+  - 普通文本文件可打开、编辑、保存。
+  - 非文本文件 / 超大文件 / 不支持编码文件被正确拦截。
+- 保存链路：
+  - 普通保存成功。
+  - 普通保存命中 `FILE_CHANGED_CONFLICT`。
+  - 普通保存命中 `FILE_PERMISSION_DENIED` 后可进入提权保存。
+  - 提权保存成功（无备份）。
+  - 提权保存成功（有备份）。
+  - 提权保存密码错误，返回 `SUDO_AUTH_FAILED`，草稿仍保留。
+  - 提权保存失败时，临时文件会尽量清理。
+- 文件类型与入口：
+  - 目录双击仍进入目录。
+  - 文本文件双击打开 Quick Edit。
+  - 最近编辑记录按 host 过滤可重新打开目标文件。
+- 交互与体验：
+  - `Cmd/Ctrl + S`、`Cmd/Ctrl + F`、跳转到行正常。
+  - `Cmd/Ctrl + Alt + F` 可进入替换工作流。
+  - Quick Edit 内输入不被全局快捷键抢占。
+  - 编辑器内原生右键菜单可用。
+  - CRLF 文件保存后仍保留 CRLF 换行。
+- 特殊场景：
+  - 只读文件编辑后，可通过 `sudo` 保存尝试落盘。
+  - 会话断开时保存返回 `SESSION_DISCONNECTED`。
+  - 保存 `nginx.conf`、systemd unit、`docker-compose.yml`、`sshd_config` 后展示建议动作，且只复制/回填不自动执行。
+  - 高风险配置文件显示风险提示。
+
+## 0.3 独立窗口架构（2026-05-02 升级，覆盖 0. 节中原 modal 描述）
+
+Quick Edit 已从主窗口 modal 升级为独立 webview 窗口，目的是不阻塞主窗口的 SFTP / 终端工作流，并支持同时打开多个文件做对照编辑。
+
+### 窗口创建与复用
+- Tauri command 入口：`app/src-tauri/src/lib.rs::quick_edit_open`
+  - 已存在窗口（label = `quick-edit`，单例）：`unminimize → show → set_focus`，再 `emit("quick-edit:open-file", payload)` 将文件追加为新 tab。
+  - 不存在：`WebviewWindowBuilder` 创建窗口，URL = `index.html?window=quick-edit&open=<URL_SAFE_NO_PAD base64(JSON payload)>`。把第一个文件的 payload 通过 URL 带入是为了避免 `create → emit` 的竞态（webview 还没装好 listener 时事件会丢）。
+  - macOS 用 `TitleBarStyle::Overlay + hidden_title`；其他平台 `decorations(false)`。
+- 主路由：`app/src/main.tsx` 根据 `?window=quick-edit` 选择渲染 `<QuickEditWindow>` 而不是主 `<App>`。同一份前端 bundle 服务两种窗口。
+- payload 解码：`QuickEditWindow.decodeInitialPayload` 用 `atob` 还原 Latin-1 binary 后再走 `TextDecoder("utf-8")`；中文路径不会因为 atob 直接当成 UTF-8 字符串而被拆字节。
+
+### 多 tab 状态
+- `useQuickEditStore`（`app/src/stores/quickEdit.ts`）持有 `tabs: QuickEditTab[]` 与 `activeTabId`。
+- `openOrFocusFile`：以 `sessionId + remotePath` 去重，命中则切换激活 tab，否则新建 tab 并触发 `loadTab`。
+- 草稿正文（draft content）刻意**不放进 store**，由 `QuickEditTabContent` 的 `draftContentRef` 持有。每次按键不触发 zustand 重渲染，避免输入路径上的整 modal 重排。store 只承载 baseline / viewState / dirty / errorCode / editorStatus / sudo 子对话框等粗粒度字段。
+- `QuickEditTabBar` 在出现重名文件时把同名 tab 显示为 `name · hostName`，避免歧义。
+
+### 跨窗口事件
+- `quick-edit:open-file`（主窗口 → quick-edit 窗口）：用于已存在窗口时追加新 tab。
+- `terminal:insert-text`（quick-edit 窗口 → 主窗口终端，Tauri global event）：保存后的建议命令（如 `nginx -t`）通过这个事件回填到指定 sessionId 的终端，**只插入、不自动执行**。`TerminalInstance` 在主窗口同时监听 DOM 自定义事件和 Tauri 事件，按 sessionId 过滤。
+- `session:state_changed`（主窗口广播）：quick-edit 窗口监听到 `disconnected` 后，对该 sessionId 的 tab：
+  - 无 dirty：直接 `closeTab`。
+  - 有 dirty：聚合到 `SessionDetachedDialog`，让用户**一次性**选 `discard all` 或 `keep readonly`（`markDetached` 把 tab 锁成只读保留供复制内容）。
+
+### 关闭策略
+- 单 tab 关闭：dirty 时弹 `confirm` 二次确认。
+- 全部 tab 关完：自动关闭窗口；用 `hasHadTabsRef` 记录"曾经有过 tab"，避免首次 mount 时（URL payload 还没处理）就误关。
+
+### 权限与隔离
+- 独立 capability 文件：`app/src-tauri/capabilities/quick-edit.json`
+  - `windows: ["quick-edit"]`，与主窗口的 capability 隔离
+  - 仅声明 quick-edit 实际需要的权限：`core:default`、窗口控制（minimize / toggle-maximize / close / start-dragging）、`dialog:default`、剪贴板读写、`core:event:default`
+  - 不直接持有 `shell:execute` 等高危权限；提权保存依赖主进程 `sftp_write_text_privileged` 的封装。
+
+### 当前局限
+- 单例窗口：同一时间只有一个 quick-edit 窗口实例；不支持多窗口并列对照（如有需求需扩展 label 命名策略）。
+- 窗口位置 / 尺寸未持久化，每次创建都 `center()` 起 1100x760。
+- tab 顺序与激活态未持久化，关闭窗口即丢失。
+
 ## 1. 目标
 - 为 Shell App 增加一个轻量的远程文本快速编辑能力，用于查看和修改配置文件、脚本、小型文本文件。
 - 该能力是当前 SSH / SFTP 工作流下的一个功能点，不是独立产品模块，不做通用远端 IDE。
@@ -12,7 +112,78 @@
   - 主入口：远程文件右键菜单 `快速编辑`
   - 次入口：选中文本文件后顶部工具栏 `编辑`
   - 可选入口：双击文本文件直接打开快速编辑
-- 不新增一级导航，不从终端页做主入口。
+  - 辅助入口（终端页）：`Cmd/Ctrl + Shift + E` 唤起远程文件选择器或直接打开选区路径，详见 2.1 节
+- 不新增一级导航；终端页只提供辅助入口，不作为主入口。
+
+## 2.1 终端辅助入口（2026-05-03）
+
+### 2.1.1 为什么加这个入口
+- 用户在终端工作时，看到一个文件想改，"切到 SFTP 页 → 导航到目录 → 右键编辑"路径太长。
+- 目标：让终端用户**不切页面、不敲完整路径**就能进入 Quick Edit。
+- 仍保留 3 节的产品判断：终端的主职责是 PTY 工作流，Quick Edit 仍以 SFTP 页为主入口；终端入口是辅助、不做发现性引导。
+
+### 2.1.2 触发与行为
+- 快捷键：`Cmd/Ctrl + Shift + E`，仅在终端页生效。
+- 多面板（split pane）下只有持有焦点的 `TerminalInstance` 响应（通过 `term.element.contains(document.activeElement)` 判断）。
+- 触发后按以下规则执行：
+  1. 取当前 xterm 选区，做基本清洗（trim、去成对外层引号、`\<sp>` → `<sp>`、拒绝多 token / 含换行的选区）。
+  2. 清洗结果以 `/` 开头 → 视为绝对路径，直接调用 `openQuickEditWindow`，不弹选择器。
+  3. 否则唤起 `RemoteFilePicker`：
+     - 起点目录：尝试从终端缓冲区反向扫描 30 行推断 cwd，规则见 2.1.3；推断失败回退到 `/`。
+     - 选区是单一文件名（不含 `/` 与空白且长度 ≤ 256） → 作为 `prefilterFileName` 在选择器进入起点目录后预选高亮。
+
+### 2.1.3 cwd 推断（`cwdInfer.ts`）
+反向扫描终端缓冲区（默认 30 行），按优先级返回第一个命中：
+1. **提示符里 cwd**：行尾形如 `:/etc/nginx$` / `:/etc/nginx#` 的部分（PS1 含 `\w` 的常见样式）。
+2. **命令解析跟踪 cwd**：按时间顺序解析最近缓冲区中的 `cd`、`pushd`、`popd`，支持绝对路径、相对路径、`.`、`..` 与带反斜杠空格的路径片段。
+3. **最近一条文件浏览类命令的目录参数**：`ls`、`ll`、`la`、`cat`、`less`、`more`、`head`、`tail` 后的绝对路径；若参数明显是文件（含 `.` 且不以 `/` 结尾）则取其父目录。
+
+明确不识别或不完全保证的情况（失败时回退到 `/` 或用户可在 picker 中修正）：
+- `$(...)` / 反引号命令替换不会展开，避免把路径输入变成远程命令执行入口。
+- 子 shell、ssh 嵌套、sudo 切换用户后的 cwd 变化无法可靠跟踪；如果远程 shell 配置了 OSC 7，则以 OSC 7 上报的 cwd 为准。
+- 命令是否成功执行不区分，仅按文本匹配（例如 `cd /not/exist` 仍可能被当作 cwd 线索）。
+
+设计上**不强求推断准确**：因为推断错也只会让用户进错起点目录，用户在选择器里上下导航即可纠正，不会"静默打开错文件"。
+
+### 2.1.4 RemoteFilePicker 行为
+- 弹层风格：与 `ConfirmDialog` 同一气质（`glass-card` + 进场动画 + `var(--shadow-modal)`），尺寸 `640 x min(560px, 80vh)`。
+- 数据：复用 `sftpListDir(sessionId, currentPath)`，不引入新后端命令。
+- 排序：目录在前，名字字母序；隐藏文件默认折叠。
+- 键盘：
+  - `↑` / `↓` 选择
+  - `Enter` 进目录或打开文件
+  - `←` 或 `Backspace`（焦点不在路径输入框时）返回上级
+  - `Cmd/Ctrl + .` 切换隐藏文件
+  - `Esc` 关闭
+- 点击路径栏切换为输入态，可直接输入任意绝对路径跳转。
+- 选定文件后调用 `openQuickEditWindow`；不可读 / 非文本 / 超大等错误由 `sftp_read_text` 在 Quick Edit 窗口侧报出（与现有链路一致），picker 不做前置类型校验。
+
+### 2.1.5 当前局限
+- cwd 推断仍是启发式；OSC 7 可提供准确 cwd，但需要远程 shell 主动输出 OSC 7 序列。
+- 路径栏支持 `~` 与简单 `$VAR` 展开；不执行 `$(...)` / 反引号命令替换，避免安全风险。
+- 命令解析跟踪支持 `cd`、`pushd`、`popd` 的常见形式，但不理解 alias、函数、子 shell、ssh 嵌套、sudo 切换用户后的环境变化。
+- 不解析命令是否成功执行，仅按文本匹配（`cd /not/exist` 也会被当作 cwd 线索）。
+
+### 2.1.6 已知行为细节
+以下不是 bug，是当前实现下用户可能感觉意外的行为，记录在此免得日后被当成 bug 重新研究一遍：
+- **picker 打开期间再按 `Cmd/Ctrl + Shift + E` 不会重置选择器**：`TerminalInstance` 在 picker 已打开时早返回，避免重复 dispatch 导致选择状态丢失。
+- **picker 路径输入框 / 搜索框聚焦时不会被 Quick Edit 全局快捷键抢占**：输入框带 `data-quick-editor-root="true"`，`useShortcuts` 会跳过。
+- **`openQuickEditWindow` 后主窗口失焦**：后端 `quick_edit_open` 会主动 `set_focus` 到 quick-edit 窗口，因此 `onPick`/`onClose` 里的 `term.focus()` 在 quick-edit 抢焦后视觉上不生效。这与 SftpPage 现有路径一致，不视为问题。
+- **多面板下未选中面板的选区被忽略**：仅持有 DOM 焦点的 `TerminalInstance` 响应。多面板都没有 selection 的角落场景下也只有焦点面板会弹 picker。
+- **没有单元测试**：`cwdInfer.ts` 是纯函数，本应附带测试用例（提示符 / cd / ls / fallback），但项目当前无 vitest/jest 配置。补测试需先搭基础设施，未与本期一并推进。
+
+### 2.1.7 增强项实现状态
+按预期价值与实现复杂度排序，当前已落地能在现有架构内闭环的增强项：
+
+| 增强 | 状态 | 备注 |
+|---|---|---|
+| picker 内显示「最近编辑」入口 | 已实现 | 复用 `shell.quickEditRecent.v1`，终端和 SFTP 入口共享记录 |
+| 命令片段中的绝对路径自动识别 | 已实现 | 仅当命令片段中存在唯一绝对路径时直开，避免多路径误判 |
+| type-ahead 模糊搜索 | 已实现 | picker 内对当前目录 entries 做 fuzzy match，不调用后端 |
+| 路径栏 `~` 展开 | 已实现 | 新增 `sftp_canonicalize`，通过 SFTP REALPATH 展开 |
+| 简单环境变量展开 | 已实现 | 新增 `ssh_env_get`，支持 `$HOME` 等简单 `$VAR`；不执行命令替换 |
+| OSC 7 shell integration | 已实现 | xterm 注册 OSC 7 handler，远程 shell 上报 cwd 时优先使用 |
+| 命令解析跟踪 cwd | 已实现 | 解析 `cd` / `pushd` / `popd`，支持相对路径和 `..` |
 
 ## 3. 为什么放在文件管理页
 - 用户的触发点天然来自“我看到了一个远程文件，想改它”。
@@ -143,7 +314,10 @@
 ### 8.1 推荐方案：基于现有 SFTP 能力直接读写
 - 在 `app/src-tauri/src/core/sftp.rs` 增加文本读取与文本写回能力。
 - 读取使用独立 SFTP channel，避免干扰现有 PTY。
-- 保存优先直接覆盖远程文件。
+- 保存优先使用同目录临时文件写入，再通过 rename 置换正式文件。
+- 对普通文件建议走：`temp write -> validate again -> original rename backup -> temp rename target -> cleanup backup`。
+- 若置换阶段失败，应优先回滚到原文件，避免把目标路径留在半写状态。
+- 对 `symlink` 路径要保守处理，避免把链接本身替换成普通文件；必要时保留直接写目标文件的兼容路径。
 
 ### 8.2 为什么不推荐第一版走 SSH 命令拼接
 - 使用 `cat` / `tee` / heredoc 保存会引入复杂转义问题。
@@ -185,6 +359,242 @@
 - `readonly`
 - `conflict`
 - `error`
+
+### 9.4 编辑器内核选型
+- 推荐结论：使用 `CodeMirror 6` 作为 Quick Edit 的唯一编辑器内核。
+- 不建议第一版先用 `textarea` 或手搓行号/查找/快捷键，再在后续切换编辑器内核。
+- 不建议 Level 1/2 使用 `Monaco Editor`。
+- 不建议引入 `Ace Editor` 作为折中方案。
+
+### 9.5 选型理由
+- `CodeMirror 6` 已足够成熟，能稳定提供行号、查找、撤销重做、只读态、快捷键、语法高亮等基础能力。
+- 相比 `Monaco`，`CodeMirror 6` 更轻，嵌入成本更低，更容易保持 Quick Edit 的“轻量工具”定位，而不是滑向嵌入式 IDE。
+- 相比 `Monaco`，`CodeMirror 6` 不依赖额外的 worker 配置链路，接入 `Vite + Tauri` 更直接，首版实现风险更低。
+- 相比 `Ace`，`CodeMirror 6` 的现代扩展体系、主题桥接能力和 React/TS 集成体验更适合当前项目长期维护。
+- 对 Quick Edit 这类“中小文本文件、单文件、模态弹层”的场景，`CodeMirror 6` 的流畅度、可控性和复杂度平衡更优。
+
+### 9.6 实现策略
+- 推荐直接使用 `CodeMirror 6` 核心包进行集成，不强依赖额外 React wrapper。
+- 建议在 `QuickEditor.tsx` 内部持有 editor view 实例，由 `QuickEditModal.tsx` 只负责文件加载、保存、冲突与关闭确认。
+- Level 1 即接入最小编辑器能力，不再保留“先做临时文本框版本”的过渡路线。
+
+### 9.7 Level 1 最小依赖建议
+- `codemirror`
+- `@codemirror/commands`
+- `@codemirror/state`
+- `@codemirror/view`
+- `@codemirror/search`
+- `@codemirror/language`
+- `@codemirror/legacy-modes`
+- `@codemirror/lang-json`
+- `@codemirror/lang-yaml`
+- `@codemirror/lang-markdown`
+
+### 9.8 App 集成约束
+- 必须处理全局快捷键与编辑器快捷键冲突。
+- 现有 `useShortcuts` 不能只把 `INPUT/TEXTAREA/SELECT` 当成输入区；需要把 Quick Edit 编辑器焦点态排除在全局快捷键拦截之外。
+- 必须处理全局 `contextmenu` 禁用策略，避免编辑器内部右键复制/粘贴、拼写建议或系统文本菜单被整体拦截。
+- 必须保证编辑器打开后自动聚焦，关闭时焦点合理回到 SFTP 文件列表。
+- 编辑器主题必须桥接到现有 design tokens，不接受默认浏览器样式或默认编辑器主题直接裸用。
+
+### 9.9 macOS 输入质感要求
+- Quick Edit 的目标不是“能编辑”，而是“在 macOS 上输入、移动光标、选择文本、滚动时都显得顺滑、克制、专业”。
+- 输入体验优先级高于功能堆叠；若某个增强能力会明显拖慢输入、滚动或光标响应，优先砍掉该能力。
+- 第一版必须优先保障：
+  - 输入跟手，无明显掉帧或字符延迟
+  - 光标移动与选择反馈稳定
+  - 滚动顺滑，无明显抖动或重排感
+  - 查找高亮、当前行高亮、只读提示都不能抢输入主体验
+
+### 9.10 流畅度实现原则
+- `QuickEditor.tsx` 内部持有 `CodeMirror` 实例与文档状态，不要把每次输入都做成 React 顶层受控重渲染。
+- 不要在每次 `onChange` 时重新创建 editor view、重新拼装 extensions 或重建主题对象。
+- 编辑器扩展、主题扩展、keymap 扩展应尽量保持稳定引用，避免输入过程中反复重配置。
+- `QuickEditModal.tsx` 不应因文件内容变化而整块重渲染编辑器主体；编辑器内容更新应尽量通过 editor transaction 完成。
+- dirty 状态、状态栏信息、保存按钮可随输入更新，但不应让整个 modal 高频重排。
+- 对文件大小限制内的文本，第一版应保证“整文件加载后持续编辑”路径足够稳定，不在输入过程中做额外内容分析任务。
+- 不在输入主路径上同步执行重计算：
+  - 全量哈希重算
+  - 大块 diff
+  - 复杂语法推断
+  - 频繁 layout measurement
+
+### 9.11 建议的性能边界处理
+- 打开文件时完成一次性检测：大小、文本性、编码、初始语言类型。
+- 输入过程中只做轻量更新：文档变更、dirty 标记、必要的状态栏同步。
+- 保存前再做内容哈希或冲突相关附加计算，不要把这类逻辑塞进每次按键。
+- 语法高亮第一版只覆盖高频格式；低频格式宁可先退回纯文本，也不要为了“支持更多类型”牺牲流畅度。
+- 对 `.log`、超长单行文本、内容噪音较大的文件，应允许保守降级部分装饰能力，优先保住输入与滚动体验。
+
+### 9.12 macOS 细节建议
+- 编辑区字体优先使用 `SF Mono` 或当前终端一致的高质量等宽字体栈。
+- 光标颜色、选区颜色、当前行高亮要克制，避免高饱和 IDE 风格。
+- gutter、状态栏、查找条都应低噪音，不要破坏内容区的沉浸感。
+- 滚动条、内边距、行高、选区圆角和 focus ring 要与现有 Shell App 的 glass / modal 质感一致。
+- 编辑器获得焦点时要有明确但不刺眼的 focus 提示；失焦后视觉应自然收回。
+
+### 9.13 `QuickEditor.tsx` 建议接口
+- 建议把 `QuickEditor.tsx` 设计成“轻受控、重内聚”的组件。
+- 推荐 props 形态：
+
+```ts
+type QuickEditorProps = {
+  value: string;
+  baselineValue?: string;
+  remotePath: string;
+  readOnly?: boolean;
+  autoFocus?: boolean;
+  className?: string;
+  onChange: (nextValue: string) => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  onSaveRequest?: () => void;
+  onFindRequest?: () => void;
+  onStatusChange?: (status: {
+    line: number;
+    column: number;
+    lineEnding: "LF" | "CRLF" | "mixed" | "unknown";
+    indentStyle: "tab" | "spaces-2" | "spaces-4" | "unknown";
+  }) => void;
+};
+```
+
+- `value` 用于初始化与外部显式重载，不应在每次输入时驱动整个 editor 重建。
+- `baselineValue` 表示最近一次成功读取或保存后的基线内容，用于稳定 dirty 判定。
+- `remotePath` 用于推断 language extension。
+- `readOnly` 用于切换只读态。
+- `onChange` 只负责把最新文本同步回上层草稿状态，不负责驱动 editor 重新 mount。
+- `onStatusChange` 用于同步行列、换行、缩进等状态栏信息。
+
+### 9.14 `QuickEditor.tsx` 内部状态边界
+- 适合放在 editor 内部的状态：
+  - editor view 实例
+  - 当前文档状态
+  - 选区 / 光标位置
+  - 查找面板开关与匹配状态
+  - 语言扩展实例
+- 适合放在 modal 层的状态：
+  - loading
+  - saving
+  - error
+  - conflict
+  - 是否只读
+  - 最近一次保存结果
+  - 关闭前确认
+- 原则：凡是高频、与按键直接相关的状态，尽量留在 editor 内；凡是业务语义和远端 IO 相关的状态，放在 modal 层。
+
+### 9.15 初始化与重载策略
+- 组件 mount 时创建一次 `EditorView`。
+- 文件首次加载成功后，把内容写入 editor 初始文档。
+- 当 `remotePath` 变化时：
+  - 重新推断语言类型
+  - 更新文档内容
+  - 重置 dirty 基线
+  - 焦点回到编辑器
+- 当用户执行“重新加载”并确认覆盖当前草稿时：
+  - 通过 transaction 替换当前文档
+  - 更新 dirty 基线
+  - 不重新销毁/创建整个 editor
+- 不要因为父组件重新 render 就重新创建 `EditorView`。
+
+### 9.16 文档同步策略
+- 建议维护两份概念上的值：
+  - `initialContent`：最近一次成功读取或成功保存后的基线
+  - `draftContent`：当前编辑内容
+- dirty 判定基于 `draftContent !== initialContent`。
+- 输入过程中由 editor 内部先更新文档，再通过轻量回调把 `draftContent` 通知给 modal。
+- 保存成功后：
+  - 把当前内容提升为新的 `initialContent`
+  - 清除 dirty
+  - 更新状态栏与文件元数据
+
+### 9.17 语言扩展建议
+- Level 1 优先支持：
+  - JSON
+  - YAML
+  - Markdown
+  - Shell
+- 第一版建议映射规则：
+  - `.json` -> JSON
+  - `.yaml` / `.yml` -> YAML
+  - `.md` -> Markdown
+  - `.sh` -> Shell
+  - 其他类型 -> Plain Text
+- `.env`、`nginx.conf`、`*.service`、`docker-compose.yml` 不必急于在 Level 1 做复杂专属语法支持。
+- 原则是：高频格式优先，低频格式保守退回纯文本，避免为扩展覆盖率牺牲流畅度。
+
+### 9.18 快捷键建议
+- Level 1 最少应支持：
+  - `Cmd/Ctrl + S`：保存
+  - `Cmd/Ctrl + F`：打开查找
+  - `Esc`：优先关闭查找条等次级 UI，再交给 modal 处理关闭逻辑
+- 编辑器内快捷键优先级应高于页面级通用快捷键。
+- 若编辑器已聚焦，`useShortcuts` 不应继续拦截与输入、查找、保存直接冲突的组合键。
+- 不建议第一版接入过多 IDE 式快捷键，避免心智复杂度上升。
+
+### 9.19 右键菜单与系统文本交互
+- 当前 App 全局禁用了默认 `contextmenu`，Quick Edit 需要为编辑器区域开白名单。
+- 最低要求：
+  - 允许系统复制 / 粘贴 / 剪切菜单
+  - 允许拼写建议或系统文本服务继续工作
+  - 不让全局页面右键禁用策略破坏编辑区的原生文本体验
+- 不建议第一版自造一个功能残缺的编辑器右键菜单替代系统菜单。
+
+### 9.20 主题桥接建议
+- 不建议直接套用默认 `CodeMirror` 主题完事。
+- 应通过主题扩展把以下区域映射到现有 token：
+  - editor background
+  - text color
+  - caret color
+  - selection
+  - active line
+  - gutter background / text
+  - search match / active match
+  - panel background
+  - focus ring
+- 视觉目标：
+  - 内容区比 modal 外壳更沉稳
+  - gutter 低对比、不喧宾夺主
+  - 当前行与查找高亮可见但不刺眼
+  - 焦点态精致，不出现浏览器默认蓝边
+
+### 9.21 输入路径上的禁止事项
+- 不要在每次输入时触发：
+  - React 顶层大面积状态更新
+  - 目录刷新
+  - 文件元数据重新读取
+  - 内容哈希重算
+  - 重建语言扩展
+  - 重建整个主题对象
+- 不要在编辑器外层包一层会频繁变化尺寸或布局的动画容器。
+- 不要把保存按钮的 loading、toast 或状态栏更新做成影响 editor DOM 结构的整块重排。
+
+### 9.22 建议的保存链路前端行为
+- 用户触发保存时：
+  1. 立即锁定重复保存按钮点击。
+  2. 保持 editor 可见，不清空草稿。
+  3. 若处于只读态，则直接提示权限不足，不假装进入正常保存流程。
+  4. 调用 `sftp_write_text` 时带上最近一次读取成功后的 `expectedHash` 与可选 `expectedMtime`。
+  5. 保存成功后更新基线内容、状态栏、元数据与目录列表。
+  6. 保存失败后保留当前草稿和光标位置。
+- 冲突与失败反馈应尽量轻量，不要在失败瞬间让整个编辑器区域闪烁或重载。
+
+### 9.23 建议的关闭行为
+- 若无未保存改动：直接关闭。
+- 若存在未保存改动：
+  - 弹出现有确认框
+  - 默认焦点不放在危险确认上
+  - 不自动丢弃草稿
+- 关闭后：
+  - 清理 editor view
+  - 清理与当前文件相关的局部状态
+  - 焦点尽量回到刚才操作的文件项或文件列表区域
+
+### 9.24 验收重点
+- 在 `<= 1 MB` 的典型配置文件中连续输入时，无明显字符延迟。
+- 长按方向键、按住删除键、连续粘贴多行文本时，光标与内容反馈稳定。
+- `Cmd/Ctrl + S`、`Cmd/Ctrl + F` 在编辑器聚焦时优先命中编辑器逻辑，不触发页面级误操作。
+- 打开查找、关闭查找、保存成功、保存失败都不应导致 editor 失焦或滚动位置跳变。
+- 深色 / 浅色主题下都保持 Shell App 的 macOS 风格，不出现默认 IDE 皮肤割裂感。
 
 ## 10. 冲突检测
 - 打开文件时返回 `mtime` 和 `hash`。
@@ -526,6 +936,7 @@ type SftpWriteTextPrivilegedResponse = {
   - 只读模式
   - 基础查找快捷键支持
 - Level 1 不需要承载过多复杂逻辑，避免把 modal 控制和编辑器状态缠在一起。
+- 编辑器内核明确使用 `CodeMirror 6`，不建议先用 `textarea` 过渡。
 
 ##### `app/src/features/sftp/components/QuickEditStatusBar.tsx`（可选）
 - 如果 Level 1 先追求快速落地，可先内联在 `QuickEditModal.tsx`。
@@ -568,23 +979,36 @@ type SftpWriteTextPrivilegedResponse = {
 - 这样可以保证交互一致，也减少额外组件复杂度。
 
 ##### `app/package.json`
-- Level 1 若只做基础编辑，可先不引入重编辑器依赖。
-- 但如果决定第一版就使用 `CodeMirror 6` 做基础编辑体验，则这里需要补最小编辑器依赖。
-- 若团队希望先更快验证链路，也可先用轻量方案完成闭环，再在后续切到更成熟的编辑器内核。
+- Level 1 直接引入 `CodeMirror 6` 最小依赖，不再保留 `textarea` 过渡方案。
+- 依赖建议以最小集合起步：
+  - `codemirror`
+  - `@codemirror/commands`
+  - `@codemirror/state`
+  - `@codemirror/view`
+  - `@codemirror/search`
+  - `@codemirror/language`
+  - `@codemirror/legacy-modes`
+  - `@codemirror/lang-json`
+  - `@codemirror/lang-yaml`
+  - `@codemirror/lang-markdown`
+- `.env`、`.conf`、`.service`、`.log`、无扩展名文本文件第一版可先按纯文本处理。
 
 ##### Level 1 执行顺序建议
 1. `app/src-tauri/src/core/sftp.rs`：实现文本读写能力。
 2. `app/src-tauri/src/lib.rs`：暴露 `sftp_read_text / sftp_write_text`。
 3. `app/src/lib/tauri.ts` + `app/src/types/index.ts`：完成前端 API 与类型。
-4. `app/src/features/sftp/SftpPage.tsx`：挂入口和弹层状态。
-5. `QuickEditModal.tsx`：完成基础 UI 与状态闭环。
-6. `i18n.ts` + 样式文件：补文案和 mac 风格视觉。
-7. 最后做回归验证与边界场景测试。
+4. `app/package.json`：补 `CodeMirror 6` 最小依赖。
+5. `QuickEditor.tsx`：先跑通 `CodeMirror 6` 的行号、只读、查找、保存快捷键和焦点管理。
+6. `app/src/features/sftp/SftpPage.tsx`：挂入口和弹层状态。
+7. `QuickEditModal.tsx`：完成基础 UI 与状态闭环。
+8. `i18n.ts` + 样式文件：补文案和 mac 风格视觉，并桥接 `CodeMirror` 主题。
+9. 修正全局快捷键 / 全局右键菜单与编辑器的冲突。
+10. 最后做回归验证与边界场景测试。
 
 ##### Level 1 主要风险
 - 二进制检测如果过于粗糙，可能误判部分配置文件。
 - 保存前冲突处理如果不严谨，容易覆盖远端新内容。
-- 若第一版编辑区实现过于简陋，会影响“可用性第一印象”。
+- 若编辑器内核选型或快捷键/右键菜单集成处理不当，会直接影响“流畅丝滑”的第一印象。
 - 若视觉没对齐现有 glass / modal 风格，功能虽然可用，但会显得割裂。
 
 ### Level 2：更像成熟编辑器
@@ -705,7 +1129,7 @@ type SftpWriteTextPrivilegedResponse = {
   - history
   - line numbers
   - selection / highlight helpers
-- 不建议在 Level 2 引入 Monaco，以免明显抬高体积和复杂度。
+- 不建议在 Level 2 引入 `Monaco`，以免明显抬高体积、worker 配置复杂度和 IDE 感。
 
 #### Level 2 风险点
 - 语法高亮种类变多后，容易出现“某些文件类型高亮不准确”。
@@ -752,6 +1176,7 @@ type SftpWriteTextPrivilegedResponse = {
   - history
   - language support
 - 不建议在 Level 2 引入 `Monaco`，避免包体积和复杂度明显抬升。
+- 若 Level 1 已按建议接入最小依赖，则 Level 2 只是在此基础上补语言、高亮、搜索与状态扩展，而不是替换编辑器内核。
 
 ##### `app/src/features/sftp/SftpPage.tsx`
 - 增加双击文本文件直接打开逻辑。
@@ -1124,17 +1549,21 @@ type SftpWriteTextPrivilegedResponse = {
 
 ## 15.2 编辑器组件建议
 - 第一版不建议手搓复杂编辑器行为。
-- 推荐优先评估：`CodeMirror 6`
+- 编辑器内核直接确定为：`CodeMirror 6`
 - 原因：
   - 足够轻量
+  - 足够成熟，基础编辑体验稳定
   - 行号、查找、语法高亮、快捷键支持成熟
+  - 嵌入成本和运行复杂度低于 `Monaco`
   - 更符合 Quick Edit 的轻量定位
-- `Monaco Editor` 可作为后续备选，但第一版偏重，容易把功能做成“嵌入式 IDE”。
+  - 更容易贴合当前项目的 modal / glass / token 风格
+- `Monaco Editor` 不作为 Level 1/2 备选路线；只有当产品边界明确转向 IDE 式远端编辑器时才重新评估。
+- 不建议实现 `textarea + 自定义补丁` 的临时方案，这会在后续切换编辑器内核时产生重复工程成本。
 
 ## 16. 最终建议
 - 这是一个适合作为当前项目内功能点落地的能力。
 - 最佳入口是 `文件管理 / SFTP` 页，而不是独立页面或终端主入口。
-- 最佳第一版方案是：`SFTP 文件管理页 + 大号快速编辑弹层 + 基于 SFTP 的直接文本读写`。
+- 最佳第一版方案是：`SFTP 文件管理页 + 大号快速编辑弹层 + 基于 SFTP 的直接文本读写 + CodeMirror 6 最小编辑内核`。
 - 这样既保留 Shell 工具的专业气质，也能给非 `vim` 用户提供现代化、低门槛的编辑体验。
 
 ## 17. 执行顺序建议

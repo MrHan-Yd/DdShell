@@ -1210,3 +1210,245 @@ input[type="number"] {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1),
               inset 0 0 0 1px var(--color-accent);
 }
+
+/* Quick Edit editor shell */
+.quick-editor-shell {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: clip;
+  border: 1px solid var(--color-border-subtle, var(--color-border));
+  border-radius: calc(var(--radius-popover) - 2px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+    var(--color-bg-base);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.18);
+  transition:
+    border-color var(--duration-fast, 120ms) var(--ease-smooth, ease),
+    box-shadow var(--duration-fast, 120ms) var(--ease-smooth, ease);
+}
+
+.quick-editor-shell:focus-within {
+  border-color: var(--color-border-focus, var(--color-accent));
+  box-shadow:
+    var(--shadow-focus-ring),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.18);
+}
+
+.quick-editor-shell .cm-editor {
+  height: 100%;
+  background: transparent;
+}
+
+.quick-editor-shell .cm-content ::selection,
+.quick-editor-shell .cm-content::selection {
+  background-color: #264f78;
+  color: #ffffff;
+}
+
+.quick-editor-shell .cm-focused {
+  outline: none;
+}
+
+.quick-editor-context-menu {
+  position: fixed;
+  z-index: 120;
+  min-width: 148px;
+  overflow: hidden;
+  padding: 5px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    var(--surface-popover, var(--surface-card));
+  box-shadow: var(--shadow-popover, var(--shadow-modal));
+  backdrop-filter: blur(16px) saturate(140%);
+  animation: quick-editor-panel-in var(--duration-panel) var(--ease-spring) forwards;
+  transform-origin: top left;
+}
+
+.quick-editor-context-menu button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  border: 0;
+  border-radius: calc(var(--radius-control) - 2px);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: default;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  padding: 7px 9px;
+  text-align: left;
+}
+
+.quick-editor-context-menu button:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.quick-editor-context-menu button:disabled {
+  opacity: 0.42;
+}
+
+.quick-editor-context-menu-separator {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--color-border-subtle);
+}
+
+.quick-edit-window {
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+    var(--surface-card);
+}
+
+.quick-edit-header {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)),
+    rgba(15, 17, 21, 0.18);
+  box-shadow: inset 0 -0.5px 0 rgba(255, 255, 255, 0.04);
+}
+
+.quick-edit-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.quick-edit-traffic-lights {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.quick-edit-traffic {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.25), 0 0.5px 1px rgba(0, 0, 0, 0.35);
+}
+
+.quick-edit-traffic--close {
+  background: linear-gradient(180deg, #ff6a63, #ff4d43);
+}
+
+.quick-edit-traffic--minimize {
+  background: linear-gradient(180deg, #ffd65a, #ffbf2f);
+}
+
+.quick-edit-traffic--zoom {
+  background: linear-gradient(180deg, #49db74, #28c84d);
+}
+
+.quick-edit-toolbar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0));
+}
+
+.quick-edit-toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: calc(var(--radius-control) + 2px);
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.04);
+}
+
+.quick-edit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.quick-edit-badge--status {
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.05);
+}
+
+.quick-edit-badge--muted {
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.quick-edit-badge--accent {
+  color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+}
+
+.quick-edit-editor-stage {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 12%),
+    rgba(0, 0, 0, 0.12);
+}
+
+.quick-edit-statusbar {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01)),
+    rgba(15, 17, 21, 0.22);
+}
+
+.quick-edit-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Quick Edit panel animations — macOS-style spring + subtle scale */
+@keyframes quick-editor-panel-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.97);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(1px) scaleY(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+@keyframes quick-editor-panel-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.97);
+  }
+}
+
+@media (max-width: 900px) {
+  .quick-edit-titlebar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .quick-edit-toolbar {
+    gap: 10px;
+  }
+
+  .quick-edit-toolbar-group {
+    flex-wrap: wrap;
+  }
+}

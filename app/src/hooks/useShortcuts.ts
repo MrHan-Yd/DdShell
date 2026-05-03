@@ -16,6 +16,7 @@ interface ShortcutDef {
   handler: ShortcutHandler;
   /** Only active on this page (null = global) */
   page?: Page | null;
+  allowInInput?: boolean;
 }
 
 const isMac = navigator.platform.toUpperCase().includes("MAC");
@@ -118,6 +119,17 @@ export function useShortcuts() {
         },
         page: "terminal",
       },
+      {
+        key: "e",
+        ctrl: true,
+        shift: true,
+        allowInInput: true,
+        handler: () => {
+          // Open Quick Edit from terminal — picks up selection / infers cwd / opens file picker
+          window.dispatchEvent(new CustomEvent("terminal:open-quick-edit"));
+        },
+        page: "terminal",
+      },
       // ── SFTP shortcuts ──
       {
         key: "F5",
@@ -153,16 +165,23 @@ export function useShortcuts() {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't intercept shortcuts when typing in inputs
-      const tag = (e.target as HTMLElement)?.tagName;
-      const isInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      const isPlainInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+      const isExclusiveEditor =
+        target?.isContentEditable === true ||
+        target?.closest("[data-quick-editor-root='true']") !== null;
+
+      // QuickEditor 与 contenteditable 区域独占按键：全局与页面级快捷键都不拦截
+      if (isExclusiveEditor) return;
 
       for (const def of shortcuts) {
         if (def.page !== null && def.page !== undefined && def.page !== currentPage) continue;
 
-        if (matchesModifier(e, def)) {
-          // Allow typing in inputs unless it's a global shortcut
-          if (isInput && def.page !== null) continue;
+        // 普通输入区放行 page === null 的全局快捷键，仅阻止页面级快捷键
+        if (isPlainInput && def.page !== null && !def.allowInInput) continue;
 
+        if (matchesModifier(e, def)) {
           e.preventDefault();
           e.stopPropagation();
           def.handler(e);

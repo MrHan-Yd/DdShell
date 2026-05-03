@@ -200,6 +200,66 @@ export interface FileEntry {
   permissions: number;
 }
 
+export type QuickEditLineEnding = "LF" | "CRLF" | "mixed" | "unknown";
+
+export type QuickEditIndentStyle = "tab" | "spaces-2" | "spaces-4" | "unknown";
+
+export type QuickEditViewState =
+  | "idle"
+  | "loading"
+  | "ready"
+  | "saving"
+  | "conflict"
+  | "error";
+
+export interface RemoteTextFile {
+  content: string;
+  size: number;
+  mtime: number;
+  encoding: "utf-8" | "unknown" | string;
+  readonly: boolean;
+  hash: string;
+  isText: boolean;
+}
+
+export interface RemoteTextWriteResult {
+  success: boolean;
+  size: number;
+  mtime: number;
+  hash: string;
+}
+
+export interface RemoteTextPrivilegedWriteResult {
+  success: boolean;
+  size: number;
+  mtime: number;
+  hash: string;
+  backupPath?: string | null;
+}
+
+export interface QuickEditRecentItem {
+  hostId?: string | null;
+  sessionId?: string | null;
+  remotePath: string;
+  fileName: string;
+  updatedAt: number;
+}
+
+export interface QuickEditSuggestedAction {
+  id: string;
+  label: string;
+  command: string;
+  description?: string;
+}
+
+export type QuickEditRiskLevel = "none" | "medium" | "high";
+
+export interface QuickEditRiskNotice {
+  level: QuickEditRiskLevel;
+  title: string;
+  description: string;
+}
+
 /** Transfer task — SFTP */
 export interface TransferTask {
   id: string;
