@@ -5,6 +5,9 @@ import type { WorkflowRecipe } from "@/types";
 
 const RECENT_MACRO_STORAGE_KEY = "terminal.macro.recentIds";
 
+// Module-level TextEncoder singleton (stateless, safe to share)
+const TEXT_ENCODER = new TextEncoder();
+
 type SessionState = "connected" | "disconnected" | "failed";
 
 export type MacroRunState = "idle" | "running" | "cancelling" | "failed" | "completed" | "cancelled";
@@ -128,8 +131,7 @@ function buildEchoControlCommand(enable: boolean): string {
 }
 
 async function writeText(sessionId: string, text: string): Promise<void> {
-  const encoder = new TextEncoder();
-  await api.sessionWrite(sessionId, Array.from(encoder.encode(text)));
+  await api.sessionWrite(sessionId, Array.from(TEXT_ENCODER.encode(text)));
 }
 
 function stripAnsi(input: string): string {

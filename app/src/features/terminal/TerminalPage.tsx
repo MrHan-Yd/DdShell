@@ -6,6 +6,7 @@ import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { FitAddon } from "@xterm/addon-fit";
+import { PredictiveEcho } from "./predictiveEcho";
 import { X, Plus, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_DANGEROUS_COMMANDS, isCommandDangerous } from "@/lib/constants";
@@ -29,6 +30,11 @@ import { openQuickEditWindow } from "@/lib/quickEditWindow";
 import { getRemoteDirPath, readQuickEditPickerDir, recordQuickEditPickerDir } from "@/lib/quickEditPickerDir";
 import { recordQuickEditRecent } from "@/lib/quickEditRecent";
 import "@xterm/xterm/css/xterm.css";
+
+// Module-level TextEncoder singleton. TextEncoder is stateless and safe to
+// share; constructing one per keystroke / per IPC write is wasted work on the
+// hot input path.
+const TEXT_ENCODER = new TextEncoder();
 
 /** Strip ANSI escape sequences and trim whitespace */
 function cleanSelection(text: string): string {
@@ -128,6 +134,7 @@ function TerminalInstance({
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const predictiveEchoRef = useRef<PredictiveEcho | null>(null);
   const updateTabState = useTerminalStore((s) => s.updateTabState);
   const reconnectSession = useTerminalStore((s) => s.reconnectSession);
   const tabState = useTerminalStore(
@@ -146,6 +153,11 @@ function TerminalInstance({
   const termSettingsRef = useRef(termSettings);
   termSettingsRef.current = termSettings;
   const t = useT();
+  // useT() returns a fresh closure on every render. We never want a translator
+  // change to invalidate hot-path callbacks (checkAssistTrigger / Effect 2),
+  // so we read it through a ref. Translation isn't on the keystroke fast path.
+  const tRef = useRef(t);
+  tRef.current = t;
 
   // Quick Edit picker（仅活动面板响应快捷键）
   const hostName = useTerminalStore((s) => s.tabs.find((tb) => tb.id === tabId)?.title) ?? "";
@@ -238,6 +250,9 @@ function TerminalInstance({
   const [cursorPos, setCursorPos] = useState<{ col: number; row: number; charW: number; charH: number; offsetX: number; offsetY: number }>({ col: 0, row: 0, charW: 8, charH: 18, offsetX: 0, offsetY: 0 });
   const geoRef = useRef({ charW: 8, charH: 18, offsetX: 0, offsetY: 0 });
   const cursorRafRef = useRef<number | null>(null);
+  // Re-entrancy guard for queued command-assist checks. Lets us coalesce
+  // bursts of keystrokes into a single microtask-scheduled trigger check.
+  const assistCheckScheduledRef = useRef(false);
   const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [osType, setOsType] = useState<string | null>(null);
   const assistVisibleRef = useRef(false);
@@ -317,7 +332,7 @@ function TerminalInstance({
           const hintShown = sessionStorage.getItem("commandAssist.hintShown");
           if (!hintShown) {
             sessionStorage.setItem("commandAssist.hintShown", "1");
-            toast.info(t("commandAssist.enableHint"));
+            toast.info(tRef.current("commandAssist.enableHint"));
           }
         }
       }
@@ -367,7 +382,13 @@ function TerminalInstance({
         charW, charH, offsetX, offsetY,
       });
     }
-  }, [t]);
+  }, []);
+
+  // Hold the latest checkAssistTrigger in a ref so Effect 2 (session I/O
+  // bindings) doesn't have to depend on it. This keeps onData / onResize /
+  // session:output listeners stable across re-renders.
+  const checkAssistTriggerRef = useRef(checkAssistTrigger);
+  checkAssistTriggerRef.current = checkAssistTrigger;
 
   // ── Command Assist: handle selection ──
   const handleAssistSelect = useCallback((command: string, id: string) => {
@@ -379,7 +400,7 @@ function TerminalInstance({
     const textToReplace = buffer.substring(slashPos);
 
     // Send backspaces to erase the // prefix + query, then type the command
-    const encoder = new TextEncoder();
+    const encoder = TEXT_ENCODER;
 
     // Erase: send backspace for each char of the trigger text
     const backspaces = "\x7f".repeat(textToReplace.length);
@@ -551,11 +572,101 @@ function TerminalInstance({
       return false;
     });
 
+    // OSC 133 — shell prompt / command boundary signals (FinalTerm spec).
+    // We never consume the sequence (return false) so xterm continues normal
+    // processing. Only the first character matters (A/B/C/D); some shells
+    // append extra fields (e.g. "D;0"), which we ignore.
+    const osc133Disposable = term.parser.registerOscHandler(133, (data) => {
+      const marker = data.charAt(0);
+      const pe = predictiveEchoRef.current;
+      if (pe) {
+        switch (marker) {
+          case "A": pe.onPromptStart(); break;
+          case "B": pe.onPromptReady(); break;
+          case "C": pe.onCommandStart(); break;
+          case "D": pe.onCommandEnd(); break;
+        }
+      }
+      return false;
+    });
+
+    // CSI ?{1049,1047,47}{h,l} — alternate screen toggles.
+    // We don't consume (return false) so xterm continues to switch the buffer
+    // normally; we only forward the signal to PredictiveEcho so it can freeze
+    // before vim/less/tmux paint over the predicted dim characters.
+    const isAltScreenParam = (p: number | number[]): boolean => {
+      const n = Array.isArray(p) ? p[0] : p;
+      return n === 1049 || n === 1047 || n === 47;
+    };
+    const csiAltEnterDisposable = term.parser.registerCsiHandler(
+      { prefix: "?", final: "h" },
+      (params) => {
+        if (params.length > 0 && isAltScreenParam(params[0])) {
+          predictiveEchoRef.current?.onAlternateScreenEnter();
+        }
+        return false;
+      },
+    );
+    const csiAltLeaveDisposable = term.parser.registerCsiHandler(
+      { prefix: "?", final: "l" },
+      (params) => {
+        if (params.length > 0 && isAltScreenParam(params[0])) {
+          predictiveEchoRef.current?.onAlternateScreenLeave();
+        }
+        return false;
+      },
+    );
+
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
 
     termRef.current = term;
     fitAddonRef.current = fitAddon;
+    // Predictive Echo: bind to xterm lifecycle. The instance is always created
+    // (cheap) so OSC 133 / session:output hooks can reference predictiveEchoRef
+    // without null-guard explosions; setEnabled(false) puts it in Disabled
+    // state where every public method is a no-op.
+    //
+    // The flag lives in the persistent settings store under
+    // `terminal.predictiveEcho.enabled` and is mirrored across all open
+    // terminals via the `terminal:settings-changed` event the settings page
+    // dispatches on toggle. We start Disabled and flip on once the async read
+    // returns "true" — never optimistically Active before the setting is known.
+    const pe = new PredictiveEcho(term);
+    predictiveEchoRef.current = pe;
+    pe.setEnabled(false);
+
+    const loadPredictiveEcho = async () => {
+      try {
+        const v = await api.settingGet("terminal.predictiveEcho.enabled");
+        pe.setEnabled(v === "true");
+      } catch {
+        // Read failure → stay Disabled. Safer than silently enabling an
+        // experimental feature when storage is unhappy.
+      }
+    };
+    void loadPredictiveEcho();
+    const handlePredictiveEchoChanged = () => {
+      void loadPredictiveEcho();
+    };
+    window.addEventListener("terminal:settings-changed", handlePredictiveEchoChanged);
+
+    // Dev-only metrics dump: log accumulated counters once a minute. The
+    // `import.meta.env.DEV` check is statically resolved by Vite, so the entire
+    // block (timer + handle) gets dead-code-eliminated in production builds.
+    let predictiveEchoMetricsTimer: ReturnType<typeof setInterval> | null = null;
+    if (import.meta.env.DEV) {
+      predictiveEchoMetricsTimer = setInterval(() => {
+        const m = predictiveEchoRef.current?.getMetrics();
+        // Skip when nothing happened — keeps the dev console quiet during idle.
+        if (!m || m.predictionCount === 0) return;
+        const rate = m.hitRate === null ? "n/a" : `${(m.hitRate * 100).toFixed(1)}%`;
+        // eslint-disable-next-line no-console
+        console.debug(
+          `[PredictiveEcho] predictions=${m.predictionCount} confirms=${m.confirmCount} mismatches=${m.mismatchCount} hitRate=${rate}`,
+        );
+      }, 60_000);
+    }
 
     fitAddon.fit();
     const updateGeo = () => {
@@ -590,10 +701,16 @@ function TerminalInstance({
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener("terminal:clear", handleClear);
+      window.removeEventListener("terminal:settings-changed", handlePredictiveEchoChanged);
+      if (predictiveEchoMetricsTimer !== null) clearInterval(predictiveEchoMetricsTimer);
       osc7Disposable.dispose();
+      osc133Disposable.dispose();
+      csiAltEnterDisposable.dispose();
+      csiAltLeaveDisposable.dispose();
       term.dispose();
       termRef.current = null;
       fitAddonRef.current = null;
+      predictiveEchoRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -604,6 +721,9 @@ function TerminalInstance({
     if (!term) return;
     sessionOutputDecoderRef.current = new TextDecoder();
     macroFilterBufferRef.current = "";
+    // Predictive Echo: clear queue and return to Cold so a stale prediction
+    // from the previous session can't bleed into the new one.
+    predictiveEchoRef.current?.reset();
 
     // Handle user input -> SSH
     const onData = term.onData((data) => {
@@ -681,7 +801,7 @@ function TerminalInstance({
             }).then((ok) => {
               dangerousCmdPendingRef.current = false;
               if (ok) {
-                const encoder = new TextEncoder();
+                const encoder = TEXT_ENCODER;
                 const bytes = Array.from(encoder.encode(data));
                 api.sessionWrite(sid, bytes).catch((err) => toast.error(String(err)));
               } else {
@@ -692,12 +812,34 @@ function TerminalInstance({
           }
        }
 
-      const encoder = new TextEncoder();
+      const encoder = TEXT_ENCODER;
       const bytes = Array.from(encoder.encode(data));
       api.sessionWrite(sid, bytes).catch((err) => toast.error(String(err)));
 
-      // Check for // trigger after sending data (async to avoid blocking input)
-      setTimeout(() => checkAssistTrigger(cmdBufferRef.current), 0);
+      // Command-assist trigger check: fast path. The vast majority of
+      // keystrokes are inside an ordinary command and need no work — only
+      // schedule a check when assist is already showing (might need to
+      // update the query or close), or when the buffer actually contains
+      // "//". Coalesce bursts via a microtask + re-entrancy guard so that
+      // typing a long word doesn't queue N redundant checks.
+      const buf = cmdBufferRef.current;
+      if (
+        !assistCheckScheduledRef.current &&
+        (assistVisibleRef.current || buf.indexOf("//") >= 0)
+      ) {
+        assistCheckScheduledRef.current = true;
+        queueMicrotask(() => {
+          assistCheckScheduledRef.current = false;
+          checkAssistTriggerRef.current(cmdBufferRef.current);
+        });
+      }
+
+      // Predictive Echo: hook in only on the "normal input" path, after all
+      // business short-circuits (IME / dangerous cmd dialog / assist enter or
+      // tab takeover / Esc-closes-assist) have already returned. Predicts
+      // visible chars locally for instant feedback; control chars (Enter/
+      // ESC/Tab/Ctrl) trigger freeze inside PredictiveEcho.
+      predictiveEchoRef.current?.onUserInput(data);
     });
 
     // Handle resize -> SSH (skip when container is hidden)
@@ -733,7 +875,15 @@ function TerminalInstance({
           const { safeText, remain } = filterMacroInternalChunk(combined, activeFilter);
           macroFilterBufferRef.current = remain;
           if (safeText) {
-            term.write(safeText);
+            // Predictive Echo runs AFTER macro filtering so macro tokens
+            // (which are stripped by filterMacroInternalChunk) never reach
+            // the prediction layer. The remote bytes that match in-flight
+            // predictions are consumed inside; only the leftover portion
+            // (or the original chunk if PE is disabled / refs not yet set)
+            // is written to xterm.
+            const remaining =
+              predictiveEchoRef.current?.onRemoteOutput(safeText) ?? safeText;
+            if (remaining) term.write(remaining);
           }
         }
       },
@@ -758,7 +908,7 @@ function TerminalInstance({
       if (sel) {
         const cleaned = cleanSelection(sel);
         if (cleaned) {
-          const encoder = new TextEncoder();
+          const encoder = TEXT_ENCODER;
           const bytes = Array.from(encoder.encode(cleaned));
           api.sessionWrite(sessionIdRef.current, bytes).catch((err) => toast.error(String(err)));
         }
@@ -770,7 +920,7 @@ function TerminalInstance({
       const detail = (event as CustomEvent<{ sessionId?: string; text?: string }>).detail;
       if (!detail?.text || detail.sessionId !== sessionIdRef.current) return;
 
-      const encoder = new TextEncoder();
+      const encoder = TEXT_ENCODER;
       const bytes = Array.from(encoder.encode(detail.text));
       api.sessionWrite(sessionIdRef.current, bytes).catch((err) => toast.error(String(err)));
       term.focus();
@@ -786,7 +936,7 @@ function TerminalInstance({
         (event) => {
           const payload = event.payload;
           if (!payload?.text || payload.sessionId !== sessionIdRef.current) return;
-          const encoder = new TextEncoder();
+          const encoder = TEXT_ENCODER;
           const bytes = Array.from(encoder.encode(payload.text));
           api.sessionWrite(sessionIdRef.current, bytes).catch((err) => toast.error(String(err)));
           term.focus();
@@ -807,7 +957,7 @@ function TerminalInstance({
       e.preventDefault();
       readText().then((text) => {
         if (text) {
-          const encoder = new TextEncoder();
+          const encoder = TEXT_ENCODER;
           const bytes = Array.from(encoder.encode(text));
           api.sessionWrite(sessionIdRef.current, bytes).catch((err) => toast.error(String(err)));
         }
@@ -842,7 +992,7 @@ function TerminalInstance({
       termEl?.removeEventListener("compositionend", handleCompositionEnd);
       termElForMouse?.removeEventListener("mousedown", handleMiddleClick);
     };
-  }, [sessionId, hostId, tabId, updateTabState, checkAssistTrigger]);
+  }, [sessionId, hostId, tabId, updateTabState]);
 
   const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
   const isDisconnected = tabState === "disconnected" || tabState === "failed";
@@ -1179,7 +1329,7 @@ function BookmarkPanel({
             return;
           }
           unlistenOutput = unlisten;
-          const encoder = new TextEncoder();
+          const encoder = TEXT_ENCODER;
           api.sessionWrite(
             sessionId,
             Array.from(encoder.encode(`printf '${marker}%s\\n' "$PWD"\r`)),
@@ -1546,7 +1696,7 @@ export function TerminalPage() {
       const activeTab = tabs.find((t) => t.id === activeTabId);
       if (!activeTab) return;
 
-      const encoder = new TextEncoder();
+      const encoder = TEXT_ENCODER;
       const bytes = Array.from(encoder.encode(command));
       api.sessionWrite(activeTab.sessionId, bytes).catch((err) => toast.error(String(err)));
     },
@@ -1558,7 +1708,7 @@ export function TerminalPage() {
       const activeTab = tabs.find((t) => t.id === activeTabId);
       if (!activeTab) return;
 
-      const encoder = new TextEncoder();
+      const encoder = TEXT_ENCODER;
       const bytes = Array.from(encoder.encode(`cd ${quoteShellArg(path)}\r`));
       api.sessionWrite(activeTab.sessionId, bytes).catch((err) => toast.error(String(err)));
     },

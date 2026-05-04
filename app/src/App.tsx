@@ -128,7 +128,7 @@ export default function App() {
       <Titlebar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex flex-1 flex-col overflow-hidden [scrollbar-gutter:stable]">
+        <main className="flex flex-1 flex-col overflow-hidden">
           <PageRenderer />
         </main>
       </div>

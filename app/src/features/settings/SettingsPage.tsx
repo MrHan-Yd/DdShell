@@ -510,6 +510,7 @@ export function SettingsPage() {
   const [retryCount, setRetryCount] = useState("3");
   const [downloadPath, setDownloadPath] = useState("");
   const [transferNotify, setTransferNotify] = useState(true);
+  const [predictiveEchoEnabled, setPredictiveEchoEnabled] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -559,6 +560,7 @@ export function SettingsPage() {
           savedDangerousCmdProtection,
           savedDisabledBuiltinCmds,
           savedCustomDangerousCommands,
+          savedPredictiveEchoEnabled,
         ] = await Promise.all([
           api.settingGet("theme"),
           api.settingGet("terminal.fontFamily"),
@@ -593,6 +595,7 @@ export function SettingsPage() {
           api.settingGet("terminal.dangerousCmdProtection"),
           api.settingGet("terminal.disabledBuiltinCmds"),
           api.settingGet("terminal.customDangerousCommands"),
+          api.settingGet("terminal.predictiveEcho.enabled"),
         ]);
 
         if (savedTheme) setTheme(savedTheme as ThemeOption);
@@ -630,6 +633,7 @@ export function SettingsPage() {
         setRetryCount(savedRetryCount || "3");
         setDownloadPath(savedDownloadPath || "");
         setTransferNotify(savedTransferNotify !== "false");
+        setPredictiveEchoEnabled(savedPredictiveEchoEnabled === "true");
 
         setUiFontFamily(savedUiFontFamily || DEFAULT_UI_FONT_FAMILY);
         setUiFontSize(savedUiFontSize ? parseInt(savedUiFontSize) : DEFAULT_UI_FONT_SIZE);
@@ -685,6 +689,7 @@ export function SettingsPage() {
         { key: "terminal.dangerousCmdProtection", value: String(terminal.dangerousCmdProtection) },
         { key: "terminal.disabledBuiltinCmds", value: JSON.stringify(terminal.disabledBuiltinCmds) },
         { key: "terminal.customDangerousCommands", value: JSON.stringify(terminal.customDangerousCommands) },
+        { key: "terminal.predictiveEcho.enabled", value: String(predictiveEchoEnabled) },
       ]);
       window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
       setSaveStatus("saved");
@@ -703,6 +708,7 @@ export function SettingsPage() {
     setUiFontSize(DEFAULT_UI_FONT_SIZE);
     setConfirmDanger(true);
     setSessionTimeout("30");
+    setPredictiveEchoEnabled(false);
     setResetStatus(true);
     setTimeout(() => setResetStatus(false), 2000);
   };
@@ -721,6 +727,31 @@ export function SettingsPage() {
       setTimeout(() => setClearHistoryStatus(false), 2000);
     } catch {
       // ignore
+    }
+  };
+
+  // Predictive Echo toggle: persist immediately so the active terminals can
+  // react via the `terminal:settings-changed` event without waiting for the
+  // explicit Save button. Mirrors the command-assist toggle UX.
+  const handleTogglePredictiveEcho = async (newVal: boolean) => {
+    setPredictiveEchoEnabled(newVal);
+    try {
+      await api.settingSet("terminal.predictiveEcho.enabled", String(newVal));
+      window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
+    } catch {
+      // ignore — UI state already flipped; the explicit Save button will retry
+    }
+    if (!newVal) return;
+    // First-enable guidance toast (once per device, tracked in localStorage so
+    // it persists across session storage clears).
+    try {
+      const shown = localStorage.getItem("terminal.predictiveEcho.guidanceShown");
+      if (shown !== "true") {
+        toast.info(t("settings.predictiveEchoGuidance"));
+        localStorage.setItem("terminal.predictiveEcho.guidanceShown", "true");
+      }
+    } catch {
+      // localStorage unavailable — skip silently; will retry next time
     }
   };
 
@@ -1427,6 +1458,21 @@ export function SettingsPage() {
               {clearHistoryStatus ? t("settings.done") : t("settings.clear")}
             </Button>
           </div>
+        </Section>
+
+        <Section title={t("settings.predictiveEcho")}>
+          <SettingRow
+            label={t("settings.predictiveEcho")}
+            description={t("settings.predictiveEchoDesc")}
+          >
+            <button
+              onClick={() => handleTogglePredictiveEcho(!predictiveEchoEnabled)}
+              data-state={predictiveEchoEnabled ? "on" : "off"}
+              className="toggle-switch"
+            >
+              <span className="toggle-thumb" />
+            </button>
+          </SettingRow>
         </Section>
 
         <Section title={t("settings.cmdProtection")}>

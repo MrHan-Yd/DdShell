@@ -111,7 +111,23 @@ impl SshSession {
             server_key_info: Arc::new(std::sync::Mutex::new(None)),
         };
 
-        let mut handle = client::connect(Arc::new(config), (host, port), handler)
+        // Open the TCP socket ourselves so we can enable TCP_NODELAY before
+        // handing it to russh. tokio's TcpStream defaults to Nagle on, which
+        // combined with the remote's delayed-ACK (typically 40 ms on Linux)
+        // adds ~40 ms latency to every interactive keystroke. OpenSSH and
+        // PuTTY both set this flag for the same reason; russh leaves the
+        // socket's options to the caller.
+        let socket = tokio::net::TcpStream::connect((host, port))
+            .await
+            .map_err(|e| anyhow::anyhow!("TCP connect to {}:{} failed: {}", host, port, e))?;
+        if let Err(e) = socket.set_nodelay(true) {
+            tracing::warn!(
+                "TCP_NODELAY could not be set on {}:{}: {} (keystrokes may feel laggy)",
+                host, port, e,
+            );
+        }
+
+        let mut handle = client::connect_stream(Arc::new(config), socket, handler)
             .await
             .map_err(|e| anyhow::anyhow!("SSH connect to {}:{} failed: {}", host, port, e))?;
 
@@ -159,7 +175,20 @@ impl SshSession {
             server_key_info: server_key_info.clone(),
         };
 
-        let mut handle = client::connect(Arc::new(config), (host, port), handler)
+        // Same TCP_NODELAY treatment as `connect` above — see the comment
+        // there for rationale. Without this, interactive keystrokes pile up
+        // ~40 ms of Nagle/delayed-ACK latency.
+        let socket = tokio::net::TcpStream::connect((host, port))
+            .await
+            .map_err(|e| anyhow::anyhow!("TCP connect to {}:{} failed: {}", host, port, e))?;
+        if let Err(e) = socket.set_nodelay(true) {
+            tracing::warn!(
+                "TCP_NODELAY could not be set on {}:{}: {} (keystrokes may feel laggy)",
+                host, port, e,
+            );
+        }
+
+        let mut handle = client::connect_stream(Arc::new(config), socket, handler)
             .await
             .map_err(|e| anyhow::anyhow!("SSH connect to {}:{} failed: {}", host, port, e))?;
 

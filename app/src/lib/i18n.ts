@@ -494,6 +494,11 @@ const dict = {
   "settings.transferNotify": { zh: "传输完成通知", en: "Transfer Complete Notification" },
   "settings.transferNotifyDesc": { zh: "传输完成后显示系统通知", en: "Show system notification when transfer completes" },
 
+  // ── Predictive Echo (Experimental) ──
+  "settings.predictiveEcho": { zh: "预测回显（实验）", en: "Predictive Echo (Experimental)" },
+  "settings.predictiveEchoDesc": { zh: "高延迟链路下减少打字卡顿感：对普通字符与退格立即显示预测，远程回显在后台校验。vim、tmux 等场景自动关闭。", en: "Reduce typing lag on high-latency links by previewing plain characters and backspaces locally, then validating against the actual remote echo. Auto-disabled in vim, tmux, and similar." },
+  "settings.predictiveEchoGuidance": { zh: "预测回显已开启。预测中的字符显示为浅色，确认后转为正常色。如遇异常请在设置中关闭。", en: "Predictive echo enabled. Predicted characters appear dim and turn normal once confirmed. Disable it in Settings if you see anything odd." },
+
   // ── Confirm Dialog ──
   "confirm.ok": { zh: "确认", en: "Confirm" },
   "confirm.cancel": { zh: "取消", en: "Cancel" },
