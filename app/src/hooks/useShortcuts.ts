@@ -51,6 +51,8 @@ export function useShortcuts() {
       {
         key: "w",
         ctrl: true,
+        // Mac 保留 Cmd+W；Win 用 Ctrl+Shift+W，避免和终端 readline kill-word（Ctrl+W）冲突
+        shift: !isMac,
         handler: async () => {
           const store = useTerminalStore.getState();
           if (store.activeTabId) {

@@ -494,3 +494,7 @@ npx tsc --noEmit
 ---
 
 > 文档结束。下一次更新本文档：手测全过后把 §1.2 切片 3/4 行从"代码完成（手测待验收）"改为"已完成"；进入阶段 2 时新建 `predictive-echo-phase2-progress.md`，本文档归档为"阶段 1 完整记录"。
+>
+> ---
+>
+> **2026-05-04 更新**：阶段 2 已启动。切片 5（Shell 兼容性扩展）代码完成，selfCheck 161/161，dogfood 进行中。**阶段 2 进度详见** [`predictive-echo-phase2-progress.md`](./predictive-echo-phase2-progress.md)。本文档自此进入"阶段 1 完整记录"角色，仅在阶段 1 范围有遗留修正时才更新。

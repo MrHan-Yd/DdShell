@@ -150,6 +150,7 @@ function SettingRow({
 
 function ShortcutsSettings({ t }: { t: ReturnType<typeof useT> }) {
   const mod = IS_MAC ? "Cmd" : "Ctrl";
+  const opt = IS_MAC ? "Option" : "Alt";
   const groups = [
     {
       title: t("settings.shortcutScopeGlobal"),
@@ -157,17 +158,19 @@ function ShortcutsSettings({ t }: { t: ReturnType<typeof useT> }) {
         [`${mod}+T`, t("settings.shortcutGlobalTerminal")],
         [`${mod}+N`, t("settings.shortcutGlobalConnections")],
         [`${mod}+,`, t("settings.shortcutGlobalSettings")],
-        [`${mod}+W`, t("settings.shortcutGlobalCloseSession")],
+        [IS_MAC ? `${mod}+W` : `${mod}+Shift+W`, t("settings.shortcutGlobalCloseSession")],
       ],
     },
     {
       title: t("settings.shortcutScopeTerminal"),
       rows: [
         [`${mod}+L`, t("settings.shortcutTerminalClear")],
+        ["Ctrl+U", t("settings.shortcutTerminalKillLine")],
+        ["Ctrl+W", t("settings.shortcutTerminalKillWord")],
         [`${mod}+Shift+E`, t("settings.shortcutTerminalQuickEdit")],
-        ["Alt+Enter", t("settings.shortcutTerminalInsertSelection")],
-        ["Alt+Shift+-", t("settings.shortcutTerminalSplitHorizontal")],
-        ["Alt+Shift+|", t("settings.shortcutTerminalSplitVertical")],
+        [`${opt}+Enter`, t("settings.shortcutTerminalInsertSelection")],
+        [`${opt}+Shift+-`, t("settings.shortcutTerminalSplitHorizontal")],
+        [`${opt}+Shift+|`, t("settings.shortcutTerminalSplitVertical")],
       ],
     },
     {
@@ -195,7 +198,7 @@ function ShortcutsSettings({ t }: { t: ReturnType<typeof useT> }) {
       rows: [
         [`${mod}+S`, t("settings.shortcutQuickEditSave")],
         [`${mod}+F`, t("settings.shortcutQuickEditFind")],
-        [`${mod}+Alt+F`, t("settings.shortcutQuickEditReplace")],
+        [`${mod}+${opt}+F`, t("settings.shortcutQuickEditReplace")],
       ],
     },
     {
@@ -1032,9 +1035,9 @@ export function SettingsPage() {
                   setTerminal((t) => ({ ...t, fontWeight: parseInt(v) }))
                 }
                 options={[
-                  { value: "400", label: "Regular (400)" },
-                  { value: "500", label: "Medium (500)" },
-                  { value: "600", label: "Semibold (600)" },
+                  { value: "400", label: `${t("settings.fontWeightRegular")} (400)` },
+                  { value: "500", label: `${t("settings.fontWeightMedium")} (500)` },
+                  { value: "600", label: `${t("settings.fontWeightSemibold")} (600)` },
                 ]}
                 className="w-40"
               />

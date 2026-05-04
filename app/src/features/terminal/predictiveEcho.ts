@@ -53,23 +53,33 @@ interface Prediction {
    *   • "backspace"：退格消化项，屏幕在入队时已通过 \b \b 抹掉了对应字符；
    *     此项只负责"消化远程将要 echo 出来的那个字符 + 退格 echo"，本身
    *     不在屏幕上占位
+   *   • "kill-line"（切片 6）：Ctrl+U 清行消化项，入队前已把队列里所有 char
+   *     项 pop 掉、屏幕通过 \b \b × N 抹掉对应 dim 字符；本项消化远程 echo 的
+   *     N 次 \b \b。屏幕占 0 格。
+   *   • "kill-word"（切片 6）：Ctrl+W 删词消化项，与 kill-line 同构，但 N 是
+   *     按 readline 分词算法（先跳尾空格再到上一空格）算出的字符数。
    */
-  kind: "char" | "backspace";
+  kind: "char" | "backspace" | "kill-line" | "kill-word";
   /** 预测的字符（仅 kind === "char" 时有意义） */
   char?: string;
   /**
    * 远程 echo 用于匹配的"期望字节"。
    *   • char 项：通常等于 char 本身
    *   • backspace 项：被退字符的 echo + 退格自身的 echo（默认 "\b \b"）
+   *   • kill-line / kill-word 项：N 次 "\b \b" 拼接（N 由入队时计算）
    *
    * 注意：阶段 1 切片 3 仅支持 bash 默认的 "\b \b" 退格 echo。zsh 在某些
    * ANSI 模式下回 "\x1b[D \x1b[D" 不被识别，会触发失配回滚 + Frozen。
+   * 切片 6 的 Ctrl+U/W 同样仅支持 "\b \b" × N 模式；远程实际是 \x1b[K 等
+   * 其他清行序列时会失配 freeze（切片 7 多模式匹配统一处理）。
    */
   expectedEcho: string;
   /**
    * 撤销序列：把这次预测的画面操作还原。
    *   • char 项：ANSI_UNDO_CHAR（"\b \b"）
    *   • backspace 项：""（屏幕在入队时已抹掉，无需再撤）
+   *   • kill-line / kill-word 项：""（同 backspace，屏幕已抹掉；失配场景让
+   *     远程 echo 自然驱动屏幕，不重画 dim 字符）
    */
   undoSequence: string;
   /** 入队时间戳（切片 3 超时检测用） */
@@ -176,6 +186,21 @@ export class PredictiveEcho {
   /** 队列超时阈值（毫秒）。队首入队超过此值仍未确认，触发 freeze("timeout") */
   private static readonly QUEUE_TIMEOUT_MS = 10_000;
 
+  /**
+   * SGR 序列剥离正则（切片 5）。仅用于 prompt 启发式判定时去掉颜色序列后做
+   * 后缀匹配，屏幕写入路径完全不动。注意：String.prototype.replace 不使用
+   * RegExp.lastIndex，static /g 实例可安全跨调用复用。
+   */
+  private static readonly SGR_STRIP_REGEX = /\x1b\[[\d;]*m/g;
+
+  /**
+   * 扩展 prompt 后缀字符集合（切片 5）。末尾必跟一个空格才算命中。
+   * 包含 bash/zsh 默认 ($/#/>) + starship/p10k (❯/➜) + 其他常见 (λ/%/→)。
+   */
+  private static readonly PROMPT_TAIL_CHARS = new Set([
+    "$", "#", ">", "❯", "➜", "λ", "%", "→",
+  ]);
+
   constructor(term: Terminal, options: PredictiveEchoOptions = {}) {
     this.term = term;
     this.opts = { ...DEFAULT_OPTIONS, ...options };
@@ -221,6 +246,82 @@ export class PredictiveEcho {
       }
 
       if (!isPredictableChar(ch)) {
+        // Ctrl+U 清行分支（切片 6，0x15）：必须在 isPredictableChar 之前，
+        // 0x15 < 0x20 会被拒绝走 freeze 路径丢失预测能力。
+        if (ch === "\x15") {
+          // 守卫：队列空或含非 char 项（backspace/kill-line/kill-word）一律 freeze。
+          // 保守原则：不处理"队列尾部混杂消化项"的复杂场景，等远程 echo 驱动。
+          if (
+            this.queue.length === 0 ||
+            !this.queue.every((p) => p.kind === "char")
+          ) {
+            this.freeze("kill-line");
+            return;
+          }
+          const n = this.queue.length;
+          // 屏幕：N 次 \b \b 抹掉所有 dim 字符
+          this.term.write(ANSI_UNDO_CHAR.repeat(n));
+          // 收集被删字符的 echo（远程仍会回这些字节，已在路上无法取消）。
+          // 守卫保证队列全是 char 项，expectedEcho 累加即等于字符串。
+          let killedEcho = "";
+          for (const p of this.queue) killedEcho += p.expectedEcho;
+          // 整队替换为单个 kill-line 消化项。
+          // expectedEcho = 被删字符的 echo + 远程的 N 次 \b \b 退格回显。
+          this.queue.length = 0;
+          this.queue.push({
+            seq: this.nextSeq++,
+            kind: "kill-line",
+            expectedEcho: killedEcho + ANSI_UNDO_CHAR.repeat(n),
+            undoSequence: "",
+            predictedAt: Date.now(),
+          });
+          continue;
+        }
+
+        // Ctrl+W 删词分支（切片 6，0x17）：标准 readline 行为——
+        // 先跳过尾部连续空格，再删到上一空格（按 ASCII space 分词）。
+        if (ch === "\x17") {
+          if (
+            this.queue.length === 0 ||
+            !this.queue.every((p) => p.kind === "char")
+          ) {
+            this.freeze("kill-word");
+            return;
+          }
+          // 守卫已保证队列里都是 char 项，char 字段必定存在；
+          // undefined === " " 为 false 不影响逻辑（理论上不会出现）。
+          let i = this.queue.length;
+          // 1. 跳过尾部连续空格
+          while (i > 0 && this.queue[i - 1].char === " ") i--;
+          // 2. 跳过非空格字符（一个 word 长度）
+          while (i > 0 && this.queue[i - 1].char !== " ") i--;
+          const m = this.queue.length - i;
+          if (m === 0) {
+            // 兜底：队列非空但删 0 字符不应发生（守卫已排除 length=0），
+            // 防御性 freeze 避免入队空 echo 项。
+            this.freeze("kill-word");
+            return;
+          }
+          // 屏幕：M 次 \b \b 抹掉尾部 dim 字符
+          this.term.write(ANSI_UNDO_CHAR.repeat(m));
+          // 收集被删字符的 echo（远程 echo 仍会回这部分字节）。
+          let killedEcho = "";
+          for (let j = i; j < this.queue.length; j++) {
+            killedEcho += this.queue[j].expectedEcho;
+          }
+          // 出队尾部 m 个 char，入队单个 kill-word 消化项。
+          // expectedEcho = 被删字符的 echo + M 次 \b \b 退格回显。
+          this.queue.length = i;
+          this.queue.push({
+            seq: this.nextSeq++,
+            kind: "kill-word",
+            expectedEcho: killedEcho + ANSI_UNDO_CHAR.repeat(m),
+            undoSequence: "",
+            predictedAt: Date.now(),
+          });
+          continue;
+        }
+
         // 不可预测字符（Enter/ESC/Tab/Ctrl 组合等）——
         // 切片 2 起统一走 freeze()，整队回滚 + 切到 Frozen，
         // 等下次 prompt 信号才恢复。reason 仅用于语义留痕。
@@ -305,7 +406,10 @@ export class PredictiveEcho {
       if (head.expectedEcho.startsWith(remaining)) {
         // 部分匹配：远程 echo 还在分批到达。缓存当前数据，等下一波。
         // 容量保护：如果挂起数据过大说明 expectedEcho 异常，按失配处理。
-        if (remaining.length > 256) {
+        // 切片 6 提到 512：kill-line/word 项 expectedEcho 包含被删字符 echo +
+        // \b \b × N（远程退格回显），最长可达 4 * maxQueueSize（默认 100）= 400，
+        // 留余量到 512 避免长 Ctrl+U 触发误判。
+        if (remaining.length > 512) {
           return this.handleMismatch(remaining);
         }
         this.pendingRemote = remaining;
@@ -418,6 +522,26 @@ export class PredictiveEcho {
   }
 
   /**
+   * CPR（Cursor Position Report）应答接收口（切片 5）。
+   *
+   * TerminalPage 在远程连接建立后注入一次 \x1b[6n 查询，远端 PTY 把应答
+   * \x1b[<row>;<col>R 经 SSH 通道回传，由 TerminalPage 注册的 CSI final='R'
+   * handler 解析后调用本方法。
+   *
+   * 行为：仅在 Cold 状态下生效——单次应答即认定 prompt ready，进 Active +
+   * 设置严格期 strictRemaining=5。Active/Frozen/Disabled 下忽略，保守原则
+   * 避免错预测扩散。
+   *
+   * 设计简化（D1-A 决策）：不做"列位置稳定 ≥ 200ms"多次比对，单次触发即可。
+   * row/col 当前未使用，参数保留为切片 9 引入屏幕模型时不破坏接口。
+   */
+  onCursorPosition(_row: number, _col: number): void {
+    if (this.state !== "Cold") return;
+    this.state = "Active";
+    this.strictRemaining = 5;
+  }
+
+  /**
    * 通用冻结入口：整队回滚 + 切到 Frozen。
    * 输入侧不可预测信号（Enter/ESC/Tab/Ctrl）走这条路统一处理。
    * Disabled 状态下不切换（开关关闭时不应被覆盖）。
@@ -442,7 +566,7 @@ export class PredictiveEcho {
     pendingRemote: string;
     nextSeq: number;
     strictRemaining: number;
-    queueKinds: ("char" | "backspace")[];
+    queueKinds: ("char" | "backspace" | "kill-line" | "kill-word")[];
   } {
     return {
       state: this.state,
@@ -504,8 +628,9 @@ export class PredictiveEcho {
   }
 
   /**
-   * 弱启发式 prompt 检测（切片 3）。仅在 Cold 状态、队列空、远程 text 末尾
-   * 形如 "$ " / "# " / "> " 时把状态提升为 Active，并设置严格期 strictRemaining=3。
+   * 弱启发式 prompt 检测（切片 3 引入；切片 5 扩展）。仅在 Cold 状态、队列空、
+   * 远程 text 剥离 SGR 颜色序列后末尾形如 "<C> " 时（C ∈ PROMPT_TAIL_CHARS，
+   * 含 $/#/>/❯/➜/λ/%/→）把状态提升为 Active，并设置严格期 strictRemaining=5。
    *
    * 保守原则：
    *   • 只做 Cold→Active，不动 Frozen→Active（避免错预测扩散）
@@ -514,15 +639,22 @@ export class PredictiveEcho {
    *   • 文档已警告启发式可能误判（如 prompt 字符出现在命令输出尾部）。配合
    *     严格期 + 失配 freeze，单次误判最多带来一次 freeze、视觉略抖一下，
    *     不影响功能正确性。
+   *
+   * 切片 5 扩展点：
+   *   • 先 replace(SGR_STRIP_REGEX, "") 去掉 SGR 颜色序列，带色 prompt 也能命中
+   *   • 后缀字符从 3 个 ($/#/>) 扩展到 8 个，覆盖 starship/p10k/fish 常见样式
+   *   • strictRemaining 由 3 提升到 5（模式更松，需要更长严格期）
    */
   private detectPromptHeuristic(text: string): void {
     if (this.state !== "Cold") return;
-    if (text.length < 2) return;
-    // 检查末尾两字节
-    const tail = text.slice(-2);
-    if (tail === "$ " || tail === "# " || tail === "> ") {
+    // 切片 5：先剥离 SGR 颜色序列再做后缀匹配，避免带色 prompt 不命中
+    const stripped = text.replace(PredictiveEcho.SGR_STRIP_REGEX, "");
+    if (stripped.length < 2) return;
+    const lastChar = stripped[stripped.length - 1];
+    const secondLast = stripped[stripped.length - 2];
+    if (lastChar === " " && PredictiveEcho.PROMPT_TAIL_CHARS.has(secondLast)) {
       this.state = "Active";
-      this.strictRemaining = 3;
+      this.strictRemaining = 5;
     }
   }
 
@@ -975,12 +1107,12 @@ export function selfCheck(): SelfCheckResult {
     const r = pe.onRemoteOutput("user@host:~$ ");
     assert(r === "user@host:~$ ", "T22: 远程数据原样透传给 xterm");
     assert(pe._debugState().state === "Active", "T22: 启发式提升到 Active");
-    assert(pe._debugState().strictRemaining === 3, "T22: 严格期 strictRemaining=3");
+    assert(pe._debugState().strictRemaining === 5, "T22: 严格期 strictRemaining=5");
 
     // 命中一次后 strictRemaining 递减
     pe.onUserInput("x");
     pe.onRemoteOutput("x");
-    assert(pe._debugState().strictRemaining === 2, "T22: 命中一次 strictRemaining → 2");
+    assert(pe._debugState().strictRemaining === 4, "T22: 命中一次 strictRemaining → 4");
   }
 
   // T22b: 启发式不动 Frozen→Active（保守原则）
@@ -997,7 +1129,7 @@ export function selfCheck(): SelfCheckResult {
   {
     const { term } = makeMockTerm();
     const pe = new PredictiveEcho(term);
-    pe.onRemoteOutput("user@host:~$ "); // Cold → Active, strictRemaining=3
+    pe.onRemoteOutput("user@host:~$ "); // Cold → Active, strictRemaining=5
     pe.onUserInput("a");
     const r = pe.onRemoteOutput("X"); // 失配
     assert(r === "X", "T23: 失配数据透传");
@@ -1061,6 +1193,458 @@ export function selfCheck(): SelfCheckResult {
     assert(m.confirmCount === 0, "T27: 尚无命中");
     assert(m.mismatchCount === 0, "T27: 尚无失配");
     assert(m.hitRate === null, "T27: 分母 0 时 hitRate=null");
+  }
+
+  // ── 切片 5 用例：Shell 兼容性扩展（启发式扩展 + CPR）──
+
+  // T28: 含 SGR 的 prompt 剥离 SGR 后正确匹配
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    // \x1b[32m...\x1b[0m 是常见带色 PS1，剥离后是 "user@host:~$ "
+    pe.onRemoteOutput("\x1b[32muser\x1b[0m@host:~$ ");
+    assert(pe._debugState().state === "Active", "T28: SGR 剥离后启发式命中");
+    assert(pe._debugState().strictRemaining === 5, "T28: strictRemaining=5");
+  }
+
+  // T29: 扩展字符 ❯ 触发（starship / p10k）
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onRemoteOutput("~/project ❯ ");
+    assert(pe._debugState().state === "Active", "T29: ❯ 末尾触发 Active");
+    assert(pe._debugState().strictRemaining === 5, "T29: strictRemaining=5");
+  }
+
+  // T30: 其他扩展字符参数化覆盖
+  {
+    for (const tail of ["% ", "λ ", "→ ", "➜ ", "# ", "> "]) {
+      const { term } = makeMockTerm();
+      const pe = new PredictiveEcho(term);
+      pe.onRemoteOutput("xxx" + tail);
+      assert(pe._debugState().state === "Active", `T30: "${tail}" 末尾触发 Active`);
+    }
+  }
+
+  // T31: onCursorPosition 在 Cold 下触发 Cold → Active
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    assert(pe._debugState().state === "Cold", "T31: 初始 Cold");
+    pe.onCursorPosition(1, 5);
+    assert(pe._debugState().state === "Active", "T31: CPR 应答推到 Active");
+    assert(pe._debugState().strictRemaining === 5, "T31: strictRemaining=5");
+  }
+
+  // T32: onCursorPosition 在 Frozen 下不动状态（保守原则）
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.freeze("manual");
+    assert(pe._debugState().state === "Frozen", "T32: 进入 Frozen");
+    pe.onCursorPosition(2, 10);
+    assert(pe._debugState().state === "Frozen", "T32: Frozen 下 CPR 不动状态");
+  }
+
+  // T33: onCursorPosition 在 Active 下不重置 strictRemaining
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onRemoteOutput("user@host:~$ "); // Cold → Active, strictRemaining=5
+    pe.onUserInput("x");
+    pe.onRemoteOutput("x"); // 命中，strictRemaining=4
+    assert(pe._debugState().state === "Active", "T33: 已 Active");
+    assert(pe._debugState().strictRemaining === 4, "T33: 命中后 strictRemaining=4");
+    pe.onCursorPosition(1, 1);
+    // CPR 不应在 Active 下重置 strictRemaining 回 5
+    assert(pe._debugState().state === "Active", "T33: 仍 Active");
+    assert(pe._debugState().strictRemaining === 4, "T33: CPR 不重置 strictRemaining");
+  }
+
+  // T34: strictRemaining=5 命中 5 次后归零
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onRemoteOutput("user@host:~$ "); // strictRemaining=5
+    for (let i = 0; i < 5; i++) {
+      pe.onUserInput("x");
+      pe.onRemoteOutput("x");
+    }
+    assert(pe._debugState().strictRemaining === 0, "T34: 命中 5 次后归零");
+  }
+
+  // T35: 边界 — 不触发的场景
+  {
+    // T35a: 单字符不触发
+    {
+      const { term } = makeMockTerm();
+      const pe = new PredictiveEcho(term);
+      pe.onRemoteOutput("$");
+      assert(pe._debugState().state === "Cold", "T35a: 单字符不触发");
+    }
+    // T35b: 仅 SGR（剥离后空）不触发
+    {
+      const { term } = makeMockTerm();
+      const pe = new PredictiveEcho(term);
+      pe.onRemoteOutput("\x1b[0m\x1b[32m");
+      assert(pe._debugState().state === "Cold", "T35b: 仅 SGR 不触发");
+    }
+    // T35c: 末尾非空格不触发
+    {
+      const { term } = makeMockTerm();
+      const pe = new PredictiveEcho(term);
+      pe.onRemoteOutput("$$");
+      assert(pe._debugState().state === "Cold", "T35c: 末尾非空格不触发");
+    }
+    // T35d: 倒数第二非 prompt 字符不触发
+    {
+      const { term } = makeMockTerm();
+      const pe = new PredictiveEcho(term);
+      pe.onRemoteOutput("ab ");
+      assert(pe._debugState().state === "Cold", "T35d: 倒数第二非 prompt 字符不触发");
+    }
+  }
+
+  // ==========================================================================
+  // 切片 5 端到端场景测试（T36-T39）
+  // 替代手测场景 A/B/C/D：从 prompt 字节流 → 用户敲键 → 远程 echo 回传 → 验证最终序列
+  // ==========================================================================
+
+  // T36（场景 A 等价 / G1 闭合）：裸 bash + 含 SGR 彩色 PS1 完整链路
+  // 关键：SGR 重置码 \x1b[0m 在 "$ " 之后，切片 4 末尾 2 字节匹配会拿到 "0m" 失败；
+  // 切片 5 剥离 SGR 后正确命中。
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+
+    // 1. 远程 prompt 字节流到达（含 SGR 颜色，重置码在 "$ " 之后）
+    const promptText = "\x1b[32muser@host\x1b[0m:~$ \x1b[0m";
+    const r1 = pe.onRemoteOutput(promptText);
+    assert(r1 === promptText, "T36: prompt 字节流原样透传给 xterm（不被预测层吃掉）");
+    assert(
+      pe._debugState().state === "Active",
+      "T36: 切片 5 SGR 剥离后启发式命中 → Active",
+    );
+    assert(pe._debugState().strictRemaining === 5, "T36: 严格期 strictRemaining=5");
+
+    // 2. 用户敲 ls — 预测入队 + dim 写入
+    const beforeInput = writes.length;
+    pe.onUserInput("ls");
+    assert(pe._debugState().queueSize === 2, "T36: 队列入 2 项预测");
+    const dimWrites = writes.slice(beforeInput);
+    assert(
+      dimWrites.length === 2 &&
+        dimWrites[0] === "\x1b[2ml\x1b[22m" &&
+        dimWrites[1] === "\x1b[2ms\x1b[22m",
+      "T36: 用户敲 ls 屏幕立即写出 dim 序列",
+    );
+
+    // 3. 远程 echo "ls" 回传 — 命中转正色
+    const r2 = pe.onRemoteOutput("ls");
+    assert(r2 === "", "T36: echo 与预测一致，无剩余字节透传");
+    assert(pe._debugState().queueSize === 0, "T36: 队列清空（全部确认）");
+    assert(pe._debugState().state === "Active", "T36: 命中后仍保持 Active");
+
+    // 4. metrics 验证 — hitRate=1
+    const m = pe.getMetrics();
+    assert(m.predictionCount === 2, "T36: predictionCount=2");
+    assert(m.confirmCount === 2, "T36: confirmCount=2");
+    assert(m.mismatchCount === 0, "T36: mismatchCount=0");
+    assert(m.hitRate === 1, "T36: hitRate=100% — G1 闭合");
+  }
+
+  // T37（场景 B 等价 / G1 闭合）：starship 风格 prompt（❯ 扩展字符）完整链路
+  // 关键：❯ 是切片 5 PROMPT_TAIL_CHARS 新增字符，切片 4 完全不识别。
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+
+    // 1. starship 风格 prompt 字节流（含 ❯ 扩展字符）
+    const promptText = "user@host ~ ❯ ";
+    const r1 = pe.onRemoteOutput(promptText);
+    assert(r1 === promptText, "T37: starship prompt 字节流原样透传");
+    assert(
+      pe._debugState().state === "Active",
+      "T37: 切片 5 扩展字符 ❯ 触发 → Active",
+    );
+
+    // 2. 用户敲 ls — 立即出 dim
+    const beforeInput = writes.length;
+    pe.onUserInput("ls");
+    const dimWrites = writes.slice(beforeInput);
+    assert(
+      dimWrites.length === 2 && dimWrites[0] === "\x1b[2ml\x1b[22m",
+      "T37: dim 'l' 写入屏幕",
+    );
+
+    // 3. 远程 echo "ls" 命中
+    const r2 = pe.onRemoteOutput("ls");
+    assert(r2 === "", "T37: echo 命中无剩余");
+    assert(pe._debugState().queueSize === 0, "T37: 队列清空");
+    assert(pe.getMetrics().hitRate === 1, "T37: hitRate=100% — starship 路径闭合");
+  }
+
+  // T38（场景 C 等价 / 切片 5 误判保护）：扩展字符误判 → 严格期保护立即 Frozen
+  // 关键：切片 5 启发式更宽松（如 "% " 也认为是 prompt），可能把命令输出误判为 prompt。
+  // 验证 strictRemaining=5 严格期保护机制对扩展字符仍然有效。
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+
+    // 1. 命令输出尾部形似 prompt（含切片 5 扩展字符 % ）
+    //    现实场景：echo "Total: 100% " 或类似命令输出
+    const fakePrompt = "Total: 100% ";
+    pe.onRemoteOutput(fakePrompt);
+    assert(
+      pe._debugState().state === "Active",
+      "T38: 启发式无法区分真假 prompt → 误判进 Active",
+    );
+    assert(
+      pe._debugState().strictRemaining === 5,
+      "T38: 严格期就位（保护机制）",
+    );
+
+    // 2. 用户敲 a — 预测入队（误判后果开始体现）
+    const beforeInput = writes.length;
+    pe.onUserInput("a");
+    assert(pe._debugState().queueSize === 1, "T38: 误判期间预测照常入队");
+
+    // 3. 远程实际不是 echo "a"，而是命令输出剩余字节 → 失配
+    const fakeRemote = "Errors: 0";
+    const r = pe.onRemoteOutput(fakeRemote);
+    assert(
+      pe._debugState().state === "Frozen",
+      "T38: 严格期内首次失配立即切 Frozen（核心保护）",
+    );
+    assert(
+      pe._debugState().strictRemaining === 0,
+      "T38: 失配后 strictRemaining 归零",
+    );
+    assert(pe._debugState().queueSize === 0, "T38: 失配回滚清空队列");
+    assert(r === fakeRemote, "T38: 失配后远程数据完整透传给 xterm");
+    // 验证 dim 'a' 已被回滚（写入 \b \b 抹掉）
+    const tail = writes.slice(beforeInput).join("");
+    assert(tail.includes("\b \b"), "T38: 失配回滚序列 \\b \\b 写出");
+  }
+
+  // T39（场景 D 等价 / CPR 路径闭合）：onCursorPosition 替代 prompt 检测的兜底路径
+  // 关键：不发任何 prompt 字节流，仅靠 CPR 应答让预测层进入 Active —
+  // 这是切片 5 对"完全无法识别 prompt 的环境"的兜底。
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+
+    // 1. 不发 prompt，CPR 应答到达（来自 \x1b[6n 查询响应）
+    assert(pe._debugState().state === "Cold", "T39: 初始 Cold（无任何 prompt 信号）");
+    pe.onCursorPosition(1, 5);
+    assert(
+      pe._debugState().state === "Active",
+      "T39: CPR 应答单触发 Cold→Active（兜底路径）",
+    );
+    assert(pe._debugState().strictRemaining === 5, "T39: 严格期就位");
+
+    // 2. 用户敲 a — 立即预测出 dim
+    const beforeInput = writes.length;
+    pe.onUserInput("a");
+    assert(
+      writes.slice(beforeInput).join("") === "\x1b[2ma\x1b[22m",
+      "T39: dim 序列写入屏幕",
+    );
+
+    // 3. 远程 echo "a" 命中转正色
+    const r = pe.onRemoteOutput("a");
+    assert(r === "", "T39: echo 命中无剩余");
+    assert(pe._debugState().queueSize === 0, "T39: 队列清空");
+    assert(pe.getMetrics().hitRate === 1, "T39: hitRate=100% — CPR 兜底路径闭合");
+  }
+
+  // ── 切片 6 用例（Ctrl+U / Ctrl+W）──
+
+  // T40: Ctrl+U 正常路径端到端
+  // 入 abc → 队列 [char,char,char] → Ctrl+U → 队列 [kill-line]，屏幕 \b \b × 3
+  // → 远程发 "abc\b \b\b \b\b \b" (15 字节: 3 char echo + 3 退格回显) → 命中
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("abc");
+    const beforeKill = writes.length;
+    pe.onUserInput("\x15"); // Ctrl+U
+    assert(pe._debugState().queueSize === 1, "T40: Ctrl+U 后队列变 1 项");
+    assert(
+      pe._debugState().queueKinds.join(",") === "kill-line",
+      "T40: 队列结构 [kill-line]",
+    );
+    assert(
+      writes.slice(beforeKill).join("") === "\b \b\b \b\b \b",
+      "T40: Ctrl+U 屏幕写 \\b \\b × 3 抹掉 dim 字符",
+    );
+
+    // 远程 echo = 被删字符 "abc"（已在路上）+ \b \b × 3 退格回显
+    const passthrough = pe.onRemoteOutput("abc\b \b\b \b\b \b");
+    assert(passthrough === "", "T40: 远程 echo 全部被消化");
+    assert(pe._debugState().queueSize === 0, "T40: 队列清空");
+    assert(pe._debugState().state === "Active", "T40: 状态保持 Active");
+  }
+
+  // T41: Ctrl+U 队列空 → freeze（保守）
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    const before = writes.length;
+    pe.onUserInput("\x15");
+    assert(pe._debugState().state === "Frozen", "T41: Ctrl+U 队列空切 Frozen");
+    assert(pe._debugState().queueSize === 0, "T41: 队列保持空");
+    assert(writes.length === before, "T41: Ctrl+U 队列空时不写屏幕");
+  }
+
+  // T42: Ctrl+U 队列含 backspace 项 → freeze（保守）
+  // 流程：a → 退格（队列 [backspace]）→ Ctrl+U
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("a");
+    pe.onUserInput("\x7f"); // 队列 [backspace]
+    assert(pe._debugState().queueSize === 1, "T42: 退格后队列 [backspace]");
+    pe.onUserInput("\x15"); // Ctrl+U
+    assert(pe._debugState().state === "Frozen", "T42: 队尾非 char 触发 freeze");
+    assert(pe._debugState().queueSize === 0, "T42: freeze 清空队列");
+  }
+
+  // T43: Ctrl+W 正常路径端到端
+  // 入 "ls foo" → 队列 6 char → Ctrl+W → 队列 [l,s,space,kill-word]，删 "foo"
+  // → 远程 echo "ls foo\b \b\b \b\b \b" 一次性回 → 全部命中
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("ls foo");
+    const beforeW = writes.length;
+    pe.onUserInput("\x17"); // Ctrl+W
+    assert(pe._debugState().queueSize === 4, "T43: Ctrl+W 后队列剩 4 项");
+    assert(
+      pe._debugState().queueKinds.join(",") === "char,char,char,kill-word",
+      "T43: 队列结构 [char,char,char,kill-word]（保留 'ls '）",
+    );
+    assert(
+      writes.slice(beforeW).join("") === "\b \b\b \b\b \b",
+      "T43: Ctrl+W 屏幕写 \\b \\b × 3 抹掉 'foo'",
+    );
+
+    const passthrough = pe.onRemoteOutput("ls foo\b \b\b \b\b \b");
+    assert(passthrough === "", "T43: 远程 echo 全部被消化");
+    assert(pe._debugState().queueSize === 0, "T43: 队列清空");
+    assert(pe._debugState().state === "Active", "T43: 状态保持 Active");
+  }
+
+  // T44: Ctrl+W 跳尾空格删一词（标准 readline 行为）
+  // 入 "ls foo  " (2 尾空格) → 队列 8 char → Ctrl+W → 删 "foo  " (M=5)
+  // → 队列 [l,s,space,kill-word]
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("ls foo  ");
+    const beforeW = writes.length;
+    pe.onUserInput("\x17");
+    assert(pe._debugState().queueSize === 4, "T44: 跳尾空格后队列剩 4 项");
+    assert(
+      pe._debugState().queueKinds.join(",") === "char,char,char,kill-word",
+      "T44: 队列结构 [char,char,char,kill-word]（保留 'ls '）",
+    );
+    assert(
+      writes.slice(beforeW).join("") === "\b \b".repeat(5),
+      "T44: 屏幕写 \\b \\b × 5（跳 2 尾空格 + 删 'foo' + 前空格）",
+    );
+  }
+
+  // T45: Ctrl+W 队列无空格 → 删全队
+  // 入 "ls" → 队列 [l,s] → Ctrl+W → 队列 [kill-word]
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("ls");
+    const beforeW = writes.length;
+    pe.onUserInput("\x17");
+    assert(pe._debugState().queueSize === 1, "T45: 删全队后剩 1 项");
+    assert(
+      pe._debugState().queueKinds.join(",") === "kill-word",
+      "T45: 队列结构 [kill-word]",
+    );
+    assert(
+      writes.slice(beforeW).join("") === "\b \b\b \b",
+      "T45: 屏幕写 \\b \\b × 2 抹掉 'ls'",
+    );
+  }
+
+  // T46: Ctrl+W 队列空 → freeze
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    const before = writes.length;
+    pe.onUserInput("\x17");
+    assert(pe._debugState().state === "Frozen", "T46: Ctrl+W 队列空切 Frozen");
+    assert(pe._debugState().queueSize === 0, "T46: 队列保持空");
+    assert(writes.length === before, "T46: Ctrl+W 队列空时不写屏幕");
+  }
+
+  // T47: Ctrl+W 队列含 backspace 项 → freeze
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("a");
+    pe.onUserInput("\x7f"); // 队列 [backspace]
+    pe.onUserInput("\x17"); // Ctrl+W
+    assert(pe._debugState().state === "Frozen", "T47: 队尾非 char 触发 freeze");
+    assert(pe._debugState().queueSize === 0, "T47: freeze 清空队列");
+  }
+
+  // T48: 连续 Ctrl+W → 第二次 freeze（队尾是 kill-word）
+  // 入 "ab" → Ctrl+W (队列 [kill-word]) → Ctrl+W (队尾非 char → freeze)
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("ab");
+    pe.onUserInput("\x17");
+    assert(pe._debugState().queueSize === 1, "T48: 第一次 Ctrl+W 后 [kill-word]");
+    assert(pe._debugState().state === "Active", "T48: 第一次仍 Active");
+    pe.onUserInput("\x17");
+    assert(pe._debugState().state === "Frozen", "T48: 第二次 Ctrl+W 触发 freeze");
+    assert(pe._debugState().queueSize === 0, "T48: freeze 清空队列");
+  }
+
+  // T49: Ctrl+U 长队列分包到达（验证 D5 容量保护 512 不误判）
+  // 入 80 个 'a' → Ctrl+U → kill-line 项 expectedEcho = "a"×80 + "\b \b"×80 = 320 字节
+  // 远程分两包：先 200 字节（部分匹配缓存）→ 再 120 字节（完全命中）
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("a".repeat(80));
+    pe.onUserInput("\x15");
+    assert(pe._debugState().queueSize === 1, "T49: Ctrl+U 后 [kill-line]");
+
+    const expected = "a".repeat(80) + "\b \b".repeat(80); // 320 字节
+    // 第一包 200 字节 → 部分匹配（200 < 512 不触发容量保护）
+    const r1 = pe.onRemoteOutput(expected.slice(0, 200));
+    assert(r1 === "", "T49: 第一包部分匹配缓存，无剩余");
+    assert(
+      pe._debugState().pendingRemote.length === 200,
+      "T49: pendingRemote 缓存 200 字节",
+    );
+    assert(pe._debugState().state === "Active", "T49: 部分匹配不切 Frozen");
+
+    // 第二包 120 字节 → 拼接 200 + 120 = 320 完整命中
+    const r2 = pe.onRemoteOutput(expected.slice(200));
+    assert(r2 === "", "T49: 第二包命中无剩余");
+    assert(pe._debugState().queueSize === 0, "T49: 队列清空");
+    assert(pe._debugState().state === "Active", "T49: 命中后状态保持 Active");
   }
 
   // eslint-disable-next-line no-console
