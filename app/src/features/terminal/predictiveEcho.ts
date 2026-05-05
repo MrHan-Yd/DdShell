@@ -130,6 +130,45 @@ function classifyControlChar(ch: string): string {
   return "other";
 }
 
+/**
+ * 从 text 开头扫描，跳过 SGR 序列（\x1b[...m），累计 targetCharLen 个非 SGR 字符，
+ * 返回总消费字节数（含跳过的 SGR）。如果非 SGR 字符不足 targetCharLen，返回 -1。
+ *
+ * 切片 7.1 用途：onRemoteOutput SGR 剥离命中后，反推应消费 remaining 多少字节。
+ * 与 PredictiveEcho.SGR_STRIP_REGEX 的格式定义保持一致（\x1b[ + 数字/分号 + m）。
+ * 其他 CSI 序列（如光标移动 \x1b[5D）不跳过，会落到普通字符计数——切片 7.1
+ * 只覆盖 alias 着色 / zsh-syntax-highlighting 这类纯 SGR 包裹场景，光标定位
+ * 序列出现时按失配处理（由切片 7.3 PROMPT_COMMAND 重绘分支专门覆盖）。
+ */
+function consumeBytesWithSgrSkip(text: string, targetCharLen: number): number {
+  let i = 0;
+  let charCount = 0;
+  while (i < text.length && charCount < targetCharLen) {
+    if (text.charCodeAt(i) === 0x1b && text.charCodeAt(i + 1) === 0x5b /* [ */) {
+      let j = i + 2;
+      let isSgr = false;
+      while (j < text.length) {
+        const c = text.charCodeAt(j);
+        if (c === 0x6d /* m */) {
+          isSgr = true;
+          break;
+        }
+        if (!((c >= 0x30 && c <= 0x39) /* 0-9 */ || c === 0x3b /* ; */)) {
+          break;
+        }
+        j++;
+      }
+      if (isSgr) {
+        i = j + 1;
+        continue;
+      }
+    }
+    charCount++;
+    i++;
+  }
+  return charCount === targetCharLen ? i : -1;
+}
+
 // ── PredictiveEcho ──
 
 /**
@@ -200,6 +239,21 @@ export class PredictiveEcho {
   private static readonly PROMPT_TAIL_CHARS = new Set([
     "$", "#", ">", "❯", "➜", "λ", "%", "→",
   ]);
+
+  /**
+   * CSI 序列正则（切片 7.3）。匹配 \x1b[ + 参数（数字/分号/?）+ 最终字节（A-Z/a-z）。
+   * 用于 isHeavyRedraw 扫描——排除 SGR（m 收尾）后剩余的非 m CSI 视为"光标定位/
+   * 清屏/清行"等重绘信号。
+   */
+  private static readonly CSI_SEQUENCE_REGEX = /\x1b\[[\d;?]*([A-Za-z])/g;
+
+  /**
+   * 重绘阈值（切片 7.3）。单次 onRemoteOutput 中非 SGR CSI 数量 ≥ 此值时，
+   * 视为 PROMPT_COMMAND 重绘类场景，整队回滚 + Frozen。
+   * 阈值 5 来自 phase2-plan §4.3 方案 C；保守取值，简单命令 echo 不会触发，
+   * 仅 PROMPT_COMMAND 一次性重画整行 prompt 的场景才会达到。
+   */
+  private static readonly HEAVY_REDRAW_THRESHOLD = 5;
 
   constructor(term: Terminal, options: PredictiveEchoOptions = {}) {
     this.term = term;
@@ -373,6 +427,13 @@ export class PredictiveEcho {
     let remaining = this.pendingRemote + text;
     this.pendingRemote = "";
 
+    // 切片 7.3：检测 PROMPT_COMMAND 重绘类场景（连续非 SGR CSI 序列堆积）。
+    // 装了 OSC 133 的 shell 走 §A/B/C/D 信号已覆盖此类场景；本分支兜底裸 bash
+    // + PROMPT_COMMAND，远程一次性重画整行 prompt 时整队回滚避免失配雪崩。
+    if (this.isHeavyRedraw(remaining)) {
+      return this.handleMismatch(remaining);
+    }
+
     while (this.queue.length > 0 && remaining.length > 0) {
       const head = this.queue[0];
 
@@ -414,6 +475,53 @@ export class PredictiveEcho {
         }
         this.pendingRemote = remaining;
         return "";
+      }
+
+      // 切片 7.1：SGR 剥离命中（alias 着色 / zsh-syntax-highlighting 等带色 echo）。
+      // 严格相等失败时尝试剥离 SGR 后再 startsWith；屏幕仍写带色字节，着色不丢。
+      // 仅对 char 项启用——backspace / kill-line / kill-word 的 expectedEcho 含
+      // \b \b 等控制序列，远程 echo 不会带色，也不应走剥离路径。
+      if (head.kind === "char") {
+        const stripped = remaining.replace(PredictiveEcho.SGR_STRIP_REGEX, "");
+        if (stripped.startsWith(head.expectedEcho)) {
+          const consumed = consumeBytesWithSgrSkip(
+            remaining,
+            head.expectedEcho.length,
+          );
+          if (consumed < 0) {
+            // 安全网：stripped startsWith 已确认有足够普通字符，理论不应到此。
+            return this.handleMismatch(remaining);
+          }
+          const remoteConsumed = remaining.slice(0, consumed);
+          remaining = remaining.slice(consumed);
+          this.queue.shift();
+          this.metrics.confirmCount++;
+          // 与严格命中转正同构：写"远程带色字节"代替 expectedEcho 纯字符——
+          // 关 dim 后远程 SGR 决定字符渲染，着色保留。光标偏移按"普通字符数"算
+          // （SGR 序列不占屏幕格），所以 echoLen / offsetAfter 与原路径同义。
+          const echoLen = head.expectedEcho.length;
+          const offsetAfter = this.totalRemainingEchoLength();
+          const totalBack = echoLen + offsetAfter;
+          let seq = `\x1b[${totalBack}D${ANSI_DIM_OFF}${remoteConsumed}`;
+          if (offsetAfter > 0) {
+            seq += `\x1b[${offsetAfter}C`;
+          }
+          this.term.write(seq);
+          if (this.strictRemaining > 0) this.strictRemaining--;
+          continue;
+        }
+        // 剥离后是 expectedEcho 真前缀 → SGR 序列分包到达，缓存等下一波。
+        // 与原部分匹配同构，复用 512 容量保护。
+        if (
+          stripped.length < head.expectedEcho.length &&
+          head.expectedEcho.startsWith(stripped)
+        ) {
+          if (remaining.length > 512) {
+            return this.handleMismatch(remaining);
+          }
+          this.pendingRemote = remaining;
+          return "";
+        }
       }
 
       // 失配：远程 echo 与队首预测明确不一致
@@ -645,6 +753,39 @@ export class PredictiveEcho {
    *   • 后缀字符从 3 个 ($/#/>) 扩展到 8 个，覆盖 starship/p10k/fish 常见样式
    *   • strictRemaining 由 3 提升到 5（模式更松，需要更长严格期）
    */
+  /**
+   * 切片 7.3：检测 text 是否构成"重绘类"输出。
+   * 标准：单次 text 中非 SGR CSI 序列（光标定位 H/A/B/C/D、清屏 J、清行 K 等，
+   * 排除 m 收尾的 SGR 颜色序列）数量 ≥ HEAVY_REDRAW_THRESHOLD。
+   *
+   * 触发后调用方应整队回滚 + Frozen——PROMPT_COMMAND 一次性重画整行 prompt
+   * 的场景不可能与队首 expectedEcho 字节序匹配，逐字节比对必然失配雪崩，
+   * 不如直接回滚一次。
+   *
+   * 误判风险：
+   *   • SGR 着色场景（如 ls --color）含 m 收尾的 CSI，本算法显式排除，不触发
+   *   • zsh autosuggest 撤销+重 echo 单轮含 1-2 个非 SGR CSI（CSI K 等），
+   *     不会触达阈值 5
+   *   • vim/less 等 alt screen 已由切片 1 alt screen handler 提前 freeze，
+   *     不会到 onRemoteOutput 命中分支
+   */
+  private isHeavyRedraw(text: string): boolean {
+    let nonSgrCount = 0;
+    PredictiveEcho.CSI_SEQUENCE_REGEX.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = PredictiveEcho.CSI_SEQUENCE_REGEX.exec(text)) !== null) {
+      if (m[1] !== "m") {
+        nonSgrCount++;
+        if (nonSgrCount >= PredictiveEcho.HEAVY_REDRAW_THRESHOLD) {
+          PredictiveEcho.CSI_SEQUENCE_REGEX.lastIndex = 0;
+          return true;
+        }
+      }
+    }
+    PredictiveEcho.CSI_SEQUENCE_REGEX.lastIndex = 0;
+    return false;
+  }
+
   private detectPromptHeuristic(text: string): void {
     if (this.state !== "Cold") return;
     // 切片 5：先剥离 SGR 颜色序列再做后缀匹配，避免带色 prompt 不命中
@@ -1645,6 +1786,207 @@ export function selfCheck(): SelfCheckResult {
     assert(r2 === "", "T49: 第二包命中无剩余");
     assert(pe._debugState().queueSize === 0, "T49: 队列清空");
     assert(pe._debugState().state === "Active", "T49: 命中后状态保持 Active");
+  }
+
+  // ── 切片 7.1：SGR 剥离命中（T50-T54）──
+
+  // T50: SGR 剥离单字符命中 + 转正序列保留远程带色字节
+  // alias 着色场景：远程 echo 把字符裹在 SGR 中
+  // 注：命中只消费到字符末尾，紧跟的尾部 reset (\x1b[0m) 留在返回值里
+  // 由调用方透传给 xterm（不破坏已渲染字符，且不影响后续 dim 入队）
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("l");
+    writes.length = 0; // 清掉 dim 入队的 write 记录，仅观察命中后转正序列
+    const r = pe.onRemoteOutput("\x1b[31ml\x1b[0m");
+    assert(r === "\x1b[0m", "T50: 命中消费到字符末尾，尾部 reset 透传给调用方");
+    assert(pe._debugState().queueSize === 0, "T50: 命中后队列清空");
+    assert(pe._debugState().state === "Active", "T50: 命中后保持 Active");
+    const wrote = writes.join("");
+    assert(
+      wrote.includes("\x1b[31ml"),
+      "T50: 转正序列保留远程带色起始 SGR + 字符",
+    );
+    assert(wrote.includes(ANSI_DIM_OFF), "T50: 转正序列含关 dim");
+    assert(pe.getMetrics().confirmCount === 1, "T50: confirmCount=1");
+  }
+
+  // T51: SGR 剥离多字符连续命中（zsh-syntax-highlighting 风格）
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("l");
+    pe.onUserInput("s");
+    // 远程把 ls 重新着色为红色
+    const r = pe.onRemoteOutput("\x1b[31ml\x1b[0m\x1b[31ms\x1b[0m");
+    // 两次命中各消费到字符末尾，最末尾的 \x1b[0m 留作返回值
+    assert(r === "\x1b[0m", "T51: 多字符连续命中后尾部 reset 透传");
+    assert(pe._debugState().queueSize === 0, "T51: 队列全部清空");
+    assert(pe._debugState().state === "Active", "T51: 多字符命中后 Active");
+    assert(pe.getMetrics().confirmCount === 2, "T51: 两次 confirm");
+  }
+
+  // T52: 严格相等优先（无 SGR 时走原命中路径）
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("a");
+    const r = pe.onRemoteOutput("a");
+    assert(r === "", "T52: 严格相等命中无剩余");
+    assert(pe._debugState().queueSize === 0, "T52: 队列清空");
+    assert(pe.getMetrics().confirmCount === 1, "T52: confirmCount=1");
+    assert(pe._debugState().state === "Active", "T52: 严格命中保持 Active");
+  }
+
+  // T53: SGR 剥离后仍失配 → handleMismatch + Frozen
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("a");
+    // 远程是 X 不是 a，即使剥离 SGR 也不命中
+    const r = pe.onRemoteOutput("\x1b[31mX\x1b[0m");
+    assert(r.length > 0, "T53: 失配整队回滚有剩余字节传给调用方");
+    assert(pe._debugState().state === "Frozen", "T53: 失配切 Frozen");
+    assert(pe._debugState().queueSize === 0, "T53: 失配后队列清空");
+    assert(pe.getMetrics().mismatchCount === 1, "T53: mismatchCount=1");
+  }
+
+  // T54: SGR 序列分包到达不误失配（剥离后是真前缀 → 缓存 pendingRemote）
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("a");
+    // 第一包仅 SGR，无字符 → stripped="" 是 "a" 的真前缀
+    const r1 = pe.onRemoteOutput("\x1b[31m");
+    assert(r1 === "", "T54: 纯 SGR 包缓存 pendingRemote");
+    assert(pe._debugState().state === "Active", "T54: SGR 分包不切 Frozen");
+    assert(
+      pe._debugState().pendingRemote.length > 0,
+      "T54: pendingRemote 缓存了 SGR 字节",
+    );
+    // 第二包字符 + 收尾 SGR → 拼接后剥离 SGR = "a" 完整命中
+    const r2 = pe.onRemoteOutput("a\x1b[0m");
+    // 命中消费 "\x1b[31m" + "a" = 8 字节，尾部 "\x1b[0m" 透传
+    assert(r2 === "\x1b[0m", "T54: 拼接后命中，尾部 reset 透传");
+    assert(pe._debugState().queueSize === 0, "T54: 命中后队列清空");
+    assert(pe._debugState().state === "Active", "T54: 命中后保持 Active");
+  }
+
+  // ── 切片 7.2：autosuggest 灰色追加透传（T55-T57）──
+  // 关键契约：autosuggest 追加字节由 onRemoteOutput 返回值透传给调用方写到 xterm，
+  // 不被预测层吞掉。否则 zsh autosuggest 在开预测回显后会失效（用户敲字后看不到灰色建议）。
+  // 设计上由 7.1 严格相等命中分支 + SGR 剥离命中分支自然支持，本组用例固化契约防回归。
+
+  // T55: 严格相等命中后，autosuggest 灰色追加透传
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("g");
+    // 远程 echo 'g'（命中）+ 灰色 ' it status'（autosuggest 追加）
+    const r = pe.onRemoteOutput("g\x1b[90m it status\x1b[39m");
+    // 命中消费 'g'（1 字节），剩余灰色建议透传
+    assert(
+      r === "\x1b[90m it status\x1b[39m",
+      "T55: 严格命中后 autosuggest 字节透传给调用方",
+    );
+    assert(pe._debugState().queueSize === 0, "T55: 命中后队列清空");
+    assert(pe._debugState().state === "Active", "T55: 命中后保持 Active");
+    assert(pe.getMetrics().mismatchCount === 0, "T55: autosuggest 不计失配");
+  }
+
+  // T56: SGR 剥离命中后，autosuggest 灰色追加透传
+  // 远程把命中字符也着色（zsh-syntax-highlighting）+ 追加 autosuggest
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("g");
+    // 红色 g（命中）+ 灰色 ' push'（autosuggest）
+    const r = pe.onRemoteOutput("\x1b[31mg\x1b[39m\x1b[90m push\x1b[39m");
+    // 剥离命中消费到字符末尾（'\x1b[31mg' 共 6 字节），剩余 SGR + 灰色建议透传
+    assert(
+      r === "\x1b[39m\x1b[90m push\x1b[39m",
+      "T56: 剥离命中后 autosuggest + 收尾 SGR 透传",
+    );
+    assert(pe._debugState().queueSize === 0, "T56: 命中后队列清空");
+    assert(pe._debugState().state === "Active", "T56: 命中后保持 Active");
+    assert(pe.getMetrics().mismatchCount === 0, "T56: 不计失配");
+  }
+
+  // T57: autosuggest 不影响后续预测（透传不破坏预测层状态）
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("g");
+    // 第一字符命中 + autosuggest 透传
+    pe.onRemoteOutput("g\x1b[90m it\x1b[39m");
+    assert(pe._debugState().state === "Active", "T57: 透传后仍 Active 可继续预测");
+    // 用户继续敲第二字符
+    pe.onUserInput("i");
+    assert(pe._debugState().queueSize === 1, "T57: 后续预测正常入队");
+    // 远程仅回 'i'（autosuggest 在用户敲字时被 zsh 撤销了，简化场景）
+    const r2 = pe.onRemoteOutput("i");
+    assert(r2 === "", "T57: 后续严格命中无剩余");
+    assert(pe._debugState().queueSize === 0, "T57: 队列清空");
+  }
+
+  // ── 切片 7.3：PROMPT_COMMAND 重绘整队回滚（T58-T60）──
+
+  // T58: 连续 5 个非 SGR CSI 触发 isHeavyRedraw → 整队回滚 + Frozen
+  // 模拟裸 bash + PROMPT_COMMAND 一次性重画整行 prompt 的场景
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("a");
+    // 5 个非 SGR CSI:清屏 J + 光标 H + 清行 K + 上移 A + 下移 B
+    const heavy = "\x1b[2J\x1b[H\x1b[K\x1b[1A\x1b[1B";
+    const r = pe.onRemoteOutput(heavy);
+    assert(r === heavy, "T58: 重绘场景整段透传给调用方");
+    assert(pe._debugState().state === "Frozen", "T58: 重绘触发 Frozen");
+    assert(pe._debugState().queueSize === 0, "T58: 队列回滚清空");
+    assert(pe.getMetrics().mismatchCount === 1, "T58: 计入 mismatch");
+  }
+
+  // T59: 4 个非 SGR CSI 不触发(< 阈值 5),走原失配路径
+  // 验证阈值精确,边界场景不误判
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("a");
+    // 4 个非 SGR CSI(刚好少于阈值 5)
+    const lighter = "\x1b[K\x1b[1A\x1b[1B\x1b[1C";
+    const r = pe.onRemoteOutput(lighter);
+    // 不走 isHeavyRedraw,走严格相等失配路径
+    assert(r.length > 0, "T59: < 阈值不触发重绘检测,走原失配路径");
+    assert(pe._debugState().state === "Frozen", "T59: 失配仍切 Frozen");
+  }
+
+  // T60: SGR 着色场景含多个 m 收尾 CSI 不触发(显式排除 SGR)
+  // 防回归:7.1 alias 着色场景不能被 7.3 误判为重绘
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("l");
+    pe.onUserInput("s");
+    // 双字符着色:含 4 个 SGR(m 收尾),不算重绘
+    const colored = "\x1b[31ml\x1b[39m\x1b[31ms\x1b[39m";
+    const r = pe.onRemoteOutput(colored);
+    assert(r === "\x1b[39m", "T60: 着色多字符命中,尾部 reset 透传");
+    assert(pe._debugState().queueSize === 0, "T60: 着色场景命中清空队列");
+    assert(pe._debugState().state === "Active", "T60: 着色不被误判为重绘");
+    assert(pe.getMetrics().confirmCount === 2, "T60: 两次 confirm");
+    assert(pe.getMetrics().mismatchCount === 0, "T60: 着色不计 mismatch");
   }
 
   // eslint-disable-next-line no-console
