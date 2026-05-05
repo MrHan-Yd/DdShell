@@ -20,18 +20,19 @@
 | 5 — Shell 兼容性扩展 | ✅ 已完成（2026-05-04） | G1（裸 bash + 自定义 prompt） | 启发式扩展 + CPR 主动探测 |
 | 6 — 行编辑高级场景 | ✅ 已完成（2026-05-04） | G2（Ctrl+W/U） | readline 分词 + 双 echo 消化 |
 | 7 — 失配模式针对性处理 | ✅ 代码完成（2026-05-05），dogfood 待做 | G3（着色 / autosuggest / PROMPT_COMMAND 重绘） | SGR 剥离命中 + autosuggest 透传 + 重绘检测 |
-| 8 — IME 协同 | ⏳ M1 后做 | G4（中文/日韩输入） | 阻塞于 M0→M1 跨越 |
+| 8 — 中文 IME 协同 | ✅ 代码完成（2026-05-05），dogfood 待做 | G4（中文 IME 输入） | CJK 宽字符 2 列宽路径 + 简繁中文 + 标点 + 全角符号 |
 | 9 — CPR 完整同步基础设施 | ⏳ M2 后选做 | 完整状态同步 | 不阻塞转正 |
 
 ### 1.2 转正路径进度
 
 ```
    M0 实验性                  M1 默认开启              M2 正式功能
-   (当前)                     (切片 7 dogfood + 跨越)  (30 天观察 + 文案)
+   (当前)                     (切片 7/8 dogfood + 跨越) (30 天观察 + 文案)
    ────────────              ────────────             ────────────
-   切片 5  ✅ 已完成          切片 8（中文 IME）       去「实验」标签
-   切片 6  ✅ 已完成          + 30 天观察              + 阶段 1/2 文档归档
-   切片 7  ✅ 代码完成        + hitRate ≥ 90%
+   切片 5  ✅ 已完成          + 30 天观察              去「实验」标签
+   切片 6  ✅ 已完成          + hitRate ≥ 90%          + 阶段 1/2 文档归档
+   切片 7  ✅ 代码完成
+   切片 8  ✅ 代码完成（提前于 M1，仅简繁中文）
    + dogfood 1 周（待做）
 ```
 
@@ -40,7 +41,8 @@
 - [x] 切片 5 完成 → G1 缺口闭合（自动化 + dogfood 双确认 2026-05-04）
 - [x] 切片 6 完成 → G2 缺口闭合（自动化 + dogfood 双确认 2026-05-04）
 - [x] 切片 7 完成（代码层）→ G3 缺口闭合（自动化 248/248 通过 2026-05-05；dogfood 待做）
-- [x] selfCheck 在新切片完成后保持全绿（248/248）
+- [x] 切片 8 完成（代码层，提前于 M1）→ G4 缺口闭合（自动化 288/288 通过 2026-05-05；dogfood 待做）
+- [x] selfCheck 在新切片完成后保持全绿（288/288）
 - [ ] 至少 1 周内部 dogfood，无致命 bug
 - [ ] **可选**：metrics 上报机制 — 不做也能进 M1
 
@@ -184,31 +186,68 @@ npm run test:predictive-echo
 
 ---
 
+### 2.4 切片 8：中文 IME 协同（2026-05-05 代码层完成）
+
+**目标**：关闭 G4 缺口——让简体中文 + 繁体中文（含汉字、中文标点、全角符号）也能预测，与 ASCII 路径体验等同。
+
+**范围决策**（用户确认 2026-05-05）：
+- ✅ 简体中文 + 繁体中文（CJK Unified U+4E00-9FFF + CJK Ext A U+3400-4DBF）
+- ✅ 中文标点（U+3000-303F，「。」「、」「《」等）
+- ✅ 全角符号（U+FF00-FF60，「，」「Ｂ」等）
+- ❌ 半角片假名（U+FF61-FFEF，1 列宽，显式排除）
+- ❌ 日文 hiragana/katakana / 韩文 hangul（用户活动场景占比低，留未来切片）
+- ❌ Supplementary plane CJK（Ext B-F，需 surrogate pair 处理，留未来切片）
+
+**修改清单**：
+
+| 文件 | 改动 | 行数变化 |
+|---|---|---|
+| `app/src/features/terminal/predictiveEcho.ts` | 模块级 `isCJKWideChar` + `charDisplayWidth` 工具函数 + `onUserInput` CJK 分支 + 退格 / Ctrl+U / Ctrl+W 按列宽计算 + `onRemoteOutput` 严格命中与 SGR 剥离命中 echoLen 改 `charDisplayWidth(head.char)` + `totalRemainingEchoLength` 改按列宽汇总 + selfCheck T61-T70（40 项 assertion） | +~150 行 |
+| `app/src/features/terminal/TerminalPage.tsx` | **不改动**——现有 `composingRef` + `compositionstart/end` 监听 + `onData` 短路已正确支持方案 A | 0 |
+
+**关键决策**：
+
+| 决策 | 选择 | 理由 |
+|---|---|---|
+| 实施时机 | **提前于 M1 起手**（原计划 M1 后做）| 切片 7 dogfood 期间正好可与切片 8 dogfood 并行；用户范围确认仅简繁中文，工时压缩到 1 日内 |
+| 字符范围边界 | **严格收紧到 4 个 BMP 段** | 显式排除 U+FF61-FFEF 半角片假名（1 列宽混用会误算列偏移）；显式排除 supplementary plane（surrogate pair 处理） |
+| Surrogate pair 兜底 | `isCJKWideChar` 入口判 `ch.length !== 1` 直接 return false | char.length === 2 的 supplementary plane CJK 走 freeze 兜底，不诱导出错 |
+| 列宽抽象 | 模块级 `charDisplayWidth(ch)` 函数（CJK=2 / ASCII=1）| 集中所有"1 字符 = 1 列"假设的破口；4 处调用点（onUserInput 退格 / Ctrl+U / Ctrl+W + onRemoteOutput 严格命中 + onRemoteOutput SGR 剥离命中 + totalRemainingEchoLength）一致替换 |
+| undoSequence | `ANSI_UNDO_CHAR.repeat(2)`（"\b \b\b \b" 6 字节）| 与 ASCII 路径"\b \b"同构，按列数重复；xterm Unicode11Addon 渲染时第一次 \b \b 抹右半，第二次抹左半 |
+| 方案选择 | **方案 A：commit 后预测** | 与现有 IME 短路路径自然对接（compositionend → 普通 onData）；不监听 compositionupdate（候选词预测失配率高） |
+| TerminalPage 改动 | **0 行**——所有改动收敛在 predictiveEcho.ts | 现有 `composingRef` 短路已正确；commit 文本走 onData → onUserInput 即可分流到新 CJK 分支 |
+| 命中转正 echoLen | `charDisplayWidth(head.char)` 而非 `expectedEcho.length` | BMP CJK 在 UTF-16 下 `expectedEcho.length === 1` 与 ASCII 同，会算错列偏移；必须用 charDisplayWidth |
+
+**关键设计点**：CJK char 项与 ASCII char 项的差异**仅在屏幕列宽**。expectedEcho 仍是字符本身（远程发回的字节，UTF-8 由 xterm 解码后等同输入字符），但 `echoLen / undoSequence / totalRemainingEchoLength` 的"1 字符 = 1 列"假设必须由 `charDisplayWidth` 抽象。这是切片 8 主要的内部脆弱点——任何遗漏的"假设 1 列"代码点都会导致 CJK 场景下命中转正光标错位。selfCheck T64 显式断言 `\x1b[4D...\x1b[2C`（4D / 2C 而非 2D / 1C）固化此契约。
+
+**验证状态**：
+
+- ✅ selfCheck T1-T70 全绿（**288/288 assertions, 0 failures**；2026-05-05 `npm run test:predictive-echo` 通过）
+- ✅ `npx tsc --noEmit` 无错
+- ✅ `npx vite build` 通过（1.73s）
+- ⏳ 应用内 dogfood — 待用户在 macOS 系统中文 IME（拼音/注音）实跑
+- ⏳ G4 缺口闭合确认 — 待 dogfood 后
+
+**自动化入口**：
+
+```bash
+cd /Users/hanyongding/project/rust/shell/app
+npm run test:predictive-echo
+```
+
+预期：`PASS — 288 assertions, 0 failures`，退出码 0。
+
+---
+
 ## 3. 待开发
 
-### 3.1 切片 8：IME 协同（M1 后做）
+### 3.1 切片 9（M2 后选做）：CPR 完整同步基础设施
 
-详见 phase2-plan §4.4。
+详见 phase2-plan §4.5。**不阻塞转正**——M2 退出条件不依赖切片 9。
 
-**先决调研已完成**（2026-05-05；实施仍阻塞于 M0→M1 跨越）：
+**简述**：维护虚拟终端镜像（行内字符 + 光标），周期性 CPR 与真实终端对账，失配率根本性降低；同时实现切片 6 暂未做的 Ctrl+A/E、左右箭头编辑（plan §4.2）。
 
-| 调研项 | 结论 | 证据 |
-|---|---|---|
-| Q1（plan §4.4）：xterm 是否暴露 onCompositionStart/Update/End | **不暴露**——`@xterm/xterm@6.0.0` 的 d.ts 中 grep `composition` / `onCompose` / `isComposing` 全部无匹配 | `app/node_modules/@xterm/xterm/typings/xterm.d.ts` |
-| Q2（plan §4.4）：TerminalPage 现有 IME 路径是否调用 onUserInput | composition 中**不调**（`composingRef` 短路 return）；composition 结束后中文 commit 文本走 onData → onUserInput → 第一个汉字进 `isPredictableChar` 因 `code >= 0x80` 拒绝 → `freeze("other")` **整队回滚 + Frozen** | `TerminalPage.tsx:751-752`（IME 短路）/`:860`（onUserInput 调用点）/`predictiveEcho.ts:113-117`（isPredictableChar）/`:302`/`:382`（freeze 路径） |
-| Q3（plan §6 O2）：commit 文本如何获取 | 走 DOM 原生路径——`compositionend` 触发后，紧跟的 onData data 即 commit 文本（textarea input 标准行为）。现有代码已用 `compositionstart` / `compositionend` 维护 `composingRef`，**未监听 `compositionupdate`** | `TerminalPage.tsx:967-970` |
-
-**对切片 8 设计的影响**：
-
-- 必须走 DOM 原生 composition 事件路径（xterm 无原生 API），与现有代码一致
-- 中文 commit 字符当前在 `onUserInput` 直接 freeze——切片 8 需在 `isPredictableChar` 之前增加多字节字符分支（plan §4.4 方案 A）
-- CJK 字符 xterm 渲染为 2 列宽 → undoSequence 必须按 2 列算（`\b\b \b\b` 而非 `\b \b`），与 phase1 ASCII 路径不同构
-- `compositionupdate` 是否监听是设计点：plan §4.4 方案 B（保守路径，仅 commit 后预测）天然不需要 update 事件；方案 C（激进 candidate 预测）需要——切片 8 实施时按 §4.4 决策点选定方案再决定
-
-**M1 后实施起手动作**：
-1. 在 `onUserInput` 增加非 ASCII 多字节字符分支（先按"一个汉字 = 一个 char 项入队"实现）
-2. 处理 CJK 字符 2 列宽：`undoSequence` / `expectedEcho` / `totalRemainingEchoLength` 等内部方法的"1 字符 = 1 列"假设需要重新审视
-3. selfCheck 增量 T61-T70（plan §4.4 用例集）
+**进入时机**：M2 之后视实际 hitRate 与体感反馈再决定是否启动。
 
 ---
 
@@ -232,7 +271,7 @@ npm run test:predictive-echo
 > cd /Users/hanyongding/project/rust/shell/app && npm run test:predictive-echo
 > ```
 >
-> 预期：248/248 通过。
+> 预期：288/288 通过。
 >
 > 我说"开始"你再动手。严守工程纪律：先 Read 再 Edit，diff 最小化，失败两次换路。
 
@@ -240,14 +279,14 @@ npm run test:predictive-echo
 
 ```bash
 cd /Users/hanyongding/project/rust/shell/app
-npm run test:predictive-echo  # 248 assertions
+npm run test:predictive-echo  # 288 assertions
 npx tsc --noEmit              # 无错
 ```
 
-### 4.3 dogfood 极简清单（5 步 + 切片 6/7 增量）
+### 4.3 dogfood 极简清单（5 步 + 切片 6/7/8 增量）
 
 > ✅ 状态：步骤 1-5（切片 5）+ 步骤 6/7/8（切片 6 增量）已 dogfood 通过 2026-05-04，G1/G2 缺口闭合。
-> ⏳ 状态：步骤 9-11（切片 7 增量）待 dogfood，G3 缺口闭合需此步通过。
+> ⏳ 状态：步骤 9-11（切片 7 增量）+ 步骤 12-17（切片 8 增量）待 dogfood，G3/G4 缺口闭合需此步通过。
 > 后人接手时仍建议复跑确认环境无回归。
 
 应用启动 + 设置开"预测回显（实验）"后：
@@ -263,11 +302,18 @@ npx tsc --noEmit              # 无错
 9. **切片 7 增量 — alias 着色**：装 `alias ls='ls --color=auto'` 的机器，敲 `ls`，期望 dim → 命中后变正常色（不闪烁回滚）
 10. **切片 7 增量 — zsh autosuggest**：装 zsh-autosuggestions 的机器敲 `g`，期望立即看到 dim `g` + 灰色建议（`it status` 等），灰色建议**不被预测层吞掉**
 11. **切片 7 增量 — bash PROMPT_COMMAND**：连配置 PROMPT_COMMAND 重画 prompt 的裸 bash，敲 Enter 触发重绘，期望整队回滚一次后画面干净（不抖动雪崩）
+12. **切片 8 增量 — 中文 IME 单字预测**：macOS 切到拼音/注音输入法，连 SSH，敲「中」字 → 期望 dim 中文 → 远程 echo 后转正色
+13. **切片 8 增量 — 中文多字 commit**：敲「你好世界」一次性 commit → 期望 4 个汉字依次 dim 显示 → 远程 echo 后逐个转正
+14. **切片 8 增量 — ASCII 中文混合**：敲 `ls 中文` → 期望 ls 命中后中文继续 dim → 远程 echo 中文转正
+15. **切片 8 增量 — 中文标点 + 全角符号**：敲「中文，全角符号」（含 U+3000-303F 与 U+FF00-FF60 段）→ 期望全部预测命中
+16. **切片 8 增量 — 中文退格**：敲「中文」后按退格 → 期望立即抹掉「文」字（按 2 列宽）
+17. **切片 8 增量 — 半角片假名 freeze**（如有日文输入法）：敲 `ｱ`（U+FF71，半角片假名）→ 期望 freeze 整队回滚（这是设计预期，不是 bug）
 
 观察项：
 - 视觉：dim → 正色过渡是否自然，无闪烁
 - 切片 6：Ctrl+U/W 后立刻看到字符消失（不等远程 echo），随后远程 echo 到达不重画
 - 切片 7：着色场景命中后字符直接变成远程指定的颜色（不是 dim 后变默认色再被远程覆盖）；autosuggest 灰字保留；PROMPT_COMMAND 重绘整队回滚仅一次
+- 切片 8：中文字符 dim 显示按 2 列宽占位（与远程 echo 后正色字符列宽一致）；命中后无视觉抖动；中文与 ASCII 混合时光标位置正确
 - dev console：60s 后自动打印 `[PredictiveEcho metrics]`，hitRate ≥ 0.9
 
 出意外快速回退：设置里关闭"预测回显（实验）"开关。
@@ -287,7 +333,8 @@ npx tsc --noEmit              # 无错
 | T50-T54 | 阶段 2 切片 7.1（SGR 剥离命中 + 分包缓存）| 24 项 |
 | T55-T57 | 阶段 2 切片 7.2（autosuggest 透传契约）| 12 项 |
 | T58-T60 | 阶段 2 切片 7.3（PROMPT_COMMAND 重绘检测）| 11 项 |
-| **合计** | | **248 assertions** |
+| T61-T70 | 阶段 2 切片 8（中文 IME 协同：CJK 宽字符 + 标点 + 全角 + 退格 + Ctrl+U + 标点 + 全角 + 排除范围）| 40 项 |
+| **合计** | | **288 assertions** |
 
 ---
 
@@ -295,7 +342,7 @@ npx tsc --noEmit              # 无错
 
 | 路径 | 状态 | 说明 |
 |---|---|---|
-| `app/src/features/terminal/predictiveEcho.ts` | 切片 7 完成 | 核心实现 ~1840 行，含 selfCheck T1-T60 |
+| `app/src/features/terminal/predictiveEcho.ts` | 切片 8 完成 | 核心实现 ~1990 行，含 selfCheck T1-T70 |
 | `app/src/features/terminal/TerminalPage.tsx` | 切片 5 完成 | 接入点：实例化 + OSC 133 + CSI ?h/l + CSI R + CPR 注入 |
 | `app/src/features/settings/SettingsPage.tsx` | 阶段 1 完成 | 「预测回显（实验）」开关 |
 | `app/scripts/test-predictive-echo.ts` | 切片 5 新建 | selfCheck runner |
@@ -335,6 +382,17 @@ npx tsc --noEmit              # 无错
 | **autosuggest "无需新代码"的认知陷阱** | plan §4.3 方案 B 写了独立检测逻辑，看似要新增"超出期望范围 → 标记 autosuggest"代码 | 实际上严格相等命中分支天然支持——剩余字节作为 onRemoteOutput 返回值由调用方透传，不被吞掉。7.2 仅补 selfCheck T55-T57 固化契约，无 production 改动 |
 | **CSI_SEQUENCE_REGEX 全局正则的 lastIndex 风险** | `String.matchAll` / `regex.exec` 配合 /g 标志时 lastIndex 跨调用会污染 | `isHeavyRedraw` 内部进入时 `lastIndex = 0`，提前 return 时也显式重置。与 SGR_STRIP_REGEX 用 `replace`（不依赖 lastIndex）的策略不同 |
 
+### 7.4 切片 8 实施时遇到的
+
+| 陷阱 | 现象 | 防御 / 修复 |
+|---|---|---|
+| **echoLen 用 `expectedEcho.length` 在 BMP CJK 下静默错误** | UTF-16 下汉字 `"中".length === 1`，与 ASCII `"a".length === 1` 同；改造前命中转正光标只回退 1 列而非 2 列，远程 echo 后字符叠在一起 | 严格命中分支 + SGR 剥离命中分支的 echoLen 必须用 `charDisplayWidth(head.char)`；T64 显式断言 `\x1b[4D...\x1b[2C`（4D / 2C）固化契约 |
+| **半角片假名 U+FF61-FFEF 列宽与全角符号不同** | 若 isCJKWideChar 范围扩到 U+FF00-FFEF，半角片假名（1 列宽）会被误算 2 列 → 退格 / Ctrl+U 多抹一格 | 范围严格收紧到 U+FF00-FF60；T70a 显式断言 `ｱ`（U+FF71）走 freeze 防回归 |
+| **Supplementary plane CJK（Ext B-F）UTF-16 surrogate pair** | `"𠮷".length === 2`（U+20BB7）；按"一字符"逻辑处理会越界 | `isCJKWideChar` 入口 `if (ch.length !== 1) return false` 兜底，supplementary plane CJK 走 freeze（与俄文等同） |
+| **CJK 退格 expectedEcho 容易少算字节** | 汉字"中"远程 echo 后跟 4 字节双退格回显（"\b \b\b \b"），不是 ASCII 路径的 2 字节 | backspace 项 expectedEcho = `removed.expectedEcho + ANSI_UNDO_CHAR.repeat(width)`，width 由 `charDisplayWidth` 决定；T66 验证 |
+| **Ctrl+U 总列宽计算遗漏 CJK 项** | 若用 `n = queue.length` 算屏幕抹除字节数，CJK 队列只抹 `\b \b × n` 而非 `\b \b × totalWidth`，多余空格留在屏幕 | Ctrl+U/W 改用 `for (const p of queue) totalWidth += charDisplayWidth(p.char ?? "")` 统计；T67 验证 |
+| **TerminalPage 改动诱惑** | composition API 调研期间一度想给 TerminalPage 加 compositionupdate 监听 | 方案 A（commit 后预测）天然不需要 update；现有 composingRef 短路 + compositionend 后走 onData → onUserInput 已正确，0 行改动收敛复杂度 |
+
 ---
 
 ## 8. 任务追踪
@@ -346,13 +404,13 @@ npx tsc --noEmit              # 无错
 - #8 切片 5 自动化测试 — ✅ completed
 - #5 切片 6 实施 — ✅ completed（2026-05-04）
 - #6 切片 7 实施 — ✅ completed（代码层 2026-05-05；dogfood 待做）
-- #7 M0 → M1 跨越 — ⏳ pending（**待切片 7 dogfood 1 周**）
-- #2 切片 8 实施 — ⏳ pending（blocked by #7；先决调研已完成 2026-05-05，详见 §3.1）
-- #3 M1 → M2 跨越 — ⏳ pending（blocked by #2）
+- #2 切片 8 实施 — ✅ completed（代码层 2026-05-05，提前于 M1；dogfood 待做）
+- #7 M0 → M1 跨越 — ⏳ pending（**待切片 7/8 dogfood 1 周**）
+- #3 M1 → M2 跨越 — ⏳ pending（blocked by #7）
 
 ---
 
 > 文档结束。下次更新本文档：
-> - 切片 7 dogfood 通过后：§1.1 切片 7 状态改 ✅ 已完成；§1.3 dogfood 行打勾；§2.3 验证状态 dogfood 改 ✅；§4.3 切片 7 增量步骤标记完成
-> - 进入 M1 时：§1.2 转正路径阶段切换；切片 8 提到 §2
+> - 切片 7/8 dogfood 通过后：§1.1 切片 7/8 状态改 ✅ 已完成（dogfood 双确认）；§1.3 dogfood 行打勾；§2.3/2.4 验证状态 dogfood 改 ✅；§4.3 切片 7/8 增量步骤标记完成
+> - 进入 M1 时：§1.2 转正路径阶段切换
 > - 进入 M2 时：本文档与 phase1-progress.md 一并归档到 `docs/archive/predictive-echo-phase{1,2}/`

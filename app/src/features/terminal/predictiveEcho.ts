@@ -22,6 +22,8 @@ import type { Terminal } from "@xterm/xterm";
  *   ✓ 队列超时保护（队首入队 > 10s 未确认 → freeze）
  *   ✓ 弱启发式 prompt 检测（仅 Cold→Active；前 3 项严格期）
  *   ✓ 监控指标（切片 4：getMetrics 暴露累计计数 + 命中率）
+ *   ✓ 中文宽字符预测（切片 8：CJK Unified / Ext A / Punctuation / Fullwidth ASCII，
+ *     按 2 列宽计算光标偏移与撤销序列）
  *   ↳ UI 设置开关 / 一次性引导（切片 4，由 SettingsPage / TerminalPage 接入）
  *
  * ── 与现有功能的契约 ──
@@ -49,7 +51,10 @@ interface Prediction {
   seq: number;
   /**
    * 预测种类：
-   *   • "char"：普通字符预测，屏幕已写 dim 字符，命中后转正色
+   *   • "char"：普通字符预测，屏幕已写 dim 字符，命中后转正色。含 ASCII（1 列宽，
+   *     undoSequence "\b \b"）与 CJK 宽字符（切片 8，2 列宽，undoSequence
+   *     "\b \b\b \b"）；屏幕占 charDisplayWidth(char) 列，光标偏移与 echoLen 计算
+   *     必须用 charDisplayWidth 而非 expectedEcho.length。
    *   • "backspace"：退格消化项，屏幕在入队时已通过 \b \b 抹掉了对应字符；
    *     此项只负责"消化远程将要 echo 出来的那个字符 + 退格 echo"，本身
    *     不在屏幕上占位
@@ -106,7 +111,9 @@ const DEFAULT_OPTIONS: Required<PredictiveEchoOptions> = {
  * 我们故意排除：
  *   • 控制字符（< 0x20）：\r \n \t \b ESC 等，这些会改变 shell 状态或光标
  *   • DEL（0x7F）：退格，切片 3 单独处理
- *   • 非 ASCII（>= 0x80）：多字节字符 / IME 输入，复杂度大幅提升
+ *   • 非 ASCII（>= 0x80）：多字节字符 / IME 输入；切片 8 起 CJK 宽字符由
+ *     isCJKWideChar 单独分流到 onUserInput 的 CJK 预测分支，俄/希腊/阿拉伯等
+ *     非 CJK 非 ASCII 字符仍按 freeze 处理
  *
  * 切片 1 的稳妥原则：宁可少预测、不要错预测。
  */
@@ -128,6 +135,41 @@ function classifyControlChar(ch: string): string {
   const code = ch.charCodeAt(0);
   if (code < 0x20) return "ctrl";
   return "other";
+}
+
+/**
+ * 判断字符是否为"中文宽字符"（切片 8）。范围严格按 plan 定义，仅含 2 列宽段，
+ * 显式排除 1 列宽的混淆段（如半角片假名 U+FF61-FFDC）和 supplementary plane
+ * （需 surrogate pair，char.length=2）。
+ *
+ * 覆盖范围：
+ *   • U+4E00-9FFF  CJK Unified Ideographs（中日韩统一汉字，含简繁中文 95%+）
+ *   • U+3400-4DBF  CJK Extension A（罕见汉字）
+ *   • U+3000-303F  CJK Symbols and Punctuation（「，。！？」等中文标点）
+ *   • U+FF00-FF60  Fullwidth ASCII Forms（全角 ASCII，「Ｂ」「！」等）
+ *
+ * 显式排除：U+FF61-FFEF（半角片假名 1 列宽）、U+3040-30FF（hiragana/katakana）、
+ * U+1100-115F + U+AC00-D7AF（韩文）、U+20000+（Extension B-F）。这些字符在
+ * onUserInput 内会落到 freeze 分支——是设计预期，不是 bug。
+ */
+function isCJKWideChar(ch: string): boolean {
+  if (ch.length !== 1) return false; // 排除 surrogate pair（supplementary plane）
+  const code = ch.charCodeAt(0);
+  return (
+    (code >= 0x4e00 && code <= 0x9fff) ||
+    (code >= 0x3400 && code <= 0x4dbf) ||
+    (code >= 0x3000 && code <= 0x303f) ||
+    (code >= 0xff00 && code <= 0xff60)
+  );
+}
+
+/**
+ * 字符屏幕显示列宽（切片 8）。CJK 宽字符 2 列；ASCII 1 列。
+ * 调用方约定：仅对已确认可预测的 char 项的 char 字段调用——backspace / kill-line
+ * / kill-word 项的 char 为 undefined，会被 `?? ""` 兜底为空串返回 1（无意义但不崩）。
+ */
+function charDisplayWidth(ch: string): number {
+  return isCJKWideChar(ch) ? 2 : 1;
 }
 
 /**
@@ -283,16 +325,18 @@ export class PredictiveEcho {
           this.freeze("backspace");
           return;
         }
-        // 屏幕抹掉队尾那个 dim 字符（\b \b 的空格用普通色覆盖 dim）
-        this.term.write(ANSI_UNDO_CHAR);
-        // 出队尾部 char，入队 backspace 消化项
+        // 屏幕抹掉队尾那个 dim 字符（\b \b 的空格用普通色覆盖 dim）。
+        // 切片 8：CJK 宽字符占 2 列，ANSI_UNDO_CHAR 重复 2 次；ASCII 重复 1 次。
         const removed = this.queue.pop()!;
+        const width = charDisplayWidth(removed.char ?? "");
+        this.term.write(ANSI_UNDO_CHAR.repeat(width));
+        // 出队尾部 char（已 pop），入队 backspace 消化项
         this.queue.push({
           seq: this.nextSeq++,
           kind: "backspace",
           // 双 echo 消化：远程会先回退掉那个字符的 echo，再回退格 echo。
-          // 二者按字节顺序拼接即可。
-          expectedEcho: removed.expectedEcho + ANSI_UNDO_CHAR,
+          // 二者按字节顺序拼接即可。CJK 字符的远程退格 echo 也按 2 列重复。
+          expectedEcho: removed.expectedEcho + ANSI_UNDO_CHAR.repeat(width),
           undoSequence: "",
           predictedAt: Date.now(),
         });
@@ -312,20 +356,23 @@ export class PredictiveEcho {
             this.freeze("kill-line");
             return;
           }
-          const n = this.queue.length;
-          // 屏幕：N 次 \b \b 抹掉所有 dim 字符
-          this.term.write(ANSI_UNDO_CHAR.repeat(n));
+          // 屏幕：抹掉所有 dim 字符（切片 8 按总显示宽度算 \b \b 重复，CJK 占 2 列）。
           // 收集被删字符的 echo（远程仍会回这些字节，已在路上无法取消）。
           // 守卫保证队列全是 char 项，expectedEcho 累加即等于字符串。
           let killedEcho = "";
-          for (const p of this.queue) killedEcho += p.expectedEcho;
+          let totalWidth = 0;
+          for (const p of this.queue) {
+            killedEcho += p.expectedEcho;
+            totalWidth += charDisplayWidth(p.char ?? "");
+          }
+          this.term.write(ANSI_UNDO_CHAR.repeat(totalWidth));
           // 整队替换为单个 kill-line 消化项。
-          // expectedEcho = 被删字符的 echo + 远程的 N 次 \b \b 退格回显。
+          // expectedEcho = 被删字符的 echo + 远程的"总列宽次" \b \b 退格回显。
           this.queue.length = 0;
           this.queue.push({
             seq: this.nextSeq++,
             kind: "kill-line",
-            expectedEcho: killedEcho + ANSI_UNDO_CHAR.repeat(n),
+            expectedEcho: killedEcho + ANSI_UNDO_CHAR.repeat(totalWidth),
             undoSequence: "",
             predictedAt: Date.now(),
           });
@@ -356,23 +403,47 @@ export class PredictiveEcho {
             this.freeze("kill-word");
             return;
           }
-          // 屏幕：M 次 \b \b 抹掉尾部 dim 字符
-          this.term.write(ANSI_UNDO_CHAR.repeat(m));
+          // 屏幕：抹掉尾部 dim 字符（切片 8 按删除段总显示宽度算 \b \b 重复，CJK 占 2 列）。
           // 收集被删字符的 echo（远程 echo 仍会回这部分字节）。
           let killedEcho = "";
+          let totalWidth = 0;
           for (let j = i; j < this.queue.length; j++) {
             killedEcho += this.queue[j].expectedEcho;
+            totalWidth += charDisplayWidth(this.queue[j].char ?? "");
           }
+          this.term.write(ANSI_UNDO_CHAR.repeat(totalWidth));
           // 出队尾部 m 个 char，入队单个 kill-word 消化项。
-          // expectedEcho = 被删字符的 echo + M 次 \b \b 退格回显。
+          // expectedEcho = 被删字符的 echo + 远程的"总列宽次" \b \b 退格回显。
           this.queue.length = i;
           this.queue.push({
             seq: this.nextSeq++,
             kind: "kill-word",
-            expectedEcho: killedEcho + ANSI_UNDO_CHAR.repeat(m),
+            expectedEcho: killedEcho + ANSI_UNDO_CHAR.repeat(totalWidth),
             undoSequence: "",
             predictedAt: Date.now(),
           });
+          continue;
+        }
+
+        // 切片 8：中文宽字符预测分支——CJK 字符占 2 列宽，与 ASCII 路径同构入队。
+        // 位置约束：必须在 Ctrl+U/W 分支之后（0x15/0x17 也是 isPredictableChar=false
+        // 但属行编辑，须先分流），freeze 之前（俄/希腊等非 CJK 非 ASCII 字符走
+        // freeze 兜底，与阶段 1 行为一致）。
+        if (isCJKWideChar(ch)) {
+          if (this.queue.length >= this.opts.maxQueueSize) {
+            return;
+          }
+          const p: Prediction = {
+            seq: this.nextSeq++,
+            kind: "char",
+            char: ch,
+            expectedEcho: ch,
+            undoSequence: ANSI_UNDO_CHAR.repeat(2), // CJK 2 列宽
+            predictedAt: Date.now(),
+          };
+          this.queue.push(p);
+          this.metrics.predictionCount++;
+          this.term.write(`${ANSI_DIM_ON}${ch}${ANSI_DIM_OFF}`);
           continue;
         }
 
@@ -449,7 +520,9 @@ export class PredictiveEcho {
           //   1. 光标左移 totalBack 到队首字符位置之前
           //   2. 写 \x1b[22m + echo（覆盖为正常色，光标前进 echo 长度）
           //   3. 若剩余 char 项非空，光标右移回原位
-          const echoLen = head.expectedEcho.length;
+          // 切片 8：echoLen 必须按 charDisplayWidth 算（CJK 字符占 2 列），
+          // 而非 expectedEcho.length（UTF-16 长度对 BMP CJK 仍是 1，会算错列偏移）。
+          const echoLen = charDisplayWidth(head.char ?? "");
           const offsetAfter = this.totalRemainingEchoLength();
           const totalBack = echoLen + offsetAfter;
           let seq = `\x1b[${totalBack}D${ANSI_DIM_OFF}${head.expectedEcho}`;
@@ -499,7 +572,9 @@ export class PredictiveEcho {
           // 与严格命中转正同构：写"远程带色字节"代替 expectedEcho 纯字符——
           // 关 dim 后远程 SGR 决定字符渲染，着色保留。光标偏移按"普通字符数"算
           // （SGR 序列不占屏幕格），所以 echoLen / offsetAfter 与原路径同义。
-          const echoLen = head.expectedEcho.length;
+          // 切片 8：与严格命中分支同步——echoLen 必须按 charDisplayWidth 算
+          // （CJK 字符占 2 列），不能用 expectedEcho.length（BMP CJK UTF-16 长度仍为 1）。
+          const echoLen = charDisplayWidth(head.char ?? "");
           const offsetAfter = this.totalRemainingEchoLength();
           const totalBack = echoLen + offsetAfter;
           let seq = `\x1b[${totalBack}D${ANSI_DIM_OFF}${remoteConsumed}`;
@@ -712,11 +787,12 @@ export class PredictiveEcho {
   // ── 私有方法 ──
 
   /** 当前队列里所有未确认 char 项在屏幕上占据的总字符宽度。
-   *  backspace 项屏幕占 0 格（入队时已 \b \b 抹掉），不计入。 */
+   *  backspace 项屏幕占 0 格（入队时已 \b \b 抹掉），不计入。
+   *  切片 8：CJK 字符占 2 列，按 charDisplayWidth 算；ASCII 字符占 1 列。 */
   private totalRemainingEchoLength(): number {
     let total = 0;
     for (const p of this.queue) {
-      if (p.kind === "char") total += p.expectedEcho.length;
+      if (p.kind === "char") total += charDisplayWidth(p.char ?? "");
     }
     return total;
   }
@@ -1987,6 +2063,213 @@ export function selfCheck(): SelfCheckResult {
     assert(pe._debugState().state === "Active", "T60: 着色不被误判为重绘");
     assert(pe.getMetrics().confirmCount === 2, "T60: 两次 confirm");
     assert(pe.getMetrics().mismatchCount === 0, "T60: 着色不计 mismatch");
+  }
+
+  // ── 切片 8：中文 IME 协同（T61-T70）──
+
+  // T61: 单汉字预测全程命中（与 T1 同构，但所有列宽计算按 2 列）
+  // 入队 "中" → 队列 [char(中, 2col)] → 远程 echo "中"
+  // shift 后队列空，echoLen=2，offsetAfter=0，totalBack=2
+  //   命中转正序列 = "\x1b[2D\x1b[22m中"（无尾部光标右移）
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("中");
+    assert(pe._debugState().queueSize === 1, "T61: 单汉字预测后队列 1 项");
+    assert(
+      pe._debugState().queueKinds.join(",") === "char",
+      "T61: 队列结构 [char]",
+    );
+    assert(writes.length === 1, "T61: 入队阶段 term.write 调用 1 次");
+    assert(writes[0] === "\x1b[2m中\x1b[22m", "T61: dim 包裹中文字符");
+
+    const beforeHit = writes.length;
+    const passthrough = pe.onRemoteOutput("中");
+    assert(passthrough === "", "T61: 远程 echo 全部消化");
+    assert(pe._debugState().queueSize === 0, "T61: 队列清空");
+    assert(
+      writes.slice(beforeHit).join("") === "\x1b[2D\x1b[22m中",
+      "T61: 命中转正按 2 列回退（\\x1b[2D 而非 \\x1b[1D）",
+    );
+  }
+
+  // T62: 多汉字 commit 一次性入队（compositionend 后 onData 一次给多字符）
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("中文测试");
+    assert(pe._debugState().queueSize === 4, "T62: 多汉字 commit 队列 4 项");
+    assert(
+      pe._debugState().queueKinds.join(",") === "char,char,char,char",
+      "T62: 4 项 char",
+    );
+    assert(writes.length === 4, "T62: 入队阶段 term.write 调用 4 次");
+    assert(
+      writes[0] === "\x1b[2m中\x1b[22m" &&
+        writes[1] === "\x1b[2m文\x1b[22m" &&
+        writes[2] === "\x1b[2m测\x1b[22m" &&
+        writes[3] === "\x1b[2m试\x1b[22m",
+      "T62: 每个汉字独立 dim 写入（顺序保持）",
+    );
+  }
+
+  // T63: ASCII + CJK 混合（"ab中文" → 4 项入队，顺序与列宽混合）
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("ab中文");
+    assert(pe._debugState().queueSize === 4, "T63: 混合 4 项入队");
+    assert(writes.length === 4, "T63: 4 次 dim 写入");
+    assert(
+      writes[0] === "\x1b[2ma\x1b[22m" &&
+        writes[1] === "\x1b[2mb\x1b[22m" &&
+        writes[2] === "\x1b[2m中\x1b[22m" &&
+        writes[3] === "\x1b[2m文\x1b[22m",
+      "T63: ASCII 与 CJK 顺序保持",
+    );
+  }
+
+  // T64: CJK 命中转正序列光标偏移按 2 列计算
+  // 入队 "中文" → 远程 echo "中"（仅命中第一项）
+  // shift 后队列 [文]，echoLen=2，offsetAfter=2，totalBack=4
+  //   命中转正 = "\x1b[4D\x1b[22m中\x1b[2C"（关键：4D / 2C 而非 2D / 1C）
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("中文");
+    const beforeHit = writes.length;
+
+    const passthrough = pe.onRemoteOutput("中");
+    assert(passthrough === "", "T64: 命中第一项后无剩余");
+    assert(pe._debugState().queueSize === 1, "T64: 队列剩 1 项");
+    assert(
+      writes.slice(beforeHit).join("") === "\x1b[4D\x1b[22m中\x1b[2C",
+      "T64: totalBack=4 (echoLen 2 + offsetAfter 2)，尾部 2C 回原位",
+    );
+  }
+
+  // T65: CJK 失配整队回滚（每项 undoSequence = "\b \b\b \b" 6 字节）
+  // 入队 "中文" → 远程 "X" 第一字符就失配 → 整队回滚
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("中文");
+    const beforeMismatch = writes.length;
+
+    const passthrough = pe.onRemoteOutput("X");
+    assert(passthrough === "X", "T65: 第一字符失配后 X 透传");
+    assert(pe._debugState().state === "Frozen", "T65: 失配切 Frozen");
+    assert(pe._debugState().queueSize === 0, "T65: 队列清空");
+    assert(
+      writes.slice(beforeMismatch).join("") === "\b \b\b \b\b \b\b \b",
+      "T65: 两项 CJK 回滚 12 字节（每项 \\b \\b × 2，从队尾撤销）",
+    );
+  }
+
+  // T66: CJK 退格预测（输入「中」+ \x7f）
+  // 队列变 [backspace]，backspace.expectedEcho = "中" + "\b \b\b \b"
+  // （远程实际 echo 中文字符 + 4 字节双退格回显）
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("中");
+    const beforeBs = writes.length;
+    pe.onUserInput("\x7f");
+    assert(pe._debugState().queueSize === 1, "T66: 退格后队列 [backspace]");
+    assert(
+      pe._debugState().queueKinds.join(",") === "backspace",
+      "T66: 队列结构 [backspace]",
+    );
+    assert(
+      writes.slice(beforeBs).join("") === "\b \b\b \b",
+      "T66: 退格屏幕写 \\b \\b × 2（按 CJK 2 列宽）",
+    );
+
+    // 远程 echo = 中文字符 echo + 4 字节退格回显
+    const passthrough = pe.onRemoteOutput("中\b \b\b \b");
+    assert(passthrough === "", "T66: 远程双 echo 全部消化");
+    assert(pe._debugState().queueSize === 0, "T66: 队列清空");
+  }
+
+  // T67: CJK + Ctrl+U 清行
+  // 队列 [char(中), char(文)] → \x15 → totalWidth=4，屏幕写 \b \b × 4
+  // expectedEcho = "中文" + "\b \b" × 4 = 12 字节远程双退格回显
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("中文");
+    const beforeKill = writes.length;
+    pe.onUserInput("\x15");
+    assert(pe._debugState().queueSize === 1, "T67: Ctrl+U 后队列 [kill-line]");
+    assert(
+      pe._debugState().queueKinds.join(",") === "kill-line",
+      "T67: 队列结构 [kill-line]",
+    );
+    assert(
+      writes.slice(beforeKill).join("") === "\b \b\b \b\b \b\b \b",
+      "T67: Ctrl+U 屏幕写 \\b \\b × 4（CJK 总列宽 2+2=4）",
+    );
+  }
+
+  // T68: 中文标点支持（U+3000-303F，「。」U+3002）
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("。");
+    assert(pe._debugState().queueSize === 1, "T68: 中文句号入队");
+    assert(
+      pe._debugState().queueKinds.join(",") === "char",
+      "T68: 标点是 char 项",
+    );
+    assert(writes[0] === "\x1b[2m。\x1b[22m", "T68: 标点 dim 写入");
+
+    const beforeHit = writes.length;
+    pe.onRemoteOutput("。");
+    assert(
+      writes.slice(beforeHit).join("") === "\x1b[2D\x1b[22m。",
+      "T68: 标点命中转正按 2 列回退",
+    );
+  }
+
+  // T69: 全角符号支持（U+FF00-FF60，全角逗号「，」U+FF0C）
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("，");
+    assert(pe._debugState().queueSize === 1, "T69: 全角逗号入队");
+    assert(
+      pe._debugState().queueKinds.join(",") === "char",
+      "T69: 全角符号是 char 项",
+    );
+    assert(writes[0] === "\x1b[2m，\x1b[22m", "T69: 全角符号 dim 写入");
+  }
+
+  // T70: 显式排除范围继续 freeze（半角片假名 U+FF71 / 俄文 U+0430）
+  // 半角片假名仅 1 列宽，必须排除以避免列偏移误算；非 CJK 非 ASCII 同走 freeze
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("ｱ"); // U+FF71 半角片假名
+    assert(pe._debugState().state === "Frozen", "T70a: 半角片假名 freeze");
+    assert(pe._debugState().queueSize === 0, "T70a: 队列空（freeze）");
+  }
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput("а"); // U+0430 俄文 a
+    assert(pe._debugState().state === "Frozen", "T70b: 俄文字符 freeze");
+    assert(pe._debugState().queueSize === 0, "T70b: 队列空（freeze）");
   }
 
   // eslint-disable-next-line no-console
