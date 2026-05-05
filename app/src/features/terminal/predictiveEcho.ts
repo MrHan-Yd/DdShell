@@ -24,6 +24,10 @@ import type { Terminal } from "@xterm/xterm";
  *   ✓ 监控指标（切片 4：getMetrics 暴露累计计数 + 命中率）
  *   ✓ 中文宽字符预测（切片 8：CJK Unified / Ext A / Punctuation / Fullwidth ASCII，
  *     按 2 列宽计算光标偏移与撤销序列）
+ *   ✓ 光标对账（切片 9：维护预测光标位置 predictedCursor + 周期真实光标读取
+ *     与预测光标对账，失败整队回滚 + Frozen；Frozen + 队列空时对账成功自动恢复
+ *     Active。CPR 应答入口仍保留给切片 5 初始化兜底，为 Ctrl+A/E + 左右箭头编辑
+ *     预留基础设施）
  *   ↳ UI 设置开关 / 一次性引导（切片 4，由 SettingsPage / TerminalPage 接入）
  *
  * ── 与现有功能的契约 ──
@@ -97,10 +101,13 @@ type State = "Disabled" | "Cold" | "Active" | "Frozen";
 export interface PredictiveEchoOptions {
   /** 队列容量上限。超过则停止预测（仍照常发送到远程）。默认 100 */
   maxQueueSize?: number;
+  /** 切片 9：光标对账周期（毫秒）。默认 5000。selfCheck 可注入小值验证 timer。 */
+  cprAuditIntervalMs?: number;
 }
 
 const DEFAULT_OPTIONS: Required<PredictiveEchoOptions> = {
   maxQueueSize: 100,
+  cprAuditIntervalMs: 5000,
 };
 
 // ── 工具函数 ──
@@ -262,7 +269,36 @@ export class PredictiveEcho {
     predictionCount: 0,
     confirmCount: 0,
     mismatchCount: 0,
+    /** 切片 9：光标对账次数（含成功与失败）。 */
+    cprAuditCount: 0,
+    /** 切片 9：光标对账失败次数（触发 freeze("cprAuditFail") 的次数）。 */
+    cprMismatchCount: 0,
   };
+
+  /**
+   * 切片 9：预测光标位置——"队列全部入队后假设的"列/行坐标。
+   *   • 起点：onPromptReady / 首次 onCursorPosition(Active) 时从 xterm.buffer.active 读取
+   *   • 每次 char 入队 predictedCursor.col += charDisplayWidth(ch)
+   *   • 每次 backspace / Ctrl+U / Ctrl+W 入队 predictedCursor.col -= 对应宽度
+   *   • 命中转正不改 predictedCursor（入队时已前进）
+   *   • freeze / reset / setEnabled(false) 清零
+   * 不变量：真实光标列 = predictedCursor.col - totalRemainingEchoLength()
+   * null 表示尚未初始化（Cold / Frozen / Disabled 状态 / 未获得真实光标起点）
+   */
+  private predictedCursor: { col: number; row: number } | null = null;
+
+  /**
+   * 切片 9：真实光标读取器（调用方注入）。返回 xterm 当前光标位置 (cursorX, cursorY)。
+   * onPromptReady / 首次 onCursorPosition(Active) / Frozen→Active 时调用以获取起点。
+   * null 表示未注入——selfCheck 默认场景 / 集成测试跳过光标对账。
+   */
+  private realCursorReader: (() => { col: number; row: number }) | null = null;
+
+  /** 切片 9：光标对账 timer 句柄。Active / Frozen 下启用，Disabled 清理。 */
+  private cprAuditTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** 切片 9：对账 tick 执行中的短暂保护标记，避免重入。 */
+  private cprAuditPending = false;
 
   /** 队列超时阈值（毫秒）。队首入队超过此值仍未确认，触发 freeze("timeout") */
   private static readonly QUEUE_TIMEOUT_MS = 10_000;
@@ -330,6 +366,7 @@ export class PredictiveEcho {
         const removed = this.queue.pop()!;
         const width = charDisplayWidth(removed.char ?? "");
         this.term.write(ANSI_UNDO_CHAR.repeat(width));
+        this.advancePredictedCursor(-width);
         // 出队尾部 char（已 pop），入队 backspace 消化项
         this.queue.push({
           seq: this.nextSeq++,
@@ -366,6 +403,7 @@ export class PredictiveEcho {
             totalWidth += charDisplayWidth(p.char ?? "");
           }
           this.term.write(ANSI_UNDO_CHAR.repeat(totalWidth));
+          this.advancePredictedCursor(-totalWidth);
           // 整队替换为单个 kill-line 消化项。
           // expectedEcho = 被删字符的 echo + 远程的"总列宽次" \b \b 退格回显。
           this.queue.length = 0;
@@ -412,6 +450,7 @@ export class PredictiveEcho {
             totalWidth += charDisplayWidth(this.queue[j].char ?? "");
           }
           this.term.write(ANSI_UNDO_CHAR.repeat(totalWidth));
+          this.advancePredictedCursor(-totalWidth);
           // 出队尾部 m 个 char，入队单个 kill-word 消化项。
           // expectedEcho = 被删字符的 echo + 远程的"总列宽次" \b \b 退格回显。
           this.queue.length = i;
@@ -444,6 +483,7 @@ export class PredictiveEcho {
           this.queue.push(p);
           this.metrics.predictionCount++;
           this.term.write(`${ANSI_DIM_ON}${ch}${ANSI_DIM_OFF}`);
+          this.advancePredictedCursor(2); // 切片 9：CJK 2 列
           continue;
         }
 
@@ -473,6 +513,7 @@ export class PredictiveEcho {
       // 切片 2：以 dim 写入屏幕，让用户视觉上区分"已确认"与"预测中"。
       // 注意 expectedEcho 仍是纯字符——远程 echo 不会带 dim 序列。
       this.term.write(`${ANSI_DIM_ON}${ch}${ANSI_DIM_OFF}`);
+      this.advancePredictedCursor(1); // 切片 9：ASCII 1 列
     }
   }
 
@@ -622,6 +663,8 @@ export class PredictiveEcho {
     this.pendingRemote = "";
     this.nextSeq = 0;
     this.strictRemaining = 0;
+    this.predictedCursor = null;
+    this.stopCprAuditTimer();
     if (this.state !== "Disabled") {
       this.state = "Cold";
     }
@@ -643,6 +686,8 @@ export class PredictiveEcho {
     this.rollbackQueue();
     this.pendingRemote = "";
     this.strictRemaining = 0;
+    this.predictedCursor = null;
+    this.stopCprAuditTimer();
     this.state = "Disabled";
   }
 
@@ -658,15 +703,15 @@ export class PredictiveEcho {
     this.rollbackQueue();
     this.pendingRemote = "";
     this.strictRemaining = 0;
+    this.predictedCursor = null;
     this.state = "Cold";
   }
 
   /** OSC 133;B — prompt 打印完毕，可以接受用户输入命令。 */
   onPromptReady(): void {
     if (this.state === "Disabled") return;
-    this.state = "Active";
     // OSC 133;B 是强信号，无需严格期
-    this.strictRemaining = 0;
+    this.promoteActive(0, this.realCursorReader?.() ?? null);
   }
 
   /**
@@ -684,6 +729,7 @@ export class PredictiveEcho {
     this.rollbackQueue();
     this.pendingRemote = "";
     this.strictRemaining = 0;
+    this.predictedCursor = null;
     this.state = "Cold";
   }
 
@@ -705,23 +751,46 @@ export class PredictiveEcho {
   }
 
   /**
-   * CPR（Cursor Position Report）应答接收口（切片 5）。
+   * CPR（Cursor Position Report）应答接收口。
    *
-   * TerminalPage 在远程连接建立后注入一次 \x1b[6n 查询，远端 PTY 把应答
-   * \x1b[<row>;<col>R 经 SSH 通道回传，由 TerminalPage 注册的 CSI final='R'
-   * handler 解析后调用本方法。
+   * TerminalPage 在远程连接建立后保留一次 \x1b[6n 查询（切片 5 初始化兜底）。
+   * 远端 PTY 把应答 \x1b[<row>;<col>R 经 SSH 通道回传，由 TerminalPage 注册的
+   * CSI final='R' handler 解析后调用本方法。注意 ANSI CPR 坐标是 1-based，
+   * 本方法会转换成 xterm buffer 使用的 0-based row/col。
    *
-   * 行为：仅在 Cold 状态下生效——单次应答即认定 prompt ready，进 Active +
-   * 设置严格期 strictRemaining=5。Active/Frozen/Disabled 下忽略，保守原则
-   * 避免错预测扩散。
+   * 切片 9 的周期对账不再向远端注入 \x1b[6n，改为直接读取 xterm buffer 光标，
+   * 避免控制序列落入 shell/readline 输入流。
    *
-   * 设计简化（D1-A 决策）：不做"列位置稳定 ≥ 200ms"多次比对，单次触发即可。
-   * row/col 当前未使用，参数保留为切片 9 引入屏幕模型时不破坏接口。
+   * 按 state 分流行为：
+   *   • Cold（切片 5 路径）：单次应答即认定 prompt ready，进 Active + strictRemaining=5
+   *   • Active（切片 9 对账）：对比 predictedCursor - totalRemainingEchoLength 与真实光标。
+   *     一致 → 仅 cprAuditCount++ 不变 state；不一致 → cprMismatchCount++ + freeze。
+   *     predictedCursor 为 null 时以真实光标作为起点初始化。
+   *   • Frozen（切片 9 恢复）：若队列空则自动 Frozen→Active（对账隐式成功），
+   *     predictedCursor 从真实光标设置；队列非空保持 Frozen（不可安全恢复）。
+   *   • Disabled：忽略。
    */
-  onCursorPosition(_row: number, _col: number): void {
-    if (this.state !== "Cold") return;
-    this.state = "Active";
-    this.strictRemaining = 5;
+  onCursorPosition(row: number, col: number): void {
+    if (this.state === "Disabled") return;
+    const actual = PredictiveEcho.fromCprPosition(row, col);
+
+    // 切片 5 路径：Cold → Active 兜底（保留）
+    if (this.state === "Cold") {
+      this.promoteActive(5, actual);
+      return;
+    }
+
+    // 切片 9：Active 状态对账
+    if (this.state === "Active") {
+      this.auditCursor(actual);
+      return;
+    }
+
+    // 切片 9：Frozen 恢复路径
+    if (this.state === "Frozen") {
+      this.auditCursor(actual);
+      return;
+    }
   }
 
   /**
@@ -737,7 +806,19 @@ export class PredictiveEcho {
     this.rollbackQueue();
     this.pendingRemote = "";
     this.strictRemaining = 0;
+    // 切片 9：清零预测光标，等下次 prompt 信号或 Frozen→Active 路径从真实光标重建
+    this.predictedCursor = null;
     this.state = "Frozen";
+  }
+
+  /**
+   * 切片 9：注入真实光标读取器。TerminalPage 传入后，onPromptReady / Active
+   * 首次对账 / Frozen 恢复时会调用此函数获取 xterm 真实光标作为预测起点。
+   * selfCheck 默认不注入——predictedCursor 保持 null，advancePredictedCursor
+   * 作空操作，onCursorPosition Active 分支首次对账也以 null 为起点初始化。
+   */
+  setRealCursorReader(reader: () => { col: number; row: number }): void {
+    this.realCursorReader = reader;
   }
 
   /**
@@ -750,6 +831,9 @@ export class PredictiveEcho {
     nextSeq: number;
     strictRemaining: number;
     queueKinds: ("char" | "backspace" | "kill-line" | "kill-word")[];
+    predictedCursor: { col: number; row: number } | null;
+    cprAuditPending: boolean;
+    cprAuditTimerActive: boolean;
   } {
     return {
       state: this.state,
@@ -758,6 +842,10 @@ export class PredictiveEcho {
       nextSeq: this.nextSeq,
       strictRemaining: this.strictRemaining,
       queueKinds: this.queue.map((p) => p.kind),
+      predictedCursor:
+        this.predictedCursor === null ? null : { ...this.predictedCursor },
+      cprAuditPending: this.cprAuditPending,
+      cprAuditTimerActive: this.cprAuditTimer !== null,
     };
   }
 
@@ -774,6 +862,8 @@ export class PredictiveEcho {
     confirmCount: number;
     mismatchCount: number;
     hitRate: number | null;
+    cprAuditCount: number;
+    cprMismatchCount: number;
   } {
     const denom = this.metrics.confirmCount + this.metrics.mismatchCount;
     return {
@@ -781,6 +871,8 @@ export class PredictiveEcho {
       confirmCount: this.metrics.confirmCount,
       mismatchCount: this.metrics.mismatchCount,
       hitRate: denom === 0 ? null : this.metrics.confirmCount / denom,
+      cprAuditCount: this.metrics.cprAuditCount,
+      cprMismatchCount: this.metrics.cprMismatchCount,
     };
   }
 
@@ -795,6 +887,100 @@ export class PredictiveEcho {
       if (p.kind === "char") total += charDisplayWidth(p.char ?? "");
     }
     return total;
+  }
+
+  /** ANSI CPR 使用 1-based row/col；xterm buffer 使用 0-based cursorX/cursorY。 */
+  private static fromCprPosition(row: number, col: number): { col: number; row: number } {
+    return {
+      col: Math.max(0, col - 1),
+      row: Math.max(0, row - 1),
+    };
+  }
+
+  /** 统一 Active 入口，确保所有路径都初始化预测光标并启动对账 timer。 */
+  private promoteActive(strictRemaining: number, cursor: { col: number; row: number } | null): void {
+    this.state = "Active";
+    this.strictRemaining = strictRemaining;
+    if (cursor !== null) {
+      this.predictedCursor = { ...cursor };
+    }
+    this.startCprAuditTimer();
+  }
+
+  /** 切片 9：使用 xterm 0-based 真实光标执行一次对账或 Frozen 恢复。 */
+  private auditCursor(actual: { col: number; row: number }): void {
+    if (this.state === "Active") {
+      this.cprAuditPending = false;
+      this.metrics.cprAuditCount++;
+      if (this.predictedCursor === null) {
+        this.predictedCursor = { ...actual };
+        return;
+      }
+      const expectedRealCol = this.predictedCursor.col - this.totalRemainingEchoLength();
+      if (
+        expectedRealCol < 0 ||
+        actual.col !== expectedRealCol ||
+        actual.row !== this.predictedCursor.row
+      ) {
+        this.metrics.cprMismatchCount++;
+        this.freeze("cprAuditFail");
+      }
+      return;
+    }
+
+    if (this.state === "Frozen") {
+      this.cprAuditPending = false;
+      if (this.queue.length === 0) {
+        this.promoteActive(5, actual);
+      }
+    }
+  }
+
+  /**
+   * 切片 9：预测光标列方向平移。入队 dim 字符时 delta=+width，退格/Ctrl+U/W 时 delta=-width。
+   * predictedCursor 为 null（尚未从真实光标初始化）时静默忽略——等下一次
+   * onPromptReady / onCursorPosition(Active) 设置起点后才开始追踪。
+   * 本方法只修改 col；row 由 CPR 应答重置（阶段范围内不处理跨行换行）。
+   */
+  private advancePredictedCursor(delta: number): void {
+    if (this.predictedCursor === null) return;
+    this.predictedCursor = {
+      col: this.predictedCursor.col + delta,
+      row: this.predictedCursor.row,
+    };
+  }
+
+  /**
+   * 切片 9：启动光标周期对账 timer。幂等——重复调用不会启动多个 timer。
+   * 仅在 realCursorReader 已注入时启动。每次 tick：
+   *   • cprAuditPending 为 true（上一轮仍在执行）→ 跳过本次
+   *   • state 为 Disabled / Cold → 跳过（Cold 由切片 5 一次性 CPR 驱动）
+   *   • 其他情况 → 读取 xterm 真实光标并走同一套对账/恢复逻辑
+   */
+  private startCprAuditTimer(): void {
+    if (this.cprAuditTimer !== null) return;
+    if (this.realCursorReader === null) return;
+    this.cprAuditTimer = setInterval(() => {
+      if (this.cprAuditPending) return;
+      if (this.state === "Disabled") return;
+      if (this.state === "Cold") return;
+      this.cprAuditPending = true;
+      const cursor = this.realCursorReader?.();
+      if (cursor === undefined) {
+        this.cprAuditPending = false;
+        return;
+      }
+      this.auditCursor(cursor);
+    }, this.opts.cprAuditIntervalMs);
+  }
+
+  /** 切片 9：停止光标周期对账 timer 并清零 cprAuditPending。 */
+  private stopCprAuditTimer(): void {
+    if (this.cprAuditTimer !== null) {
+      clearInterval(this.cprAuditTimer);
+      this.cprAuditTimer = null;
+    }
+    this.cprAuditPending = false;
   }
 
   /**
@@ -870,8 +1056,7 @@ export class PredictiveEcho {
     const lastChar = stripped[stripped.length - 1];
     const secondLast = stripped[stripped.length - 2];
     if (lastChar === " " && PredictiveEcho.PROMPT_TAIL_CHARS.has(secondLast)) {
-      this.state = "Active";
-      this.strictRemaining = 5;
+      this.promoteActive(5, this.realCursorReader?.() ?? null);
     }
   }
 
@@ -884,6 +1069,7 @@ export class PredictiveEcho {
     this.rollbackQueue();
     this.pendingRemote = "";
     this.strictRemaining = 0;
+    this.predictedCursor = null;
     if (this.state !== "Disabled") {
       this.state = "Frozen";
     }
@@ -1453,14 +1639,14 @@ export function selfCheck(): SelfCheckResult {
     assert(pe._debugState().strictRemaining === 5, "T31: strictRemaining=5");
   }
 
-  // T32: onCursorPosition 在 Frozen 下不动状态（保守原则）
+  // T32: onCursorPosition 在 Frozen 下，切片 9 起 CPR 触发自动恢复（队列空时）
   {
     const { term } = makeMockTerm();
     const pe = new PredictiveEcho(term);
     pe.freeze("manual");
     assert(pe._debugState().state === "Frozen", "T32: 进入 Frozen");
     pe.onCursorPosition(2, 10);
-    assert(pe._debugState().state === "Frozen", "T32: Frozen 下 CPR 不动状态");
+    assert(pe._debugState().state === "Active", "T32: 切片 9 Frozen+空队列 CPR 自动恢复 Active");
   }
 
   // T33: onCursorPosition 在 Active 下不重置 strictRemaining
@@ -2270,6 +2456,166 @@ export function selfCheck(): SelfCheckResult {
     pe.onUserInput("а"); // U+0430 俄文 a
     assert(pe._debugState().state === "Frozen", "T70b: 俄文字符 freeze");
     assert(pe._debugState().queueSize === 0, "T70b: 队列空（freeze）");
+  }
+
+  // ── 切片 9 用例：光标对账（predictedCursor + 周期真实光标同步）──
+
+  // T71: predictedCursor 入队跟踪（ASCII 每字符 +1 列）
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.setRealCursorReader(() => ({ col: 10, row: 5 }));
+    pe.onPromptReady();
+    assert(
+      pe._debugState().predictedCursor?.col === 10 &&
+        pe._debugState().predictedCursor?.row === 5,
+      "T71: onPromptReady 从 realCursorReader 读取起点 (10,5)",
+    );
+    pe.onUserInput("abc");
+    assert(
+      pe._debugState().predictedCursor?.col === 13 &&
+        pe._debugState().predictedCursor?.row === 5,
+      "T71: 输入 abc 后 predictedCursor 列前进到 13",
+    );
+  }
+
+  // T72: 命中转正后 predictedCursor 不变（入队时已前进）
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.setRealCursorReader(() => ({ col: 10, row: 5 }));
+    pe.onPromptReady();
+    pe.onUserInput("abc");
+    pe.onRemoteOutput("abc"); // 全部命中
+    assert(
+      pe._debugState().predictedCursor?.col === 13 &&
+        pe._debugState().predictedCursor?.row === 5,
+      "T72: 命中转正不改 predictedCursor，仍 (13,5)",
+    );
+    assert(pe._debugState().queueSize === 0, "T72: 命中后队列清空");
+  }
+
+  // T73: backspace 回退 predictedCursor 列
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.setRealCursorReader(() => ({ col: 10, row: 5 }));
+    pe.onPromptReady();
+    pe.onUserInput("ab");
+    assert(pe._debugState().predictedCursor?.col === 12, "T73: 输入 ab 后 col=12");
+    pe.onUserInput("\x7f"); // 退格
+    assert(pe._debugState().predictedCursor?.col === 11, "T73: 退格后 col=11");
+  }
+
+  // T74: CJK 入队按 2 列
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.setRealCursorReader(() => ({ col: 10, row: 5 }));
+    pe.onPromptReady();
+    pe.onUserInput("中");
+    assert(pe._debugState().predictedCursor?.col === 12, "T74: CJK 2 列，col 从 10→12");
+  }
+
+  // T75: onCursorPosition Cold→Active 路径未回归（切片 5 行为保留）
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    assert(pe._debugState().state === "Cold", "T75: 初始 Cold");
+    pe.onCursorPosition(6, 21);
+    assert(pe._debugState().state === "Active", "T75: Cold 下 CPR 推到 Active");
+    assert(pe._debugState().strictRemaining === 5, "T75: strictRemaining=5");
+    assert(
+      pe._debugState().predictedCursor?.col === 20 &&
+        pe._debugState().predictedCursor?.row === 5,
+      "T75: CPR 1-based 坐标转换为 xterm 0-based (20,5)",
+    );
+  }
+
+  // T76: Active 对账成功——真实光标 = predictedCursor.col - totalRemainingEchoLength
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.setRealCursorReader(() => ({ col: 10, row: 5 }));
+    pe.onPromptReady();
+    pe.onUserInput("ab");
+    // predictedCursor=(12,5), queue=[a,b] totalRemaining=2, 真实光标应在 (10,5)
+    pe.onCursorPosition(6, 11);
+    assert(pe._debugState().state === "Active", "T76: 对账成功保持 Active");
+    assert(pe._debugState().queueSize === 2, "T76: 对账成功不动队列");
+    assert(pe.getMetrics().cprAuditCount === 1, "T76: cprAuditCount++");
+    assert(pe.getMetrics().cprMismatchCount === 0, "T76: 无对账失败");
+  }
+
+  // T77: Active 对账失败——真实光标位置错位 → freeze + cprMismatchCount++
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.setRealCursorReader(() => ({ col: 10, row: 5 }));
+    pe.onPromptReady();
+    pe.onUserInput("ab"); // predictedCursor=(12,5) 预期真实光标 (10,5)
+    pe.onCursorPosition(6, 12); // 真实光标在 (11,5)——错位 1
+    assert(pe._debugState().state === "Frozen", "T77: 对账失败 freeze");
+    assert(pe._debugState().queueSize === 0, "T77: freeze 清空队列");
+    assert(pe.getMetrics().cprAuditCount === 1, "T77: cprAuditCount=1");
+    assert(pe.getMetrics().cprMismatchCount === 1, "T77: cprMismatchCount=1");
+    assert(
+      pe._debugState().predictedCursor === null,
+      "T77: freeze 清零 predictedCursor",
+    );
+  }
+
+  // T78: Frozen + 队列空 → 对账成功自动恢复 Active
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.setRealCursorReader(() => ({ col: 10, row: 5 }));
+    pe.onPromptReady();
+    pe.freeze("test"); // 进入 Frozen，队列空
+    assert(pe._debugState().state === "Frozen", "T78 前置: Frozen");
+    pe.onCursorPosition(6, 21);
+    assert(pe._debugState().state === "Active", "T78: Frozen 队列空，对账成功恢复 Active");
+    assert(
+      pe._debugState().predictedCursor?.col === 20 &&
+        pe._debugState().predictedCursor?.row === 5,
+      "T78: predictedCursor 从真实光标初始化 (20,5)",
+    );
+    assert(pe._debugState().strictRemaining === 5, "T78: 严格期 strictRemaining=5");
+  }
+
+  // T79: Frozen + CPR 应答恢复时使用 1-based → 0-based 坐标
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.setRealCursorReader(() => ({ col: 10, row: 5 }));
+    pe.onPromptReady();
+    pe.freeze("test");
+    pe.onCursorPosition(6, 11);
+    assert(pe._debugState().cprAuditPending === false, "T79: Frozen 分支清 cprAuditPending");
+    assert(
+      pe._debugState().predictedCursor?.col === 10 &&
+        pe._debugState().predictedCursor?.row === 5,
+      "T79: Frozen 恢复坐标为 (10,5)",
+    );
+  }
+
+  // T80: startCprAuditTimer 注入 realCursorReader 后启停正常
+  {
+    const { term } = makeMockTerm();
+    const pe = new PredictiveEcho(term, { cprAuditIntervalMs: 30 });
+    pe.setRealCursorReader(() => ({ col: 10, row: 5 }));
+    pe.onPromptReady();
+    assert(pe._debugState().cprAuditTimerActive, "T80: onPromptReady 启动 timer");
+    // 关闭 timer 避免泄漏到后续用例
+    pe.setEnabled(false);
+    assert(
+      pe._debugState().cprAuditTimerActive === false,
+      "T80: setEnabled(false) 停止 timer",
+    );
+    assert(
+      pe._debugState().predictedCursor === null,
+      "T80: setEnabled(false) 清零 predictedCursor",
+    );
   }
 
   // eslint-disable-next-line no-console

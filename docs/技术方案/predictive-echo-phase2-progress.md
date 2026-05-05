@@ -21,18 +21,19 @@
 | 6 — 行编辑高级场景 | ✅ 已完成（2026-05-04） | G2（Ctrl+W/U） | readline 分词 + 双 echo 消化 |
 | 7 — 失配模式针对性处理 | ✅ 代码完成（2026-05-05），dogfood 待做 | G3（着色 / autosuggest / PROMPT_COMMAND 重绘） | SGR 剥离命中 + autosuggest 透传 + 重绘检测 |
 | 8 — 中文 IME 协同 | ✅ 代码完成（2026-05-05），dogfood 待做 | G4（中文 IME 输入） | CJK 宽字符 2 列宽路径 + 简繁中文 + 标点 + 全角符号 |
-| 9 — CPR 完整同步基础设施 | ⏳ M2 后选做 | 完整状态同步 | 不阻塞转正 |
+| 9 — 光标对账（周期同步） | ✅ 代码完成（2026-05-05），dogfood 待做 | G5（网络抖动失配雪崩 + Frozen 自动恢复） | 预测光标 + 5s xterm 光标对账 + Frozen→Active 自动恢复；CPR 仅保留初始化兜底 |
 
 ### 1.2 转正路径进度
 
 ```
    M0 实验性                  M1 默认开启              M2 正式功能
-   (当前)                     (切片 7/8 dogfood + 跨越) (30 天观察 + 文案)
+   (当前)                     (切片 7/8/9 dogfood + 跨越) (30 天观察 + 文案)
    ────────────              ────────────             ────────────
    切片 5  ✅ 已完成          + 30 天观察              去「实验」标签
    切片 6  ✅ 已完成          + hitRate ≥ 90%          + 阶段 1/2 文档归档
    切片 7  ✅ 代码完成
-   切片 8  ✅ 代码完成（提前于 M1，仅简繁中文）
+    切片 8  ✅ 代码完成（提前于 M1，仅简繁中文）
+    切片 9  ✅ 代码完成（光标对账）
    + dogfood 1 周（待做）
 ```
 
@@ -42,7 +43,7 @@
 - [x] 切片 6 完成 → G2 缺口闭合（自动化 + dogfood 双确认 2026-05-04）
 - [x] 切片 7 完成（代码层）→ G3 缺口闭合（自动化 248/248 通过 2026-05-05；dogfood 待做）
 - [x] 切片 8 完成（代码层，提前于 M1）→ G4 缺口闭合（自动化 288/288 通过 2026-05-05；dogfood 待做）
-- [x] selfCheck 在新切片完成后保持全绿（288/288）
+- [x] selfCheck 在新切片完成后保持全绿（317/317）
 - [ ] 至少 1 周内部 dogfood，无致命 bug
 - [ ] **可选**：metrics 上报机制 — 不做也能进 M1
 
@@ -239,15 +240,37 @@ npm run test:predictive-echo
 
 ---
 
+### 2.5 切片 9：光标对账（周期同步）（2026-05-05）
+
+**目标**：关闭 G5 缺口——预测队列在网络抖动、远端重绘或局部失配后，不应长期停留在 Frozen；预测光标必须能和真实终端光标周期对账。
+
+**修改清单**：
+
+| 文件 | 改动 | 说明 |
+|---|---|---|
+| `app/src/features/terminal/predictiveEcho.ts` | 新增 `predictedCursor`、周期光标对账、Frozen 自动恢复、metrics 与 selfCheck T71-T80 | 光标对账使用 xterm 0-based 坐标；ANSI CPR 应答入口统一转换 1-based → 0-based |
+| `app/src/features/terminal/TerminalPage.tsx` | 注入 `realCursorReader` | 周期对账直接读 xterm buffer 光标，不再周期性向远端 shell 注入 `\x1b[6n` |
+
+**关键决策**：
+
+| 决策 | 选择 | 理由 |
+|---|---|---|
+| 周期对账来源 | 直接读取 xterm buffer 光标 | 避免 `\x1b[6n` 控制序列进入 shell/readline 输入流 |
+| CPR 坐标基准 | 统一从 ANSI 1-based 转成 xterm 0-based | `xterm.buffer.active.cursorX/Y` 是 0-based，直接比较会稳定错位 |
+| Active 入口 | `onPromptReady`、启发式 prompt、Cold CPR 兜底、Frozen 恢复统一走 `promoteActive` | 保证预测光标初始化和 timer 启动路径一致 |
+| Frozen 恢复 | 队列为空且光标对账成功时恢复 Active + strictRemaining=5 | 队列非空时无法安全恢复，必须继续保守冻结 |
+
+**验证状态**：
+
+- ✅ selfCheck T1-T80 全绿（**317/317 assertions, 0 failures**；2026-05-05 `pnpm test:predictive-echo` 通过）
+- ✅ `pnpm build` 通过
+- ⏳ 应用内 dogfood — 待做
+
+---
+
 ## 3. 待开发
 
-### 3.1 切片 9（M2 后选做）：CPR 完整同步基础设施
-
-详见 phase2-plan §4.5。**不阻塞转正**——M2 退出条件不依赖切片 9。
-
-**简述**：维护虚拟终端镜像（行内字符 + 光标），周期性 CPR 与真实终端对账，失配率根本性降低；同时实现切片 6 暂未做的 Ctrl+A/E、左右箭头编辑（plan §4.2）。
-
-**进入时机**：M2 之后视实际 hitRate 与体感反馈再决定是否启动。
+当前阶段 2 代码切片 5-9 均已完成；剩余工作集中在 dogfood、指标观察和转正判断。
 
 ---
 
@@ -271,7 +294,7 @@ npm run test:predictive-echo
 > cd /Users/hanyongding/project/rust/shell/app && npm run test:predictive-echo
 > ```
 >
-> 预期：288/288 通过。
+> 预期：317/317 通过。
 >
 > 我说"开始"你再动手。严守工程纪律：先 Read 再 Edit，diff 最小化，失败两次换路。
 
@@ -279,14 +302,14 @@ npm run test:predictive-echo
 
 ```bash
 cd /Users/hanyongding/project/rust/shell/app
-npm run test:predictive-echo  # 288 assertions
+pnpm test:predictive-echo     # 317 assertions
 npx tsc --noEmit              # 无错
 ```
 
-### 4.3 dogfood 极简清单（5 步 + 切片 6/7/8 增量）
+### 4.3 dogfood 极简清单（5 步 + 切片 6/7/8/9 增量）
 
 > ✅ 状态：步骤 1-5（切片 5）+ 步骤 6/7/8（切片 6 增量）已 dogfood 通过 2026-05-04，G1/G2 缺口闭合。
-> ⏳ 状态：步骤 9-11（切片 7 增量）+ 步骤 12-17（切片 8 增量）待 dogfood，G3/G4 缺口闭合需此步通过。
+> ⏳ 状态：步骤 9-11（切片 7 增量）+ 步骤 12-17（切片 8 增量）+ 步骤 18-20（切片 9 增量）待 dogfood，G3/G4/G5 缺口闭合需此步通过。
 > 后人接手时仍建议复跑确认环境无回归。
 
 应用启动 + 设置开"预测回显（实验）"后：
@@ -308,12 +331,16 @@ npx tsc --noEmit              # 无错
 15. **切片 8 增量 — 中文标点 + 全角符号**：敲「中文，全角符号」（含 U+3000-303F 与 U+FF00-FF60 段）→ 期望全部预测命中
 16. **切片 8 增量 — 中文退格**：敲「中文」后按退格 → 期望立即抹掉「文」字（按 2 列宽）
 17. **切片 8 增量 — 半角片假名 freeze**（如有日文输入法）：敲 `ｱ`（U+FF71，半角片假名）→ 期望 freeze 整队回滚（这是设计预期，不是 bug）
+18. **切片 9 增量 — 光标对账稳定性**：高延迟连接下连续输入 `abcdefghijklmnopqrstuvwxyz`，期望 dim → 正色连续命中，控制台 `cprMismatchCount` 不持续增长
+19. **切片 9 增量 — Frozen 自动恢复**：触发一次不可预测场景（如进入/退出 `vim` 或执行会重绘 prompt 的命令）后等待 5s，再输入 `ls`，期望无需重连即可恢复预测
+20. **切片 9 增量 — CPR 兜底坐标**：裸 bash / 无 OSC 133 环境下首次连接后输入 `ls`，期望初始 CPR 兜底仍能进入 Active，且不会因 1-based/0-based 坐标错位反复 Frozen
 
 观察项：
 - 视觉：dim → 正色过渡是否自然，无闪烁
 - 切片 6：Ctrl+U/W 后立刻看到字符消失（不等远程 echo），随后远程 echo 到达不重画
 - 切片 7：着色场景命中后字符直接变成远程指定的颜色（不是 dim 后变默认色再被远程覆盖）；autosuggest 灰字保留；PROMPT_COMMAND 重绘整队回滚仅一次
 - 切片 8：中文字符 dim 显示按 2 列宽占位（与远程 echo 后正色字符列宽一致）；命中后无视觉抖动；中文与 ASCII 混合时光标位置正确
+- 切片 9：光标对账不应把控制序列写进 shell/readline；`cprAuditCount` 可增长，`cprMismatchCount` 不应持续增长
 - dev console：60s 后自动打印 `[PredictiveEcho metrics]`，hitRate ≥ 0.9
 
 出意外快速回退：设置里关闭"预测回显（实验）"开关。
@@ -334,7 +361,8 @@ npx tsc --noEmit              # 无错
 | T55-T57 | 阶段 2 切片 7.2（autosuggest 透传契约）| 12 项 |
 | T58-T60 | 阶段 2 切片 7.3（PROMPT_COMMAND 重绘检测）| 11 项 |
 | T61-T70 | 阶段 2 切片 8（中文 IME 协同：CJK 宽字符 + 标点 + 全角 + 退格 + Ctrl+U + 标点 + 全角 + 排除范围）| 40 项 |
-| **合计** | | **288 assertions** |
+| T71-T80 | 阶段 2 切片 9（预测光标 + 周期光标对账 + Frozen 自动恢复）| 29 项 |
+| **合计** | | **317 assertions** |
 
 ---
 
@@ -342,8 +370,8 @@ npx tsc --noEmit              # 无错
 
 | 路径 | 状态 | 说明 |
 |---|---|---|
-| `app/src/features/terminal/predictiveEcho.ts` | 切片 8 完成 | 核心实现 ~1990 行，含 selfCheck T1-T70 |
-| `app/src/features/terminal/TerminalPage.tsx` | 切片 5 完成 | 接入点：实例化 + OSC 133 + CSI ?h/l + CSI R + CPR 注入 |
+| `app/src/features/terminal/predictiveEcho.ts` | 切片 9 完成 | 核心实现，含 selfCheck T1-T80 |
+| `app/src/features/terminal/TerminalPage.tsx` | 切片 9 完成 | 接入点：实例化 + OSC 133 + CSI ?h/l + CSI R + 初始 CPR + xterm 光标读取器 |
 | `app/src/features/settings/SettingsPage.tsx` | 阶段 1 完成 | 「预测回显（实验）」开关 |
 | `app/scripts/test-predictive-echo.ts` | 切片 5 新建 | selfCheck runner |
 | `app/package.json` | 切片 5 新增 script | `npm run test:predictive-echo` |
@@ -405,12 +433,12 @@ npx tsc --noEmit              # 无错
 - #5 切片 6 实施 — ✅ completed（2026-05-04）
 - #6 切片 7 实施 — ✅ completed（代码层 2026-05-05；dogfood 待做）
 - #2 切片 8 实施 — ✅ completed（代码层 2026-05-05，提前于 M1；dogfood 待做）
-- #7 M0 → M1 跨越 — ⏳ pending（**待切片 7/8 dogfood 1 周**）
+- #7 M0 → M1 跨越 — ⏳ pending（**待切片 7/8/9 dogfood 1 周**）
 - #3 M1 → M2 跨越 — ⏳ pending（blocked by #7）
 
 ---
 
 > 文档结束。下次更新本文档：
-> - 切片 7/8 dogfood 通过后：§1.1 切片 7/8 状态改 ✅ 已完成（dogfood 双确认）；§1.3 dogfood 行打勾；§2.3/2.4 验证状态 dogfood 改 ✅；§4.3 切片 7/8 增量步骤标记完成
+> - 切片 7/8/9 dogfood 通过后：§1.1 切片 7/8/9 状态改 ✅ 已完成（dogfood 双确认）；§1.3 dogfood 行打勾；§2.3/2.4/2.5 验证状态 dogfood 改 ✅；§4.3 切片 7/8/9 增量步骤标记完成
 > - 进入 M1 时：§1.2 转正路径阶段切换
 > - 进入 M2 时：本文档与 phase1-progress.md 一并归档到 `docs/archive/predictive-echo-phase{1,2}/`

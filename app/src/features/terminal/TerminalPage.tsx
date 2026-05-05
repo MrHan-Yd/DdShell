@@ -652,6 +652,10 @@ function TerminalInstance({
     const pe = new PredictiveEcho(term);
     predictiveEchoRef.current = pe;
     pe.setEnabled(false);
+    pe.setRealCursorReader(() => ({
+      col: term.buffer.active.cursorX,
+      row: term.buffer.active.cursorY,
+    }));
 
     const loadPredictiveEcho = async () => {
       try {
