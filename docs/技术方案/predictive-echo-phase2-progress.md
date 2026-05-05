@@ -188,7 +188,27 @@ npm run test:predictive-echo
 
 ### 3.1 切片 8：IME 协同（M1 后做）
 
-详见 phase2-plan §4.4。**先决调研未做**（xterm composition API 行为）。
+详见 phase2-plan §4.4。
+
+**先决调研已完成**（2026-05-05；实施仍阻塞于 M0→M1 跨越）：
+
+| 调研项 | 结论 | 证据 |
+|---|---|---|
+| Q1（plan §4.4）：xterm 是否暴露 onCompositionStart/Update/End | **不暴露**——`@xterm/xterm@6.0.0` 的 d.ts 中 grep `composition` / `onCompose` / `isComposing` 全部无匹配 | `app/node_modules/@xterm/xterm/typings/xterm.d.ts` |
+| Q2（plan §4.4）：TerminalPage 现有 IME 路径是否调用 onUserInput | composition 中**不调**（`composingRef` 短路 return）；composition 结束后中文 commit 文本走 onData → onUserInput → 第一个汉字进 `isPredictableChar` 因 `code >= 0x80` 拒绝 → `freeze("other")` **整队回滚 + Frozen** | `TerminalPage.tsx:751-752`（IME 短路）/`:860`（onUserInput 调用点）/`predictiveEcho.ts:113-117`（isPredictableChar）/`:302`/`:382`（freeze 路径） |
+| Q3（plan §6 O2）：commit 文本如何获取 | 走 DOM 原生路径——`compositionend` 触发后，紧跟的 onData data 即 commit 文本（textarea input 标准行为）。现有代码已用 `compositionstart` / `compositionend` 维护 `composingRef`，**未监听 `compositionupdate`** | `TerminalPage.tsx:967-970` |
+
+**对切片 8 设计的影响**：
+
+- 必须走 DOM 原生 composition 事件路径（xterm 无原生 API），与现有代码一致
+- 中文 commit 字符当前在 `onUserInput` 直接 freeze——切片 8 需在 `isPredictableChar` 之前增加多字节字符分支（plan §4.4 方案 A）
+- CJK 字符 xterm 渲染为 2 列宽 → undoSequence 必须按 2 列算（`\b\b \b\b` 而非 `\b \b`），与 phase1 ASCII 路径不同构
+- `compositionupdate` 是否监听是设计点：plan §4.4 方案 B（保守路径，仅 commit 后预测）天然不需要 update 事件；方案 C（激进 candidate 预测）需要——切片 8 实施时按 §4.4 决策点选定方案再决定
+
+**M1 后实施起手动作**：
+1. 在 `onUserInput` 增加非 ASCII 多字节字符分支（先按"一个汉字 = 一个 char 项入队"实现）
+2. 处理 CJK 字符 2 列宽：`undoSequence` / `expectedEcho` / `totalRemainingEchoLength` 等内部方法的"1 字符 = 1 列"假设需要重新审视
+3. selfCheck 增量 T61-T70（plan §4.4 用例集）
 
 ---
 
@@ -212,7 +232,7 @@ npm run test:predictive-echo
 > cd /Users/hanyongding/project/rust/shell/app && npm run test:predictive-echo
 > ```
 >
-> 预期：201/201 通过。
+> 预期：248/248 通过。
 >
 > 我说"开始"你再动手。严守工程纪律：先 Read 再 Edit，diff 最小化，失败两次换路。
 
@@ -220,7 +240,7 @@ npm run test:predictive-echo
 
 ```bash
 cd /Users/hanyongding/project/rust/shell/app
-npm run test:predictive-echo  # 201 assertions
+npm run test:predictive-echo  # 248 assertions
 npx tsc --noEmit              # 无错
 ```
 
@@ -327,7 +347,7 @@ npx tsc --noEmit              # 无错
 - #5 切片 6 实施 — ✅ completed（2026-05-04）
 - #6 切片 7 实施 — ✅ completed（代码层 2026-05-05；dogfood 待做）
 - #7 M0 → M1 跨越 — ⏳ pending（**待切片 7 dogfood 1 周**）
-- #2 切片 8 实施 — ⏳ pending（blocked by #7）
+- #2 切片 8 实施 — ⏳ pending（blocked by #7；先决调研已完成 2026-05-05，详见 §3.1）
 - #3 M1 → M2 跨越 — ⏳ pending（blocked by #2）
 
 ---
