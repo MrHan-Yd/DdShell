@@ -1927,6 +1927,8 @@ struct UpdateCheckResult {
     has_update: bool,
     latest_version: String,
     assets: Vec<ReleaseAssetInfo>,
+    target_asset: Option<ReleaseAssetInfo>,
+    should_fallback_to_browser: bool,
     error: Option<String>,
 }
 
@@ -1938,21 +1940,108 @@ struct ReleaseAssetInfo {
     size: u64,
 }
 
-#[tauri::command]
-fn get_install_type() -> String {
+fn normalize_package_type(value: &str) -> Option<&'static str> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "dmg" => Some("dmg"),
+        "msi" => Some("msi"),
+        "nsis" | "exe" => Some("exe"),
+        "deb" => Some("deb"),
+        "appimage" => Some("appimage"),
+        _ => None,
+    }
+}
+
+fn injected_package_type() -> Option<&'static str> {
+    option_env!("DDSHELL_PACKAGE_TYPE").and_then(normalize_package_type)
+}
+
+fn bundled_package_type() -> Option<&'static str> {
+    match tauri::utils::platform::bundle_type() {
+        Some(tauri::utils::config::BundleType::App) => Some("dmg"),
+        Some(tauri::utils::config::BundleType::Msi) => Some("msi"),
+        Some(tauri::utils::config::BundleType::Nsis) => Some("exe"),
+        Some(tauri::utils::config::BundleType::Deb) => Some("deb"),
+        Some(tauri::utils::config::BundleType::AppImage) => Some("appimage"),
+        _ => None,
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn fallback_windows_install_type() -> Option<&'static str> {
     #[cfg(target_os = "windows")]
     {
         if let Ok(exe_path) = std::env::current_exe() {
             let path_str = exe_path.to_string_lossy().to_lowercase();
             if path_str.contains("program files") {
-                return "msi".to_string();
+                return Some("msi");
             }
             if path_str.contains(r"appdata\local") {
-                return "nsis".to_string();
+                return Some("exe");
             }
         }
     }
-    "unknown".to_string()
+    None
+}
+
+fn current_package_type() -> Option<&'static str> {
+    if let Some(package_type) = injected_package_type() {
+        return Some(package_type);
+    }
+
+    if let Some(package_type) = bundled_package_type() {
+        return Some(package_type);
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        return Some("dmg");
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        return fallback_windows_install_type();
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        None
+    }
+}
+
+fn select_target_asset(assets: &[ReleaseAssetInfo]) -> Option<ReleaseAssetInfo> {
+    #[cfg(target_os = "macos")]
+    {
+        let suffix = match std::env::consts::ARCH {
+            "aarch64" => "-macos-aarch64.dmg",
+            "x86_64" => "-macos-x86_64.dmg",
+            _ => return None,
+        };
+
+        return assets.iter().find(|asset| asset.name.ends_with(suffix)).cloned();
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let package_type = current_package_type()?;
+        let suffix = match package_type {
+            "msi" => "-windows-x64.msi",
+            "exe" => "-windows-x64.exe",
+            _ => return None,
+        };
+
+        return assets.iter().find(|asset| asset.name.ends_with(suffix)).cloned();
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        let _ = assets;
+        None
+    }
+}
+
+#[tauri::command]
+fn get_install_type() -> String {
+    current_package_type().unwrap_or("unknown").to_string()
 }
 
 #[tauri::command]
@@ -1991,6 +2080,8 @@ async fn check_update(current_version: String) -> Result<UpdateCheckResult, Stri
             has_update: false,
             latest_version: tag,
             assets: vec![],
+            target_asset: None,
+            should_fallback_to_browser: false,
             error: None,
         });
     }
@@ -2026,10 +2117,15 @@ async fn check_update(current_version: String) -> Result<UpdateCheckResult, Stri
         _ => vec![],
     };
 
+    let target_asset = select_target_asset(&assets);
+    let should_fallback_to_browser = target_asset.is_none();
+
     Ok(UpdateCheckResult {
         has_update: true,
         latest_version: tag,
         assets,
+        target_asset,
+        should_fallback_to_browser,
         error: None,
     })
 }
@@ -2111,6 +2207,21 @@ async fn download_update(app: tauri::AppHandle, url: String, filename: String) -
     });
 
     Ok(dest_str)
+}
+
+#[tauri::command]
+async fn open_installer(path: String) -> Result<(), String> {
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    {
+        tauri_plugin_opener::open_path(&path, None::<&str>).map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        let _ = path;
+        Err("open_installer_not_supported".to_string())
+    }
 }
 
 /// Normalize \r\r\n -> \r\n in raw SSH output.
@@ -2437,6 +2548,7 @@ pub fn run() {
             download_update,
             check_update,
             get_install_type,
+            open_installer,
             open_browser,
             quick_edit_open,
         ])

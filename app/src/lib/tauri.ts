@@ -550,6 +550,8 @@ export interface UpdateCheckResult {
   hasUpdate: boolean;
   latestVersion: string;
   assets: { name: string; browserDownloadUrl: string; size: number }[];
+  targetAsset: { name: string; browserDownloadUrl: string; size: number } | null;
+  shouldFallbackToBrowser: boolean;
   error: string | null;
 }
 
@@ -559,6 +561,10 @@ export async function checkUpdate(currentVersion: string): Promise<UpdateCheckRe
 
 export async function downloadUpdate(url: string, filename: string): Promise<string> {
   return invoke("download_update", { url, filename });
+}
+
+export async function openInstaller(path: string): Promise<void> {
+  return invoke("open_installer", { path });
 }
 
 // ── Install type detection ──

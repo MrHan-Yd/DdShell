@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { useTerminalStore } from "@/stores/terminal";
 import { useSftpStore } from "@/stores/sftp";
 import { useMetricsStore } from "@/stores/metrics";
@@ -6,12 +7,12 @@ import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app";
 import { cn } from "@/lib/utils";
 import { APP_NAME, getAppVersion } from "@/lib/constants";
-import { openBrowser } from "@/lib/tauri";
-import { checkUpdate as apiCheckUpdate } from "@/lib/tauri";
+import { checkUpdate as apiCheckUpdate, downloadUpdate, openBrowser, openInstaller } from "@/lib/tauri";
 
 type HealthLevel = "GOOD" | "FAIR" | "POOR";
-type UpdateStatus = "idle" | "checking" | "available" | "upToDate" | "rateLimited" | "networkError" | "error";
-const GITHUB_REPO_URL = "https://github.com/MrHan-Yd/DdShell";
+type UpdateAsset = { name: string; browserDownloadUrl: string; size: number };
+type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "downloadComplete" | "downloadFailed" | "upToDate" | "rateLimited" | "networkError" | "error";
+const GITHUB_RELEASES_URL = "https://github.com/MrHan-Yd/DdShell/releases/latest";
 
 function HealthBadge({ level }: { level: HealthLevel }) {
   const colors: Record<HealthLevel, string> = {
@@ -69,10 +70,73 @@ export function StatusBar() {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const [appVersion, setAppVersion] = useState("");
   const [latestVersion, setLatestVersion] = useState("");
+  const [selectedAsset, setSelectedAsset] = useState<UpdateAsset | null>(null);
+  const [downloadedPath, setDownloadedPath] = useState<string | null>(null);
 
   useEffect(() => {
     getAppVersion().then(setAppVersion);
   }, []);
+
+  const openDownloadPage = useCallback(async () => {
+    try {
+      await openBrowser(GITHUB_RELEASES_URL);
+    } catch (err) {
+      console.error("Failed to open browser:", err);
+    }
+  }, []);
+
+  const openDownloadedInstaller = useCallback(async () => {
+    if (!downloadedPath) {
+      await openDownloadPage();
+      return;
+    }
+
+    try {
+      await openInstaller(downloadedPath);
+    } catch (err) {
+      console.error("Failed to open installer:", err);
+      await openDownloadPage();
+    }
+  }, [downloadedPath, openDownloadPage]);
+
+  useEffect(() => {
+    let active = true;
+    const unlisteners: Array<() => void> = [];
+
+    void (async () => {
+      const unlistenCompleted = await listen<{ path: string }>("update:download_completed", async (event) => {
+        setDownloadedPath(event.payload.path);
+        setUpdateStatus("downloadComplete");
+        try {
+          await openInstaller(event.payload.path);
+        } catch (err) {
+          console.error("Failed to open installer:", err);
+          await openDownloadPage();
+        }
+      });
+
+      const unlistenFailed = await listen<{ error: string }>("update:download_failed", async (event) => {
+        console.error("Update download failed:", event.payload.error);
+        setUpdateStatus("downloadFailed");
+        await openDownloadPage();
+      });
+
+      if (!active) {
+        unlistenCompleted();
+        unlistenFailed();
+        return;
+      }
+
+      unlisteners.push(unlistenCompleted, unlistenFailed);
+    })();
+
+    return () => {
+      active = false;
+      for (const unlisten of unlisteners) {
+        unlisten();
+      }
+    };
+  }, [openDownloadPage]);
 
   const checkUpdate = useCallback(async () => {
     if (updateStatus === "checking" || !appVersion) return;
@@ -81,8 +145,11 @@ export function StatusBar() {
       const result = await apiCheckUpdate(appVersion);
       if (result.hasUpdate) {
         setLatestVersion(result.latestVersion);
+        setSelectedAsset(result.shouldFallbackToBrowser ? null : result.targetAsset);
+        setDownloadedPath(null);
         setUpdateStatus("available");
       } else {
+        setSelectedAsset(null);
         setUpdateStatus("upToDate");
       }
     } catch (err) {
@@ -97,13 +164,21 @@ export function StatusBar() {
     }
   }, [updateStatus, appVersion]);
 
-  const openDownloadPage = useCallback(async () => {
-    try {
-      await openBrowser(GITHUB_REPO_URL);
-    } catch (err) {
-      console.error("Failed to open browser:", err);
+  const handleUpdateDownload = useCallback(async () => {
+    if (!selectedAsset) {
+      await openDownloadPage();
+      return;
     }
-  }, []);
+
+    try {
+      setUpdateStatus("downloading");
+      await downloadUpdate(selectedAsset.browserDownloadUrl, selectedAsset.name);
+    } catch (err) {
+      console.error("Failed to start update download:", err);
+      setUpdateStatus("downloadFailed");
+      await openDownloadPage();
+    }
+  }, [openDownloadPage, selectedAsset]);
 
   const connectedCount = tabs.filter((t) => t.state === "connected").length;
   const activeTransfers = transfers.filter(
@@ -140,11 +215,40 @@ export function StatusBar() {
             </span>
             <button
               className="text-[var(--font-size-xs)] text-[var(--color-accent)] hover:underline cursor-pointer"
-              onClick={openDownloadPage}
+              onClick={handleUpdateDownload}
             >
               {t("update.download")}
             </button>
           </span>
+        );
+      case "downloading":
+        return (
+          <span className="flex items-center gap-1.5 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            <span className="h-3 w-3 animate-spin rounded-full border border-[var(--color-text-muted)] border-t-transparent" />
+            {t("update.downloading")}
+          </span>
+        );
+      case "downloadComplete":
+        return (
+          <span className="flex items-center gap-1.5">
+            <span className="text-[var(--font-size-xs)] text-[var(--color-success)]">✓ {t("update.downloadComplete")}</span>
+            <button
+              className="text-[var(--font-size-xs)] text-[var(--color-accent)] hover:underline cursor-pointer"
+              onClick={openDownloadedInstaller}
+            >
+              {t("update.openFile")}
+            </button>
+          </span>
+        );
+      case "downloadFailed":
+        return (
+          <button
+            className="flex items-center gap-1.5 text-[var(--font-size-xs)] cursor-pointer"
+            onClick={handleUpdateDownload}
+          >
+            <span className="text-[var(--color-text-muted)]">{versionTag}</span>
+            <span className="text-[var(--color-poor)]">{t("update.downloadFailed")}</span>
+          </button>
         );
       case "upToDate":
         return (
