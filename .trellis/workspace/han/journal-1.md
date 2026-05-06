@@ -40,3 +40,36 @@ Implemented macOS/Windows in-app update download flow with asset targeting, GitH
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Release v0.2.2 and move predictive echo to M1
+
+**Date**: 2026-05-06
+**Task**: Release v0.2.2 and move predictive echo to M1
+**Branch**: `main`
+
+### Summary
+
+Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout, and recorded the release notes/context.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `00b9fe8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
