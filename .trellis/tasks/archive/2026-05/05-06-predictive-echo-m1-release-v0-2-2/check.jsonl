@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Verify settings/UI changes against the frontend layer contract."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Check that the Settings UI remains consistent after the M1 transition."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Run final review against frontend quality expectations and minimal-diff discipline."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Ensure settings and i18n changes keep the typed frontend surface sound."}
+{"file": ".trellis/spec/backend/index.md", "reason": "Review version metadata updates with the backend/Tauri layer in mind."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Check backend-owned version files and release-facing changes for consistency."}

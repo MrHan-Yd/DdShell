@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Settings UI and frontend release-facing text changes live in the frontend layer."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Settings page edits should follow existing component composition and UI behavior conventions."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Keep the M1 toggle/default-value change minimal and aligned with frontend quality expectations."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Version and settings changes touch typed frontend state and should preserve existing type safety."}
+{"file": ".trellis/spec/backend/index.md", "reason": "Release version bump also touches Tauri/backend-owned metadata files; backend spec index gives the layer map."}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Version metadata updates should remain minimal and consistent with backend quality rules."}
