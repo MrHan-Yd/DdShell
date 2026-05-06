@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check, Trash2, Plus, Github } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/Button";
@@ -513,7 +513,7 @@ export function SettingsPage() {
   const [retryCount, setRetryCount] = useState("3");
   const [downloadPath, setDownloadPath] = useState("");
   const [transferNotify, setTransferNotify] = useState(true);
-  const [predictiveEchoEnabled, setPredictiveEchoEnabled] = useState(false);
+  const [predictiveEchoEnabled, setPredictiveEchoEnabled] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -524,6 +524,18 @@ export function SettingsPage() {
   useEffect(() => {
     getAppVersion().then(setAppVersion);
   }, []);
+
+  const maybeShowPredictiveEchoGuidance = useCallback(() => {
+    try {
+      const shown = localStorage.getItem("terminal.predictiveEcho.guidanceShown");
+      if (shown !== "true") {
+        toast.info(t("settings.predictiveEchoGuidance"));
+        localStorage.setItem("terminal.predictiveEcho.guidanceShown", "true");
+      }
+    } catch {
+      // localStorage unavailable — skip silently; will retry next time
+    }
+  }, [t]);
 
   // Load settings from backend on mount
   useEffect(() => {
@@ -636,7 +648,11 @@ export function SettingsPage() {
         setRetryCount(savedRetryCount || "3");
         setDownloadPath(savedDownloadPath || "");
         setTransferNotify(savedTransferNotify !== "false");
-        setPredictiveEchoEnabled(savedPredictiveEchoEnabled === "true");
+        const predictiveEchoEnabledByDefault = savedPredictiveEchoEnabled !== "false";
+        setPredictiveEchoEnabled(predictiveEchoEnabledByDefault);
+        if (predictiveEchoEnabledByDefault && savedPredictiveEchoEnabled == null) {
+          maybeShowPredictiveEchoGuidance();
+        }
 
         setUiFontFamily(savedUiFontFamily || DEFAULT_UI_FONT_FAMILY);
         setUiFontSize(savedUiFontSize ? parseInt(savedUiFontSize) : DEFAULT_UI_FONT_SIZE);
@@ -653,7 +669,7 @@ export function SettingsPage() {
         // Fallback: empty list, user can still type manually
       }
     })();
-  }, [setTheme, setLocale]);
+  }, [maybeShowPredictiveEchoGuidance, setTheme, setLocale]);
 
   const handleSave = async () => {
     setSaveStatus("saving");
@@ -711,7 +727,7 @@ export function SettingsPage() {
     setUiFontSize(DEFAULT_UI_FONT_SIZE);
     setConfirmDanger(true);
     setSessionTimeout("30");
-    setPredictiveEchoEnabled(false);
+    setPredictiveEchoEnabled(true);
     setResetStatus(true);
     setTimeout(() => setResetStatus(false), 2000);
   };
@@ -747,15 +763,7 @@ export function SettingsPage() {
     if (!newVal) return;
     // First-enable guidance toast (once per device, tracked in localStorage so
     // it persists across session storage clears).
-    try {
-      const shown = localStorage.getItem("terminal.predictiveEcho.guidanceShown");
-      if (shown !== "true") {
-        toast.info(t("settings.predictiveEchoGuidance"));
-        localStorage.setItem("terminal.predictiveEcho.guidanceShown", "true");
-      }
-    } catch {
-      // localStorage unavailable — skip silently; will retry next time
-    }
+    maybeShowPredictiveEchoGuidance();
   };
 
   const handleTabChange = (tab: SettingsTab) => {

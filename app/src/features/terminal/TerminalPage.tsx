@@ -647,8 +647,9 @@ function TerminalInstance({
     // The flag lives in the persistent settings store under
     // `terminal.predictiveEcho.enabled` and is mirrored across all open
     // terminals via the `terminal:settings-changed` event the settings page
-    // dispatches on toggle. We start Disabled and flip on once the async read
-    // returns "true" — never optimistically Active before the setting is known.
+    // dispatches on toggle. We start Disabled and flip once the async read
+    // resolves — persisted `false` stays off, missing values fall back to the
+    // M1 default-on behavior without ever becoming optimistically Active.
     const pe = new PredictiveEcho(term);
     predictiveEchoRef.current = pe;
     pe.setEnabled(false);
@@ -660,7 +661,7 @@ function TerminalInstance({
     const loadPredictiveEcho = async () => {
       try {
         const v = await api.settingGet("terminal.predictiveEcho.enabled");
-        pe.setEnabled(v === "true");
+        pe.setEnabled(v !== "false");
       } catch {
         // Read failure → stay Disabled. Safer than silently enabling an
         // experimental feature when storage is unhappy.
