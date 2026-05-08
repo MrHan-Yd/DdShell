@@ -1,0 +1,75 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F4F5F8"/>
+    </linearGradient>
+
+    <linearGradient id="ddGrad" gradientUnits="userSpaceOnUse" x1="12" y1="20" x2="188" y2="180">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="50%" stop-color="#5C82E0"/>
+      <stop offset="100%" stop-color="#0EA5E9"/>
+    </linearGradient>
+
+    <linearGradient id="seamGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <radialGradient id="orbViolet" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7C3AED" stop-opacity="0.45"/>
+      <stop offset="55%" stop-color="#7C3AED" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#7C3AED" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="orbCyan" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0EA5E9" stop-opacity="0.38"/>
+      <stop offset="55%" stop-color="#0EA5E9" stop-opacity="0.09"/>
+      <stop offset="100%" stop-color="#0EA5E9" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="ddGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+
+    <clipPath id="bgClip">
+      <rect x="16" y="16" width="168" height="168" rx="38"/>
+    </clipPath>
+
+    <clipPath id="rightDClip">
+      <path d="M102 20 L102 70 C102 78 114 86 114 100 C114 114 102 122 102 130 L102 180 C170 180 188 145 188 100 C188 55 170 20 102 20Z"/>
+    </clipPath>
+  </defs>
+
+  <rect x="16" y="16" width="168" height="168" rx="38" fill="url(#bgGrad)"/>
+
+  <g clip-path="url(#bgClip)">
+    <circle cx="46" cy="58" r="80" fill="url(#orbViolet)"/>
+    <circle cx="158" cy="150" r="66" fill="url(#orbCyan)"/>
+  </g>
+
+  <g clip-path="url(#bgClip)" opacity="0.06">
+    <path d="M16 56 L184 56 M16 100 L184 100 M16 144 L184 144 M56 16 L56 184 M100 16 L100 184 M144 16 L144 184" stroke="#15161D" stroke-width="0.5"/>
+  </g>
+
+  <rect x="16" y="16" width="168" height="168" rx="38" fill="none" stroke="rgba(20,21,27,0.10)" stroke-width="1"/>
+
+  <g transform="translate(100 100) scale(0.75) translate(-100 -100)">
+    <g filter="url(#ddGlow)" opacity="0.32">
+      <path d="M98 20 L98 70 C98 78 86 86 86 100 C86 114 98 122 98 130 L98 180 C30 180 12 145 12 100 C12 55 30 20 98 20Z" fill="none" stroke="#7C3AED" stroke-width="3"/>
+      <path d="M102 20 L102 70 C102 78 114 86 114 100 C114 114 102 122 102 130 L102 180 C170 180 188 145 188 100 C188 55 170 20 102 20Z" fill="none" stroke="#0EA5E9" stroke-width="3"/>
+    </g>
+
+    <path d="M98 20 L98 70 C98 78 86 86 86 100 C86 114 98 122 98 130 L98 180 C30 180 12 145 12 100 C12 55 30 20 98 20Z" fill="url(#ddGrad)"/>
+    <path d="M102 20 L102 70 C102 78 114 86 114 100 C114 114 102 122 102 130 L102 180 C170 180 188 145 188 100 C188 55 170 20 102 20Z" fill="url(#ddGrad)"/>
+
+    <g clip-path="url(#rightDClip)" opacity="0.18" stroke-linecap="round">
+      <line x1="120" y1="78" x2="170" y2="78" stroke="#FFFFFF" stroke-width="1.4"/>
+      <line x1="120" y1="100" x2="155" y2="100" stroke="#FFFFFF" stroke-width="1.4"/>
+      <line x1="120" y1="122" x2="165" y2="122" stroke="#FFFFFF" stroke-width="1.4"/>
+    </g>
+
+    <rect x="99.4" y="24" width="1.2" height="152" fill="url(#seamGrad)"/>
+  </g>
+</svg>

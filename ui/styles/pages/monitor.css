@@ -1,0 +1,252 @@
+/*
+ * pages/monitor.css — Monitor 页特有样式
+ */
+
+.page-overlay {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-4);
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.page-overlay .btn { background: var(--bg-elevated); border: 1px solid var(--border-subtle); }
+
+.monitor-main { overflow-y: auto; }
+
+.monitor-body {
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ─── Segmented control ─── */
+.seg-control {
+  display: inline-flex;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 2px;
+}
+.seg {
+  height: 24px;
+  padding: 0 var(--space-2);
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+  border-radius: var(--radius-sm);
+}
+.seg:hover { color: var(--fg-primary); background: var(--bg-hover); }
+.seg.is-active {
+  background: var(--accent-gradient);
+  color: var(--fg-on-accent);
+}
+
+/* ─── KPI cards ─── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+.kpi-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.kpi-label {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  font-weight: var(--fw-medium);
+}
+.kpi-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+}
+.kpi-value .num {
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-semibold);
+  color: var(--fg-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.kpi-value .unit {
+  font-size: var(--fs-sm);
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+}
+.kpi-meta {
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+}
+.kpi-spark {
+  display: block;
+  width: 100%;
+  height: 38px;
+  margin-top: var(--space-2);
+}
+
+/* ─── Chart card ─── */
+.chart-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.chart-tabs { display: inline-flex; gap: 2px; }
+.chart-tab {
+  height: 26px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+}
+.chart-tab:hover { background: var(--bg-hover); color: var(--fg-primary); }
+.chart-tab.is-active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: var(--fw-medium);
+}
+
+.chart-legend { display: inline-flex; gap: var(--space-3); font-size: var(--fs-xs); color: var(--fg-secondary); }
+.lg-item { display: inline-flex; align-items: center; gap: 6px; }
+.lg-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+.chart-canvas {
+  position: relative;
+  padding: var(--space-3) var(--space-4);
+  height: 220px;
+}
+.chart-canvas svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.chart-tooltip {
+  position: absolute;
+  top: 12px;
+  left: 60%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-popover);
+  padding: 8px var(--space-3);
+  font-size: var(--fs-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+  pointer-events: none;
+}
+.chart-tooltip .tt-time { color: var(--fg-muted); }
+.chart-tooltip .tt-row { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-secondary); }
+.chart-tooltip .tt-row strong {
+  margin-left: auto;
+  color: var(--fg-primary);
+  font-family: var(--font-mono);
+}
+
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 var(--space-4) var(--space-3);
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+}
+
+/* ─── Process table ─── */
+.proc-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.proc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.proc-title { font-size: var(--fs-md); font-weight: var(--fw-semibold); margin: 0; }
+.proc-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.proc-actions .input-with-icon { width: 220px; }
+.proc-actions .input { height: 26px; font-size: var(--fs-xs); }
+
+.proc-table { font-size: var(--fs-sm); }
+.proc-row {
+  display: grid;
+  grid-template-columns: 60px 80px 110px 110px 70px 1fr 30px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--fg-secondary);
+}
+.proc-row:hover:not(.proc-th) { background: var(--bg-hover); color: var(--fg-primary); }
+.proc-row.proc-th {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  background: var(--bg-elevated);
+  border-top: 0;
+  font-weight: var(--fw-medium);
+}
+
+.proc-row .bar-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.proc-row .bar {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-active);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  min-width: 60px;
+}
+.proc-row .bar-fill {
+  display: block;
+  height: 100%;
+}
+.proc-row .bar-cell em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--fg-secondary);
+  min-width: 32px;
+  text-align: right;
+}
+
+.proc-act { display: inline-flex; justify-content: flex-end; }
