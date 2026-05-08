@@ -1,0 +1,6 @@
+{"file": "research/existing-info-architecture.md", "reason": "现有 React UI 各页面的信息架构（Sidebar / Titlebar / StatusBar / Connections / Terminal 等），保证 HTML+CSS 设计稿的结构和真实功能对齐"}
+{"file": "prd.md", "reason": "本任务的需求和范围、风格方向、文件组织约定、双主题切换机制"}
+{"file": "ui/terminal.html", "reason": "新增：SSH 终端页设计稿（多 tab + 分屏 + 命令历史 + AI 助手浮层 + 状态栏）"}
+{"file": "ui/styles/pages/terminal.css", "reason": "新增：terminal 页特有样式（tab bar、pane、PS1 配色、ANSI 文字、AI popover、闪烁光标）"}
+{"file": "ui/connections.html", "reason": "参照其 DOM 骨架和主题切换 inline JS，保证跨页一致"}
+{"file": "ui/styles/tokens.css", "reason": "复用既有 --term-bg / --ansi-* / --accent-gradient 等 token，未新增 token"}

@@ -1,0 +1,2 @@
+{"file": "prd.md", "reason": "对照 Acceptance Criteria 和 Definition of Done 检查交付质量（双主题、零依赖、无外部图标库、视觉一致性）"}
+{"file": "research/existing-info-architecture.md", "reason": "检查每个 HTML 设计稿是否覆盖了 IA 中列出的关键 UI 区域（避免漏掉真实功能对应的视觉表达）"}
