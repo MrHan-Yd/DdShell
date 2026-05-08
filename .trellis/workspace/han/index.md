@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 2
-- **Last Active**: 2026-05-06
+- **Total Sessions**: 3
+- **Last Active**: 2026-05-08
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~75 | Active |
+| `journal-1.md` | ~108 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 3 | 2026-05-08 | UI 设计稿 + Brand exploration（双 D 紫青 logo 提案） | `3e073b7` | `main` |
 | 2 | 2026-05-06 | Release v0.2.2 and move predictive echo to M1 | `00b9fe8` | `main` |
 | 1 | 2026-05-06 | In-app updater MVP | `4c585ef`, `2093e29`, `0ed4e29` | `main` |
 <!-- @@@/auto:session-history -->
