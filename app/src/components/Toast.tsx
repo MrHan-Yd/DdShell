@@ -53,7 +53,7 @@ export function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-10 right-4 z-50 flex flex-col gap-2 w-80">
+    <div className="toast-overlay fixed bottom-10 right-4 z-50 flex flex-col gap-2 w-80">
       {toasts.map((t) => (
         <ToastItem key={t.id} toast={t} />
       ))}

@@ -47,7 +47,7 @@ export function ConfirmDialog() {
     <div
       data-confirm-dialog
       className={cn(
-        "fixed inset-0 z-[100] flex items-center justify-center transition-opacity duration-200 ease-[var(--ease-smooth)]",
+        "confirm-overlay fixed inset-0 z-[100] flex items-center justify-center transition-opacity duration-200 ease-[var(--ease-smooth)]",
         show ? "opacity-100" : "opacity-0",
       )}
     >
