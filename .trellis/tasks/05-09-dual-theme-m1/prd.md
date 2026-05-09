@@ -138,3 +138,45 @@ useEffect(() => {
 - ui 主题切换参考：`ui/index.html` line 200-225 的极简 toggle 脚本（仅参考思路，不直接拷贝）。
 - v2 logo：`ui/assets/logo-v2.svg`（亮）/ `logo-v2-dark.svg`（暗），已对齐 ui 紫青系统。
 - 经典 logo：`app/public/logo.svg` / `logo-dark.svg`，不动。
+
+---
+
+## M1.5：组件双轨化（追加）
+
+### Context
+
+PRD 主体把页面骨架按 ui/ 设计稿迁移到位，但 React 共用组件（Button / Input / Select / SegmentedControl）仍是 cva + Tailwind 写死的 Apple 蓝渐变 / 自拼浮层 DOM，不挂 ui/ 设计稿要求的原生 class（`.btn / .input / .select / .seg-control`），导致 aurora CSS 在 settings 页大半失效。
+
+### Decision
+
+三层组件结构：
+
+- `app/src/components/ui/` —— 现有 Classic 实现，零改动
+- `app/src/components/ui/aurora/` —— 新增 Aurora 实现，DOM 严格对齐 ui/ 设计稿原生 class
+- `app/src/components/ui/themed/` —— 分发器，业务代码 import 这一层；内部 `useAppStore(s => s.uiTheme)` 选实现
+
+业务代码 import 路径替换，props 完全兼容。
+
+### 范围
+
+- 首批（M1.5-α）：Button / Input / Select / SegmentedControl
+- 次批（M1.5-β）：Toggle / Slider / InputStepper / ColorSwatch（无 Classic 实现，直接走 Aurora 原生 HTML，Classic 主题下若需独立视觉再补）
+
+### 追加 Acceptance Criteria
+
+- [ ] `app/src/components/ui/aurora/{Button,Input,Select,SegmentedControl}.tsx` 落地，DOM 完全对齐 ui/ 设计稿原生 class
+- [ ] `app/src/components/ui/themed/{Button,Input,Select,SegmentedControl}.tsx` 分发器落地，按 `useAppStore.uiTheme` 切换实现
+- [ ] SettingsPage.tsx 内对应组件 import 全部切到 themed/ 层
+- [ ] Aurora × Dark / Aurora × Light 下 settings 页按钮、下拉、分段控件、输入框视觉与 `ui/settings.html` 对齐
+- [ ] Classic × Dark / Classic × Light 下视觉零回归
+
+### Variant 命名映射
+
+| Classic `Button.variant` | Aurora class |
+|---|---|
+| `default` | `.btn .btn-primary` |
+| `secondary` | `.btn .btn-secondary` |
+| `ghost` | `.btn .btn-ghost` |
+| `danger` | `.btn .btn-danger` |
+
+业务代码继续用 Classic 命名（`default / secondary / ghost / danger`），themed 层负责映射。
