@@ -106,3 +106,38 @@ Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: 修复 Toast/Confirm 弹窗挤变形页面
+
+**Date**: 2026-05-09
+**Task**: 修复 Toast/Confirm 弹窗挤变形页面
+**Branch**: `main`
+
+### Summary
+
+根因：.app-shell > * 的 position:relative 覆盖了 ToastContainer 和 ConfirmDialog 的 position:fixed，使其参与 flex 文档流。修复：CSS 选择器加 :not(.toast-overlay):not(.confirm-overlay) 排除浮层，组件添加语义 class。同步更新 spec 记录反模式。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e2b7a56` | (see git log) |
+| `02c9ec9` | (see git log) |
+| `203e587` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
