@@ -1,10 +1,30 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, X } from "lucide-react";
+import { useAppStore } from "@/stores/app";
+import { useT } from "@/lib/i18n";
+import { confirm } from "@/stores/confirm";
 
 const appWindow = getCurrentWindow();
 const isMac = navigator.platform.toUpperCase().includes("MAC");
 
 function WinControls() {
+  const t = useT();
+
+  const handleClose = async () => {
+    const { currentPage, settingsDirty, setSettingsDirty } = useAppStore.getState();
+    if (currentPage === "settings" && settingsDirty) {
+      const ok = await confirm({
+        title: t("settings.unsavedTitle"),
+        description: t("settings.unsavedDesc"),
+        confirmLabel: t("settings.discardChanges"),
+        cancelLabel: t("settings.continueEdit"),
+      });
+      if (!ok) return;
+      setSettingsDirty(false);
+    }
+    appWindow.close();
+  };
+
   return (
     <div className="titlebar-right flex items-center gap-1">
       <button
@@ -20,7 +40,7 @@ function WinControls() {
         <Square size={12} />
       </button>
       <button
-        onClick={() => appWindow.close()}
+        onClick={handleClose}
         className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-error)]/80 hover:text-white transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)]"
       >
         <X size={14} />

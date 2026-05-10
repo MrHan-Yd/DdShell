@@ -6,6 +6,7 @@ export interface ConfirmOptions {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  confirmVariant?: "default" | "danger";
   scanning?: boolean;
   scanCount?: number;
   scanLabel?: string;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check, Trash2, Plus, Github, Keyboard, Bot, Info, Palette, Search, MessageSquare, RefreshCw } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -9,6 +9,7 @@ import { DEFAULT_DANGEROUS_COMMANDS } from "@/lib/constants";
 import { Select } from "@/components/ui/themed/Select";
 import { SegmentedControl } from "@/components/ui/themed/SegmentedControl";
 import { useAppStore } from "@/stores/app";
+import type { UiTheme } from "@/stores/app";
 import { useCommandAssistStore } from "@/stores/commandAssist";
 import { t as translate, useT } from "@/lib/i18n";
 import { getAppVersion } from "@/lib/constants";
@@ -59,6 +60,12 @@ const COLOR_THEMES: { id: string; label: string; colors: Record<string, string> 
 ];
 
 const DEFAULT_ANSI = COLOR_THEMES[0].colors;
+
+// CommandAssist categories — referenced by both the main component (for load
+// + Save) and the CommandAssistSettings child (for rendering).
+const COMMAND_ASSIST_MAIN_IDS = ["git", "docker", "webServer"] as const;
+const COMMAND_ASSIST_DEVTOOL_IDS = ["python", "node", "java", "maven", "gradle", "go", "jq", "kotlin", "php", "rust"] as const;
+const COMMAND_ASSIST_ALL_IDS = [...COMMAND_ASSIST_MAIN_IDS, ...COMMAND_ASSIST_DEVTOOL_IDS] as const;
 
 const DEFAULT_TERMINAL: TerminalSettings = {
   fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, monospace",
@@ -300,11 +307,29 @@ const SETTINGS_TAB_META: Array<{
 
 // ── Command Assist Settings ──
 
-function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
-  const [enabled, setEnabled] = useState(false);
-  const [confirmKeyVal, setConfirmKeyVal] = useState<"tab" | "enter">("tab");
-  const [positionVal, setPositionVal] = useState<string>("bottom-left");
-  const [enabledCategories, setEnabledCategories] = useState<Record<string, boolean>>({});
+interface CommandAssistSettingsProps {
+  t: ReturnType<typeof useT>;
+  enabled: boolean;
+  confirmKey: "tab" | "enter";
+  position: string;
+  enabledCategories: Record<string, boolean>;
+  onToggleEnabled: (v: boolean) => void;
+  onChangeConfirmKey: (v: "tab" | "enter") => void;
+  onChangePosition: (v: string) => void;
+  onChangeCategories: (cats: Record<string, boolean>) => void;
+}
+
+function CommandAssistSettings({
+  t,
+  enabled,
+  confirmKey,
+  position,
+  enabledCategories,
+  onToggleEnabled,
+  onChangeConfirmKey,
+  onChangePosition,
+  onChangeCategories,
+}: CommandAssistSettingsProps) {
   const [resetDone, setResetDone] = useState(false);
 
   const MAIN_CATEGORIES = [
@@ -326,83 +351,26 @@ function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
     { id: "rust", label: t("commandAssist.catRust"), desc: t("commandAssist.catRustDesc") },
   ];
 
-  const ALL_CAT_IDS = [...MAIN_CATEGORIES, ...DEVTOOLS_SUB].map((c) => c.id);
-
-  const persistCategories = async (cats: Record<string, boolean>) => {
-    const enabled = Object.entries(cats).filter(([, v]) => v).map(([k]) => k);
-    await api.settingSet("commandAssist.enabledAppCategories", JSON.stringify(enabled));
-    window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
-    useCommandAssistStore.getState().load();
-  };
-
-  useEffect(() => {
-    (async () => {
-      const [savedEnabled, savedConfirmKey, savedPosition, savedCats] = await Promise.all([
-        api.settingGet("commandAssist.enabled"),
-        api.settingGet("commandAssist.confirmKey"),
-        api.settingGet("commandAssist.position"),
-        api.settingGet("commandAssist.enabledAppCategories"),
-      ]);
-      setEnabled(savedEnabled === "true");
-      if (savedConfirmKey === "tab" || savedConfirmKey === "enter") {
-        setConfirmKeyVal(savedConfirmKey);
-      }
-      if (savedPosition) setPositionVal(savedPosition);
-
-      // Parse categories — default all enabled when no setting saved
-      const cats: Record<string, boolean> = {};
-      if (!savedCats) {
-        for (const id of ALL_CAT_IDS) {
-          cats[id] = true;
-        }
-      } else {
-        let parsed: string[] = [];
-        try { parsed = JSON.parse(savedCats); } catch { /* ignore */ }
-        // Migration: expand old "devTools" to individual sub-categories
-        if (parsed.includes("devTools")) {
-          parsed = parsed.filter((c) => c !== "devTools").concat(DEVTOOLS_SUB.map((s) => s.id));
-        }
-        for (const id of ALL_CAT_IDS) {
-          cats[id] = parsed.includes(id);
-        }
-      }
-      setEnabledCategories(cats);
-    })();
-  }, []);
-
-  const handleToggleEnabled = async (newVal: boolean) => {
-    setEnabled(newVal);
-    await api.settingSet("commandAssist.enabled", String(newVal));
-    window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
-  };
-
   const handleConfirmKeyChange = async (newVal: string) => {
+    if (newVal !== "tab" && newVal !== "enter") return;
     if (newVal === "enter") {
       const ok = await confirm({
         title: t("commandAssist.confirmKey"),
         description: t("commandAssist.enterWarning"),
         confirmLabel: t("confirm.ok"),
         cancelLabel: t("confirm.cancel"),
+        confirmVariant: "default",
       });
       if (!ok) return;
     }
-    setConfirmKeyVal(newVal as "tab" | "enter");
-    await api.settingSet("commandAssist.confirmKey", newVal);
-    window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
+    onChangeConfirmKey(newVal);
   };
 
-  const handlePositionChange = async (newVal: string) => {
-    setPositionVal(newVal);
-    await api.settingSet("commandAssist.position", newVal);
-    window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
+  const handleToggleCategory = (catId: string, newVal: boolean) => {
+    onChangeCategories({ ...enabledCategories, [catId]: newVal });
   };
 
-  const handleToggleCategory = async (catId: string, newVal: boolean) => {
-    const updated = { ...enabledCategories, [catId]: newVal };
-    setEnabledCategories(updated);
-    await persistCategories(updated);
-  };
-
+  // CommandAssist weight reset 是命令式动作（不进草稿，立即执行）
   const handleResetWeights = async () => {
     const ok = await confirm({
       title: t("commandAssist.resetWeights"),
@@ -429,7 +397,7 @@ function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
           description={t("commandAssist.enabledDesc")}
         >
           <button
-            onClick={() => handleToggleEnabled(!enabled)}
+            onClick={() => onToggleEnabled(!enabled)}
             data-state={enabled ? "on" : "off"}
             className="toggle-switch"
           >
@@ -442,7 +410,7 @@ function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
           description={t("commandAssist.confirmKeyDesc")}
         >
           <SegmentedControl
-            value={confirmKeyVal}
+            value={confirmKey}
             onChange={handleConfirmKeyChange}
             options={[
               { value: "tab", label: t("commandAssist.tab") },
@@ -456,8 +424,8 @@ function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
           description={t("commandAssist.positionDesc")}
         >
           <SegmentedControl
-            value={positionVal}
-            onChange={handlePositionChange}
+            value={position}
+            onChange={onChangePosition}
             options={[
               { value: "bottom-left", label: t("commandAssist.posBottomLeft") },
               { value: "bottom-right", label: t("commandAssist.posBottomRight") },
@@ -517,8 +485,7 @@ function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
                 const allOn = subIds.every((id) => enabledCategories[id] !== false);
                 const updated = { ...enabledCategories };
                 for (const id of subIds) updated[id] = !allOn;
-                setEnabledCategories(updated);
-                persistCategories(updated);
+                onChangeCategories(updated);
               }}
               data-state={DEVTOOLS_SUB.some((s) => enabledCategories[s.id] !== false) ? "on" : "off"}
               className="toggle-switch"
@@ -548,13 +515,19 @@ function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
 }
 
 export function SettingsPage() {
-  const theme = useAppStore((s) => s.theme);
-  const setTheme = useAppStore((s) => s.setTheme);
-  const uiTheme = useAppStore((s) => s.uiTheme);
-  const setUiTheme = useAppStore((s) => s.setUiTheme);
-  const locale = useAppStore((s) => s.locale);
-  const setLocale = useAppStore((s) => s.setLocale);
+  const committedTheme = useAppStore((s) => s.theme);
+  const committedUiTheme = useAppStore((s) => s.uiTheme);
+  const setStoreTheme = useAppStore((s) => s.setTheme);
+  const setStoreUiTheme = useAppStore((s) => s.setUiTheme);
+  const setStoreLocale = useAppStore((s) => s.setLocale);
+  const setSettingsDirty = useAppStore((s) => s.setSettingsDirty);
   const t = useT();
+
+  // Draft state — visual changes (theme/uiTheme/locale) only commit to global
+  // store on Save success, so the page stays visually stable while editing.
+  const [theme, setTheme] = useState<"dark" | "light" | "system">(() => useAppStore.getState().theme);
+  const [uiTheme, setUiTheme] = useState<UiTheme>(() => useAppStore.getState().uiTheme);
+  const [locale, setLocale] = useState<Locale>(() => useAppStore.getState().locale);
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [slideDir, setSlideDir] = useState<"left" | "right">("right");
@@ -570,6 +543,11 @@ export function SettingsPage() {
   const [downloadPath, setDownloadPath] = useState("");
   const [transferNotify, setTransferNotify] = useState(true);
   const [predictiveEchoEnabled, setPredictiveEchoEnabled] = useState(true);
+  // CommandAssist 4 项纳入草稿（原本在子组件即时持久化，现在统一由 Save commit）
+  const [caEnabled, setCaEnabled] = useState(false);
+  const [caConfirmKey, setCaConfirmKey] = useState<"tab" | "enter">("tab");
+  const [caPosition, setCaPosition] = useState("bottom-left");
+  const [caEnabledCategories, setCaEnabledCategories] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -578,6 +556,32 @@ export function SettingsPage() {
   const [appVersion, setAppVersion] = useState("");
   const [appPlatform, setAppPlatform] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Snapshot of last-saved values for dirty detection. JSON-stringify of the
+  // full draft is good enough at this volume (~19 fields, low render frequency)
+  // and side-steps deep-equal helpers.
+  const lastSavedRef = useRef<string | null>(null);
+  const draftSnapshot = JSON.stringify({
+    theme, uiTheme, locale, terminal, uiFontFamily, uiFontSize,
+    confirmDanger, sessionTimeout, chunkSize, maxConcurrent, transferTimeout,
+    retryCount, downloadPath, transferNotify, predictiveEchoEnabled,
+    caEnabled, caConfirmKey, caPosition, caEnabledCategories,
+  });
+
+  useEffect(() => {
+    if (!loaded) return;
+    // First render after load: seed the baseline snapshot, dirty stays false.
+    if (lastSavedRef.current === null) {
+      lastSavedRef.current = draftSnapshot;
+      return;
+    }
+    setSettingsDirty(draftSnapshot !== lastSavedRef.current);
+  }, [draftSnapshot, loaded, setSettingsDirty]);
+
+  // Clear dirty flag when leaving Settings page.
+  useEffect(() => {
+    return () => setSettingsDirty(false);
+  }, [setSettingsDirty]);
 
   useEffect(() => {
     getAppVersion().then(setAppVersion);
@@ -720,6 +724,29 @@ export function SettingsPage() {
 
         setUiFontFamily(savedUiFontFamily || DEFAULT_UI_FONT_FAMILY);
         setUiFontSize(savedUiFontSize ? parseInt(savedUiFontSize) : DEFAULT_UI_FONT_SIZE);
+
+        // CommandAssist — 纳入草稿统一管理，原本在子组件即时持久化
+        const [savedCaEnabled, savedCaConfirmKey, savedCaPosition, savedCaCats] = await Promise.all([
+          api.settingGet("commandAssist.enabled"),
+          api.settingGet("commandAssist.confirmKey"),
+          api.settingGet("commandAssist.position"),
+          api.settingGet("commandAssist.enabledAppCategories"),
+        ]);
+        setCaEnabled(savedCaEnabled === "true");
+        if (savedCaConfirmKey === "tab" || savedCaConfirmKey === "enter") setCaConfirmKey(savedCaConfirmKey);
+        if (savedCaPosition) setCaPosition(savedCaPosition);
+        const cats: Record<string, boolean> = {};
+        if (!savedCaCats) {
+          for (const id of COMMAND_ASSIST_ALL_IDS) cats[id] = true;
+        } else {
+          let parsed: string[] = [];
+          try { parsed = JSON.parse(savedCaCats); } catch { /* ignore */ }
+          if (parsed.includes("devTools")) {
+            parsed = parsed.filter((c) => c !== "devTools").concat([...COMMAND_ASSIST_DEVTOOL_IDS]);
+          }
+          for (const id of COMMAND_ASSIST_ALL_IDS) cats[id] = parsed.includes(id);
+        }
+        setCaEnabledCategories(cats);
       } catch {
         // Use defaults if settings not available yet
       }
@@ -739,6 +766,7 @@ export function SettingsPage() {
     if (saveStatus === "saving") return;
     setSaveStatus("saving");
     try {
+      const enabledCats = COMMAND_ASSIST_ALL_IDS.filter((id) => caEnabledCategories[id]);
       await api.settingSetMany([
         { key: "theme", value: theme },
         { key: "ui.theme", value: uiTheme },
@@ -775,8 +803,20 @@ export function SettingsPage() {
         { key: "terminal.disabledBuiltinCmds", value: JSON.stringify(terminal.disabledBuiltinCmds) },
         { key: "terminal.customDangerousCommands", value: JSON.stringify(terminal.customDangerousCommands) },
         { key: "terminal.predictiveEcho.enabled", value: String(predictiveEchoEnabled) },
+        { key: "commandAssist.enabled", value: String(caEnabled) },
+        { key: "commandAssist.confirmKey", value: caConfirmKey },
+        { key: "commandAssist.position", value: caPosition },
+        { key: "commandAssist.enabledAppCategories", value: JSON.stringify(enabledCats) },
       ]);
+      // Backend write succeeded — now commit to global store / runtime so
+      // theme + locale visuals flip, terminals re-read settings, etc.
+      setStoreTheme(theme);
+      setStoreUiTheme(uiTheme);
+      setStoreLocale(locale);
+      useCommandAssistStore.getState().load();
       window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
+      lastSavedRef.current = draftSnapshot;
+      setSettingsDirty(false);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     } catch {
@@ -794,7 +834,19 @@ export function SettingsPage() {
     setUiFontSize(DEFAULT_UI_FONT_SIZE);
     setConfirmDanger(true);
     setSessionTimeout("30");
+    setChunkSize("256");
+    setMaxConcurrent("3");
+    setTransferTimeout("300");
+    setRetryCount("3");
+    setDownloadPath("");
+    setTransferNotify(true);
     setPredictiveEchoEnabled(true);
+    setCaEnabled(false);
+    setCaConfirmKey("tab");
+    setCaPosition("bottom-left");
+    const cats: Record<string, boolean> = {};
+    for (const id of COMMAND_ASSIST_ALL_IDS) cats[id] = true;
+    setCaEnabledCategories(cats);
     setResetDone(true);
     setTimeout(() => setResetDone(false), 600);
   };
@@ -841,17 +893,9 @@ export function SettingsPage() {
     }
   };
 
-  // Predictive Echo toggle: persist immediately so the active terminals can
-  // react via the `terminal:settings-changed` event without waiting for the
-  // explicit Save button. Mirrors the command-assist toggle UX.
-  const handleTogglePredictiveEcho = async (newVal: boolean) => {
+  // Predictive Echo toggle — draft only, commits on Save.
+  const handleTogglePredictiveEcho = (newVal: boolean) => {
     setPredictiveEchoEnabled(newVal);
-    try {
-      await api.settingSet("terminal.predictiveEcho.enabled", String(newVal));
-      window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
-    } catch {
-      // ignore — UI state already flipped; the explicit Save button will retry
-    }
     if (!newVal) return;
     // First-enable guidance toast (once per device, tracked in localStorage so
     // it persists across session storage clears).
@@ -921,9 +965,9 @@ export function SettingsPage() {
 
   const activeTabMeta = tabItems.find((item) => item.value === activeTab) ?? tabItems[0];
   const hasFilteredTabs = filteredTabItems.length > 0;
-  const isAurora = uiTheme === "aurora";
-  const currentUiThemeLabel = uiTheme === "aurora" ? t("settings.uiThemeAurora") : t("settings.uiThemeClassic");
-  const currentModeLabel = theme === "dark" ? t("settings.dark") : theme === "light" ? t("settings.light") : t("settings.system");
+  const isAurora = committedUiTheme === "aurora";
+  const currentUiThemeLabel = committedUiTheme === "aurora" ? t("settings.uiThemeAurora") : t("settings.uiThemeClassic");
+  const currentModeLabel = committedTheme === "dark" ? t("settings.dark") : committedTheme === "light" ? t("settings.light") : t("settings.system");
   const activePanelId = `settings-panel-${activeTab}`;
   const activeTabId = `settings-tab-${activeTab}`;
   const paneStatusTone = saveStatus === "idle" ? undefined : saveStatus === "error" ? "error" : saveStatus === "saving" ? "saving" : "saved";
@@ -934,6 +978,9 @@ export function SettingsPage() {
       : t("settings.saved");
   const heroSectionLabel = hasFilteredTabs ? activeTabMeta.label : t("settings.navSearchEmptyTitle");
   const heroSectionDescription = hasFilteredTabs ? activeTabMeta.description : t("settings.navSearchEmptyDesc");
+  // Save 按钮 disabled：dirty=false（无改动）或 saving=true（重复点击保护）
+  const isDirty = lastSavedRef.current !== null && draftSnapshot !== lastSavedRef.current;
+  const saveDisabled = !isDirty || saveStatus === "saving";
 
   if (!loaded) {
     return (
@@ -957,7 +1004,7 @@ export function SettingsPage() {
             </span>
             {t("settings.resetToDefault")}
           </Button>
-          <Button size="sm" variant="secondary" onClick={handleSave} className="btn btn-secondary btn-sm">
+          <Button size="sm" variant="secondary" onClick={handleSave} disabled={saveDisabled} className="btn btn-secondary btn-sm">
             {saveStatus === "saved" ? (
               <span key="check" className="icon-swap-enter"><Check size={13} /></span>
             ) : saveStatus === "saving" ? (
@@ -1882,7 +1929,17 @@ export function SettingsPage() {
         </>)}
 
         {activeTab === "commandAssist" && (<>
-        <CommandAssistSettings t={t} />
+        <CommandAssistSettings
+          t={t}
+          enabled={caEnabled}
+          confirmKey={caConfirmKey}
+          position={caPosition}
+          enabledCategories={caEnabledCategories}
+          onToggleEnabled={setCaEnabled}
+          onChangeConfirmKey={setCaConfirmKey}
+          onChangePosition={setCaPosition}
+          onChangeCategories={setCaEnabledCategories}
+        />
         </>)}
 
         {activeTab === "shortcuts" && (<>
@@ -1925,6 +1982,12 @@ export function SettingsPage() {
           </div>
         </div>
 
+        <Section title={t("settings.dataPrivacy")}>
+          <p className="text-[var(--font-size-sm)] leading-relaxed text-[var(--color-text-secondary)]">
+            {t("settings.dataPrivacyDesc")}
+          </p>
+        </Section>
+
         <Section title={t("settings.credits")}>
           <ul className="settings-credits">
             <li><span className="settings-credit-name">Tauri</span><span className="muted">{t("settings.creditTauriDesc")}</span></li>
@@ -1934,12 +1997,6 @@ export function SettingsPage() {
             <li><span className="settings-credit-name">CodeMirror 6</span><span className="muted">{t("settings.creditCodemirrorDesc")}</span></li>
             <li><span className="settings-credit-name">Inter · JetBrains Mono</span><span className="muted">{t("settings.creditFontsDesc")}</span></li>
           </ul>
-        </Section>
-
-        <Section title={t("settings.dataPrivacy")}>
-          <p className="text-[var(--font-size-sm)] leading-relaxed text-[var(--color-text-secondary)]">
-            {t("settings.dataPrivacyDesc")}
-          </p>
         </Section>
         </>) : (<>
         <Section title={t("settings.dataPrivacy")}>

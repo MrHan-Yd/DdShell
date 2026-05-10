@@ -348,6 +348,10 @@ const dict = {
 
   // ── SettingsPage ──
   "settings.title": { zh: "设置", en: "Settings" },
+  "settings.unsavedTitle": { zh: "有未保存修改", en: "Unsaved Changes" },
+  "settings.unsavedDesc": { zh: "你在设置页有尚未保存的修改，离开将丢弃这些改动。", en: "You have unsaved changes in Settings. Leaving will discard them." },
+  "settings.discardChanges": { zh: "放弃修改", en: "Discard" },
+  "settings.continueEdit": { zh: "继续编辑", en: "Keep editing" },
   "settings.heroEyebrow": { zh: "Warp 风格视觉层级", en: "Warp-inspired visual system" },
   "settings.heroSubtitle": { zh: "个性化 DdShell · 6 个分类 · 本地设置", en: "Personalise DdShell · 6 categories · local settings" },
   "settings.heroContentTitle": { zh: "个性化你的 DdShell 工作台", en: "Personalize your DdShell workspace" },

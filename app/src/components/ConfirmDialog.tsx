@@ -3,6 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfirmStore } from "@/stores/confirm";
 import { useT } from "@/lib/i18n";
+import { Button } from "@/components/ui/themed/Button";
 
 export function ConfirmDialog() {
   const visible = useConfirmStore((s) => s.visible);
@@ -41,6 +42,7 @@ export function ConfirmDialog() {
 
   const confirmLabel = options.confirmLabel || t("confirm.ok");
   const cancelLabel = options.cancelLabel || t("confirm.cancel");
+  const confirmVariant = options.confirmVariant || "danger";
   const scanning = options.scanning ?? false;
 
   return (
@@ -95,30 +97,22 @@ export function ConfirmDialog() {
         )}
 
         <div className="flex justify-end gap-2 mt-6">
-          <button
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={() => respond(false)}
             disabled={scanning}
-            className={cn(
-              "btn-press rounded-[var(--radius-control)] px-4 py-1.5 text-[var(--font-size-sm)] transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)]",
-              scanning
-                ? "text-[var(--color-text-muted)] cursor-not-allowed"
-                : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
-            )}
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
+            variant={confirmVariant}
             onClick={() => respond(true)}
             disabled={scanning}
-            className={cn(
-              "btn-press rounded-[var(--radius-control)] px-4 py-1.5 text-[var(--font-size-sm)] shadow-[var(--shadow-card)] transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)]",
-              scanning
-                ? "bg-[var(--color-text-muted)] text-white cursor-not-allowed opacity-50"
-                : "bg-[var(--color-error)] text-white hover:opacity-90",
-            )}
           >
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

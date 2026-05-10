@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app";
 import { useT } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
+import { confirm } from "@/stores/confirm";
 import type { Page } from "@/types";
 import type { DictKey } from "@/lib/i18n";
 
@@ -30,6 +31,22 @@ export function Sidebar() {
   const t = useT();
   const logoSize = uiTheme === "aurora" ? 28 : 30;
 
+  const navigateTo = async (page: Page) => {
+    if (page === currentPage) return;
+    const { settingsDirty, setSettingsDirty } = useAppStore.getState();
+    if (currentPage === "settings" && settingsDirty) {
+      const ok = await confirm({
+        title: t("settings.unsavedTitle"),
+        description: t("settings.unsavedDesc"),
+        confirmLabel: t("settings.discardChanges"),
+        cancelLabel: t("settings.continueEdit"),
+      });
+      if (!ok) return;
+      setSettingsDirty(false);
+    }
+    setCurrentPage(page);
+  };
+
   return (
     <aside className="sidebar flex w-[var(--width-sidebar)] flex-col border-r border-[var(--color-border)]">
       <div className="sidebar-brand flex items-center gap-2 px-3 py-2">
@@ -44,7 +61,7 @@ export function Sidebar() {
           <button
             key={page}
             type="button"
-            onClick={() => setCurrentPage(page)}
+            onClick={() => navigateTo(page)}
             data-active={currentPage === page}
             className={cn(
               "nav-item flex w-full select-none items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-left text-[var(--font-size-sm)] transition-colors duration-[var(--duration-base)] ease-[var(--ease-smooth)]",
@@ -69,7 +86,7 @@ export function Sidebar() {
       <div className="sidebar-footer flex flex-col border-t border-[var(--color-border)] p-2">
         <button
           type="button"
-          onClick={() => setCurrentPage("settings")}
+          onClick={() => navigateTo("settings")}
           data-active={currentPage === "settings"}
           className={cn(
             "nav-item flex w-full select-none items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-left text-[var(--font-size-sm)] transition-colors duration-[var(--duration-base)] ease-[var(--ease-smooth)]",
