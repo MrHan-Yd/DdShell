@@ -314,10 +314,10 @@ export function WorkflowEditor({
   }, [activeSideLayer, closeSideLayer]);
 
   return (
-    <div className="animate-fade-in-up relative flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-6 py-4 pb-28">
-          <div className="relative overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.12),transparent_34%),var(--color-bg-surface)] p-6 shadow-[var(--shadow-card)]">
+    <div className="workflow-editor-shell animate-fade-in-up relative flex min-h-0 flex-1 flex-col">
+      <div className="workflow-editor-scroll flex-1 overflow-y-auto">
+        <div className="workflow-editor-content mx-auto flex w-full max-w-6xl flex-col gap-5 px-7 py-6 pb-28">
+          <div className="workflow-editor-hero relative overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.12),transparent_34%),var(--color-bg-surface)] p-6 shadow-[var(--shadow-card)]">
             <div className="relative flex flex-col gap-4">
               <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
                 <div className="min-w-0 space-y-2">
@@ -426,8 +426,8 @@ export function WorkflowEditor({
                 </div>
               </div>
             </div>
-            <section className="min-w-0 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 shadow-[var(--shadow-card)]">
-              <div className="mb-5 flex flex-col gap-3 border-b border-[var(--color-border)] pb-4 sm:flex-row sm:items-end sm:justify-between">
+            <section className="workflow-editor-steps-section wf-section min-w-0 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 shadow-[var(--shadow-card)]">
+              <div className="wf-section-head mb-5 flex flex-col gap-3 border-b border-[var(--color-border)] pb-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <div className="flex items-center gap-2">
                     <Terminal size={15} className="text-[var(--color-accent)]" />
@@ -450,7 +450,7 @@ export function WorkflowEditor({
 
               <DndContext sensors={sensors} collisionDetection={editorCollisionDetection} onDragEnd={handleEditorSortEnd}>
                 <SortableContext items={stepIds} strategy={verticalListSortingStrategy}>
-                  <div className="wf-pipeline flex flex-col">
+                  <div className="wf-steps workflow-editor-steps flex flex-col">
                     {draft.steps.map((step, index) => {
                       const preview = step.command ? interpolateWorkflowCommand(step.command, previewValues) : null;
                       const hasPreview = preview !== null && preview !== step.command;
@@ -853,10 +853,9 @@ function SortableWorkflowStep({
         setNodeRef(element);
         setStepRef(element);
       }}
-      className="wf-pipeline-step animate-list-item"
+      className="workflow-editor-step-wrap animate-list-item"
       style={{ "--i": index, transform: CSS.Transform.toString(transform), transition } as React.CSSProperties}
     >
-      <div className="wf-pipeline-dot" />
       <StepDragHandleContext.Provider value={{
         setActivatorNodeRef,
         attributes: attributes as unknown as Record<string, unknown>,
@@ -1028,34 +1027,36 @@ function StepCard(
   return (
     <div
       className={cn(
-        "group wf-step-card wf-step-card--pending rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_28%),var(--color-bg-surface)] p-4 transition-all duration-[var(--duration-base)]",
+        "group wf-step workflow-editor-step wf-step-card wf-step-card--pending rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_28%),var(--color-bg-surface)] transition-all duration-[var(--duration-base)]",
         sortableDragHandle?.isDragging && "wf-step-card--dragging opacity-70",
         isActive && "border-[var(--color-accent)]/30 shadow-[0_18px_36px_rgba(0,0,0,0.16)]",
         "hover:border-[var(--color-text-muted)]/30 hover:shadow-[var(--shadow-floating)]",
       )}
+      data-active={isActive}
       onClick={onFocusStep}
     >
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <button
-            type="button"
-            ref={resolvedDragHandle?.setActivatorNodeRef}
-            {...resolvedDragHandle?.attributes}
-            {...resolvedDragHandle?.listeners}
-            className="wf-step-drag-handle flex-shrink-0 flex items-center justify-center h-6 w-5 rounded-[3px] hover:bg-[var(--color-bg-hover)] transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical size={14} className="text-[var(--color-text-muted)]" />
-          </button>
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent-subtle)] text-[11px] font-bold text-[var(--color-accent)]">
-            {index + 1}
-          </div>
+      <button
+        type="button"
+        ref={resolvedDragHandle?.setActivatorNodeRef}
+        {...resolvedDragHandle?.attributes}
+        {...resolvedDragHandle?.listeners}
+        className="wf-step-handle wf-step-drag-handle flex-shrink-0 rounded-[3px] transition-colors hover:bg-[var(--color-bg-hover)]"
+        onClick={(e) => e.stopPropagation()}
+        title="Drag to reorder"
+      >
+        <GripVertical size={14} className="text-[var(--color-text-muted)]" />
+      </button>
+      <span className="wf-step-num">{index + 1}</span>
+
+      <div className="wf-step-body min-w-0">
+        <div className="wf-step-head mb-3 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
           <Input
             value={step.title}
             onChange={(e) => onTitleChange(e.target.value)}
             onFocus={onFocusStep}
             placeholder={t("workflows.stepNumber", { n: index + 1 })}
-            className="h-8 border-none bg-transparent px-1 text-[var(--font-size-base)] font-semibold text-[var(--color-text-primary)] focus:bg-[var(--color-bg-elevated)]"
+            className="wf-step-name h-8 border-none bg-transparent px-1 text-[var(--font-size-base)] font-semibold text-[var(--color-text-primary)] focus:bg-[var(--color-bg-elevated)]"
           />
         </div>
         <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1198,6 +1199,7 @@ function StepCard(
           </pre>
         </div>
       )}
+      </div>
     </div>
   );
 }

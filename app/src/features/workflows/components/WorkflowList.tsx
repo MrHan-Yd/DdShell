@@ -6,13 +6,11 @@ import {
   Clock,
   FolderPlus,
   Folder,
-  FolderOpen,
   FolderInput,
   FolderX,
   ChevronRight,
   ListChecks,
   Pencil,
-  Plus,
   RefreshCw,
   Search,
   Trash2,
@@ -31,6 +29,7 @@ import { useWorkflowsStore } from "@/stores/workflows";
 
 function GroupHeader({
   group,
+  recipeCount,
   selected,
   expanded,
   onSelect,
@@ -39,6 +38,7 @@ function GroupHeader({
   isDropTarget = false,
 }: {
   group: WorkflowGroup;
+  recipeCount: number;
   selected: boolean;
   expanded: boolean;
   onSelect: () => void;
@@ -47,20 +47,19 @@ function GroupHeader({
   isDropTarget?: boolean;
 }) {
   return (
-    <div
+    <h4
       data-drop-group-id={group.id}
       className={cn(
-        "flex w-full items-center gap-1 rounded-[var(--radius-control)] transition-colors duration-[var(--duration-fast)]",
-        isDropTarget
-          ? "bg-[var(--color-accent-subtle)] border-2 border-dashed border-[var(--color-accent)] text-[var(--color-accent)]"
-          : selected
-            ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
-            : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
+        "section-title wf-group-title workflow-group-header",
+        selected && "is-selected",
+        isDropTarget && "is-drop-target",
       )}
     >
       <button
+        type="button"
         onClick={onToggle}
-        className="flex-shrink-0 p-1 rounded transition-colors hover:bg-[var(--color-bg-hover)]"
+        aria-expanded={expanded}
+        className="wf-group-toggle"
       >
         <ChevronRight
           size={12}
@@ -71,29 +70,18 @@ function GroupHeader({
         />
       </button>
       <button
+        type="button"
         onClick={onSelect}
         onContextMenu={onContextMenu}
-        className="flex flex-1 items-center gap-2 px-1 py-1.5 text-left min-w-0"
+        className="wf-group-label"
       >
-        {expanded ? (
-          <FolderOpen
-            size={14}
-            className={isDropTarget ? "text-[var(--color-accent)]" : selected ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"}
-          />
-        ) : (
-          <Folder
-            size={14}
-            className={isDropTarget ? "text-[var(--color-accent)]" : selected ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"}
-          />
-        )}
-        <span className="flex-1 text-[var(--font-size-xs)] font-medium uppercase tracking-wide truncate">
-          {group.name}
-        </span>
-        {isDropTarget && (
-          <FolderInput size={14} className="text-[var(--color-accent)]" />
-        )}
+        <span className="wf-group-name">{group.name}</span>
       </button>
-    </div>
+      <span className="wf-group-count">{recipeCount}</span>
+      {isDropTarget && (
+        <FolderInput size={14} className="wf-group-drop-icon" aria-hidden="true" />
+      )}
+    </h4>
   );
 }
 
@@ -227,21 +215,21 @@ export function WorkflowList({
   error,
   selectedRecipeId,
   onSelect,
-  onCreate,
   onEdit,
   onDelete,
   onBatchDelete,
   onRetry,
+  selectionResetKey,
 }: {
   loading: boolean;
   error: string | null;
   selectedRecipeId: string | null;
   onSelect: (id: string) => void;
-  onCreate: () => void;
   onEdit: (recipe: WorkflowRecipe) => void;
   onDelete: (recipe: WorkflowRecipe) => Promise<void>;
   onBatchDelete: (ids: string[]) => Promise<void>;
   onRetry: () => void;
+  selectionResetKey: number;
 }) {
   const t = useT();
   const recipes = useWorkflowsStore((s) => s.recipes);
@@ -390,6 +378,11 @@ export function WorkflowList({
     setSelectedIds(new Set());
   };
 
+  useEffect(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, [selectionResetKey]);
+
   const handleBatchDelete = async () => {
     const count = selectedIds.size;
     if (count === 0) return;
@@ -495,21 +488,20 @@ export function WorkflowList({
   });
 
   return (
-    <div className="flex w-[280px] flex-col border-r border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-      <div className="border-b border-[var(--color-border)] p-3">
+    <aside className="workflow-list wf-list">
+      <div className="workflow-list-toolbar wf-list-toolbar">
         <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search
-              size={14}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
-            />
+          <span className="input-with-icon flex-1">
+            <span className="input-icon" aria-hidden="true">
+              <Search size={13} />
+            </span>
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("workflows.search")}
-              className="pl-8"
+              className="input wf-list-search"
             />
-          </div>
+          </span>
           <Button
             size="icon"
             variant="ghost"
@@ -532,22 +524,11 @@ export function WorkflowList({
           >
             {selectionMode ? <X size={16} /> : <ListChecks size={16} />}
           </Button>
-          <Button
-            size="icon"
-            variant="secondary"
-            onClick={() => {
-              exitSelectionMode();
-              onCreate();
-            }}
-            title={t("workflows.newRecipe")}
-          >
-            <Plus size={16} />
-          </Button>
         </div>
       </div>
 
       <div ref={listContainerRef} data-context-menu-container className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="workflow-list-scroll wf-list-scroll">
           {loading && (
             <div className="flex flex-col gap-2 p-2">
               {Array.from({ length: 4 }).map((_, index) => (
@@ -598,7 +579,7 @@ export function WorkflowList({
           {groupedRecipes.map(({ group, recipes: groupRecipes }) => {
             const isExpanded = expandedGroupIds.has(group.id);
             return (
-              <div key={group.id} className="mb-2" data-drop-group-id={group.id}>
+              <div key={group.id} className="wf-group-block" data-drop-group-id={group.id}>
                 {renamingGroupId === group.id ? (
                   <div className="px-2 py-1">
                     <InlineRename
@@ -610,6 +591,7 @@ export function WorkflowList({
                 ) : (
                   <GroupHeader
                     group={group}
+                    recipeCount={groupRecipes.length}
                     selected={group.id === selectedGroupId}
                     expanded={isExpanded}
                     onSelect={() => {
@@ -631,7 +613,7 @@ export function WorkflowList({
                 {groupRecipes.length > 0 && (
                   <div className={cn("drawer-wrapper", isExpanded && "expanded")}>
                     <div className="drawer-inner">
-                      <div className="mt-1 flex flex-col gap-0.5">
+                      <div className="wf-group-recipes">
                         {groupRecipes.map((recipe) => (
                           <RecipeItem key={recipe.id} {...recipeItemProps(recipe)} />
                         ))}
@@ -665,7 +647,12 @@ export function WorkflowList({
                 </div>
               )}
               {ungroupedRecipes.length > 0 && (
-                <div className="flex flex-col gap-0.5">
+                <div className="flex flex-col gap-2">
+                  <h4 className="section-title wf-group-title workflow-group-header">
+                    <FolderX size={12} />
+                    <span className="wf-group-name">{t("workflows.ungrouped")}</span>
+                    <span className="wf-group-count">{ungroupedRecipes.length}</span>
+                  </h4>
                   {ungroupedRecipes.map((recipe) => (
                     <RecipeItem key={recipe.id} {...recipeItemProps(recipe)} />
                   ))}
@@ -674,7 +661,7 @@ export function WorkflowList({
             </div>
           )}
           {groups.length === 0 && ungroupedRecipes.length > 0 && (
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-2">
               {ungroupedRecipes.map((recipe) => (
                 <RecipeItem key={recipe.id} {...recipeItemProps(recipe)} />
               ))}
@@ -758,7 +745,7 @@ export function WorkflowList({
           </div>
         </div>
       )}
-    </div>
+    </aside>
   );
 }
 
@@ -766,6 +753,15 @@ function getStepCount(recipe: WorkflowRecipe): number {
   try {
     const steps = JSON.parse(recipe.stepsJson) as unknown[];
     return Array.isArray(steps) ? steps.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function getParamCount(recipe: WorkflowRecipe): number {
+  try {
+    const params = JSON.parse(recipe.paramsJson) as unknown[];
+    return Array.isArray(params) ? params.length : 0;
   } catch {
     return 0;
   }
@@ -794,6 +790,7 @@ function RecipeItem({
 }) {
   const t = useT();
   const stepCount = getStepCount(recipe);
+  const paramCount = getParamCount(recipe);
   return (
     <button
       onMouseDown={onMouseDown}
@@ -807,19 +804,17 @@ function RecipeItem({
       onContextMenu={onContextMenu}
       data-active={selected && !selectable}
       className={cn(
-        "wf-recipe-item relative flex w-full items-start gap-2.5 rounded-[var(--radius-control)] px-3 py-2.5 text-left transition-all duration-[var(--duration-fast)]",
+        "wf-card wf-recipe-item",
+        selected && !selectable && "is-active",
         isDragging && "opacity-40 scale-[0.98]",
-        selectable && checked
-          ? "bg-[var(--color-accent-subtle)]"
-          : selected && !selectable
-            ? "bg-[var(--color-accent-subtle)]"
-            : "hover:bg-[var(--color-bg-hover)]",
+        selectable && "is-selectable",
+        selectable && checked && "is-checked",
       )}
     >
       {selectable && (
         <span
           className={cn(
-            "mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[3px] border transition-colors",
+            "absolute right-3 top-3 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[3px] border transition-colors",
             checked
               ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
               : "border-[var(--color-border)]",
@@ -828,29 +823,27 @@ function RecipeItem({
           {checked && <Check size={10} className="text-white" />}
         </span>
       )}
-      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--color-accent-subtle)]">
-        <Box size={14} className="text-[var(--color-accent)]" />
+      <div className="wf-card-head">
+        <span className="wf-card-title">{recipe.title}</span>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
-            {recipe.title}
+      <p className="wf-card-desc">
+        {recipe.description || t("workflows.noDescription")}
+      </p>
+      <div className="wf-card-meta">
+        <span className="meta-item">
+          <ListChecks size={11} />
+          {stepCount} {t("workflows.stepsCount")}
+        </span>
+        {paramCount > 0 && (
+          <span className="meta-item">
+            <Box size={11} />
+            {paramCount} {t("workflows.params")}
           </span>
-          {stepCount > 0 && (
-            <span className="flex-shrink-0 rounded-full bg-[var(--color-bg-hover)] px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-[var(--color-text-muted)]">
-              {stepCount}
-            </span>
-          )}
-        </div>
-        <p className="mt-0.5 line-clamp-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-          {recipe.description || t("workflows.noDescription")}
-        </p>
-        <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--color-text-muted)]">
-          <div className="flex items-center gap-1">
-            <Clock size={10} className="opacity-60" />
-            <span>{new Date(recipe.updatedAt).toLocaleDateString()}</span>
-          </div>
-        </div>
+        )}
+        <span className="meta-item">
+          <Clock size={11} />
+          {new Date(recipe.updatedAt).toLocaleDateString()}
+        </span>
       </div>
     </button>
   );

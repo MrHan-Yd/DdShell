@@ -83,6 +83,242 @@
   /* ── Hairline Borders ── */
   --border-hairline-inner: inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
   --border-hairline-outer: 0 0.5px 0 rgba(0, 0, 0, 0.4);
+
+  /* ── Accent Composites (跟随 --color-accent 的派生 token，对齐 ui/ 设计稿) ── */
+  --color-accent-gradient: linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 50%, #67E8F9));
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 32%, transparent);
+  --color-fg-on-accent: #FFFFFF;
+  --shadow-accent-glow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 20px var(--color-accent-glow);
+
+  /* alias：兼容 styles.css 中已有的无前缀引用 (--accent-gradient/--accent-glow/--fg-on-accent/--shadow-glow) */
+  --accent-gradient: var(--color-accent-gradient);
+  --accent-glow: var(--color-accent-glow);
+  --fg-on-accent: var(--color-fg-on-accent);
+  --shadow-glow: var(--shadow-accent-glow);
+}
+
+/* Workflow list parity with ui/styles/pages/workflows.css left-list rules. */
+.workflow-list.wf-list {
+  border-right: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-base);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workflow-list .wf-list-toolbar {
+  padding: 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: transparent;
+}
+
+.workflow-list .wf-list-toolbar .input-with-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.workflow-list .wf-list-toolbar .input-icon {
+  position: absolute;
+  left: 10px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.workflow-list .wf-list-toolbar .input,
+.workflow-list .wf-list-toolbar input {
+  height: 28px;
+  padding-left: 30px;
+  font-size: var(--font-size-xs);
+}
+
+.workflow-list .wf-list-toolbar button {
+  height: 28px;
+  width: 28px;
+  border-radius: 8px;
+}
+
+.workflow-list .wf-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.workflow-list .wf-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px 8px;
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.workflow-list .wf-group-title:first-child,
+.workflow-list .wf-group-block:first-child .wf-group-title {
+  margin-top: 0;
+  padding-top: 4px;
+}
+
+.workflow-list .wf-group-title svg {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.workflow-list .wf-group-toggle,
+.workflow-list .wf-group-label {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.workflow-list .wf-group-toggle {
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+}
+
+.workflow-list .wf-group-label {
+  flex: 1;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workflow-list .wf-group-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-list .wf-group-count {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-elevated);
+  border-radius: 999px;
+  padding: 1px 8px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.workflow-list .wf-group-title.is-selected,
+.workflow-list .wf-group-title.is-drop-target {
+  color: var(--color-text-primary);
+}
+
+.workflow-list .wf-group-recipes,
+.workflow-list .wf-group-block > .flex {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.workflow-list .wf-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-height: auto;
+  padding: 12px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+  transition: background var(--duration-fast) var(--ease-smooth), border-color var(--duration-fast) var(--ease-smooth);
+}
+
+.workflow-list .wf-card:hover {
+  border-color: var(--color-border);
+  background: var(--color-bg-active);
+  box-shadow: none;
+  transform: none;
+}
+
+.workflow-list .wf-card.is-active,
+.workflow-list .wf-card[data-active="true"] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  box-shadow: 0 0 0 1px var(--color-accent-subtle), 0 0 18px rgba(167,139,250,0.10);
+}
+
+.workflow-list .wf-card.is-checked {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.workflow-list .wf-card.is-selectable {
+  padding-right: 32px;
+}
+
+.workflow-list .wf-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.workflow-list .wf-card-title {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-list .wf-card-desc,
+.workflow-list .wf-recipe-item .wf-card-desc {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.workflow-list .wf-card-meta,
+.workflow-list .wf-recipe-item .wf-card-meta {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.workflow-list .wf-card-meta .meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
 }
 
 /* ── Light Theme ── */
@@ -164,6 +400,9 @@
     radial-gradient(circle at 82% 78%, rgba(103, 232, 249, 0.1), transparent 24%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 24%);
   --app-shell-overlay-opacity: 1;
+
+  /* aurora dark：紫渐变上压深色文字（对齐设计稿 .btn-primary 的高级感） */
+  --color-fg-on-accent: #0E0F14;
 }
 
 [data-theme="light"][data-ui-theme="aurora"] {
@@ -2162,6 +2401,642 @@ input[type="number"] {
 }
 
 /* ══════════════════════════════════════════════════════
+   Workflow page layout
+   ══════════════════════════════════════════════════════ */
+.workflow-page {
+  background:
+    radial-gradient(ellipse 52% 28% at 88% 0%, color-mix(in srgb, var(--color-accent-subtle) 82%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface) 20%, transparent), transparent 40%),
+    var(--color-bg-base);
+}
+
+.workflow-page-header {
+  min-height: 76px;
+  background: color-mix(in srgb, var(--color-bg-surface) 72%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.workflow-page-header h1 {
+  line-height: 1.15;
+}
+
+.workflow-list {
+  min-width: 0;
+  background: color-mix(in srgb, var(--color-bg-base) 94%, var(--color-bg-surface));
+}
+
+.workflow-list-toolbar {
+  background: color-mix(in srgb, var(--color-bg-base) 90%, var(--color-bg-surface));
+  padding: 12px;
+}
+
+.workflow-list-toolbar input {
+  height: 28px;
+  border-color: var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  font-size: var(--font-size-xs);
+}
+
+.workflow-list-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.workflow-group-header {
+  padding: 9px 8px 7px;
+  color: var(--color-text-muted);
+}
+
+.workflow-group-header:hover {
+  color: var(--color-text-secondary);
+}
+
+.workflow-group-count {
+  margin-left: auto;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  padding: 1px 8px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.wf-group-block {
+  margin-top: 2px;
+}
+
+.workflow-detail-shell {
+  background:
+    radial-gradient(ellipse 60% 30% at 80% 0%, color-mix(in srgb, var(--color-accent-subtle) 72%, transparent), transparent 70%),
+    var(--color-bg-base);
+}
+
+.workflow-detail-scroll,
+.workflow-editor-scroll {
+  background:
+    radial-gradient(ellipse 60% 26% at 82% 0%, color-mix(in srgb, var(--color-accent-subtle) 70%, transparent), transparent 72%),
+    var(--color-bg-base);
+}
+
+.workflow-detail-content {
+  gap: 24px;
+}
+
+.workflow-detail-head {
+  margin-bottom: 0;
+  padding: 2px 0 22px;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.workflow-detail-head .wf-title {
+  font-size: clamp(22px, 2.2vw, 28px);
+  line-height: 1.15;
+}
+
+.workflow-detail-head .wf-desc {
+  max-width: 640px;
+  line-height: 1.55;
+}
+
+.workflow-detail-head .wf-tag {
+  background: color-mix(in srgb, var(--color-bg-surface) 88%, transparent);
+  color: var(--color-text-muted);
+}
+
+.workflow-detail-head .wf-detail-actions {
+  gap: 8px;
+}
+
+.workflow-detail-head .wf-detail-actions button {
+  height: 30px;
+  padding-inline: 12px;
+}
+
+.workflow-section {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface) 94%, white 3%), var(--color-bg-surface));
+  border-color: var(--color-border-subtle);
+  padding: 16px;
+}
+
+.workflow-section .wf-section-head {
+  min-height: 30px;
+}
+
+.wf-input-grid {
+  gap: 8px;
+}
+
+.wf-input-row {
+  min-height: 38px;
+  background: color-mix(in srgb, var(--color-bg-base) 86%, var(--color-bg-surface));
+  border-color: var(--color-border-subtle);
+}
+
+.workflow-editor-content {
+  min-height: 100%;
+}
+
+.workflow-editor-hero {
+  border-color: color-mix(in srgb, var(--color-border) 80%, var(--color-accent));
+  padding: 24px;
+}
+
+.workflow-editor-steps-section {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface) 94%, white 3%), var(--color-bg-surface));
+  border-color: var(--color-border-subtle);
+}
+
+.workflow-detail-content .workflow-section + .workflow-section {
+  position: relative;
+}
+
+.workflow-steps-timeline .wf-pipeline-step {
+  padding-left: 54px;
+  padding-bottom: 12px;
+}
+
+.workflow-steps-timeline .wf-pipeline-step::before {
+  left: 25px;
+  background: linear-gradient(to bottom, var(--color-accent-subtle), var(--color-border));
+}
+
+.workflow-steps-timeline .wf-pipeline-dot {
+  left: 16px;
+  top: 18px;
+  width: 18px;
+  height: 18px;
+  border-color: var(--color-accent);
+  background: var(--color-bg-elevated);
+  box-shadow: 0 0 0 4px var(--color-bg-base);
+}
+
+.workflow-detail-step .wf-step-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--color-bg-surface) 94%, transparent);
+  border-color: var(--color-border-subtle);
+}
+
+.workflow-detail-step .wf-step-num {
+  box-shadow: 0 0 0 4px var(--color-bg-surface);
+}
+
+.workflow-detail-step .wf-step-cmd,
+.wf-command-editor {
+  background: #0B0C12;
+  color: #E8E9F1;
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, black);
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.24);
+  font-family: "SF Mono", "Fira Code", "JetBrains Mono", Menlo, monospace;
+}
+
+[data-theme="light"] .workflow-detail-step .wf-step-cmd,
+[data-theme="light"] .wf-command-editor {
+  background: #0B0C12;
+  color: #E8E9F1;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.24);
+}
+
+/* Draft-aligned workflow DOM model: ui/workflows.html parity */
+.workflow-page .page-header {
+  padding: 18px 24px;
+  border-bottom-color: var(--color-border-subtle);
+}
+
+.workflow-page .page-header .title {
+  font-size: var(--font-size-xl);
+  line-height: 1.15;
+}
+
+.workflow-page .page-header .subtitle {
+  color: var(--color-text-muted);
+}
+
+.workflow-page-body.wf-body {
+  height: 100%;
+  grid-template-columns: 360px minmax(0, 1fr);
+}
+
+.workflow-list.wf-list {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-base) 96%, var(--color-bg-surface)), var(--color-bg-base));
+  border-right-color: var(--color-border-subtle);
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--color-border-subtle) 86%, transparent);
+}
+
+.workflow-list .wf-list-toolbar {
+  padding: 12px;
+  border-bottom-color: var(--color-border-subtle);
+  background: color-mix(in srgb, var(--color-bg-base) 94%, var(--color-bg-surface));
+}
+
+.workflow-list .wf-list-toolbar > div {
+  align-items: center;
+}
+
+.workflow-list .wf-list-toolbar svg {
+  color: var(--color-text-muted);
+}
+
+.workflow-list .wf-list-search,
+.workflow-list .wf-list-toolbar input {
+  height: 28px;
+  border-color: var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  font-size: var(--font-size-xs);
+}
+
+.workflow-list .wf-list-toolbar button {
+  height: 28px;
+  width: 28px;
+  border-radius: 8px;
+}
+
+.workflow-list .wf-list-scroll {
+  gap: 6px;
+  padding: 12px;
+}
+
+.workflow-list .wf-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 8px 8px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.workflow-list .wf-group-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: -2px;
+  color: var(--color-text-muted);
+}
+
+.workflow-list .wf-group-label {
+  gap: 6px;
+  padding: 0;
+}
+
+.workflow-list .wf-group-name {
+  min-width: 0;
+}
+
+.workflow-list .wf-group-title svg {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.workflow-list .wf-group-count,
+.workflow-list .workflow-group-count {
+  margin-left: auto;
+  min-width: 22px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  background: var(--color-bg-elevated);
+  padding: 1px 8px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.workflow-list .wf-group-block:first-of-type .wf-group-title {
+  margin-top: 0;
+  padding-top: 4px;
+}
+
+.workflow-list .wf-group-recipes {
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.workflow-list .wf-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: auto;
+  padding: 12px;
+  border-radius: var(--radius-card);
+  border-color: var(--color-border-subtle);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, white 2%, transparent), transparent 46%),
+    var(--color-bg-surface);
+  box-shadow: none;
+  transform: none;
+}
+
+.workflow-list .wf-card:hover {
+  border-color: color-mix(in srgb, var(--color-border-focus) 58%, var(--color-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, white 3%, transparent), transparent 48%),
+    var(--color-bg-hover);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
+  transform: translateY(-1px);
+}
+
+.workflow-list .wf-card[data-active="true"] {
+  border-color: var(--color-accent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent-subtle) 88%, transparent), transparent 62%),
+    var(--color-bg-surface);
+  box-shadow: 0 0 0 1px var(--color-accent-subtle), 0 0 18px color-mix(in srgb, var(--color-accent) 16%, transparent);
+}
+
+.workflow-list .wf-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.workflow-list .wf-card-title {
+  min-width: 0;
+  flex: 1;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.workflow-list .wf-card-count-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, var(--color-border-subtle));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-accent-subtle) 72%, transparent);
+  padding: 1px 7px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.workflow-list .wf-card-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.workflow-list .wf-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.workflow-list .wf-card-meta .meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.workflow-list .wf-recipe-item {
+  min-height: 88px;
+}
+
+.workflow-list .wf-recipe-item::after {
+  display: none;
+}
+
+.workflow-detail-scroll.wf-detail {
+  padding: 28px;
+  background:
+    radial-gradient(ellipse 60% 30% at 80% 0%, color-mix(in srgb, var(--color-accent-subtle) 82%, transparent), transparent 70%),
+    var(--color-bg-base);
+}
+
+.workflow-detail-content {
+  max-width: none;
+  gap: 24px;
+}
+
+.workflow-detail-content .wf-detail-head {
+  margin-bottom: 0;
+  padding: 0 0 24px;
+  border-bottom: 0;
+}
+
+.workflow-detail-content .wf-section,
+.workflow-editor-steps-section.wf-section {
+  margin-bottom: 0;
+  padding: 18px 0 0;
+  border: 0;
+  border-top: 1px dashed var(--color-border-subtle);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.workflow-detail-content .wf-section:first-of-type,
+.workflow-editor-steps-section.wf-section:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.workflow-detail-content .wf-section-head,
+.workflow-editor-steps-section .wf-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.workflow-detail-content .wf-input-row {
+  grid-template-columns: minmax(110px, auto) minmax(0, 1fr);
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: var(--radius-card);
+  background: var(--color-bg-surface);
+}
+
+.workflow-detail-content .wf-steps,
+.workflow-editor-steps {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.workflow-detail-content .wf-steps::before,
+.workflow-editor-steps::before {
+  content: "";
+  position: absolute;
+  left: 26px;
+  top: 18px;
+  bottom: 50px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, var(--color-accent-subtle), var(--color-border-subtle));
+  pointer-events: none;
+}
+
+.workflow-detail-content .wf-step,
+.workflow-editor-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px 36px minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px 12px 8px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--color-bg-surface);
+}
+
+.workflow-editor-step {
+  grid-template-columns: 18px 36px minmax(0, 1fr);
+}
+
+.workflow-detail-content .wf-step:hover,
+.workflow-editor-step:hover {
+  border-color: var(--color-border-focus);
+}
+
+.workflow-detail-content .wf-step-handle,
+.workflow-editor-step .wf-step-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  color: var(--color-text-muted);
+}
+
+.workflow-detail-content .wf-step-num,
+.workflow-editor-step .wf-step-num {
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-top: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.workflow-editor-step[data-active="true"],
+.workflow-editor-step:focus-within {
+  border-color: var(--color-accent);
+  background: linear-gradient(135deg, var(--color-accent-subtle), transparent 62%), var(--color-bg-surface);
+}
+
+.workflow-editor-step[data-active="true"] .wf-step-num {
+  background: var(--accent-gradient);
+  border-color: transparent;
+  color: var(--color-fg-on-accent);
+  box-shadow: 0 0 12px var(--color-accent-glow);
+}
+
+.workflow-detail-content .wf-step-body,
+.workflow-editor-step .wf-step-body {
+  min-width: 0;
+}
+
+.workflow-detail-content .wf-step-head,
+.workflow-editor-step .wf-step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.workflow-detail-content .wf-step-cmd,
+.workflow-editor-step .wf-step-cmd {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, black);
+  border-radius: var(--radius-control);
+  background: #0B0C12;
+  color: #E8E9F1;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.24);
+  font-family: "SF Mono", "Fira Code", "JetBrains Mono", Menlo, monospace;
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+[data-theme="light"] .workflow-detail-content .wf-step-cmd,
+[data-theme="light"] .workflow-editor-step .wf-step-cmd {
+  background: #0B0C12;
+  color: #E8E9F1;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.24);
+}
+
+@media (max-width: 1120px) {
+  .workflow-page-body.wf-body {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 980px) {
+  .workflow-page-body.wf-body {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+
+  .workflow-detail-scroll,
+  .workflow-editor-content {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+@media (max-width: 860px) {
+  .workflow-page-body.wf-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(240px, 42vh) minmax(0, 1fr);
+  }
+
+  .workflow-list {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .workflow-page-header {
+    min-height: auto;
+    align-items: flex-start;
+  }
+
+  .workflow-detail-head {
+    padding-top: 0;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
    Workflow Pipeline Step Connector
    ══════════════════════════════════════════════════════ */
 .wf-pipeline {
@@ -2335,7 +3210,103 @@ input[type="number"] {
 }
 .wf-card:hover {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-floating);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
+}
+
+/* ══════════════════════════════════════════════════════
+   Workflow page — scoped button overrides (design draft parity)
+   Matches ui/styles/components.css .btn-primary / .btn-secondary /
+   .btn-ghost / .btn-sm / .btn-icon without touching Button.tsx.
+   ══════════════════════════════════════════════════════ */
+
+/* Page header primary button ("New workflow") — accent gradient + glow */
+.workflow-page-header .actions > button:first-child {
+  background: var(--color-accent-gradient) !important;
+  color: var(--color-fg-on-accent) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset,
+              0 6px 20px var(--color-accent-glow) !important;
+  border: none !important;
+}
+.workflow-page-header .actions > button:first-child:hover {
+  filter: brightness(1.08);
+}
+
+/* Detail actions — button sizing & hover polish */
+.workflow-detail-head .wf-detail-actions button {
+  height: 26px;
+  padding-inline: 10px;
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-control);
+  transition: background var(--duration-fast) var(--ease-smooth),
+              color var(--duration-fast) var(--ease-smooth),
+              border-color var(--duration-fast) var(--ease-smooth),
+              box-shadow var(--duration-fast) var(--ease-smooth),
+              transform var(--duration-fast) var(--ease-smooth);
+}
+.workflow-detail-head .wf-detail-actions button:active {
+  transform: scale(0.97);
+}
+
+/* Detail "Edit" (secondary) — surface bg + border per design .btn-secondary */
+.workflow-detail-head .wf-detail-actions button:nth-child(1) {
+  background: var(--color-bg-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+.workflow-detail-head .wf-detail-actions button:nth-child(1):hover {
+  background: var(--color-bg-active) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Detail "Delete" (ghost) — transparent + muted per design .btn-ghost */
+.workflow-detail-head .wf-detail-actions button:nth-child(2) {
+  background: transparent !important;
+  color: var(--color-text-secondary) !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+.workflow-detail-head .wf-detail-actions button:nth-child(2):hover {
+  background: var(--color-bg-hover) !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* List toolbar icon buttons — 28×28 ghost icon per design .btn-icon.btn-ghost */
+.workflow-list .wf-list-toolbar button {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-control);
+  background: transparent !important;
+  color: var(--color-text-muted) !important;
+  border: none !important;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--duration-fast) var(--ease-smooth),
+              color var(--duration-fast) var(--ease-smooth),
+              transform var(--duration-fast) var(--ease-smooth);
+}
+.workflow-list .wf-list-toolbar button:hover {
+  background: var(--color-bg-hover) !important;
+  color: var(--color-text-primary) !important;
+}
+.workflow-list .wf-list-toolbar button:active {
+  transform: scale(0.97);
+}
+
+/* Editor floating save button — accent gradient + glow */
+.workflow-editor-shell > .absolute button[class*="bg-gradient-to-b"] {
+  background: var(--color-accent-gradient) !important;
+  color: var(--color-fg-on-accent) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset,
+              0 6px 20px var(--color-accent-glow) !important;
+  border: none !important;
+}
+.workflow-editor-shell > .absolute button[class*="bg-gradient-to-b"]:hover {
+  filter: brightness(1.08);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -2343,6 +3314,10 @@ input[type="number"] {
    ══════════════════════════════════════════════════════ */
 .wf-recipe-item {
   position: relative;
+  min-height: 88px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 42%),
+    var(--color-bg-surface);
   transition: all var(--duration-fast) var(--ease-smooth);
 }
 .wf-recipe-item::after {
@@ -2362,6 +3337,47 @@ input[type="number"] {
 .wf-recipe-item[data-active="true"]::after {
   opacity: 1;
   transform: scaleY(1);
+}
+
+.wf-recipe-item[data-active="true"] {
+  background:
+    linear-gradient(135deg, var(--color-accent-subtle), transparent 62%),
+    var(--color-bg-surface);
+  box-shadow: 0 0 0 1px var(--color-accent-subtle), 0 0 18px color-mix(in srgb, var(--color-accent) 16%, transparent);
+}
+
+.wf-recipe-item .workflow-recipe-icon {
+  margin-top: 1px;
+  opacity: 0.9;
+}
+
+.wf-recipe-item .wf-card-head {
+  min-height: 20px;
+}
+
+.wf-recipe-item .wf-card-head span {
+  font-weight: 500;
+}
+
+.wf-recipe-item .wf-card-desc {
+  line-height: 1.45;
+  margin-top: 6px;
+}
+
+.wf-recipe-item .wf-card-meta .meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wf-recipe-item .wf-card-meta {
+  margin-top: 9px;
+}
+
+[data-theme="light"] .wf-recipe-item {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), transparent 58%),
+    var(--color-bg-surface);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -2385,6 +3401,7 @@ input[type="number"] {
 .wf-step-card--completed::before { background: var(--color-success); }
 .wf-step-card--running::before { background: var(--color-accent); }
 .wf-step-card--failed::before { background: var(--color-error); }
+.wf-step-card.workflow-step-display::before { background: var(--color-accent); }
 
 /* ══════════════════════════════════════════════════════
    Workflow step drag handle
@@ -2755,4 +3772,228 @@ input[type="number"] {
   .quick-edit-toolbar-group {
     flex-wrap: wrap;
   }
+}
+
+/* Final workflow list override: exact left-list values from ui/styles/pages/workflows.css mapped to app tokens. */
+.workflow-list.wf-list {
+  border-right: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-base);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.workflow-list .wf-list-toolbar {
+  padding: 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: transparent;
+}
+
+.workflow-list .wf-list-toolbar .input-with-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.workflow-list .wf-list-toolbar .input-icon {
+  position: absolute;
+  left: 10px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.workflow-list .wf-list-toolbar .input,
+.workflow-list .wf-list-toolbar input {
+  height: 28px;
+  padding-left: 30px;
+  font-size: var(--font-size-xs);
+}
+
+.workflow-list .wf-list-toolbar button {
+  height: 28px;
+  width: 28px;
+  border-radius: 8px;
+}
+
+.workflow-list .wf-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.workflow-list .wf-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px 8px;
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.workflow-list .wf-group-title:first-child,
+.workflow-list .wf-group-block:first-child .wf-group-title {
+  margin-top: 0;
+  padding-top: 4px;
+}
+
+.workflow-list .wf-group-title svg {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.workflow-list .wf-group-toggle,
+.workflow-list .wf-group-label {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.workflow-list .wf-group-toggle {
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+}
+
+.workflow-list .wf-group-label {
+  flex: 1;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workflow-list .wf-group-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-list .wf-group-count {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-elevated);
+  border-radius: 999px;
+  padding: 1px 8px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.workflow-list .wf-group-title.is-selected,
+.workflow-list .wf-group-title.is-drop-target {
+  color: var(--color-text-primary);
+}
+
+.workflow-list .wf-group-recipes,
+.workflow-list .wf-group-block > .flex {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.workflow-list .wf-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-height: auto;
+  padding: 12px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+  transition: background var(--duration-fast) var(--ease-smooth), border-color var(--duration-fast) var(--ease-smooth);
+}
+
+.workflow-list .wf-card:hover {
+  border-color: var(--color-border);
+  background: var(--color-bg-active);
+  box-shadow: none;
+  transform: none;
+}
+
+.workflow-list .wf-card.is-active,
+.workflow-list .wf-card[data-active="true"] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  box-shadow: 0 0 0 1px var(--color-accent-subtle), 0 0 18px rgba(167,139,250,0.10);
+}
+
+.workflow-list .wf-card.is-checked {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.workflow-list .wf-card.is-selectable {
+  padding-right: 32px;
+}
+
+.workflow-list .wf-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.workflow-list .wf-card-title {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-list .wf-card-desc,
+.workflow-list .wf-recipe-item .wf-card-desc {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.workflow-list .wf-card-meta,
+.workflow-list .wf-recipe-item .wf-card-meta {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.workflow-list .wf-card-meta .meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
 }
