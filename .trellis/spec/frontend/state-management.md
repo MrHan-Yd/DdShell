@@ -99,3 +99,44 @@ Every rendered window must apply the same boundary contract. This includes detac
 - `app/src/App.tsx`
 - `app/src/features/settings/SettingsPage.tsx`
 - `app/src/features/quick-edit/QuickEditWindow.tsx`
+
+---
+
+## Convention: Settings drafts must not drive committed visual state
+
+**What**: Settings forms that use a Save button must keep draft values separate from committed app state. Draft fields may drive local control selection states, but app-wide visual boundaries such as `data-ui-theme`, color mode classes, locale, and terminal runtime events must only be updated after the save operation succeeds.
+
+**Why**: A draft-only settings flow promises that changes do not take effect until Save. If a draft value is reused for page shell rendering or global store updates, the UI can visually change before persistence succeeds, creating a split-brain state between what the user sees, what the app store contains, and what the backend has saved.
+
+**Example**:
+
+```tsx
+// Wrong: the settings page shell changes as soon as the draft changes.
+const isAurora = draft.uiTheme === "aurora";
+
+// Correct: committed state controls app/page-level visual styling.
+const isAurora = uiTheme === "aurora";
+
+// The draft only controls selection affordances inside the form.
+const isClassicSelected = draft.uiTheme === "classic";
+```
+
+Persist first, then commit runtime side effects:
+
+```ts
+await api.settingSetMany(entries);
+setTheme(draft.theme);
+setUiTheme(draft.uiTheme);
+setLocale(draft.locale);
+window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
+```
+
+**Tests Required**:
+- Change theme, UI theme, locale, and terminal settings in the settings form and assert the page/app visual state does not change before Save.
+- After Save succeeds, assert store state, document theme attributes/classes, locale, and terminal settings event behavior all reflect the saved draft.
+- On Save failure, assert the draft remains editable and committed visual state is unchanged.
+
+**Related**:
+- `app/src/features/settings/SettingsPage.tsx`
+- `app/src/stores/app.ts`
+- `app/src/App.tsx`
