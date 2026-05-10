@@ -1,1 +1,3 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "lint / 命名 / 重复代码 / forbidden patterns 收口，验收前必检"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "draft / lastSaved / dirty 比较 / dispatch payload 全链路类型完整性必须确认无 any"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Save 后 commit 顺序（store / 视觉 / dispatch / lastSaved 镜像）符合 state 分层契约"}

@@ -1,1 +1,4 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "draft + lastSaved 双层状态、settingsDirty 提到全局 store 的模式必须遵守现有 state 分层约定（参考 dual-theme M1 新增的 uiTheme 双层 state 段落）"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "新增 useSettingsDraft / useReducer 集中管理 30+ 字段，需对齐现有 hook 命名/职责约定"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "SettingsPage + CommandAssistSettings 子组件提 state、Sidebar/Titlebar 拦截改造，需遵守组件 props/composition 约定"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "SettingsDraft 类型必须严格定义并被 reducer / handleSave / 拦截判断共用，避免 any"}
