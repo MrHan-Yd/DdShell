@@ -174,3 +174,38 @@ Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Settings save-on-apply
+
+**Date**: 2026-05-10
+**Task**: Settings save-on-apply
+**Branch**: `main`
+
+### Summary
+
+Implemented strict settings draft mode with save-on-apply semantics, navigation/close dirty guards, CommandAssist/PredictiveEcho draft integration, confirm dialog styling fix, About page ordering, and recorded the frontend draft-state convention.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a29f61b` | (see git log) |
+| `093f397` | (see git log) |
+| `109f44b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
