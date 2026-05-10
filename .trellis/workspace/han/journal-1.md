@@ -141,3 +141,36 @@ Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Dual-theme M1 + settings 微调主体落地
+
+**Date**: 2026-05-10
+**Task**: Dual-theme M1 + settings 微调主体落地
+**Branch**: `main`
+
+### Summary
+
+落地 dual-theme M1 + M1.5-α：主题挂载、布局壳重做、三页布局迁移、Aurora 样式系统与 themed 组件双轨化、Aurora logo v2、settings heroSubtitle 文案对齐原型与真实 OS/架构展示。同步更新 spec（uiTheme 双层 state、app_platform_info 后端契约）与 ui/ 源码 .seg 修复。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dcf2154` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
