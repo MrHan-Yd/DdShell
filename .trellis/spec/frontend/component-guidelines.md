@@ -60,6 +60,32 @@ Questions to answer:
 
 ---
 
+## Convention: Static UI drafts are visual references, not feature contracts
+
+**What**: When applying a static UI draft to an existing React page, map the draft to existing implemented behavior first. Use the draft for layout, spacing, visual hierarchy, and styling, but do not add draft-only buttons, status chips, actions, data fields, or workflows unless the real page already has matching state and handlers.
+
+**Why**: Static drafts often include aspirational examples. Treating those examples as product requirements can silently add non-functional controls or bypass existing store/backend contracts.
+
+**Example**:
+
+```tsx
+// Wrong: adding a draft-only action without real behavior.
+<Button onClick={() => undefined}>Duplicate</Button>
+
+// Correct: preserve only implemented actions while adopting the draft layout.
+<Button size="icon" variant="ghost" onClick={onEdit} title={t("workflows.editRecipe")}>
+  <Pencil size={16} />
+</Button>
+```
+
+**Required check**: Before merging a visual redesign, verify existing callbacks, store usage, validation, selection, and drag/drop behavior still flow through the original implementation.
+
+**Related**:
+- `ui/*.html` static UI drafts
+- `app/src/features/workflows/WorkflowsPage.tsx`
+
+---
+
 ## Convention: Update entry actions must preserve browser fallback
 
 **What**: Components that surface app update actions should treat in-app download/open as an enhancement over the existing GitHub releases path, not as a hard dependency.
