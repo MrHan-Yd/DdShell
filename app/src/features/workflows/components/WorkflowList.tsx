@@ -21,7 +21,7 @@ import {
 import { ContextMenu, useContextMenu } from "@/components/ui/ContextMenu";
 import type { MenuItem } from "@/components/ui/ContextMenu";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/themed/Input";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { confirm } from "@/stores/confirm";

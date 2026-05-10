@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Plus, Search, Server, Folder, FolderOpen, FolderInput, FolderX, Trash2, Pencil, Star, StarOff, Zap, Upload, Check, ChevronUp, ChevronDown, ChevronRight, FolderPlus, ListChecks, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/themed/Input";
 import { Select } from "@/components/ui/Select";
 import { cn } from "@/lib/utils";
 import { useConnectionsStore } from "@/stores/connections";
@@ -354,10 +354,10 @@ function GroupHeader({
   isDropTarget?: boolean;
 }) {
   return (
-    <div
+    <header
       data-drop-group-id={group.id}
       className={cn(
-        "flex w-full items-center gap-1 rounded-[var(--radius-control)] transition-colors duration-[var(--duration-fast)]",
+        "host-group-head flex w-full items-center gap-1 rounded-[var(--radius-control)] transition-colors duration-[var(--duration-fast)]",
         isDropTarget
           ? "bg-[var(--color-accent-subtle)] border-2 border-dashed border-[var(--color-accent)] text-[var(--color-accent)]"
           : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
@@ -370,7 +370,7 @@ function GroupHeader({
         <ChevronRight
           size={12}
           className={cn(
-            "transition-transform duration-[var(--duration-fast)]",
+            "chevron transition-transform duration-[var(--duration-fast)]",
             expanded && "rotate-90",
           )}
         />
@@ -381,18 +381,19 @@ function GroupHeader({
         className="flex flex-1 items-center gap-2 px-1 py-1.5 text-left min-w-0"
       >
         {expanded ? (
-          <FolderOpen size={14} className={isDropTarget ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"} />
+          <FolderOpen size={14} className={cn("folder-icon", isDropTarget ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]")} />
         ) : (
-          <Folder size={14} className={isDropTarget ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"} />
+          <Folder size={14} className={cn("folder-icon", isDropTarget ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]")} />
         )}
-        <span className="flex-1 text-[var(--font-size-xs)] font-medium uppercase tracking-wide truncate">
+        <span className="name flex-1 text-[var(--font-size-xs)] font-medium uppercase tracking-wide truncate">
           {group.name}
         </span>
+        <span className="count"> </span>
         {isDropTarget && (
           <FolderInput size={14} className="text-[var(--color-accent)]" />
         )}
       </button>
-    </div>
+    </header>
   );
 }
 
@@ -807,14 +808,49 @@ export function ConnectionsPage() {
   };
 
   return (
-    <div className="flex flex-1 overflow-hidden">
+    <div className="connections-page flex flex-1 flex-col overflow-hidden">
+      <div className="page-header">
+        <div className="title-block">
+          <span className="title">{t("nav.connections")}</span>
+          <span className="subtitle">
+            {hosts.length} hosts · {groups.length} groups · {hosts.filter((host) => host.isFavorite).length} favorites
+          </span>
+        </div>
+        <div className="actions flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setShowForm(false);
+              setEditingHost(null);
+              setShowImport(true);
+            }}
+          >
+            <Upload size={14} />
+            Import SSH Config
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setShowImport(false);
+              setEditingHost(null);
+              setShowForm(true);
+            }}
+          >
+            <Plus size={14} />
+            {t("conn.newConnection")}
+          </Button>
+        </div>
+      </div>
+
+      <div className="split-layout flex flex-1 overflow-hidden">
       {/* Left: Connection List */}
-      <div className="flex w-[280px] flex-col border-r border-[var(--color-border)]" ref={listContainerRef} data-context-menu-container>
-        <div className="flex items-center gap-2 border-b border-[var(--color-border)] p-3">
-          <div className="relative flex-1">
+      <aside className="host-aside split-aside flex w-[280px] flex-col border-r border-[var(--color-border)]" ref={listContainerRef} data-context-menu-container>
+        <div className="aside-toolbar flex items-center gap-2 border-b border-[var(--color-border)] p-3">
+          <div className="input-with-icon relative flex-1">
             <Search
               size={14}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+              className="input-icon absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
             />
             <Input
               value={searchQuery}
@@ -867,7 +903,7 @@ export function ConnectionsPage() {
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="aside-scroll flex-1 overflow-y-auto p-2">
           {loading && (
             <p className="p-4 text-center text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
               {t("conn.loading")}
@@ -891,7 +927,7 @@ export function ConnectionsPage() {
             const expanded = expandedGroupIds.has(group.id);
             const isRenaming = renamingGroupId === group.id;
             return (
-              <div key={group.id} className="mb-2" data-drop-group-id={group.id}>
+              <section key={group.id} className={cn("host-group mb-2", expanded && "is-expanded", hoverGroupId === group.id && "is-drop-target")} data-drop-group-id={group.id}>
                 {isRenaming ? (
                   <div className="px-2 py-1">
                     <InlineRename
@@ -912,7 +948,7 @@ export function ConnectionsPage() {
                 {groupHosts.length > 0 && (
                   <div className={cn("drawer-wrapper", expanded && "expanded")}>
                     <div className="drawer-inner">
-                      <div className="border border-[var(--color-border)] rounded-2xl">
+                      <div className="host-list border border-[var(--color-border)] rounded-2xl">
                         {groupHosts.map((h) => (
                           <HostItem
                             key={h.id}
@@ -934,7 +970,7 @@ export function ConnectionsPage() {
                     </div>
                   </div>
                 )}
-              </div>
+              </section>
             );
           })}
 
@@ -957,28 +993,24 @@ export function ConnectionsPage() {
 
           {/* Ungrouped hosts */}
           {groups.length > 0 ? (
-            <div
+            <section
               data-drop-group-id="ungrouped"
               className={cn(
-                "rounded-2xl transition-colors duration-[var(--duration-fast)]",
+                "host-group host-group--ungrouped is-expanded rounded-2xl transition-colors duration-[var(--duration-fast)]",
                 dragHostId && hoverGroupId === "ungrouped"
                   ? "border-2 border-dashed border-[var(--color-accent)] bg-[var(--color-accent-subtle)]"
                   : "",
               )}
             >
-              {dragHostId && (
-                <div className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 text-[var(--font-size-xs)] font-medium uppercase tracking-wide",
-                  hoverGroupId === "ungrouped"
-                    ? "text-[var(--color-accent)]"
-                    : "text-[var(--color-text-muted)]",
-                )}>
-                  <FolderX size={14} />
-                  {t("conn.noGroup")}
-                </div>
+              {(dragHostId || ungroupedHosts.length > 0) && (
+                <header className="host-group-head is-bare">
+                  {dragHostId ? <FolderX size={14} /> : null}
+                  <span className="name">{t("conn.noGroup")}</span>
+                  <span className="count">{ungroupedHosts.length}</span>
+                </header>
               )}
               {ungroupedHosts.length > 0 && (
-                <div className="mb-2">
+                <div className="host-list mb-2">
                   {ungroupedHosts.map((h) => (
                     <HostItem
                       key={h.id}
@@ -998,10 +1030,15 @@ export function ConnectionsPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </section>
           ) : (
             ungroupedHosts.length > 0 && (
-              <div className="mb-2">
+              <section className="host-group host-group--ungrouped is-expanded mb-2">
+                <header className="host-group-head is-bare">
+                  <span className="name">{t("conn.noGroup")}</span>
+                  <span className="count">{ungroupedHosts.length}</span>
+                </header>
+                <div className="host-list">
                 {ungroupedHosts.map((h) => (
                   <HostItem
                     key={h.id}
@@ -1019,7 +1056,8 @@ export function ConnectionsPage() {
                     isDragging={dragHostId === h.id}
                   />
                 ))}
-              </div>
+                </div>
+              </section>
             )
           )}
 
@@ -1094,10 +1132,10 @@ export function ConnectionsPage() {
             </Button>
           </div>
         )}
-      </div>
+      </aside>
 
       {/* Right: Detail / Form / Import */}
-      <div className="flex flex-1 flex-col overflow-y-auto p-6">
+      <section className="detail-pane split-main flex flex-1 flex-col overflow-y-auto p-6">
         {showImport ? (
           <div key="import" className="animate-fade-in-up flex flex-1 flex-col overflow-hidden">
             <SshConfigImportPanel onDone={() => setShowImport(false)} />
@@ -1160,7 +1198,7 @@ export function ConnectionsPage() {
             </div>
           </div>
         )}
-      </div>
+      </section>
 
       {/* Drag ghost */}
       {dragHostId && (
@@ -1179,6 +1217,7 @@ export function ConnectionsPage() {
           </p>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -1216,8 +1255,9 @@ function HostItem({
       }}
       onContextMenu={onContextMenu}
       className={cn(
-        "flex w-full items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-left transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)] active:scale-[0.98]",
+        "host-item flex w-full items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-left transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)] active:scale-[0.98]",
         isDragging && "opacity-40 scale-[0.98]",
+        (selectable ? checked : selected) && "is-active",
         selectable && checked
           ? "bg-[var(--color-accent-subtle)] text-[var(--color-text-primary)]"
           : selected && !selectable
@@ -1237,6 +1277,7 @@ function HostItem({
           {checked && <Check size={10} className="text-white" />}
         </span>
       )}
+      <span className="server-glyph">
       <Server
         size={16}
         className={cn(
@@ -1244,14 +1285,15 @@ function HostItem({
           (selectable ? checked : selected) ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]",
         )}
       />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[var(--font-size-sm)] font-medium">{host.name}</p>
-        <p className="truncate text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+      </span>
+      <div className="info min-w-0 flex-1">
+        <p className="name truncate text-[var(--font-size-sm)] font-medium">{host.name}</p>
+        <p className="meta truncate text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
           {host.username}@{host.host}:{host.port}
         </p>
       </div>
       {!selectable && host.isFavorite && (
-        <span className="animate-star-pop">
+        <span className="star is-on animate-star-pop">
           <Star size={14} className="text-[var(--color-warning)] fill-[var(--color-warning)]" />
         </span>
       )}
@@ -1314,10 +1356,12 @@ function HostDetail({
   };
 
   return (
-    <div className={`${animClass} mx-auto w-full max-w-lg`}>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-[var(--font-size-xl)] font-medium">{host.name}</h2>
-        <div className="flex items-center gap-2">
+    <div className={`detail-wrap ${animClass} mx-auto w-full max-w-lg`}>
+      <header className="detail-head mb-6 flex items-center justify-between">
+        <div className="title-block">
+          <h2 className="detail-title text-[var(--font-size-xl)] font-medium">{host.name}</h2>
+        </div>
+        <div className="detail-actions flex items-center gap-2">
           <Button size="icon" variant="ghost" onClick={onToggleFavorite}>
             {host.isFavorite ? (
               <span className="animate-star-pop">
@@ -1334,10 +1378,10 @@ function HostDetail({
             <Trash2 size={16} className="text-[var(--color-error)]" />
           </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4">
-        <dl className="grid grid-cols-[120px_1fr] gap-3 text-[var(--font-size-sm)]">
+      <div className="detail-card card-glow rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4">
+        <dl className="detail-grid grid grid-cols-[120px_1fr] gap-3 text-[var(--font-size-sm)]">
           <dt className="text-[var(--color-text-muted)]">{t("form.host")}</dt>
           <dd>{host.host}</dd>
           <dt className="text-[var(--color-text-muted)]">{t("form.port")}</dt>

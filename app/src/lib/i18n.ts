@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useAppStore } from "@/stores/app";
 
 export type Locale = "zh" | "en";
@@ -347,6 +348,18 @@ const dict = {
 
   // ── SettingsPage ──
   "settings.title": { zh: "设置", en: "Settings" },
+  "settings.heroEyebrow": { zh: "Warp 风格视觉层级", en: "Warp-inspired visual system" },
+  "settings.heroSubtitle": { zh: "个性化 DdShell · 6 个分类 · 本地设置", en: "Personalise DdShell · 6 categories · local settings" },
+  "settings.heroContentTitle": { zh: "个性化你的 DdShell 工作台", en: "Personalize your DdShell workspace" },
+  "settings.navThemeLabel": { zh: "界面主题", en: "UI Theme" },
+  "settings.navModeLabel": { zh: "颜色模式", en: "Color Mode" },
+  "settings.navLanguageLabel": { zh: "语言", en: "Language" },
+  "settings.navSearchPlaceholder": { zh: "搜索设置分组...", en: "Search settings sections..." },
+  "settings.navSearchEmptyTitle": { zh: "没有匹配分组", en: "No matching sections" },
+  "settings.navSearchEmptyDesc": { zh: "试试搜索“终端”或“快捷键”等分组名称。", en: "Try searching for section names like Terminal or Shortcuts." },
+  "settings.accountEyebrow": { zh: "本地工作台", en: "Local workspace" },
+  "settings.accountTitle": { zh: "本地设备概览", en: "Local device summary" },
+  "settings.accountSubtitle": { zh: "这是一个纯展示概览区块，用于显示当前主题与版本；你的设置仍然只保存在本地。", en: "This is a presentational summary block that only shows the active theme and version. Your settings still stay local-only." },
   "settings.reset": { zh: "重置", en: "Reset" },
   "settings.save": { zh: "保存", en: "Save" },
   "settings.saving": { zh: "保存中...", en: "Saving..." },
@@ -355,8 +368,16 @@ const dict = {
   "settings.resetDone": { zh: "已重置", en: "Reset done" },
   "settings.loadingSettings": { zh: "加载设置中...", en: "Loading settings..." },
   "settings.appearance": { zh: "外观", en: "Appearance" },
+  "settings.uiThemeSection": { zh: "界面主题", en: "UI Theme" },
+  "settings.uiThemeDesc": { zh: "选择整套应用的视觉语言与界面层次，和深浅色模式独立存在。", en: "Choose the app-wide visual language and layout layering independently from dark/light mode." },
+  "settings.uiThemeClassic": { zh: "经典主题", en: "Classic" },
+  "settings.uiThemeClassicDesc": { zh: "保留当前稳重的工具感布局与配色。", en: "Keep the current stable tooling layout and color treatment." },
+  "settings.uiThemeAurora": { zh: "极光主题（Aurora）", en: "Aurora" },
+  "settings.uiThemeAuroraDesc": { zh: "采用紫青渐变、玻璃质感与更强层次感的新视觉。", en: "Switch to the new violet-cyan gradient, glassy, layered visual language." },
   "settings.theme": { zh: "主题", en: "Theme" },
   "settings.themeDesc": { zh: "选择应用的配色方案", en: "Choose the application color scheme" },
+  "settings.colorMode": { zh: "颜色模式", en: "Color Mode" },
+  "settings.colorModeDesc": { zh: "控制经典/极光主题下的深色、浅色或跟随系统。", en: "Control dark, light, or system color mode within the selected UI theme." },
   "settings.dark": { zh: "深色", en: "Dark" },
   "settings.light": { zh: "浅色", en: "Light" },
   "settings.system": { zh: "跟随系统", en: "System" },
@@ -428,6 +449,19 @@ const dict = {
   "settings.license": { zh: "许可证", en: "License" },
   "settings.dataPrivacy": { zh: "数据与隐私", en: "Data & Privacy" },
   "settings.dataPrivacyDesc": { zh: "所有数据均存储在本地 SQLite 数据库中，不会向任何第三方发送数据。网络请求仅在检查更新时请求 GitHub 仓库。", en: "All data is stored locally in a SQLite database. No data is sent to any third party. Network requests are only made to the GitHub repository when checking for updates." },
+  "settings.aboutTagline": { zh: "面向开发者的现代 SSH 工作台", en: "A modern SSH workbench for developers" },
+  "settings.aboutBuild": { zh: "构建", en: "Build" },
+  "settings.aboutRuntime": { zh: "运行时", en: "Runtime" },
+  "settings.aboutPlatform": { zh: "平台", en: "Platform" },
+  "settings.checkUpdate": { zh: "检查更新", en: "Check for updates" },
+  "settings.aboutFeedback": { zh: "反馈与建议", en: "Feedback" },
+  "settings.credits": { zh: "致谢", en: "Credits" },
+  "settings.creditTauriDesc": { zh: "应用打包与原生壳层", en: "Application bundling and native shell" },
+  "settings.creditReactDesc": { zh: "前端运行时与构建", en: "Frontend runtime and build" },
+  "settings.creditXtermDesc": { zh: "终端模拟与渲染", en: "Terminal emulation and rendering" },
+  "settings.creditRusshDesc": { zh: "Rust 原生 SSH / SFTP 客户端", en: "Native SSH / SFTP client in Rust" },
+  "settings.creditCodemirrorDesc": { zh: "远程文件编辑器", en: "Remote file editor" },
+  "settings.creditFontsDesc": { zh: "字体", en: "Typefaces" },
   "settings.color": { zh: "颜色", en: "color" },
   "settings.image": { zh: "图片", en: "image" },
   "settings.selectImage": { zh: "选择图片", en: "Select Image" },
@@ -440,11 +474,17 @@ const dict = {
   "settings.uiFontDesc": { zh: "设置程序界面的显示字体", en: "Set the font for the application interface" },
   "settings.systemDefault": { zh: "系统默认", en: "System Default" },
   "settings.tabGeneral": { zh: "通用", en: "General" },
+  "settings.tabGeneralDesc": { zh: "主题、语言、界面与基础行为", en: "Theme, language, interface, and baseline behavior" },
   "settings.tabTransfer": { zh: "传输", en: "Transfer" },
+  "settings.tabTransferDesc": { zh: "下载目录、并发与超时策略", en: "Download path, concurrency, and timeout strategy" },
   "settings.tabTerminal": { zh: "终端", en: "Terminal" },
+  "settings.tabTerminalDesc": { zh: "字体、背景、历史与命令保护", en: "Fonts, backgrounds, history, and command protection" },
   "settings.tabAbout": { zh: "关于", en: "About" },
+  "settings.tabAboutDesc": { zh: "版本、许可与数据隐私说明", en: "Version, license, and data privacy notes" },
   "settings.tabCommandAssist": { zh: "命令", en: "Commands" },
+  "settings.tabCommandAssistDesc": { zh: "触发方式、位置与分类开关", en: "Trigger, placement, and category toggles" },
   "settings.tabShortcuts": { zh: "快捷", en: "Shortcuts" },
+  "settings.tabShortcutsDesc": { zh: "全局、终端和编辑器快捷键", en: "Global, terminal, and editor shortcuts" },
   "settings.shortcuts": { zh: "快捷键", en: "Shortcuts" },
   "settings.shortcutScope": { zh: "作用区域", en: "Scope" },
   "settings.shortcutKeys": { zh: "快捷键", en: "Shortcut" },
@@ -781,5 +821,5 @@ export function t(key: DictKey, locale: Locale, params?: Record<string, string |
 
 export function useT() {
   const locale = useAppStore((s) => s.locale);
-  return (key: DictKey, params?: Record<string, string | number>) => t(key, locale, params);
+  return useCallback((key: DictKey, params?: Record<string, string | number>) => t(key, locale, params), [locale]);
 }

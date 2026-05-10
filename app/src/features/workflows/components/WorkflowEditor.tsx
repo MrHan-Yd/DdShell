@@ -17,7 +17,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { AlignLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, FolderOpen, GripVertical, Plus, Save, Search, Settings2, Terminal, Trash2, Variable } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/themed/Input";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useWorkflowsStore, isDraftDirty } from "@/stores/workflows";

@@ -253,6 +253,10 @@ export async function appHealth(): Promise<{ status: string; message: string }> 
   return invoke("app_health");
 }
 
+export async function appPlatformInfo(): Promise<{ os: string; arch: string; label: string }> {
+  return invoke("app_platform_info");
+}
+
 // ── Session commands ──
 
 export async function sessionConnect(

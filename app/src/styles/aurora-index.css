@@ -1,0 +1,7 @@
+@import "./aurora/tokens.css";
+@import "./aurora/base.css";
+@import "./aurora/components.css";
+@import "./aurora/layout.css";
+@import "./aurora/pages/settings.css";
+@import "./aurora/pages/connections.css";
+@import "./aurora/pages/terminal.css";

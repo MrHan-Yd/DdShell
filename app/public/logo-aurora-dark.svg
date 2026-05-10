@@ -1,0 +1,63 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#14151B"/>
+      <stop offset="100%" stop-color="#0E0F14"/>
+    </linearGradient>
+
+    <linearGradient id="ddGrad" gradientUnits="userSpaceOnUse" x1="12" y1="20" x2="188" y2="180">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="50%" stop-color="#86B6F4"/>
+      <stop offset="100%" stop-color="#67E8F9"/>
+    </linearGradient>
+
+    <radialGradient id="orbViolet" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#A78BFA" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#A78BFA" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#A78BFA" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="orbCyan" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#67E8F9" stop-opacity="0.85"/>
+      <stop offset="55%" stop-color="#67E8F9" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#67E8F9" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="violetGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.5"/>
+    </filter>
+
+    <clipPath id="bgClip">
+      <rect x="16" y="16" width="168" height="168" rx="38"/>
+    </clipPath>
+
+    <clipPath id="rightDClip">
+      <path d="M102 20 L102 70 C102 78 114 86 114 100 C114 114 102 122 102 130 L102 180 C170 180 188 145 188 100 C188 55 170 20 102 20Z"/>
+    </clipPath>
+  </defs>
+
+  <rect x="16" y="16" width="168" height="168" rx="38" fill="url(#bgGrad)"/>
+
+  <g clip-path="url(#bgClip)">
+    <circle cx="48" cy="58" r="78" fill="url(#orbViolet)"/>
+    <circle cx="156" cy="148" r="68" fill="url(#orbCyan)"/>
+  </g>
+
+  <rect x="16" y="16" width="168" height="168" rx="38" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+  <g transform="translate(100 100) scale(0.78) translate(-100 -100)">
+    <g filter="url(#violetGlow)" opacity="0.5">
+      <path d="M98 20 L98 70 C98 78 86 86 86 100 C86 114 98 122 98 130 L98 180 C30 180 12 145 12 100 C12 55 30 20 98 20Z" fill="none" stroke="#A78BFA" stroke-width="4.5"/>
+      <path d="M102 20 L102 70 C102 78 114 86 114 100 C114 114 102 122 102 130 L102 180 C170 180 188 145 188 100 C188 55 170 20 102 20Z" fill="none" stroke="#A78BFA" stroke-width="4.5"/>
+    </g>
+
+    <path d="M98 20 L98 70 C98 78 86 86 86 100 C86 114 98 122 98 130 L98 180 C30 180 12 145 12 100 C12 55 30 20 98 20Z" fill="url(#ddGrad)" fill-opacity="0.16" stroke="url(#ddGrad)" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M102 20 L102 70 C102 78 114 86 114 100 C114 114 102 122 102 130 L102 180 C170 180 188 145 188 100 C188 55 170 20 102 20Z" fill="url(#ddGrad)" fill-opacity="0.16" stroke="url(#ddGrad)" stroke-width="3" stroke-linejoin="round"/>
+
+    <g clip-path="url(#rightDClip)" opacity="0.18" stroke-linecap="round">
+      <line x1="120" y1="78" x2="170" y2="78" stroke="#FFFFFF" stroke-width="1.4"/>
+      <line x1="120" y1="100" x2="155" y2="100" stroke="#FFFFFF" stroke-width="1.4"/>
+      <line x1="120" y1="122" x2="165" y2="122" stroke="#FFFFFF" stroke-width="1.4"/>
+    </g>
+  </g>
+</svg>

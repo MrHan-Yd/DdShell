@@ -6,7 +6,7 @@ const isMac = navigator.platform.toUpperCase().includes("MAC");
 
 function WinControls() {
   return (
-    <div className="flex items-center gap-1">
+    <div className="titlebar-right flex items-center gap-1">
       <button
         onClick={() => appWindow.minimize()}
         className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-all duration-[var(--duration-base)] ease-[var(--ease-smooth)]"
@@ -33,12 +33,11 @@ export function Titlebar() {
   return (
     <header
       data-tauri-drag-region
-      className="glass-surface flex h-[var(--height-titlebar)] items-center border-b border-[var(--color-border)] px-4"
+      className="titlebar app-titlebar glass-surface flex h-[var(--height-titlebar)] items-center border-b border-[var(--color-border)] px-4"
     >
-      {/* macOS: leave space for native traffic lights */}
-      {isMac && <div data-tauri-drag-region className="w-[70px] shrink-0" />}
-
-      <span data-tauri-drag-region className="flex-1 select-none">&nbsp;</span>
+      <div data-tauri-drag-region className="app-titlebar__center flex-1 select-none text-center">
+        <span className="title app-titlebar__label">DdShell</span>
+      </div>
 
       {!isMac && <WinControls />}
     </header>

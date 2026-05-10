@@ -8,7 +8,6 @@ use russh::ChannelMsg;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
-
 use crate::core::command_assist::CommandAssistEngine;
 use crate::core::event;
 use crate::core::metrics::MetricsManager;
@@ -110,6 +109,14 @@ struct HealthPayload {
     message: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PlatformInfo {
+    os: String,
+    arch: String,
+    label: String,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SessionConnectReq {
@@ -129,6 +136,24 @@ fn app_health() -> HealthPayload {
     }
 }
 
+#[tauri::command]
+fn app_platform_info() -> PlatformInfo {
+    let os = match std::env::consts::OS {
+        "macos" => "macOS",
+        other => other,
+    };
+    let arch = match std::env::consts::ARCH {
+        "aarch64" => "arm64",
+        other => other,
+    };
+
+    PlatformInfo {
+        os: os.to_string(),
+        arch: arch.to_string(),
+        label: format!("{} {}", os, arch),
+    }
+}
+
 // ── Commands: Connection CRUD ──
 
 #[tauri::command]
@@ -137,7 +162,9 @@ async fn connection_create(
     req: CreateHostReq,
 ) -> Result<IdResponse, String> {
     // Encrypt password before storing
-    let encrypted = req.password.as_deref()
+    let encrypted = req
+        .password
+        .as_deref()
         .filter(|p| !p.is_empty())
         .map(|p| core::secret::encrypt(p))
         .transpose()
@@ -203,9 +230,7 @@ async fn connection_delete(
 }
 
 #[tauri::command]
-async fn connection_list(
-    db: tauri::State<'_, Database>,
-) -> Result<Vec<core::store::Host>, String> {
+async fn connection_list(db: tauri::State<'_, Database>) -> Result<Vec<core::store::Host>, String> {
     db.list_hosts().await.map_err(|e| e.to_string())
 }
 
@@ -257,9 +282,7 @@ async fn group_delete(
 }
 
 #[tauri::command]
-async fn group_list(
-    db: tauri::State<'_, Database>,
-) -> Result<Vec<core::store::HostGroup>, String> {
+async fn group_list(db: tauri::State<'_, Database>) -> Result<Vec<core::store::HostGroup>, String> {
     db.list_groups().await.map_err(|e| e.to_string())
 }
 
@@ -320,7 +343,13 @@ async fn snippet_create(
 ) -> Result<IdResponse, String> {
     let tags_json = tags.map(|t| serde_json::to_string(&t).unwrap_or_default());
     let id = db
-        .create_snippet(&title, &command, description.as_deref(), tags_json.as_deref(), group_id.as_deref())
+        .create_snippet(
+            &title,
+            &command,
+            description.as_deref(),
+            tags_json.as_deref(),
+            group_id.as_deref(),
+        )
         .await
         .map_err(|e| e.to_string())?;
     Ok(IdResponse { id })
@@ -360,9 +389,7 @@ async fn snippet_delete(
 }
 
 #[tauri::command]
-async fn snippet_list(
-    db: tauri::State<'_, Database>,
-) -> Result<Vec<core::store::Snippet>, String> {
+async fn snippet_list(db: tauri::State<'_, Database>) -> Result<Vec<core::store::Snippet>, String> {
     db.list_snippets().await.map_err(|e| e.to_string())
 }
 
@@ -417,7 +444,7 @@ async fn workflow_recipe_create(
     db: tauri::State<'_, Database>,
     req: CreateWorkflowRecipeReq,
 ) -> Result<IdResponse, String> {
-let id = db
+    let id = db
         .create_workflow_recipe(
             &req.title,
             req.description.as_deref(),
@@ -495,9 +522,10 @@ async fn workflow_run_start(
         return Err("Workflow recipe has no steps".to_string());
     }
 
-    let (host_id, host_addr, username, port, password) = core::workflow::resolve_host_and_password(&db, &req.host_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let (host_id, host_addr, username, port, password) =
+        core::workflow::resolve_host_and_password(&db, &req.host_id)
+            .await
+            .map_err(|e| e.to_string())?;
     let timeout_secs = db
         .get_setting("session.keepAlive")
         .await
@@ -505,17 +533,17 @@ async fn workflow_run_start(
         .and_then(|v| v.parse::<u64>().ok())
         .unwrap_or(30);
 
-    let resolved_param_values = core::workflow::resolve_param_values(
-        &params,
-        &req.params.unwrap_or_default(),
-    )
-    .map_err(|e| e.to_string())?;
+    let resolved_param_values =
+        core::workflow::resolve_param_values(&params, &req.params.unwrap_or_default())
+            .map_err(|e| e.to_string())?;
 
     let secret_keys = core::workflow::collect_secret_keys(&params);
 
-    let mut run = core::workflow::create_run(&recipe, &host_id, &steps, resolved_param_values.clone());
+    let mut run =
+        core::workflow::create_run(&recipe, &host_id, &steps, resolved_param_values.clone());
     run_mgr.insert(run.clone());
-    let run_record = core::workflow::run_to_masked_record(&run, &secret_keys).map_err(|e| e.to_string())?;
+    let run_record =
+        core::workflow::run_to_masked_record(&run, &secret_keys).map_err(|e| e.to_string())?;
     db.insert_workflow_run(
         &run_record.id,
         &run_record.recipe_id,
@@ -556,7 +584,8 @@ async fn workflow_run_start(
             for (index, step) in steps.iter().enumerate() {
                 run.steps[index].state = "running".to_string();
                 run.steps[index].started_at = Some(chrono::Utc::now().to_rfc3339());
-                run.steps[index].rendered_command = core::workflow::interpolate_command(&step.command, &values);
+                run.steps[index].rendered_command =
+                    core::workflow::interpolate_command(&step.command, &values);
                 run_mgr_clone.update(run.clone());
                 let run_record = core::workflow::run_to_masked_record(&run, &secret_keys_clone)?;
                 db_handle
@@ -569,9 +598,14 @@ async fn workflow_run_start(
                         run_record.error.as_deref(),
                     )
                     .await?;
-                event::emit_workflow_run_updated(&app_handle, core::workflow::mask_run_for_event(&run, &secret_keys_clone));
+                event::emit_workflow_run_updated(
+                    &app_handle,
+                    core::workflow::mask_run_for_event(&run, &secret_keys_clone),
+                );
 
-                let exec = core::workflow::execute_step(&session, &run.steps[index].rendered_command).await?;
+                let exec =
+                    core::workflow::execute_step(&session, &run.steps[index].rendered_command)
+                        .await?;
                 run.steps[index].stdout = exec.stdout;
                 run.steps[index].stderr = exec.stderr;
                 run.steps[index].exit_code = exec.exit_code;
@@ -585,7 +619,8 @@ async fn workflow_run_start(
                     run.error = Some(format!("Step '{}' failed", step.title));
                     run.finished_at = Some(chrono::Utc::now().to_rfc3339());
                     run_mgr_clone.update(run.clone());
-                    let run_record = core::workflow::run_to_masked_record(&run, &secret_keys_clone)?;
+                    let run_record =
+                        core::workflow::run_to_masked_record(&run, &secret_keys_clone)?;
                     db_handle
                         .update_workflow_run(
                             &run_record.id,
@@ -596,7 +631,10 @@ async fn workflow_run_start(
                             run_record.error.as_deref(),
                         )
                         .await?;
-                    event::emit_workflow_run_updated(&app_handle, core::workflow::mask_run_for_event(&run, &secret_keys_clone));
+                    event::emit_workflow_run_updated(
+                        &app_handle,
+                        core::workflow::mask_run_for_event(&run, &secret_keys_clone),
+                    );
                     session.disconnect().await;
                     return Ok(());
                 }
@@ -613,7 +651,10 @@ async fn workflow_run_start(
                         run_record.error.as_deref(),
                     )
                     .await?;
-                event::emit_workflow_run_updated(&app_handle, core::workflow::mask_run_for_event(&run, &secret_keys_clone));
+                event::emit_workflow_run_updated(
+                    &app_handle,
+                    core::workflow::mask_run_for_event(&run, &secret_keys_clone),
+                );
             }
 
             run.state = "completed".to_string();
@@ -630,7 +671,10 @@ async fn workflow_run_start(
                     run_record.error.as_deref(),
                 )
                 .await?;
-            event::emit_workflow_run_updated(&app_handle, core::workflow::mask_run_for_event(&run, &secret_keys_clone));
+            event::emit_workflow_run_updated(
+                &app_handle,
+                core::workflow::mask_run_for_event(&run, &secret_keys_clone),
+            );
             session.disconnect().await;
             Ok(())
         }
@@ -642,7 +686,9 @@ async fn workflow_run_start(
                 current.error = Some(error.to_string());
                 current.finished_at = Some(chrono::Utc::now().to_rfc3339());
                 run_mgr_clone.update(current.clone());
-                if let Ok(run_record) = core::workflow::run_to_masked_record(&current, &secret_keys_clone) {
+                if let Ok(run_record) =
+                    core::workflow::run_to_masked_record(&current, &secret_keys_clone)
+                {
                     let _ = db_handle
                         .update_workflow_run(
                             &run_record.id,
@@ -654,7 +700,10 @@ async fn workflow_run_start(
                         )
                         .await;
                 }
-                event::emit_workflow_run_updated(&app_handle, core::workflow::mask_run_for_event(&current, &secret_keys_clone));
+                event::emit_workflow_run_updated(
+                    &app_handle,
+                    core::workflow::mask_run_for_event(&current, &secret_keys_clone),
+                );
             }
         }
     });
@@ -731,10 +780,7 @@ async fn command_assist_weight_update(
 async fn command_assist_weight_reset(
     engine: tauri::State<'_, std::sync::Arc<CommandAssistEngine>>,
 ) -> Result<SuccessResponse, String> {
-    engine
-        .reset_weights()
-        .await
-        .map_err(|e| e.to_string())?;
+    engine.reset_weights().await.map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
 }
 
@@ -747,7 +793,11 @@ async fn command_assist_rebuild_index(
 ) -> Result<SuccessResponse, String> {
     let snippets = db.list_snippets().await.map_err(|e| e.to_string())?;
     engine
-        .rebuild_index(&snippets, &locale, &enabled_app_categories.unwrap_or_default())
+        .rebuild_index(
+            &snippets,
+            &locale,
+            &enabled_app_categories.unwrap_or_default(),
+        )
         .await
         .map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
@@ -787,9 +837,7 @@ async fn setting_set_many(
     db: tauri::State<'_, Database>,
     entries: Vec<SettingWrite>,
 ) -> Result<SuccessResponse, String> {
-    db.set_settings(&entries)
-        .await
-        .map_err(|e| e.to_string())?;
+    db.set_settings(&entries).await.map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
 }
 
@@ -809,9 +857,13 @@ async fn session_connect(
     let password = match req.password {
         Some(pw) if !pw.is_empty() => pw,
         _ => {
-            let host = db.get_host(&req.host_id).await.map_err(|e| e.to_string())?
+            let host = db
+                .get_host(&req.host_id)
+                .await
+                .map_err(|e| e.to_string())?
                 .ok_or_else(|| "Host not found".to_string())?;
-            let encrypted = host.secret_ref
+            let encrypted = host
+                .secret_ref
                 .ok_or_else(|| "No saved password".to_string())?;
             core::secret::decrypt(&encrypted)
                 .map_err(|e| format!("Failed to decrypt password: {}", e))?
@@ -863,7 +915,9 @@ async fn session_disconnect(
     mgr: tauri::State<'_, SessionManager>,
     session_id: String,
 ) -> Result<SuccessResponse, String> {
-    mgr.disconnect(&session_id).await.map_err(|e| e.to_string())?;
+    mgr.disconnect(&session_id)
+        .await
+        .map_err(|e| e.to_string())?;
     event::emit_session_state(&app, &session_id, "disconnected");
     Ok(SuccessResponse { success: true })
 }
@@ -880,7 +934,9 @@ async fn session_write(
     let session_guard = session.lock().await;
     let encoding_name = session_guard.encoding.clone();
 
-    let write_data = if encoding_name.eq_ignore_ascii_case("utf-8") || encoding_name.eq_ignore_ascii_case("utf8") {
+    let write_data = if encoding_name.eq_ignore_ascii_case("utf-8")
+        || encoding_name.eq_ignore_ascii_case("utf8")
+    {
         data
     } else {
         let encoding = encoding_rs::Encoding::for_label(encoding_name.as_bytes())
@@ -1101,12 +1157,11 @@ async fn sftp_transfer_start(
     } else {
         // Get download path from settings or use system default.
         // Empty string is treated as "not set" — fall back to system default.
-        let default_download = dirs::download_dir()
-            .unwrap_or_else(|| {
-                dirs::home_dir()
-                    .map(|p| p.join("Downloads"))
-                    .unwrap_or_default()
-            });
+        let default_download = dirs::download_dir().unwrap_or_else(|| {
+            dirs::home_dir()
+                .map(|p| p.join("Downloads"))
+                .unwrap_or_default()
+        });
         tracing::info!("default_download resolved to: {:?}", default_download);
 
         let download_dir: PathBuf = db
@@ -1130,7 +1185,11 @@ async fn sftp_transfer_start(
         }
     };
 
-    tracing::info!("sftp_transfer_start: direction={}, resolved_local_path={}", direction, resolved_local_path);
+    tracing::info!(
+        "sftp_transfer_start: direction={}, resolved_local_path={}",
+        direction,
+        resolved_local_path
+    );
     let task_id = if is_upload {
         sftp_mgr.start_upload(&session_id, &resolved_local_path, &remote_path)
     } else {
@@ -1187,9 +1246,25 @@ async fn sftp_transfer_start(
             attempts += 1;
 
             let result = if is_upload {
-                sftp_mgr_clone.execute_upload(&session_mgr_clone, &app_handle, &tid, chunk_size, timeout_secs).await
+                sftp_mgr_clone
+                    .execute_upload(
+                        &session_mgr_clone,
+                        &app_handle,
+                        &tid,
+                        chunk_size,
+                        timeout_secs,
+                    )
+                    .await
             } else {
-                sftp_mgr_clone.execute_download(&session_mgr_clone, &app_handle, &tid, chunk_size, timeout_secs).await
+                sftp_mgr_clone
+                    .execute_download(
+                        &session_mgr_clone,
+                        &app_handle,
+                        &tid,
+                        chunk_size,
+                        timeout_secs,
+                    )
+                    .await
             };
 
             match result {
@@ -1328,8 +1403,7 @@ fn local_home_dir() -> Result<String, String> {
 
 #[tauri::command]
 async fn open_browser(url: String) -> Result<(), String> {
-    tauri_plugin_opener::open_url(&url, None::<&str>)
-        .map_err(|e| e.to_string())
+    tauri_plugin_opener::open_url(&url, None::<&str>).map_err(|e| e.to_string())
 }
 
 // ── Commands: System Fonts ──
@@ -1394,10 +1468,18 @@ async fn system_detect(
             }
             Some("DISTRO") => {
                 if line.starts_with("PRETTY_NAME=") {
-                    distro = Some(line.trim_start_matches("PRETTY_NAME=").trim_matches('"').to_string());
+                    distro = Some(
+                        line.trim_start_matches("PRETTY_NAME=")
+                            .trim_matches('"')
+                            .to_string(),
+                    );
                 }
                 if line.starts_with("VERSION_ID=") {
-                    distro_version = Some(line.trim_start_matches("VERSION_ID=").trim_matches('"').to_string());
+                    distro_version = Some(
+                        line.trim_start_matches("VERSION_ID=")
+                            .trim_matches('"')
+                            .to_string(),
+                    );
                 }
             }
             Some("SHELL") => {
@@ -1428,7 +1510,11 @@ async fn sftp_upload_files(
     local_paths: Vec<String>,
     remote_dir: String,
 ) -> Result<Vec<String>, String> {
-    tracing::info!("sftp_upload_files: session_id={}, files={}", session_id, local_paths.len());
+    tracing::info!(
+        "sftp_upload_files: session_id={}, files={}",
+        session_id,
+        local_paths.len()
+    );
     let mut task_ids = Vec::new();
 
     // Get chunk size from settings (default 256KB)
@@ -1487,7 +1573,11 @@ async fn sftp_upload_files(
         };
 
         let task_id = sftp_mgr.start_upload(&session_id, local_path, &remote_path);
-        tracing::info!("sftp_upload_files: created task {} for session {}", task_id, session_id);
+        tracing::info!(
+            "sftp_upload_files: created task {} for session {}",
+            task_id,
+            session_id
+        );
         task_ids.push(task_id.clone());
 
         // Clone all values needed for the task
@@ -1508,7 +1598,15 @@ async fn sftp_upload_files(
             while attempts <= retry_count {
                 attempts += 1;
 
-                let result = sftp_mgr_clone.execute_upload(&session_mgr_clone, &app_handle, &task_id_clone, chunk_size, timeout_secs).await;
+                let result = sftp_mgr_clone
+                    .execute_upload(
+                        &session_mgr_clone,
+                        &app_handle,
+                        &task_id_clone,
+                        chunk_size,
+                        timeout_secs,
+                    )
+                    .await;
 
                 match result {
                     Ok(()) => {
@@ -1609,14 +1707,17 @@ async fn connection_test(
     let username = host.username.clone();
 
     // Decrypt password from DB
-    let encrypted = host.secret_ref.clone()
+    let encrypted = host
+        .secret_ref
+        .clone()
         .ok_or_else(|| "No saved password".to_string())?;
     let password = core::secret::decrypt(&encrypted)
         .map_err(|e| format!("Failed to decrypt password: {}", e))?;
 
     let start = std::time::Instant::now();
 
-    match core::ssh::SshSession::connect(&host_addr, port, &username, &password, &host_id, 30).await {
+    match core::ssh::SshSession::connect(&host_addr, port, &username, &password, &host_id, 30).await
+    {
         Ok(mut sess) => {
             let latency = start.elapsed().as_millis() as u64;
             sess.disconnect().await;
@@ -1626,13 +1727,11 @@ async fn connection_test(
                 latency_ms: Some(latency),
             })
         }
-        Err(e) => {
-            Ok(ConnectionTestResult {
-                success: false,
-                message: format!("Connection failed: {}", e),
-                latency_ms: None,
-            })
-        }
+        Err(e) => Ok(ConnectionTestResult {
+            success: false,
+            message: format!("Connection failed: {}", e),
+            latency_ms: None,
+        }),
     }
 }
 
@@ -1758,13 +1857,9 @@ async fn command_history_list(
     query: Option<String>,
     limit: Option<i64>,
 ) -> Result<Vec<core::store::CommandHistoryItem>, String> {
-    db.list_commands(
-        host_id.as_deref(),
-        query.as_deref(),
-        limit.unwrap_or(200),
-    )
-    .await
-    .map_err(|e| e.to_string())
+    db.list_commands(host_id.as_deref(), query.as_deref(), limit.unwrap_or(200))
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1907,11 +2002,10 @@ struct SshConfigImportResult {
 
 #[tauri::command]
 async fn ssh_config_import() -> Result<SshConfigImportResult, String> {
-    let result = tokio::task::spawn_blocking(|| {
-        core::store::parse_ssh_config().map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())??;
+    let result =
+        tokio::task::spawn_blocking(|| core::store::parse_ssh_config().map_err(|e| e.to_string()))
+            .await
+            .map_err(|e| e.to_string())??;
 
     Ok(SshConfigImportResult {
         entries: result.0,
@@ -2017,7 +2111,10 @@ fn select_target_asset(assets: &[ReleaseAssetInfo]) -> Option<ReleaseAssetInfo> 
             _ => return None,
         };
 
-        return assets.iter().find(|asset| asset.name.ends_with(suffix)).cloned();
+        return assets
+            .iter()
+            .find(|asset| asset.name.ends_with(suffix))
+            .cloned();
     }
 
     #[cfg(target_os = "windows")]
@@ -2029,7 +2126,10 @@ fn select_target_asset(assets: &[ReleaseAssetInfo]) -> Option<ReleaseAssetInfo> 
             _ => return None,
         };
 
-        return assets.iter().find(|asset| asset.name.ends_with(suffix)).cloned();
+        return assets
+            .iter()
+            .find(|asset| asset.name.ends_with(suffix))
+            .cloned();
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -2131,22 +2231,28 @@ async fn check_update(current_version: String) -> Result<UpdateCheckResult, Stri
 }
 
 fn version_gt(a: &str, b: &str) -> bool {
-    let parse = |v: &str| -> Vec<u32> {
-        v.split('.').filter_map(|s| s.parse().ok()).collect()
-    };
+    let parse = |v: &str| -> Vec<u32> { v.split('.').filter_map(|s| s.parse().ok()).collect() };
     let va = parse(a);
     let vb = parse(b);
     for i in 0..va.len().max(vb.len()) {
         let x = va.get(i).copied().unwrap_or(0);
         let y = vb.get(i).copied().unwrap_or(0);
-        if x > y { return true; }
-        if x < y { return false; }
+        if x > y {
+            return true;
+        }
+        if x < y {
+            return false;
+        }
     }
     false
 }
 
 #[tauri::command]
-async fn download_update(app: tauri::AppHandle, url: String, filename: String) -> Result<String, String> {
+async fn download_update(
+    app: tauri::AppHandle,
+    url: String,
+    filename: String,
+) -> Result<String, String> {
     let download_dir = dirs::download_dir()
         .or_else(|| dirs::home_dir().map(|h| h.join("Downloads")))
         .ok_or_else(|| "Cannot determine download directory".to_string())?;
@@ -2254,7 +2360,11 @@ async fn output_reader_loop(
     session_id: String,
     encoding: String,
 ) {
-    tracing::info!("[output_reader_loop] started for session {} (encoding: {})", session_id, encoding);
+    tracing::info!(
+        "[output_reader_loop] started for session {} (encoding: {})",
+        session_id,
+        encoding
+    );
 
     let is_utf8 = encoding.eq_ignore_ascii_case("utf-8") || encoding.eq_ignore_ascii_case("utf8");
     let mut decoder = if !is_utf8 {
@@ -2349,20 +2459,16 @@ async fn quick_edit_open(app: AppHandle, payload: QuickEditOpenPayload) -> Resul
         return Ok(());
     }
 
-    let json = serde_json::to_string(&payload)
-        .map_err(|e| format!("serialize payload failed: {}", e))?;
+    let json =
+        serde_json::to_string(&payload).map_err(|e| format!("serialize payload failed: {}", e))?;
     let encoded = URL_SAFE_NO_PAD.encode(json.as_bytes());
     let url_path = format!("index.html?window=quick-edit&open={}", encoded);
 
-    let builder = WebviewWindowBuilder::new(
-        &app,
-        "quick-edit",
-        WebviewUrl::App(url_path.into()),
-    )
-    .title("DdShell · Quick Edit")
-    .inner_size(1100.0, 760.0)
-    .min_inner_size(700.0, 480.0)
-    .center();
+    let builder = WebviewWindowBuilder::new(&app, "quick-edit", WebviewUrl::App(url_path.into()))
+        .title("DdShell · Quick Edit")
+        .inner_size(1100.0, 760.0)
+        .min_inner_size(700.0, 480.0)
+        .center();
 
     #[cfg(target_os = "macos")]
     let builder = builder
@@ -2402,7 +2508,9 @@ pub fn run() {
         .setup(|app| {
             // Set window icon (for dev mode)
             if let Some(window) = app.get_webview_window("main") {
-                if let Ok(icon) = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")) {
+                if let Ok(icon) =
+                    tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png"))
+                {
                     let _ = window.set_icon(icon);
                 }
             }
@@ -2445,7 +2553,10 @@ pub fn run() {
 
                         // Build initial index from user snippets
                         if let Ok(snippets) = db.list_snippets().await {
-                            let all_cats: Vec<String> = ["git", "docker", "webServer", "devTools"].iter().map(|s| s.to_string()).collect();
+                            let all_cats: Vec<String> = ["git", "docker", "webServer", "devTools"]
+                                .iter()
+                                .map(|s| s.to_string())
+                                .collect();
                             if let Err(e) = engine.rebuild_index(&snippets, "zh", &all_cats).await {
                                 tracing::warn!("command assist index build failed: {}", e);
                             }
@@ -2465,6 +2576,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_health,
+            app_platform_info,
             connection_create,
             connection_update,
             connection_delete,

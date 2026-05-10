@@ -1,4 +1,3 @@
-import { useRef, useEffect, useState } from "react";
 import {
   Server,
   FolderOpen,
@@ -7,8 +6,6 @@ import {
   Workflow,
   Settings,
   Activity,
-  PanelLeftClose,
-  PanelLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app";
@@ -17,112 +14,75 @@ import { Logo } from "@/components/Logo";
 import type { Page } from "@/types";
 import type { DictKey } from "@/lib/i18n";
 
-const navItems: { page: Page; labelKey: DictKey; icon: typeof Server }[] = [
-  { page: "connections", labelKey: "nav.connections", icon: Server },
-  { page: "terminal", labelKey: "nav.terminal", icon: Terminal },
+const navItems: { page: Page; labelKey: DictKey; icon: typeof Server; meta?: string; badge?: string }[] = [
+  { page: "connections", labelKey: "nav.connections", icon: Server, meta: "12" },
+  { page: "terminal", labelKey: "nav.terminal", icon: Terminal, badge: "3" },
   { page: "sftp", labelKey: "nav.sftp", icon: FolderOpen },
   { page: "monitor", labelKey: "nav.monitor", icon: Activity },
-  { page: "snippets", labelKey: "nav.snippets", icon: Code2 },
+  { page: "snippets", labelKey: "nav.snippets", icon: Code2, meta: "24" },
   { page: "macros", labelKey: "nav.macros", icon: Workflow },
-  { page: "settings", labelKey: "nav.settings", icon: Settings },
 ];
 
 export function Sidebar() {
   const currentPage = useAppStore((s) => s.currentPage);
-  const collapsed = useAppStore((s) => s.sidebarCollapsed);
+  const uiTheme = useAppStore((s) => s.uiTheme);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
-  const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const t = useT();
-
-  const navRef = useRef<HTMLElement>(null);
-  const asideRef = useRef<HTMLElement>(null);
-  const [pill, setPill] = useState({ top: 0, height: 0 });
-
-  const measurePill = () => {
-    const nav = navRef.current;
-    if (!nav) return;
-    const idx = navItems.findIndex((n) => n.page === currentPage);
-    const btn = nav.children[1 + idx] as HTMLElement; // +1 to skip pill div
-    if (!btn) return;
-    setPill({ top: btn.offsetTop, height: btn.offsetHeight });
-  };
-
-  // Re-measure on page change
-  useEffect(measurePill, [currentPage]);
-
-  // Re-measure after sidebar width transition ends
-  useEffect(() => {
-    const aside = asideRef.current;
-    if (!aside) return;
-    const handler = (e: TransitionEvent) => {
-      if (e.propertyName === "width") measurePill();
-    };
-    aside.addEventListener("transitionend", handler);
-    return () => aside.removeEventListener("transitionend", handler);
-  });
+  const logoSize = uiTheme === "aurora" ? 28 : 30;
 
   return (
-    <aside
-      ref={asideRef}
-      className={cn(
-        "glass-surface flex flex-col border-r border-[var(--color-border)] transition-[width] duration-[var(--duration-panel)] ease-[var(--ease-smooth)]",
-        collapsed
-          ? "w-[var(--width-sidebar-collapsed)]"
-          : "w-[var(--width-sidebar)]",
-      )}
-    >
-      <div className="flex-1 overflow-y-auto p-2">
-        {/* Logo */}
-        <div className={cn(
-          "flex items-center mb-2 px-3 py-2",
-          collapsed ? "justify-center" : "gap-2"
-        )}>
-          <Logo size={collapsed ? 26 : 30} />
-          {!collapsed && (
-            <span className="text-sm font-semibold text-[var(--color-text-primary)] select-none">
-              DdShell
-            </span>
-          )}
-        </div>
-
-        <nav ref={navRef} className="relative flex flex-col gap-1">
-          {/* Sliding highlight pill */}
-          <div
-            className="absolute left-0 right-0 rounded-[var(--radius-control)] bg-[var(--color-accent-subtle)] shadow-[var(--border-hairline-inner)]"
-            style={{
-              top: pill.top,
-              height: pill.height,
-              transition: "top 400ms cubic-bezier(0.175, 0.885, 0.32, 1.1), height 400ms cubic-bezier(0.175, 0.885, 0.32, 1.1)",
-            }}
-          />
-
-          {navItems.map(({ page, labelKey, icon: Icon }) => (
-            <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              data-active={currentPage === page}
-              className={cn(
-                "nav-item relative z-[1] flex select-none items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-[var(--font-size-sm)] transition-colors duration-[var(--duration-base)] ease-[var(--ease-smooth)]",
-                currentPage === page
-                  ? "text-[var(--color-accent)]"
-                  : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]",
-              )}
-            >
-              <span className="nav-icon">
-                <Icon size={18} />
-              </span>
-              {!collapsed && <span className="select-none">{t(labelKey)}</span>}
-            </button>
-          ))}
-        </nav>
+    <aside className="sidebar flex w-[var(--width-sidebar)] flex-col border-r border-[var(--color-border)]">
+      <div className="sidebar-brand flex items-center gap-2 px-3 py-2">
+        <span className="logo">
+          <Logo size={logoSize} />
+        </span>
+        <span className="name select-none">DdShell</span>
       </div>
 
-      <div className="border-t border-[var(--color-border)] p-2">
+      <nav className="sidebar-nav flex flex-col gap-1 px-2">
+        {navItems.map(({ page, labelKey, icon: Icon, meta, badge }) => (
+          <button
+            key={page}
+            type="button"
+            onClick={() => setCurrentPage(page)}
+            data-active={currentPage === page}
+            className={cn(
+              "nav-item flex w-full select-none items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-left text-[var(--font-size-sm)] transition-colors duration-[var(--duration-base)] ease-[var(--ease-smooth)]",
+              currentPage === page && "is-active",
+              currentPage === page
+                ? "text-[var(--color-text-primary)]"
+                : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]",
+            )}
+          >
+            <span className="icon nav-icon">
+              <Icon size={16} strokeWidth={1.8} />
+            </span>
+            <span className="label select-none">{t(labelKey)}</span>
+            {meta && <span className="meta">{meta}</span>}
+            {badge && <span className="badge badge-accent">{badge}</span>}
+          </button>
+        ))}
+      </nav>
+
+      <span className="sidebar-spacer" />
+
+      <div className="sidebar-footer flex flex-col border-t border-[var(--color-border)] p-2">
         <button
-          onClick={toggleSidebar}
-          className="flex w-full items-center justify-center rounded-[var(--radius-control)] py-2 text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors"
+          type="button"
+          onClick={() => setCurrentPage("settings")}
+          data-active={currentPage === "settings"}
+          className={cn(
+            "nav-item flex w-full select-none items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-left text-[var(--font-size-sm)] transition-colors duration-[var(--duration-base)] ease-[var(--ease-smooth)]",
+            currentPage === "settings" && "is-active",
+            currentPage === "settings"
+              ? "text-[var(--color-text-primary)]"
+              : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]",
+          )}
         >
-          {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
+          <span className="icon nav-icon">
+            <Settings size={16} strokeWidth={1.8} />
+          </span>
+          <span className="label select-none">{t("nav.settings")}</span>
         </button>
       </div>
     </aside>

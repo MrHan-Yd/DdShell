@@ -1,16 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
-import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check, Trash2, Plus, Github } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check, Trash2, Plus, Github, Keyboard, Bot, Info, Palette, Search, MessageSquare, RefreshCw } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/themed/Button";
+import { Input } from "@/components/ui/themed/Input";
+import { Logo } from "@/components/Logo";
 import { DEFAULT_DANGEROUS_COMMANDS } from "@/lib/constants";
-import { Select } from "@/components/ui/Select";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { Select } from "@/components/ui/themed/Select";
+import { SegmentedControl } from "@/components/ui/themed/SegmentedControl";
 import { useAppStore } from "@/stores/app";
 import { useCommandAssistStore } from "@/stores/commandAssist";
-import { useT } from "@/lib/i18n";
+import { t as translate, useT } from "@/lib/i18n";
 import { getAppVersion } from "@/lib/constants";
-import type { Locale } from "@/lib/i18n";
+import type { DictKey, Locale } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
 import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
@@ -20,8 +22,8 @@ const TABS = ["general", "transfer", "terminal", "commandAssist", "shortcuts", "
 type SettingsTab = (typeof TABS)[number];
 const IS_MAC = navigator.platform.toUpperCase().includes("MAC");
 const GITHUB_REPO_URL = "https://github.com/MrHan-Yd/DdShell";
-
-type ThemeOption = "dark" | "light" | "system";
+const GITHUB_ISSUES_URL = "https://github.com/MrHan-Yd/DdShell/issues";
+const APP_RUNTIME = "Tauri 2 · React 19 · Rust";
 
 interface TerminalSettings {
   fontFamily: string;
@@ -109,16 +111,39 @@ function safeContrast(bg: string): string {
 
 function Section({
   title,
+  description,
+  className,
   children,
 }: {
   title: string;
+  description?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
+  const isAurora = useAppStore((s) => s.uiTheme === "aurora");
+  const sectionCls = isAurora
+    ? "settings-group settings-section"
+    : "settings-group settings-section glass-card rounded-[var(--radius-card)] border border-[var(--color-border)] p-5";
+  const headerCls = isAurora
+    ? "settings-section__header"
+    : "settings-section__header mb-4 border-b border-[var(--color-border)] pb-3";
+  const titleCls = isAurora
+    ? "settings-group-title"
+    : "settings-group-title text-[var(--font-size-base)] font-semibold";
   return (
-    <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5">
-      <h3 className="mb-4 border-b border-[var(--color-border)] pb-2 text-[var(--font-size-base)] font-semibold">{title}</h3>
-      {children}
-    </div>
+    <section className={`${sectionCls}${className ? ` ${className}` : ""}`}>
+      <div className={headerCls}>
+        <h3 className={titleCls}>{title}</h3>
+        {description ? (
+          isAurora ? (
+            <p>{description}</p>
+          ) : (
+            <p className="mt-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">{description}</p>
+          )
+        ) : null}
+      </div>
+      <div className="settings-section__content">{children}</div>
+    </section>
   );
 }
 
@@ -127,23 +152,38 @@ function SettingRow({
   description,
   children,
   indented,
+  className,
 }: {
   label: string;
   description?: string;
   children: React.ReactNode;
   indented?: boolean;
+  className?: string;
 }) {
+  const isAurora = useAppStore((s) => s.uiTheme === "aurora");
+  const indentCls = indented ? (isAurora ? " settings-row--indented" : " pl-6") : "";
+  const rowCls = isAurora
+    ? `settings-row${indentCls}`
+    : `settings-row flex items-center justify-between py-2${indentCls}`;
+  const textCls = isAurora
+    ? "settings-row-text settings-row__text"
+    : "settings-row-text settings-row__text min-w-0 flex-1";
+  const labelCls = isAurora
+    ? "settings-row-label settings-row__label"
+    : "settings-row-label settings-row__label text-[var(--font-size-sm)]";
+  const helpCls = isAurora
+    ? "settings-row-help settings-row__description"
+    : "settings-row-help settings-row__description text-[var(--font-size-xs)] text-[var(--color-text-muted)]";
+  const controlCls = isAurora
+    ? "settings-row-control settings-row__control"
+    : "settings-row-control settings-row__control ml-4 shrink-0";
   return (
-    <div className={`flex items-center justify-between py-2${indented ? " pl-6" : ""}`}>
-      <div className="min-w-0 flex-1">
-        <p className="text-[var(--font-size-sm)]">{label}</p>
-        {description && (
-          <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-            {description}
-          </p>
-        )}
+    <div className={`${rowCls}${className ? ` ${className}` : ""}`}>
+      <div className={textCls}>
+        <span className={labelCls}>{label}</span>
+        {description && <span className={helpCls}>{description}</span>}
       </div>
-      <div className="ml-4 shrink-0">{children}</div>
+      <div className={controlCls}>{children}</div>
     </div>
   );
 }
@@ -243,6 +283,20 @@ function ShortcutsSettings({ t }: { t: ReturnType<typeof useT> }) {
 
 const DEFAULT_UI_FONT_FAMILY = "";
 const DEFAULT_UI_FONT_SIZE = 14;
+
+const SETTINGS_TAB_META: Array<{
+  value: SettingsTab;
+  icon: typeof Palette;
+  labelKey: DictKey;
+  descKey: DictKey;
+}> = [
+  { value: "general", icon: Palette, labelKey: "settings.tabGeneral", descKey: "settings.tabGeneralDesc" },
+  { value: "transfer", icon: FolderOpen, labelKey: "settings.tabTransfer", descKey: "settings.tabTransferDesc" },
+  { value: "terminal", icon: Monitor, labelKey: "settings.tabTerminal", descKey: "settings.tabTerminalDesc" },
+  { value: "commandAssist", icon: Bot, labelKey: "settings.tabCommandAssist", descKey: "settings.tabCommandAssistDesc" },
+  { value: "shortcuts", icon: Keyboard, labelKey: "settings.tabShortcuts", descKey: "settings.tabShortcutsDesc" },
+  { value: "about", icon: Info, labelKey: "settings.tabAbout", descKey: "settings.tabAboutDesc" },
+];
 
 // ── Command Assist Settings ──
 
@@ -496,6 +550,8 @@ function CommandAssistSettings({ t }: { t: ReturnType<typeof useT> }) {
 export function SettingsPage() {
   const theme = useAppStore((s) => s.theme);
   const setTheme = useAppStore((s) => s.setTheme);
+  const uiTheme = useAppStore((s) => s.uiTheme);
+  const setUiTheme = useAppStore((s) => s.setUiTheme);
   const locale = useAppStore((s) => s.locale);
   const setLocale = useAppStore((s) => s.setLocale);
   const t = useT();
@@ -517,25 +573,28 @@ export function SettingsPage() {
   const [loaded, setLoaded] = useState(false);
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [resetStatus, setResetStatus] = useState(false);
   const [clearHistoryStatus, setClearHistoryStatus] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
   const [appVersion, setAppVersion] = useState("");
+  const [appPlatform, setAppPlatform] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     getAppVersion().then(setAppVersion);
+    api.appPlatformInfo().then((info) => setAppPlatform(info.label)).catch(() => setAppPlatform("Unknown"));
   }, []);
 
   const maybeShowPredictiveEchoGuidance = useCallback(() => {
     try {
       const shown = localStorage.getItem("terminal.predictiveEcho.guidanceShown");
       if (shown !== "true") {
-        toast.info(t("settings.predictiveEchoGuidance"));
+        toast.info(translate("settings.predictiveEchoGuidance", useAppStore.getState().locale));
         localStorage.setItem("terminal.predictiveEcho.guidanceShown", "true");
       }
     } catch {
       // localStorage unavailable — skip silently; will retry next time
     }
-  }, [t]);
+  }, []);
 
   // Load settings from backend on mount
   useEffect(() => {
@@ -568,6 +627,7 @@ export function SettingsPage() {
           savedBgOpacity,
           savedBgBlur,
           savedLocale,
+          savedUiTheme,
           savedUiFontFamily,
           savedUiFontSize,
           savedEncoding,
@@ -603,6 +663,7 @@ export function SettingsPage() {
           api.settingGet("terminal.bgOpacity"),
           api.settingGet("terminal.bgBlur"),
           api.settingGet("locale"),
+          api.settingGet("ui.theme"),
           api.settingGet("ui.fontFamily"),
           api.settingGet("ui.fontSize"),
           api.settingGet("terminal.encoding"),
@@ -613,7 +674,10 @@ export function SettingsPage() {
           api.settingGet("terminal.predictiveEcho.enabled"),
         ]);
 
-        if (savedTheme) setTheme(savedTheme as ThemeOption);
+        if (savedTheme === "dark" || savedTheme === "light" || savedTheme === "system") {
+          setTheme(savedTheme);
+        }
+        if (savedUiTheme === "classic" || savedUiTheme === "aurora") setUiTheme(savedUiTheme);
         if (savedLocale === "zh" || savedLocale === "en") setLocale(savedLocale as Locale);
 
         setTerminal({
@@ -669,13 +733,15 @@ export function SettingsPage() {
         // Fallback: empty list, user can still type manually
       }
     })();
-  }, [maybeShowPredictiveEchoGuidance, setTheme, setLocale]);
+  }, [maybeShowPredictiveEchoGuidance, setTheme, setUiTheme, setLocale]);
 
   const handleSave = async () => {
+    if (saveStatus === "saving") return;
     setSaveStatus("saving");
     try {
       await api.settingSetMany([
         { key: "theme", value: theme },
+        { key: "ui.theme", value: uiTheme },
         { key: "locale", value: locale },
         { key: "terminal.fontFamily", value: terminal.fontFamily },
         { key: "terminal.fontSize", value: String(terminal.fontSize) },
@@ -722,14 +788,15 @@ export function SettingsPage() {
   const handleReset = () => {
     setTerminal(DEFAULT_TERMINAL);
     setTheme("dark");
+    setUiTheme("classic");
     setLocale("zh");
     setUiFontFamily(DEFAULT_UI_FONT_FAMILY);
     setUiFontSize(DEFAULT_UI_FONT_SIZE);
     setConfirmDanger(true);
     setSessionTimeout("30");
     setPredictiveEchoEnabled(true);
-    setResetStatus(true);
-    setTimeout(() => setResetStatus(false), 2000);
+    setResetDone(true);
+    setTimeout(() => setResetDone(false), 600);
   };
 
   const handleClearAllHistory = async () => {
@@ -746,6 +813,31 @@ export function SettingsPage() {
       setTimeout(() => setClearHistoryStatus(false), 2000);
     } catch {
       // ignore
+    }
+  };
+
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const handleCheckUpdate = async () => {
+    if (checkingUpdate || !appVersion) return;
+    setCheckingUpdate(true);
+    try {
+      const result = await api.checkUpdate(appVersion);
+      if (result.hasUpdate) {
+        toast.info(t("update.available").replace("{v}", result.latestVersion));
+      } else {
+        toast.success(t("update.latest"));
+      }
+    } catch (err) {
+      const msg = typeof err === "string" ? err : err instanceof Error ? err.message : "";
+      if (msg.includes("rate_limited")) {
+        toast.error(t("update.rateLimited"));
+      } else if (msg.includes("network")) {
+        toast.error(t("update.networkError"));
+      } else {
+        toast.error(t("update.failed"));
+      }
+    } finally {
+      setCheckingUpdate(false);
     }
   };
 
@@ -775,6 +867,74 @@ export function SettingsPage() {
     }
   };
 
+  const focusTab = (tab: SettingsTab) => {
+    window.requestAnimationFrame(() => {
+      document.getElementById(`settings-tab-${tab}`)?.focus();
+    });
+  };
+
+  const handleTabKeyDown = (tab: SettingsTab, event: ReactKeyboardEvent<HTMLButtonElement>) => {
+    const currentIndex = TABS.indexOf(tab);
+    let nextTab: SettingsTab | null = null;
+
+    switch (event.key) {
+      case "ArrowDown":
+      case "ArrowRight":
+        nextTab = TABS[(currentIndex + 1) % TABS.length];
+        break;
+      case "ArrowUp":
+      case "ArrowLeft":
+        nextTab = TABS[(currentIndex - 1 + TABS.length) % TABS.length];
+        break;
+      case "Home":
+        nextTab = TABS[0];
+        break;
+      case "End":
+        nextTab = TABS[TABS.length - 1];
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    handleTabChange(nextTab);
+    focusTab(nextTab);
+  };
+
+  const tabItems = useMemo(() => SETTINGS_TAB_META.map((item) => ({
+    ...item,
+    label: t(item.labelKey),
+    description: t(item.descKey),
+  })), [t]);
+  const filteredTabItems = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return tabItems;
+    return tabItems.filter(({ label }) => label.toLowerCase().includes(query));
+  }, [searchQuery, tabItems]);
+
+  useEffect(() => {
+    if (filteredTabItems.length === 0) return;
+    if (!filteredTabItems.some((item) => item.value === activeTab)) {
+      setActiveTab(filteredTabItems[0].value);
+    }
+  }, [activeTab, filteredTabItems]);
+
+  const activeTabMeta = tabItems.find((item) => item.value === activeTab) ?? tabItems[0];
+  const hasFilteredTabs = filteredTabItems.length > 0;
+  const isAurora = uiTheme === "aurora";
+  const currentUiThemeLabel = uiTheme === "aurora" ? t("settings.uiThemeAurora") : t("settings.uiThemeClassic");
+  const currentModeLabel = theme === "dark" ? t("settings.dark") : theme === "light" ? t("settings.light") : t("settings.system");
+  const activePanelId = `settings-panel-${activeTab}`;
+  const activeTabId = `settings-tab-${activeTab}`;
+  const paneStatusTone = saveStatus === "idle" ? undefined : saveStatus === "error" ? "error" : saveStatus === "saving" ? "saving" : "saved";
+  const paneStatusLabel = saveStatus === "idle" ? undefined : saveStatus === "saving"
+    ? t("settings.saving")
+    : saveStatus === "error"
+      ? t("settings.saveFailed")
+      : t("settings.saved");
+  const heroSectionLabel = hasFilteredTabs ? activeTabMeta.label : t("settings.navSearchEmptyTitle");
+  const heroSectionDescription = hasFilteredTabs ? activeTabMeta.description : t("settings.navSearchEmptyDesc");
+
   if (!loaded) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -784,30 +944,166 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="relative flex-1 overflow-hidden">
-      <div className="h-full overflow-x-hidden overflow-y-scroll">
-        <div className="mx-auto max-w-2xl space-y-6 p-6 pb-20">
-        <h1 className="text-[var(--font-size-xl)] font-medium">{t("settings.title")}</h1>
+    <div className={`settings-page settings-main relative flex-1 overflow-hidden${isAurora ? " settings-page--aurora" : ""}`}>
+      <div className="page-header">
+        <div className="title-block">
+          <span className="title">{t("settings.title")}</span>
+          <span className="subtitle">{t("settings.heroSubtitle")}</span>
+        </div>
+        <div className="actions">
+          <Button size="sm" variant="ghost" onClick={handleReset} className="btn btn-ghost btn-sm">
+            <span key={resetDone ? "spinning" : "idle"} className={resetDone ? "icon-spin" : ""}>
+              <RotateCcw size={13} />
+            </span>
+            {t("settings.resetToDefault")}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={handleSave} className="btn btn-secondary btn-sm">
+            {saveStatus === "saved" ? (
+              <span key="check" className="icon-swap-enter"><Check size={13} /></span>
+            ) : saveStatus === "saving" ? (
+              <span key="saving" className="icon-spin"><Save size={13} /></span>
+            ) : (
+              <span key="save"><Save size={13} /></span>
+            )}
+            {t("settings.save")}
+          </Button>
+        </div>
+      </div>
+      <div className="settings-body">
+          <aside className={`settings-nav${isAurora ? " settings-nav-panel" : ""}`}>
+            <div className={`input-with-icon settings-search${isAurora ? " settings-nav-search" : ""}`}>
+              <span className="input-icon settings-nav-search__icon" aria-hidden="true">
+                <Search size={13} />
+              </span>
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={t("settings.navSearchPlaceholder")}
+                aria-label={t("settings.navSearchPlaceholder")}
+                className={`input${isAurora ? " settings-nav-search__input" : ""}`}
+              />
+            </div>
 
-        <SegmentedControl
-          value={activeTab}
-          onChange={handleTabChange}
-          className="w-fit"
-          options={[
-            { value: "general", label: t("settings.tabGeneral") },
-            { value: "transfer", label: t("settings.tabTransfer") },
-            { value: "terminal", label: t("settings.tabTerminal") },
-            { value: "commandAssist", label: t("settings.tabCommandAssist") },
-            { value: "shortcuts", label: t("settings.tabShortcuts") },
-            { value: "about", label: t("settings.tabAbout") },
-          ]}
-        />
+            <nav className={`settings-cat-list${isAurora ? " settings-nav-list" : ""}`} aria-label={t("settings.title")} role="tablist" aria-orientation="vertical">
+              {filteredTabItems.map(({ value, icon: Icon, label }) => {
+                const active = activeTab === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => handleTabChange(value)}
+                    onKeyDown={(event) => handleTabKeyDown(value, event)}
+                    id={`settings-tab-${value}`}
+                    role="tab"
+                    data-active={active}
+                    aria-selected={active}
+                    aria-controls={`settings-panel-${value}`}
+                    tabIndex={active ? 0 : -1}
+                    className={`settings-cat${isAurora ? " settings-nav-button" : ""}${active ? " is-active" : ""}`}
+                  >
+                    <span className={`icon${isAurora ? " settings-nav-button__icon" : ""}`}>
+                      <Icon size={15} />
+                    </span>
+                    <span className="label block text-[var(--font-size-sm)] font-medium">{label}</span>
+                  </button>
+                );
+              })}
+              {filteredTabItems.length === 0 ? (
+                <div className="settings-nav-empty" role="status" aria-live="polite">
+                  <strong>{t("settings.navSearchEmptyTitle")}</strong>
+                  <p>{t("settings.navSearchEmptyDesc")}</p>
+                </div>
+              ) : null}
+            </nav>
 
-        <div key={activeTab} className={`space-y-6 tab-slide-in-${slideDir}`}>
+            <div className={`settings-account${isAurora ? " settings-account-card" : ""}`} aria-label={t("settings.accountTitle")}>
+              <div className={`avatar avatar-sm${isAurora ? " settings-account-card__avatar" : ""}`} aria-hidden="true">D</div>
+              <div className="settings-account-info min-w-0 flex-1">
+                <h3 className={`settings-account-name${isAurora ? " settings-account-card__title" : ""}`}>{t("settings.accountTitle")}</h3>
+                <p className={`settings-account-mail${isAurora ? " settings-account-card__subtitle" : ""}`}>{t("settings.accountSubtitle")}</p>
+              </div>
+              <span className={isAurora ? "settings-account-meta settings-account-card__meta" : "settings-account-meta settings-account-mail"}>{currentUiThemeLabel} · {currentModeLabel}</span>
+            </div>
+          </aside>
+
+          <section className={`settings-pane min-w-0 flex-1${isAurora ? " settings-content-panel" : ""}`}>
+            <div className="settings-cat-panel is-active">
+              <header className={`settings-pane-head${isAurora ? " settings-hero-card" : ""}`}>
+                <div>
+                  <h2 className={`settings-pane-title${isAurora ? " settings-hero-card__title" : ""}`}>{heroSectionLabel}</h2>
+                  <p className={`settings-pane-sub${isAurora ? " settings-hero-card__subtitle" : ""}`}>{heroSectionDescription}</p>
+                </div>
+                <div className={isAurora ? "settings-hero-card__side" : ""}>
+                  <span className={`settings-pane-saved${isAurora ? ` settings-pane-status settings-pane-status--${paneStatusTone ?? "idle"}` : ""}${saveStatus === "idle" ? " settings-pane-saved--idle" : ""}`}>
+                    {isAurora ? <span className="settings-pane-status__dot" aria-hidden="true" /> : <Check size={13} />}
+                    {paneStatusLabel ?? t("settings.saved")}
+                  </span>
+                </div>
+              </header>
+
+              {hasFilteredTabs ? (
+              <div
+                key={activeTab}
+                id={activePanelId}
+                role="tabpanel"
+                aria-labelledby={activeTabId}
+                className={`${isAurora ? "" : "space-y-6 "}tab-slide-in-${slideDir}`}
+              >
         {activeTab === "general" && (<>
-        {/* Theme */}
+        <Section title={t("settings.uiThemeSection")} description={t("settings.uiThemeDesc")}>
+          <div className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              {([
+                {
+                  value: "classic",
+                  title: t("settings.uiThemeClassic"),
+                  description: t("settings.uiThemeClassicDesc"),
+                  previewClassName: "theme-preview theme-preview--classic",
+                },
+                {
+                  value: "aurora",
+                  title: t("settings.uiThemeAurora"),
+                  description: t("settings.uiThemeAuroraDesc"),
+                  previewClassName: "theme-preview theme-preview--aurora",
+                },
+              ] as const).map((option) => {
+                const active = uiTheme === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setUiTheme(option.value)}
+                    data-active={active}
+                    aria-pressed={active}
+                    className="theme-option-card"
+                  >
+                    <div className={option.previewClassName} aria-hidden="true">
+                      <span className="theme-preview__sidebar" />
+                      <span className="theme-preview__panel" />
+                      <span className="theme-preview__panel theme-preview__panel--small" />
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="text-left">
+                        <p className="text-[var(--font-size-sm)] font-semibold text-[var(--color-text-primary)]">
+                          {option.title}
+                        </p>
+                        <p className="mt-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                          {option.description}
+                        </p>
+                      </div>
+                      <span className={`theme-option-card__check${active ? " theme-option-card__check--active" : ""}`}>
+                        <Check size={12} />
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </Section>
+
         <Section title={t("settings.appearance")}>
-          <SettingRow label={t("settings.theme")} description={t("settings.themeDesc")}>
+          <SettingRow label={t("settings.colorMode")} description={t("settings.colorModeDesc")}>
             <SegmentedControl
               value={theme}
               onChange={setTheme}
@@ -1106,31 +1402,28 @@ export function SettingsPage() {
             </SettingRow>
 
             <SettingRow label={t("settings.cursorStyle")} description={t("settings.cursorStyleDesc")}>
-              <div className="flex items-center gap-2">
-                {(["bar", "block", "underline"] as const).map((style) => {
-                  const active = terminal.cursorStyle === style;
-                  const label = style === "bar" ? t("settings.cursorBar") : style === "block" ? t("settings.cursorBlock") : t("settings.cursorUnderline");
-                  return (
-                    <button
-                      key={style}
-                      onClick={() => setTerminal((prev) => ({ ...prev, cursorStyle: style }))}
-                      className={active ? "lang-chip lang-chip--active" : "lang-chip"}
-                    >
+              <SegmentedControl
+                value={terminal.cursorStyle}
+                onChange={(v) => setTerminal((prev) => ({ ...prev, cursorStyle: v as "bar" | "block" | "underline" }))}
+                options={(["bar", "block", "underline"] as const).map((style) => ({
+                  value: style,
+                  label: (
+                    <>
                       <span
                         className="inline-block"
                         style={{
                           width: style === "bar" ? 2 : 12,
-                          height: 14,
-                          backgroundColor: active ? "var(--color-accent)" : "var(--color-text-muted)",
+                          height: style === "underline" ? 3 : 14,
+                          backgroundColor: "currentColor",
                           borderRadius: style === "bar" ? 1 : (style === "underline" ? "0 0 1px 1px" : 1),
-                          ...(style === "underline" ? { height: 3, marginTop: 11 } : {}),
+                          ...(style === "underline" ? { marginTop: 11 } : {}),
                         }}
                       />
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
+                      {style === "bar" ? t("settings.cursorBar") : style === "block" ? t("settings.cursorBlock") : t("settings.cursorUnderline")}
+                    </>
+                  ),
+                }))}
+              />
             </SettingRow>
 
             <SettingRow label={t("settings.cursorWidth")} description="1 - 5">
@@ -1360,7 +1653,7 @@ export function SettingsPage() {
                   }
                   className="range-mac"
                 />
-                <span className="w-8 text-right text-[var(--font-size-sm)]">
+                <span className="w-12 text-right text-[var(--font-size-sm)]">
                   {terminal.bgOpacity}%
                 </span>
               </div>
@@ -1378,7 +1671,7 @@ export function SettingsPage() {
                   }
                   className="range-mac"
                 />
-                <span className="w-8 text-right text-[var(--font-size-sm)]">
+                <span className="w-12 text-right text-[var(--font-size-sm)]">
                   {terminal.bgBlur}px
                 </span>
               </div>
@@ -1597,6 +1890,58 @@ export function SettingsPage() {
         </>)}
 
         {activeTab === "about" && (<>
+        {isAurora ? (<>
+        <div className="settings-about-card card-glow">
+          <div className="inner">
+            <div className="settings-about-head">
+              <span className="settings-about-logo" aria-hidden="true">
+                <Logo size={56} />
+              </span>
+              <div>
+                <h3 className="settings-about-name">DdShell</h3>
+                <p className="settings-about-tag">{t("settings.aboutTagline")}</p>
+              </div>
+            </div>
+            <ul className="settings-about-meta">
+              <li><span className="muted">{t("settings.version")}</span><span className="mono">v{appVersion}</span></li>
+              <li><span className="muted">{t("settings.aboutBuild")}</span><span className="mono">{import.meta.env.MODE}</span></li>
+              <li><span className="muted">{t("settings.aboutRuntime")}</span><span className="mono">{APP_RUNTIME}</span></li>
+              <li><span className="muted">{t("settings.aboutPlatform")}</span><span className="mono">{appPlatform}</span></li>
+            </ul>
+            <div className="settings-about-actions">
+              <Button size="sm" onClick={handleCheckUpdate} disabled={checkingUpdate}>
+                <RefreshCw size={13} className={checkingUpdate ? "animate-spin" : undefined} />
+                {checkingUpdate ? t("update.checking") : t("settings.checkUpdate")}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => void api.openBrowser(GITHUB_REPO_URL)}>
+                <Github size={13} />
+                GitHub
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => void api.openBrowser(GITHUB_ISSUES_URL)}>
+                <MessageSquare size={13} />
+                {t("settings.aboutFeedback")}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <Section title={t("settings.credits")}>
+          <ul className="settings-credits">
+            <li><span className="settings-credit-name">Tauri</span><span className="muted">{t("settings.creditTauriDesc")}</span></li>
+            <li><span className="settings-credit-name">React 19 · Vite</span><span className="muted">{t("settings.creditReactDesc")}</span></li>
+            <li><span className="settings-credit-name">xterm.js</span><span className="muted">{t("settings.creditXtermDesc")}</span></li>
+            <li><span className="settings-credit-name">russh</span><span className="muted">{t("settings.creditRusshDesc")}</span></li>
+            <li><span className="settings-credit-name">CodeMirror 6</span><span className="muted">{t("settings.creditCodemirrorDesc")}</span></li>
+            <li><span className="settings-credit-name">Inter · JetBrains Mono</span><span className="muted">{t("settings.creditFontsDesc")}</span></li>
+          </ul>
+        </Section>
+
+        <Section title={t("settings.dataPrivacy")}>
+          <p className="text-[var(--font-size-sm)] leading-relaxed text-[var(--color-text-secondary)]">
+            {t("settings.dataPrivacyDesc")}
+          </p>
+        </Section>
+        </>) : (<>
         <Section title={t("settings.dataPrivacy")}>
           <p className="text-[var(--font-size-sm)] leading-relaxed text-[var(--color-text-secondary)]">
             {t("settings.dataPrivacyDesc")}
@@ -1604,64 +1949,65 @@ export function SettingsPage() {
         </Section>
 
         <Section title={t("settings.about")}>
-          <div className="space-y-2 text-[var(--font-size-sm)]">
-            <div className="flex justify-between">
-              <span className="text-[var(--color-text-muted)]">{t("settings.version")}</span>
-              <span>v{appVersion}</span>
+          <div className="space-y-4 text-[var(--font-size-sm)]">
+            <div className="flex items-center gap-3">
+              <span className="settings-about-logo" aria-hidden="true">
+                <Logo size={48} />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-[var(--font-size-base)] font-semibold text-[var(--color-text-primary)]">DdShell</h3>
+                <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">{t("settings.aboutTagline")}</p>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--color-text-muted)]">{t("settings.framework")}</span>
-              <span>Tauri 2 + React</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--color-text-muted)]">{t("settings.license")}</span>
-              <span>MIT</span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-[var(--color-text-muted)]">GitHub</span>
-              <button
-                type="button"
-                onClick={() => void api.openBrowser(GITHUB_REPO_URL)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-accent)] hover:bg-[var(--color-bg-hover)]"
-                title={GITHUB_REPO_URL}
-                aria-label="GitHub"
-              >
-                <Github size={16} />
-              </button>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-[var(--color-text-muted)]">{t("settings.version")}</span>
+                <span>v{appVersion}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--color-text-muted)]">{t("settings.framework")}</span>
+                <span>Tauri 2 + React</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--color-text-muted)]">{t("settings.aboutPlatform")}</span>
+                <span>{appPlatform}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[var(--color-text-muted)]">{t("settings.license")}</span>
+                <span>MIT</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[var(--color-text-muted)]">GitHub</span>
+                <button
+                  type="button"
+                  onClick={() => void api.openBrowser(GITHUB_REPO_URL)}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-accent)] hover:bg-[var(--color-bg-hover)]"
+                  title={GITHUB_REPO_URL}
+                  aria-label="GitHub"
+                >
+                  <Github size={16} />
+                </button>
+              </div>
             </div>
           </div>
         </Section>
         </>)}
+        </>)}
+              </div>
+              ) : (
+                <section className="settings-group settings-section rounded-[var(--radius-card)] border border-[var(--color-border)] p-6">
+                  <strong className="block text-[var(--font-size-base)] font-semibold text-[var(--color-text-primary)]">
+                    {t("settings.navSearchEmptyTitle")}
+                  </strong>
+                  <p className="mt-2 text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
+                    {t("settings.navSearchEmptyDesc")}
+                  </p>
+                </section>
+              )}
+            </div>
+          </section>
         </div>
-        </div>
-      </div>
 
-      <div className="pointer-events-none absolute right-2 bottom-2 z-10 flex justify-end">
-        <div className="pointer-events-auto flex items-center gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)]/95 px-4 py-2 shadow-[var(--shadow-floating)] backdrop-blur-sm">
-          <Button variant="ghost" onClick={handleReset}>
-            {resetStatus
-              ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
-              : <span key="icon" className="icon-spin"><RotateCcw size={14} /></span>}
-            {resetStatus ? t("settings.resetDone") : t("settings.reset")}
-          </Button>
-          <Button disabled={saveStatus === "saving"} onClick={() => {
-            handleSave();
-          }}>
-            {saveStatus === "saved"
-              ? <span key="check" className="icon-swap-enter"><Check size={14} /></span>
-              : saveStatus === "saving"
-                ? <span key="icon" className="icon-spin"><Save size={14} /></span>
-                : <Save size={14} />}
-            {saveStatus === "saved"
-              ? t("settings.saved")
-              : saveStatus === "saving"
-                ? t("settings.saving")
-              : saveStatus === "error"
-                ? t("settings.saveFailed")
-                : t("settings.save")}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

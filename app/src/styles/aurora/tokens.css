@@ -1,0 +1,237 @@
+/* Auto-scoped Aurora CSS mapped from ui/styles/tokens.css. Do not edit ui/styles sources. */
+/*
+ * tokens.css — DdShell 设计令牌（双主题）
+ * 风格：Warp / Modern Terminal 风
+ * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
+ */
+
+[data-ui-theme="aurora"],
+[data-ui-theme="aurora"] body.theme-dark,
+body.theme-dark [data-ui-theme="aurora"] {
+  /* ── Background layers ── */
+  --bg-app: #0E0F14;            /* 应用最底层（窗口背景） */
+  --bg-base: #14151B;           /* 主区域背景 */
+  --bg-elevated: #1A1B23;       /* 次级面板（侧栏、状态栏、tab 栏） */
+  --bg-surface: #21222C;        /* 卡片、下拉、popover */
+  --bg-overlay: rgba(20, 21, 27, 0.72); /* 遮罩 */
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(255, 255, 255, 0.09);
+
+  /* ── Foreground / text ── */
+  --fg-primary: #E8E9F1;
+  --fg-secondary: #B0B3C5;
+  --fg-muted: #6B7080;
+  --fg-disabled: #4A4D5C;
+  --fg-on-accent: #0E0F14;
+
+  /* ── Accent (紫青渐变核心色) ── */
+  --accent-violet: #A78BFA;     /* 紫色端 */
+  --accent-cyan: #67E8F9;       /* 青色端 */
+  --accent: #A78BFA;            /* 主强调色（用紫色） */
+  --accent-hover: #B49DFC;
+  --accent-subtle: rgba(167, 139, 250, 0.14);
+  --accent-glow: rgba(167, 139, 250, 0.32);
+  --accent-gradient: linear-gradient(135deg, #A78BFA 0%, #67E8F9 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(167, 139, 250, 0.18) 0%, rgba(103, 232, 249, 0.18) 100%);
+
+  /* ── Border ── */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-focus: var(--accent);
+
+  /* ── Status colors ── */
+  --success: #4ADE80;
+  --success-subtle: rgba(74, 222, 128, 0.14);
+  --warning: #FBBF24;
+  --warning-subtle: rgba(251, 191, 36, 0.14);
+  --danger: #F87171;
+  --danger-subtle: rgba(248, 113, 113, 0.14);
+  --info: #67E8F9;
+  --info-subtle: rgba(103, 232, 249, 0.14);
+
+  /* Health: GOOD / FAIR / POOR */
+  --health-good: #4ADE80;
+  --health-fair: #FBBF24;
+  --health-poor: #F87171;
+
+  /* ── Terminal ANSI（在 .terminal-window 内使用） ── */
+  --term-bg: #0B0C12;
+  --term-fg: #E8E9F1;
+  --term-cursor: #A78BFA;
+  --term-selection: rgba(167, 139, 250, 0.32);
+  --ansi-black: #1B2130;
+  --ansi-red: #F87171;
+  --ansi-green: #4ADE80;
+  --ansi-yellow: #FBBF24;
+  --ansi-blue: #60A5FA;
+  --ansi-magenta: #C084FC;
+  --ansi-cyan: #67E8F9;
+  --ansi-white: #E8E9F1;
+
+  /* ── Shadows / glow ── */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.18);
+  --shadow-popover: 0 4px 8px rgba(0, 0, 0, 0.28), 0 16px 40px rgba(0, 0, 0, 0.44);
+  --shadow-glow: 0 0 0 1px rgba(167, 139, 250, 0.32), 0 0 24px rgba(167, 139, 250, 0.18);
+
+  /* ── Glass 效果（用于 Sidebar / Titlebar / StatusBar） ── */
+  --glass-bg: rgba(26, 27, 35, 0.68);
+  --glass-blur: 18px;
+
+  color-scheme: dark;
+}
+
+/* ─────────────────────────── Light theme ─────────────────────────── */
+[data-ui-theme="aurora"] body.theme-light,
+body.theme-light [data-ui-theme="aurora"] {
+  --bg-app: #F4F5F8;
+  --bg-base: #FFFFFF;
+  --bg-elevated: #F7F8FB;
+  --bg-surface: #FFFFFF;
+  --bg-overlay: rgba(244, 245, 248, 0.72);
+  --bg-hover: rgba(20, 21, 27, 0.05);
+  --bg-active: rgba(20, 21, 27, 0.08);
+
+  --fg-primary: #15161D;
+  --fg-secondary: #4A4D5C;
+  --fg-muted: #7B7F90;
+  --fg-disabled: #B0B3C5;
+  --fg-on-accent: #FFFFFF;
+
+  --accent-violet: #7C3AED;
+  --accent-cyan: #0EA5E9;
+  --accent: #7C3AED;
+  --accent-hover: #6D28D9;
+  --accent-subtle: rgba(124, 58, 237, 0.10);
+  --accent-glow: rgba(124, 58, 237, 0.18);
+  --accent-gradient: linear-gradient(135deg, #7C3AED 0%, #0EA5E9 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(124, 58, 237, 0.10) 0%, rgba(14, 165, 233, 0.10) 100%);
+
+  --border-subtle: rgba(20, 21, 27, 0.06);
+  --border-default: rgba(20, 21, 27, 0.10);
+  --border-strong: rgba(20, 21, 27, 0.18);
+
+  --success: #16A34A;
+  --success-subtle: rgba(22, 163, 74, 0.10);
+  --warning: #D97706;
+  --warning-subtle: rgba(217, 119, 6, 0.10);
+  --danger: #DC2626;
+  --danger-subtle: rgba(220, 38, 38, 0.10);
+  --info: #0EA5E9;
+  --info-subtle: rgba(14, 165, 233, 0.10);
+
+  --health-good: #16A34A;
+  --health-fair: #D97706;
+  --health-poor: #DC2626;
+
+  --term-bg: #0B0C12;          /* 终端始终保持深色（即使在亮色主题下） */
+  --term-fg: #E8E9F1;
+  --term-cursor: #A78BFA;
+  --term-selection: rgba(167, 139, 250, 0.32);
+
+  --shadow-card: 0 1px 2px rgba(20, 21, 27, 0.05), 0 4px 16px rgba(20, 21, 27, 0.07);
+  --shadow-popover: 0 4px 12px rgba(20, 21, 27, 0.10), 0 24px 48px rgba(20, 21, 27, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(124, 58, 237, 0.24), 0 0 24px rgba(124, 58, 237, 0.10);
+
+  --glass-bg: rgba(247, 248, 251, 0.72);
+  --glass-blur: 18px;
+
+  color-scheme: light;
+}
+
+/* ─────────────────────────── Sizing tokens ─────────────────────────── */
+[data-ui-theme="aurora"] {
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Type scale */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h: 36px;
+  --tabbar-h: 38px;
+  --statusbar-h: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
+}
+
+/* Bridge the existing React/Tailwind token names to the ui/ prototype token names. */
+[data-ui-theme="aurora"] {
+  --height-titlebar: var(--titlebar-h);
+  --width-sidebar: var(--sidebar-w);
+  --width-sidebar-collapsed: var(--sidebar-w-collapsed);
+  --height-tabbar: var(--tabbar-h);
+  --height-statusbar: var(--statusbar-h);
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --font-size-xs: var(--fs-xs);
+  --font-size-sm: var(--fs-sm);
+  --font-size-base: var(--fs-base);
+  --font-size-lg: var(--fs-lg);
+  --font-size-xl: var(--fs-xl);
+  --duration-fast: var(--d-fast);
+  --duration-base: var(--d-base);
+  --duration-panel: var(--d-panel);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+  --color-text-primary: var(--fg-primary);
+  --color-text-secondary: var(--fg-secondary);
+  --color-text-muted: var(--fg-muted);
+  --color-text-inverse: var(--fg-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: var(--info);
+  --color-good: var(--health-good);
+  --color-fair: var(--health-fair);
+  --color-poor: var(--health-poor);
+  --surface-window: var(--glass-bg);
+  --surface-card: var(--bg-surface);
+  --shadow-floating: var(--shadow-popover);
+  --shadow-focus-ring: 0 0 0 3px var(--accent-subtle);
+}

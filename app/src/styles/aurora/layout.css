@@ -1,9 +1,10 @@
+/* Auto-scoped Aurora CSS mapped from ui/styles/layout.css. Do not edit ui/styles sources. */
 /*
  * layout.css — 通用框架（Titlebar / Sidebar / StatusBar / 主区）
  */
 
 /* ─────────────────────────── Titlebar ─────────────────────────── */
-.titlebar {
+[data-ui-theme="aurora"] .titlebar {
   display: flex;
   align-items: center;
   height: var(--titlebar-h);
@@ -16,24 +17,35 @@
   user-select: none;
 }
 
-/* macOS traffic lights placeholder */
-.titlebar .traffic-lights {
-  display: flex;
-  gap: 8px;
-  margin-right: var(--space-3);
-  -webkit-app-region: no-drag;
+/* Reset earlier Aurora shell-card experiments so the React shell follows ui/styles/layout.css exactly. */
+[data-ui-theme="aurora"] .app-body-frame {
+  gap: 0;
+  padding: 0;
 }
-.traffic-lights span {
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  background: var(--border-strong);
-  border: 1px solid rgba(0, 0, 0, 0.18);
-}
-.traffic-lights span.tl-close { background: #FF5F57; }
-.traffic-lights span.tl-min   { background: #FEBC2E; }
-.traffic-lights span.tl-max   { background: #28C840; }
 
-.titlebar .title {
+[data-ui-theme="aurora"] .app-titlebar {
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+[data-ui-theme="aurora"] .app-main-frame {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+[data-ui-theme="aurora"] .app-statusbar {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+[data-ui-theme="aurora"] .titlebar .title {
   flex: 1;
   text-align: center;
   font-size: var(--fs-xs);
@@ -41,7 +53,7 @@
   letter-spacing: 0.04em;
 }
 
-.titlebar .titlebar-right {
+[data-ui-theme="aurora"] .titlebar .titlebar-right {
   -webkit-app-region: no-drag;
   display: flex;
   align-items: center;
@@ -49,7 +61,7 @@
 }
 
 /* ─────────────────────────── Sidebar ─────────────────────────── */
-.sidebar {
+[data-ui-theme="aurora"] .sidebar {
   display: flex;
   flex-direction: column;
   width: var(--sidebar-w);
@@ -60,43 +72,39 @@
   flex-shrink: 0;
 }
 
-.sidebar-brand {
+[data-ui-theme="aurora"] .sidebar-brand {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4) var(--space-2);
   user-select: none;
 }
-.sidebar-brand .logo {
+[data-ui-theme="aurora"] .sidebar-brand .logo {
   width: 28px; height: 28px;
-  border-radius: var(--radius-md);
-  background: var(--accent-gradient);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--fg-on-accent);
-  font-weight: var(--fw-semibold);
-  box-shadow: var(--shadow-glow);
+  flex-shrink: 0;
 }
-.sidebar-brand .name {
+[data-ui-theme="aurora"] .sidebar-brand .name {
   font-size: var(--fs-md);
   font-weight: var(--fw-semibold);
   letter-spacing: 0.01em;
 }
 
-.sidebar-section {
+[data-ui-theme="aurora"] .sidebar-section {
   padding: var(--space-2) var(--space-3) var(--space-1);
 }
-.sidebar-section .section-title { padding-left: var(--space-2); }
+[data-ui-theme="aurora"] .sidebar-section .section-title { padding-left: var(--space-2); }
 
-.sidebar-nav {
+[data-ui-theme="aurora"] .sidebar-nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: var(--space-1) var(--space-2);
 }
 
-.nav-item {
+[data-ui-theme="aurora"] .nav-item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -108,13 +116,13 @@
   cursor: pointer;
   transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
 }
-.nav-item:hover { background: var(--bg-hover); color: var(--fg-primary); }
-.nav-item.is-active {
+[data-ui-theme="aurora"] .nav-item:hover { background: var(--bg-hover); color: var(--fg-primary); }
+[data-ui-theme="aurora"] .nav-item.is-active {
   background: var(--accent-subtle);
   color: var(--fg-primary);
   position: relative;
 }
-.nav-item.is-active::before {
+[data-ui-theme="aurora"] .nav-item.is-active::before {
   content: "";
   position: absolute;
   left: 0; top: 8px; bottom: 8px;
@@ -123,27 +131,27 @@
   background: var(--accent-gradient);
   box-shadow: 0 0 10px var(--accent-glow);
 }
-.nav-item .icon {
+[data-ui-theme="aurora"] .nav-item .icon {
   color: var(--fg-muted);
   flex-shrink: 0;
   display: inline-flex;
 }
-.nav-item.is-active .icon { color: var(--accent); }
-.nav-item .label {
+[data-ui-theme="aurora"] .nav-item.is-active .icon { color: var(--accent); }
+[data-ui-theme="aurora"] .nav-item .label {
   flex: 1;
   margin-bottom: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.nav-item .meta {
+[data-ui-theme="aurora"] .nav-item .meta {
   font-size: var(--fs-xs);
   color: var(--fg-muted);
 }
 
-.sidebar-spacer { flex: 1; }
+[data-ui-theme="aurora"] .sidebar-spacer { flex: 1; }
 
-.sidebar-footer {
+[data-ui-theme="aurora"] .sidebar-footer {
   padding: var(--space-2);
   border-top: 1px solid var(--border-subtle);
   display: flex;
@@ -152,7 +160,7 @@
 }
 
 /* ─────────────────────────── Status bar ─────────────────────────── */
-.statusbar {
+[data-ui-theme="aurora"] .statusbar {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -166,42 +174,42 @@
   color: var(--fg-muted);
   user-select: none;
 }
-.statusbar .spacer { flex: 1; }
-.statusbar .status-item {
+[data-ui-theme="aurora"] .statusbar .spacer { flex: 1; }
+[data-ui-theme="aurora"] .statusbar .status-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
-.statusbar .status-item.accent { color: var(--accent); }
+[data-ui-theme="aurora"] .statusbar .status-item.accent { color: var(--accent); }
 
 /* ─────────────────────────── Page header (per-page) ─────────────────────────── */
-.page-header {
+[data-ui-theme="aurora"] .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--border-subtle);
 }
-.page-header .title-block { display: flex; flex-direction: column; gap: 2px; }
-.page-header .title { font-size: var(--fs-lg); font-weight: var(--fw-semibold); }
-.page-header .subtitle { font-size: var(--fs-xs); color: var(--fg-muted); }
-.page-header .actions { display: flex; align-items: center; gap: var(--space-2); }
+[data-ui-theme="aurora"] .page-header .title-block { display: flex; flex-direction: column; gap: 2px; }
+[data-ui-theme="aurora"] .page-header .title { font-size: var(--fs-lg); font-weight: var(--fw-semibold); }
+[data-ui-theme="aurora"] .page-header .subtitle { font-size: var(--fs-xs); color: var(--fg-muted); }
+[data-ui-theme="aurora"] .page-header .actions { display: flex; align-items: center; gap: var(--space-2); }
 
 /* ─────────────────────────── Two-column layout (used by connections / sftp / settings) ─────────────────────────── */
-.split-layout {
+[data-ui-theme="aurora"] .split-layout {
   display: grid;
   grid-template-columns: 280px 1fr;
   flex: 1;
   min-height: 0;
 }
-.split-layout > .split-aside {
+[data-ui-theme="aurora"] .split-layout > .split-aside {
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   min-height: 0;
   background: var(--bg-base);
 }
-.split-layout > .split-main {
+[data-ui-theme="aurora"] .split-layout > .split-main {
   display: flex;
   flex-direction: column;
   min-width: 0;

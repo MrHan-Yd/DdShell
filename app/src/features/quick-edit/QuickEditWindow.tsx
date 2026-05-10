@@ -44,6 +44,7 @@ export function QuickEditWindow() {
   const tabs = useQuickEditStore((s) => s.tabs);
   const activeTabId = useQuickEditStore((s) => s.activeTabId);
   const theme = useAppStore((s) => s.theme);
+  const uiTheme = useAppStore((s) => s.uiTheme);
 
   const [detachedPrompt, setDetachedPrompt] = useState<DetachedPrompt | null>(null);
   // Tracks whether at least one tab has ever been opened in this window. We
@@ -51,32 +52,49 @@ export function QuickEditWindow() {
   // still [] (the URL payload hasn't been processed yet) so we must NOT close.
   const hasHadTabsRef = useRef(false);
 
-  // 1. Initialise locale & theme from the same SettingStore as the main window.
+  // 1. Initialise locale & theme from the same SettingStore as the main window,
+  //    and keep following later settings saves so detached windows stay in sync.
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      try {
-        const [locale, savedTheme] = await Promise.all([
-          api.settingGet("locale"),
-          api.settingGet("theme"),
-        ]);
-        if (cancelled) return;
-        if (locale) useAppStore.getState().setLocale(locale as Locale);
-        if (savedTheme === "dark" || savedTheme === "light" || savedTheme === "system") {
-          useAppStore.getState().setTheme(savedTheme);
+    const loadUiSettings = () => {
+      void (async () => {
+        try {
+          const [locale, savedTheme, savedUiTheme] = await Promise.all([
+            api.settingGet("locale"),
+            api.settingGet("theme"),
+            api.settingGet("ui.theme"),
+          ]);
+          if (cancelled) return;
+          if (locale) useAppStore.getState().setLocale(locale as Locale);
+          if (savedTheme === "dark" || savedTheme === "light" || savedTheme === "system") {
+            useAppStore.getState().setTheme(savedTheme);
+          }
+          if (savedUiTheme === "classic" || savedUiTheme === "aurora") {
+            useAppStore.getState().setUiTheme(savedUiTheme);
+          }
+        } catch {
+          // fall back to defaults
         }
-      } catch {
-        // fall back to defaults
-      }
-    })();
-    return () => { cancelled = true; };
+      })();
+    };
+
+    loadUiSettings();
+    window.addEventListener("terminal:settings-changed", loadUiSettings);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("terminal:settings-changed", loadUiSettings);
+    };
   }, []);
 
   // 2. Apply theme to <html data-theme>
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     const applyTheme = (isDark: boolean) => {
       root.setAttribute("data-theme", isDark ? "dark" : "light");
+      root.setAttribute("data-ui-theme", uiTheme);
+      body.classList.toggle("theme-dark", isDark);
+      body.classList.toggle("theme-light", !isDark);
     };
     if (theme === "system") {
       const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -87,7 +105,7 @@ export function QuickEditWindow() {
     } else {
       applyTheme(theme === "dark");
     }
-  }, [theme]);
+  }, [theme, uiTheme]);
 
   // 3. Initial file from URL (delivered alongside window creation).
   useEffect(() => {
@@ -177,7 +195,9 @@ export function QuickEditWindow() {
   };
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-[var(--color-bg-base)] text-[var(--color-text-primary)]">
+    <div className="app-shell flex h-screen w-screen flex-col bg-[var(--color-bg-base)] text-[var(--color-text-primary)]">
+      <div className="aurora-shell-orb aurora-shell-orb--violet" aria-hidden="true" />
+      <div className="aurora-shell-orb aurora-shell-orb--cyan" aria-hidden="true" />
       <Titlebar />
       <QuickEditTabBar />
       <main className="relative flex min-h-0 flex-1 flex-col">

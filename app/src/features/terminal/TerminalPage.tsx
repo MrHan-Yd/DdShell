@@ -1864,7 +1864,7 @@ export function TerminalPage() {
 
   if (tabs.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="terminal-empty flex flex-1 items-center justify-center">
         <div className="text-center">
           <p className="text-[var(--font-size-lg)] font-medium text-[var(--color-text-secondary)]">
             {t("term.noActiveSessions")}
@@ -1885,8 +1885,8 @@ export function TerminalPage() {
   }
 
   return (
-    <div className="flex flex-1 overflow-hidden" style={{ userSelect: "text" }}>
-      <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="terminal-page flex flex-1 overflow-hidden" style={{ userSelect: "text" }}>
+      <div className="term-main flex flex-1 flex-col overflow-hidden">
         {/* Tab bar */}
         {/* [AI-FEATURE]
             ID: TASK-TERM-TAB-DRAG
@@ -1902,7 +1902,7 @@ export function TerminalPage() {
         */}
         <div
           ref={tabBarRef}
-          className="flex h-[var(--height-tabbar)] border-b border-[var(--color-border)] bg-[var(--color-bg-surface)]"
+          className="term-tabbar flex h-[var(--height-tabbar)] border-b border-[var(--color-border)] bg-[var(--color-bg-surface)]"
           onMouseMove={(e) => {
             if (!draggingTabId || dragStartXRef.current === null) return;
             const delta = e.clientX - dragStartXRef.current;
@@ -1954,7 +1954,7 @@ export function TerminalPage() {
           }}
         >
           {/* Tab list - scrollable */}
-          <div className="flex h-[var(--height-tabbar)] flex-1 items-center gap-1 overflow-x-auto px-2 min-w-0">
+          <div className="tabs flex h-[var(--height-tabbar)] flex-1 items-center gap-1 overflow-x-auto px-2 min-w-0">
             {tabs.map((tab, index) => (
             <div key={tab.id} className="flex items-center">
               <div
@@ -1973,7 +1973,8 @@ export function TerminalPage() {
                   setDragDeltaX(0);
                 }}
                 className={cn(
-                  "group flex h-7 items-center gap-2 px-3 text-[var(--font-size-xs)] select-none rounded-[var(--radius-control)]",
+                    "tab group flex h-7 items-center gap-2 px-3 text-[var(--font-size-xs)] select-none rounded-[var(--radius-control)]",
+                    tab.id === activeTabId && "is-active",
                   tab.id === activeTabId
                     ? "bg-[var(--color-bg-base)] text-[var(--color-text-primary)] border border-[var(--color-border)] shadow-[var(--shadow-card)]"
                     : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)]",
@@ -2035,7 +2036,7 @@ export function TerminalPage() {
                       : "bg-[var(--color-text-muted)]",
                 )}
               />
-              <span className="flex-1 truncate">{tab.title}</span>
+              <span className="tab-label flex-1 truncate">{tab.title}</span>
               <button
                 onClick={async (e) => {
                   e.stopPropagation();
@@ -2048,7 +2049,7 @@ export function TerminalPage() {
                   closeSession(tab.id);
                 }}
                 onMouseDown={(e) => e.stopPropagation()}
-                className="ml-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors"
+                className="tab-close ml-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors"
                 aria-label={t("confirm.closeSessionTitle")}
               >
                 <X size={12} />
@@ -2059,7 +2060,7 @@ export function TerminalPage() {
           </div>
 
           {/* Right controls - fixed */}
-          <div className="flex h-[var(--height-tabbar)] shrink-0 items-center px-1">
+          <div className="tabbar-actions flex h-[var(--height-tabbar)] shrink-0 items-center px-1">
 
           {/* Split controls */}
           <button
@@ -2143,8 +2144,9 @@ export function TerminalPage() {
 {/* Terminal area */}
         <div
           ref={containerRef}
-          className={cn(
-            "relative flex-1 overflow-hidden",
+                  className={cn(
+                    "term-panes relative flex-1 overflow-hidden",
+                    splitDirection && `is-split is-split-${splitDirection}`,
             splitDirection === "horizontal" ? "flex flex-col" : "flex flex-row",
           )}
           style={{
@@ -2166,7 +2168,7 @@ export function TerminalPage() {
           )}
           {/* Primary pane */}
           <div
-            className="relative z-10 overflow-hidden"
+            className="term-pane is-active relative z-10 overflow-hidden"
             style={
               splitDirection
                 ? splitDirection === "horizontal"
@@ -2175,6 +2177,12 @@ export function TerminalPage() {
                 : { width: "100%", height: "100%" }
             }
           >
+            <div className="pane-bar">
+              <span className="pane-host mono">{activeTab?.title ?? "terminal"}</span>
+              <span className="pane-spacer" />
+              <span className="pane-tag"><span className="dot dot-success" />{activeTab?.state ?? "idle"}</span>
+            </div>
+            <div className="term-window p-0">
             {tabs.map((tab) => (
               <div
                 key={tab.id}
@@ -2195,6 +2203,7 @@ export function TerminalPage() {
                 )}
               </div>
             ))}
+            </div>
           </div>
 
           {/* Resize handle + second pane */}
@@ -2202,23 +2211,30 @@ export function TerminalPage() {
             <>
               <ResizeHandle direction={splitDirection} onResize={handleResize} />
               <div
-                className="relative z-10 overflow-hidden"
+                className="term-pane relative z-10 overflow-hidden"
                 style={
                   splitDirection === "horizontal"
                     ? { height: `${(1 - splitRatio) * 100}%` }
                     : { width: `${(1 - splitRatio) * 100}%` }
                 }
               >
-                {termSettings && (
-                  <TerminalInstance
-                    key={`split-${splitTab.id}-${settingsVersion}`}
-                    tabId={splitTab.id}
-                    sessionId={splitTab.sessionId}
-                    hostId={splitTab.hostId}
-                    macroOutputFilter={macroOutputFilter?.sessionId === splitTab.sessionId ? macroOutputFilter : null}
-                    termSettings={termSettings}
-                  />
-                )}
+                <div className="pane-bar">
+                  <span className="pane-host mono">{splitTab.title}</span>
+                  <span className="pane-spacer" />
+                  <span className="pane-tag"><span className="dot dot-success" />{splitTab.state}</span>
+                </div>
+                <div className="term-window p-0">
+                  {termSettings && (
+                    <TerminalInstance
+                      key={`split-${splitTab.id}-${settingsVersion}`}
+                      tabId={splitTab.id}
+                      sessionId={splitTab.sessionId}
+                      hostId={splitTab.hostId}
+                      macroOutputFilter={macroOutputFilter?.sessionId === splitTab.sessionId ? macroOutputFilter : null}
+                      termSettings={termSettings}
+                    />
+                  )}
+                </div>
               </div>
             </>
           )}

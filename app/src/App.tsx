@@ -53,6 +53,9 @@ function PageRenderer() {
 
 export default function App() {
   const theme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
+  const uiTheme = useAppStore((s) => s.uiTheme);
+  const setUiTheme = useAppStore((s) => s.setUiTheme);
   const locale = useAppStore((s) => s.locale);
   const setLocale = useAppStore((s) => s.setLocale);
   const [uiFontFamily, setUiFontFamily] = useState("");
@@ -75,6 +78,18 @@ export default function App() {
         }
       }).catch(() => {});
 
+      api.settingGet("ui.theme").then((saved) => {
+        if (saved === "classic" || saved === "aurora") {
+          setUiTheme(saved);
+        }
+      }).catch(() => {});
+
+      api.settingGet("theme").then((saved) => {
+        if (saved === "dark" || saved === "light" || saved === "system") {
+          setTheme(saved);
+        }
+      }).catch(() => {});
+
       api.settingGet("ui.fontFamily").then((saved) => {
         setUiFontFamily(saved || "");
       }).catch(() => {});
@@ -90,7 +105,7 @@ export default function App() {
     return () => {
       window.removeEventListener("terminal:settings-changed", loadUiSettings);
     };
-  }, [setLocale]);
+  }, [setLocale, setTheme, setUiTheme]);
 
   // Apply UI font to document
   useEffect(() => {
@@ -106,10 +121,17 @@ export default function App() {
   // Apply theme to document + update favicon
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
     const applyTheme = (isDark: boolean) => {
       root.setAttribute("data-theme", isDark ? "dark" : "light");
-      if (favicon) favicon.href = isDark ? "/logo-dark.svg" : "/logo.svg";
+      root.setAttribute("data-ui-theme", uiTheme);
+      body.classList.toggle("theme-dark", isDark);
+      body.classList.toggle("theme-light", !isDark);
+      if (favicon) {
+        const prefix = uiTheme === "aurora" ? "/logo-aurora" : "/logo";
+        favicon.href = isDark ? `${prefix}-dark.svg` : `${prefix}.svg`;
+      }
     };
 
     if (theme === "system") {
@@ -121,14 +143,14 @@ export default function App() {
     } else {
       applyTheme(theme === "dark");
     }
-  }, [theme]);
+  }, [theme, uiTheme]);
 
   return (
-    <div className="flex h-screen flex-col bg-[var(--color-bg-base)]">
+    <div className="app app-shell flex h-screen flex-col bg-[var(--color-bg-base)]">
       <Titlebar />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="app-body app-body-frame flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex flex-1 flex-col overflow-hidden">
+        <main className="app-main app-main-frame flex flex-1 flex-col overflow-hidden">
           <PageRenderer />
         </main>
       </div>

@@ -977,6 +977,52 @@ body {
   color: var(--color-text-muted);
 }
 
+.settings-account {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 10px 12px;
+  min-width: 0;
+  margin-top: auto;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-card) 88%, transparent);
+}
+
+.settings-account .avatar {
+  grid-row: 1 / span 2;
+  flex-shrink: 0;
+}
+
+.settings-account-info {
+  min-width: 0;
+}
+
+.settings-account-name {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.settings-account-mail {
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.settings-account-meta {
+  grid-column: 2;
+  margin-top: 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .settings-account-card {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1132,6 +1178,11 @@ body {
 
 .settings-pane-status--error {
   color: var(--color-error);
+}
+
+.settings-pane-status--idle {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .settings-hero-pill {

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { emit } from "@tauri-apps/api/event";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/themed/Input";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { confirm } from "@/stores/confirm";
