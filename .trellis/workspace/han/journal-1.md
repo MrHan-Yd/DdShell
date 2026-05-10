@@ -209,3 +209,104 @@ Implemented strict settings draft mode with save-on-apply semantics, navigation/
 ### Next Steps
 
 - None - task complete
+
+---
+
+## 2026-05-10 · command-macro-ui-layout · 第二轮收口
+
+### Context
+
+第一轮已对齐主要骨架（左右两栏、卡片、step 时间线）。han 反馈仍有可见差距，本轮做"克制收口"。
+
+### 决策（han 拍板的视觉点）
+
+- **详情页头 chips 上移到页头副标题旁**：选中宏时，顶部 page-header subtitle 显示 `N steps · M params · 更新于 X`；未选中时显示 `N 命令宏 · M 分组`。
+- **移除列表 toolbar 的「新建宏 +」按钮**：与页头主 CTA 重复。
+
+### Changes
+
+- `WorkflowsPage.tsx`：subtitle 区按 mode/selectedRecipe 切换内容；引入 ListChecks/Variable/Clock 图标。
+- `WorkflowDetail.tsx`：删除 wf-tags 容器（chips 上移），详情页头只剩 title + desc + actions，更接近设计稿克制感。
+- `WorkflowList.tsx`：删除 toolbar 的 `+` 按钮、移除 `onCreate` prop 与 `Plus` import。
+
+### 跳过项（PRD Out-of-Scope，数据模型不支持）
+
+- 状态徽章（passed/idle/running/draft）— 无运行状态字段
+- 详情 wf-tags（deployment/staging…）— 无 tags 字段
+- Inputs 的 description 列 — `WorkflowRecipeParam` 无 description
+- 步骤的 status badge / wf-step-note / wf-step-more — 无对应字段
+- Duplicate / Run on host / Recent runs — 无对应功能
+
+### Verification
+
+- `tsc --noEmit` 通过，EXIT=0
+- 项目无独立 lint script（build = tsc + vite）
+
+### Status
+
+进行中，等 han 回到页面查看视觉是否到位。
+
+---
+
+## 2026-05-10 · 第三轮：全局 Button 对齐设计稿
+
+### 决策（han 拍板）
+
+按钮等小组件与设计稿不一致 → **改全局 Button 组件**（明确授权超出原 PRD Scope）。
+
+### 根因分析
+
+设计稿 `.btn-primary` 用 `accent-gradient`（紫→青渐变）+ `accent-glow` + 顶部 inset 高光；当前 `Button` 默认 variant 用硬编码 iOS 蓝 `#0A84FF→#0066E0`，无 glow，高度也不同（32 vs 30）。同时 styles.css 里已有 10+ 处引用 `var(--accent-gradient)`/`var(--accent-glow)`/`var(--fg-on-accent)`，但 token 从未定义，相当于死引用。
+
+### Changes
+
+- `styles.css` `@theme` 块加 4 个派生 token + 4 个无前缀 alias：
+  - `--color-accent-gradient`：`linear-gradient(135deg, var(--color-accent), color-mix(50% accent, #67E8F9))`
+  - `--color-accent-glow`：`color-mix(32% accent, transparent)`
+  - `--color-fg-on-accent`：`#FFFFFF`
+  - `--shadow-accent-glow`：`inset 顶部白线 + 6px 20px glow`
+  - alias 同名无前缀版（兼容 styles.css 既有引用）
+- `Button.tsx`：
+  - `default` variant：`bg-[image:var(--color-accent-gradient)]` + `shadow-[var(--shadow-accent-glow)]` + hover brightness 1.08
+  - `secondary`：去掉 backdrop-blur，改用 border + bg-surface，hover 用 bg-active + border-focus（对齐设计稿 `.btn-secondary`）
+  - 高度：sm 26px / md 30px / lg 38px / icon 28×28（对齐设计稿 `.btn-sm` `.btn` `.btn-lg` `.btn-icon`）
+  - active scale 0.95 → 0.97（对齐设计稿）
+
+### 影响范围
+
+全局 Button 视觉跟随 `--color-accent` 自动派生：
+- 默认 dark/light 主题：accent 是蓝色 → 蓝色渐变按钮
+- aurora dark/light 主题：accent 是紫色 → 紫色渐变按钮（设计稿同款）
+
+### Verification
+
+- `tsc --noEmit` 通过，EXIT=0
+- 视觉验证待 han 在 dev server 中确认（SFTP / Settings / Connections / Terminal / Snippets 所有用到 Button 的页面）
+
+---
+
+## 2026-05-10 · 第四轮：Button 精确对齐设计稿
+
+### han 反馈
+
+按钮还是不像。原因双重：
+1. 项目默认 `uiTheme="classic"`（蓝色 accent），设计稿是 `aurora`（紫色 accent）。han 在 classic 下看，渐变色对不上是必然的。
+2. 之前用项目 token (`--radius-control`=10px, `--font-size-sm`=13) 对应设计稿 token (`--radius-md`=8px, `--fs-sm`=12)，每个维度都偏大一格。
+
+### 决策（han 拍板）
+
+- 主题默认值保持 classic 不变；han 手切 aurora 看效果。
+- Button 精确对齐设计稿尺寸/字号：
+  - 圆角 8px（设计稿 `--radius-md`），icon 6px（`--radius-sm`）
+  - 字号 11/12/14（设计稿 `--fs-xs/--fs-sm/--fs-md`）
+- aurora dark 主题下 primary 文字色用 #0E0F14（紫底深字，对齐设计稿"高级感"）；classic / light 默认仍是白字。
+
+### Changes
+
+- `Button.tsx`：default/secondary/ghost/danger 的 rounded 改 hardcoded 8px；icon 改 6px；字号改 11/12/14。
+- `styles.css` aurora dark `[data-theme="dark"][data-ui-theme="aurora"]` 块加 `--color-fg-on-accent: #0E0F14`。
+
+### Verification
+
+- `tsc --noEmit` 通过，EXIT=0
+- 视觉验证：han 切 aurora 主题后查看按钮
