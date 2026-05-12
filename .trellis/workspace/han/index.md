@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 6
-- **Last Active**: 2026-05-10
+- **Total Sessions**: 7
+- **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~211 | Active |
+| `journal-1.md` | ~345 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 7 | 2026-05-12 | Workflow macro detail UI alignment | `0977715` | `main` |
 | 6 | 2026-05-10 | Settings save-on-apply | `a29f61b`, `093f397`, `109f44b` | `main` |
 | 5 | 2026-05-10 | Dual-theme M1 + settings 微调主体落地 | `dcf2154` | `main` |
 | 4 | 2026-05-09 | 修复 Toast/Confirm 弹窗挤变形页面 | `e2b7a56`, `02c9ec9`, `203e587` | `main` |

@@ -310,3 +310,36 @@ Implemented strict settings draft mode with save-on-apply semantics, navigation/
 
 - `tsc --noEmit` 通过，EXIT=0
 - 视觉验证：han 切 aurora 主题后查看按钮
+
+
+## Session 7: Workflow macro detail UI alignment
+
+**Date**: 2026-05-12
+**Task**: Workflow macro detail UI alignment
+**Branch**: `main`
+
+### Summary
+
+Aligned the command macro workflow detail presentation with the UI design draft, including workflow action buttons and parameter input rows, while preserving existing create/edit/delete behavior.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0977715` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
