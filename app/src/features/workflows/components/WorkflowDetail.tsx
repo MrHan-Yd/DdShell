@@ -103,12 +103,12 @@ export function WorkflowDetail({
           </p>
         </div>
         <div className="wf-detail-actions flex flex-shrink-0 items-center gap-2">
-          <Button size="sm" variant="secondary" onClick={onEdit} title={t("workflows.editRecipe")}>
-            <Pencil size={14} />
+          <Button size="sm" className="workflow-action-button workflow-detail-primary-action" onClick={onEdit} title={t("workflows.editRecipe")}>
+            <Pencil size={13} />
             {t("workflows.editRecipe")}
           </Button>
-          <Button size="sm" variant="ghost" onClick={onDelete} title={t("workflows.deleteTitle")}>
-            <Trash2 size={14} className="text-[var(--color-error)]" />
+          <Button size="sm" variant="ghost" className="workflow-action-button workflow-detail-quiet-action" onClick={onDelete} title={t("workflows.deleteTitle")}>
+            <Trash2 size={13} />
             {t("workflows.deleteTitle")}
           </Button>
         </div>
@@ -117,31 +117,35 @@ export function WorkflowDetail({
       {/* Parameters */}
       {params.length > 0 && (
         <section className="workflow-section wf-section">
-          <div className="wf-section-head flex items-center gap-2 mb-3">
-            <Variable size={15} className="text-[var(--color-accent)]" />
+          <div className="wf-section-head flex items-center justify-between mb-3">
             <h3 className="section-title text-[var(--font-size-xs)] uppercase tracking-[0.08em] text-[var(--color-text-muted)] font-medium">
               {t("workflows.params")}
             </h3>
-            <span className="ml-auto text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-              {paramCount}
+            <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+              {paramCount} {t("workflows.params")}
             </span>
           </div>
-          <div className="wf-input-grid flex flex-col gap-2">
-            {params.map((param) => (
-              <div
-                key={param.key}
-                className="wf-input-row grid gap-2 rounded-[var(--radius-control)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] px-3 py-2 sm:grid-cols-[minmax(120px,auto)_1fr] sm:items-center"
-              >
-                <code className="text-[var(--font-size-xs)] font-mono text-[var(--color-accent)]">
-                  {`{{${param.key}}}`}
-                </code>
-                {param.defaultValue && (
-                  <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-                    = {param.defaultValue}
+          <div className="wf-input-grid">
+            {params.map((param) => {
+              const meta = [
+                param.required ? t("workflows.required") : null,
+                param.secret ? t("workflows.secretParam") : null,
+              ].filter(Boolean);
+
+              return (
+                <div key={param.key} className="wf-input-row workflow-param-row">
+                  <code className="var-key mono">
+                    {`{{${param.key}}}`}
+                  </code>
+                  <span className={param.defaultValue ? "var-default" : "var-default var-default-empty"}>
+                    {param.defaultValue || "—"}
                   </span>
-                )}
-              </div>
-            ))}
+                  <span className="var-desc">
+                    {meta.join(" · ")}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}

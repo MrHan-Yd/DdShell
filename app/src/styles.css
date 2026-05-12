@@ -2506,15 +2506,6 @@ input[type="number"] {
   color: var(--color-text-muted);
 }
 
-.workflow-detail-head .wf-detail-actions {
-  gap: 8px;
-}
-
-.workflow-detail-head .wf-detail-actions button {
-  height: 30px;
-  padding-inline: 12px;
-}
-
 .workflow-section {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface) 94%, white 3%), var(--color-bg-surface));
@@ -2867,12 +2858,50 @@ input[type="number"] {
   border-bottom: 0;
 }
 
+.workflow-detail-content .wf-input-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .workflow-detail-content .wf-input-row {
-  grid-template-columns: minmax(110px, auto) minmax(0, 1fr);
+  display: grid;
+  grid-template-columns: 110px minmax(140px, 200px) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
   min-height: 38px;
   padding: 8px 12px;
   border-radius: var(--radius-card);
   background: var(--color-bg-surface);
+  font-size: var(--font-size-sm);
+}
+
+.workflow-detail-content .wf-input-row .var-key {
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.workflow-detail-content .wf-input-row .var-default {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-detail-content .wf-input-row .var-default-empty,
+.workflow-detail-content .wf-input-row .var-desc {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+@media (max-width: 640px) {
+  .workflow-detail-content .wf-input-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
 }
 
 .workflow-detail-content .wf-steps,
@@ -3219,58 +3248,86 @@ input[type="number"] {
    .btn-ghost / .btn-sm / .btn-icon without touching Button.tsx.
    ══════════════════════════════════════════════════════ */
 
-/* Page header primary button ("New workflow") — accent gradient + glow */
-.workflow-page-header .actions > button:first-child {
+/* Page header action group — keep the single real action right-aligned like the draft. */
+.workflow-page-header .workflow-page-actions {
+  margin-left: auto;
+  align-self: center;
+  gap: 8px;
+  padding-right: 16px;
+}
+
+/* Workflow action buttons — match ui/styles/components.css .btn + .btn-sm density locally. */
+.workflow-page-header .workflow-action-button,
+.workflow-detail-head .workflow-action-button {
+  height: 26px;
+  min-height: 26px;
+  padding: 0 8px;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  border-radius: var(--radius-control);
+  transition: background var(--duration-fast) var(--ease-smooth),
+              color var(--duration-fast) var(--ease-smooth),
+              border-color var(--duration-fast) var(--ease-smooth),
+              box-shadow var(--duration-fast) var(--ease-smooth),
+              transform var(--duration-fast) var(--ease-smooth),
+              filter var(--duration-fast) var(--ease-smooth);
+}
+
+.workflow-page-header .workflow-action-button svg,
+.workflow-detail-head .workflow-action-button svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.workflow-page-header .workflow-action-button:active,
+.workflow-detail-head .workflow-action-button:active {
+  transform: scale(0.97);
+}
+
+/* Page header primary button ("New workflow") — accent gradient + draft .btn-sm sizing */
+.workflow-page-header .workflow-page-primary-action {
   background: var(--color-accent-gradient) !important;
   color: var(--color-fg-on-accent) !important;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset,
               0 6px 20px var(--color-accent-glow) !important;
   border: none !important;
 }
-.workflow-page-header .actions > button:first-child:hover {
+.workflow-page-header .workflow-page-primary-action:hover {
   filter: brightness(1.08);
 }
 
-/* Detail actions — button sizing & hover polish */
-.workflow-detail-head .wf-detail-actions button {
-  height: 26px;
-  padding-inline: 10px;
-  font-size: var(--font-size-xs);
-  border-radius: var(--radius-control);
-  transition: background var(--duration-fast) var(--ease-smooth),
-              color var(--duration-fast) var(--ease-smooth),
-              border-color var(--duration-fast) var(--ease-smooth),
-              box-shadow var(--duration-fast) var(--ease-smooth),
-              transform var(--duration-fast) var(--ease-smooth);
-}
-.workflow-detail-head .wf-detail-actions button:active {
-  transform: scale(0.97);
+/* Detail actions — action-group spacing and hover polish */
+.workflow-detail-head .wf-detail-actions {
+  align-self: flex-start;
+  gap: 8px;
 }
 
-/* Detail "Edit" (secondary) — surface bg + border per design .btn-secondary */
-.workflow-detail-head .wf-detail-actions button:nth-child(1) {
-  background: var(--color-bg-surface) !important;
-  border: 1px solid var(--color-border) !important;
-  color: var(--color-text-primary) !important;
-  box-shadow: none !important;
+/* Detail "Edit" is the only real primary action available in view mode. */
+.workflow-detail-head .workflow-detail-primary-action {
+  background: var(--color-accent-gradient) !important;
+  border: none !important;
+  color: var(--color-fg-on-accent) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset,
+              0 6px 20px var(--color-accent-glow) !important;
   backdrop-filter: none !important;
 }
-.workflow-detail-head .wf-detail-actions button:nth-child(1):hover {
-  background: var(--color-bg-active) !important;
-  border-color: var(--color-border) !important;
+.workflow-detail-head .workflow-detail-primary-action:hover {
+  filter: brightness(1.08);
 }
 
-/* Detail "Delete" (ghost) — transparent + muted per design .btn-ghost */
-.workflow-detail-head .wf-detail-actions button:nth-child(2) {
+/* Detail "Delete" stays available but visually quieter than edit. */
+.workflow-detail-head .workflow-detail-quiet-action {
   background: transparent !important;
   color: var(--color-text-secondary) !important;
   border: none !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
 }
-.workflow-detail-head .wf-detail-actions button:nth-child(2):hover {
+.workflow-detail-head .workflow-detail-quiet-action:hover {
   background: var(--color-bg-hover) !important;
-  color: var(--color-text-primary) !important;
+  color: var(--color-error) !important;
 }
 
 /* List toolbar icon buttons — 28×28 ghost icon per design .btn-icon.btn-ghost */

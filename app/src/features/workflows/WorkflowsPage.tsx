@@ -157,9 +157,9 @@ export function WorkflowsPage() {
             </p>
           )}
         </div>
-        <div className="actions flex items-center gap-2">
-          <Button size="sm" onClick={beginCreate}>
-            <Plus size={14} />
+        <div className="actions workflow-page-actions flex flex-shrink-0 items-center gap-2">
+          <Button size="sm" className="workflow-action-button workflow-page-primary-action" onClick={beginCreate}>
+            <Plus size={13} />
             {t("workflows.newRecipe")}
           </Button>
         </div>
