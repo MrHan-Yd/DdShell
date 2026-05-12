@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Pencil, Terminal, Trash2, Variable } from "lucide-react";
+import { Pencil, Trash2, Variable } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useT } from "@/lib/i18n";
 import { buildWorkflowPreviewValues, interpolateWorkflowCommand } from "@/stores/workflows";
@@ -26,10 +26,11 @@ function StepPipeline({
     <ol className="wf-steps workflow-steps-timeline mt-4">
       {steps.map((step, index) => {
         const preview = interpolateWorkflowCommand(step.command, previewValues);
+        const isFinalStep = index === steps.length - 1;
         return (
           <li
             key={step.id}
-            className="wf-step workflow-detail-step animate-list-item"
+            className={`wf-step workflow-detail-step ${isFinalStep ? "workflow-detail-step--visual-current" : "workflow-detail-step--visual-passed"} animate-list-item`}
             style={{ "--i": index } as React.CSSProperties}
           >
             <span className="wf-step-handle" aria-hidden="true" />
@@ -52,7 +53,7 @@ function StepPipeline({
                 </pre>
               </div>
               {preview !== step.command && preview !== "" && (
-                <div className="mt-3 rounded-[var(--radius-control)] border border-dashed border-[var(--color-accent)]/30 bg-[var(--color-accent-subtle)]/5 px-3 py-2">
+                <div className="wf-step-note workflow-step-preview mt-3 rounded-[var(--radius-control)] border border-dashed border-[var(--color-accent)]/30 bg-[var(--color-accent-subtle)]/5 px-3 py-2">
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <Variable size={10} className="text-[var(--color-accent)]" />
                     <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--color-accent)]">
@@ -153,11 +154,10 @@ export function WorkflowDetail({
       {/* Steps Pipeline */}
       <section className="workflow-section wf-section">
         <div className="wf-section-head flex items-center gap-2 mb-1">
-          <Terminal size={15} className="text-[var(--color-accent)]" />
           <h3 className="section-title text-[var(--font-size-xs)] uppercase tracking-[0.08em] text-[var(--color-text-muted)] font-medium">
             {t("workflows.steps")}
           </h3>
-          <span className="ml-auto text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+          <span className="workflow-detail-steps-count ml-auto text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
             {stepCount} {t("workflows.stepsCount")}
           </span>
         </div>

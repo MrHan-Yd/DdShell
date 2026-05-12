@@ -427,13 +427,15 @@ export function WorkflowEditor({
               </div>
             </div>
             <section className="workflow-editor-steps-section wf-section min-w-0 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 shadow-[var(--shadow-card)]">
-              <div className="wf-section-head mb-5 flex flex-col gap-3 border-b border-[var(--color-border)] pb-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="wf-section-head mb-5 flex flex-col gap-3 border-b border-[var(--color-border)] pb-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Terminal size={15} className="text-[var(--color-accent)]" />
                     <h3 className="text-[var(--font-size-base)] font-semibold text-[var(--color-text-primary)]">
                       {t("workflows.steps")}
                     </h3>
+                    <span className="workflow-editor-steps-count ml-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                      {draft.steps.length} {t("workflows.stepsCount")}
+                    </span>
                   </div>
                   <p className="mt-1 text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
                     {t("workflows.stepsHelper")}
@@ -503,6 +505,12 @@ export function WorkflowEditor({
                         </SortableWorkflowStep>
                       );
                     })}
+                    <div className="wf-step-add workflow-editor-step-add">
+                      <button type="button" className="wf-step-add-btn" onClick={addStep}>
+                        <Plus size={13} />
+                        {t("workflows.addStep")}
+                      </button>
+                    </div>
                   </div>
                 </SortableContext>
               </DndContext>
@@ -1051,15 +1059,15 @@ function StepCard(
       <div className="wf-step-body min-w-0">
         <div className="wf-step-head mb-3 flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Input
-            value={step.title}
-            onChange={(e) => onTitleChange(e.target.value)}
-            onFocus={onFocusStep}
-            placeholder={t("workflows.stepNumber", { n: index + 1 })}
-            className="wf-step-name h-8 border-none bg-transparent px-1 text-[var(--font-size-base)] font-semibold text-[var(--color-text-primary)] focus:bg-[var(--color-bg-elevated)]"
-          />
-        </div>
-        <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Input
+              value={step.title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              onFocus={onFocusStep}
+              placeholder={t("workflows.stepNumber", { n: index + 1 })}
+              className="wf-step-name h-8 border-none bg-transparent px-1 text-[var(--font-size-base)] font-semibold text-[var(--color-text-primary)] focus:bg-[var(--color-bg-elevated)]"
+            />
+          </div>
+          <div className="flex items-center justify-center gap-1">
             <button
               type="button"
               disabled={index === 0}
@@ -1095,36 +1103,36 @@ function StepCard(
               <Trash2 size={13} />
             </button>
           </div>
-      </div>
-
-      <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-        <span>{t("workflows.stepCommand")}</span>
-        <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg-base)] px-2 py-0.5 normal-case tracking-normal text-[11px]">
-          shell
-        </span>
-        {params.length > 0 && (
-          <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg-base)] px-2 py-0.5 normal-case tracking-normal text-[11px]">
-            {params.length} {t("workflows.params")}
-          </span>
-        )}
-      </div>
-
-      <div className="relative">
-        <textarea
-          ref={textareaRef}
-          value={step.command}
-          onChange={handleCommandChange}
-          onKeyDown={handleCommandKeyDown}
-          onFocus={onFocusStep}
-          rows={5}
-          placeholder={t("workflows.stepCommand")}
-          className="wf-command-editor w-full rounded-[var(--radius-control)] border border-[var(--color-border-subtle)] bg-[var(--color-bg-base)] px-3 py-2.5 text-[var(--font-size-sm)] text-[var(--color-text-primary)] font-mono leading-relaxed focus:border-[var(--color-accent)] focus:outline-none focus:shadow-[0_0_0_3px_rgba(59,130,246,0.1)] resize-none transition-colors duration-[var(--duration-fast)]"
-        />
-        <div className="pointer-events-none absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-40">
-          <Terminal size={12} className="text-[var(--color-text-muted)]" />
         </div>
 
-        {showVarHint && (
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+          <span>{t("workflows.stepCommand")}</span>
+          <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg-base)] px-2 py-0.5 normal-case tracking-normal text-[11px]">
+            shell
+          </span>
+          {params.length > 0 && (
+            <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg-base)] px-2 py-0.5 normal-case tracking-normal text-[11px]">
+              {params.length} {t("workflows.params")}
+            </span>
+          )}
+        </div>
+
+        <div className="relative">
+          <textarea
+            ref={textareaRef}
+            value={step.command}
+            onChange={handleCommandChange}
+            onKeyDown={handleCommandKeyDown}
+            onFocus={onFocusStep}
+            rows={5}
+            placeholder={t("workflows.stepCommand")}
+            className="wf-step-cmd wf-command-editor w-full focus:border-[var(--color-accent)] focus:outline-none resize-none transition-colors duration-[var(--duration-fast)]"
+          />
+          <div className="pointer-events-none absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-40">
+            <Terminal size={12} className="text-[var(--color-text-muted)]" />
+          </div>
+
+          {showVarHint && (
           <div className="relative z-10 mt-2 overflow-hidden rounded-[var(--radius-control)] border border-[var(--color-accent)]/35 bg-[var(--color-bg-base)] shadow-[0_16px_30px_rgba(0,0,0,0.35)]">
             <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-3 py-2 text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
               <Variable size={12} className="text-[var(--color-accent)]" />
@@ -1164,13 +1172,13 @@ function StepCard(
               </div>
             )}
           </div>
-        )}
+          )}
 
-        <p className="mt-2 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+          <p className="wf-step-note mt-2 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
           {t("workflows.stepCommandHint")}
-        </p>
+          </p>
 
-        {params.length > 0 && (
+          {params.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {params.map((param) => (
               <button
@@ -1183,11 +1191,11 @@ function StepCard(
               </button>
             ))}
           </div>
-        )}
-      </div>
-      
-      {hasPreview && preview && (
-        <div className="mt-3 rounded-[var(--radius-control)] border border-dashed border-[var(--color-accent)]/30 bg-[var(--color-accent-subtle)]/5 px-3 py-2">
+          )}
+        </div>
+
+        {hasPreview && preview && (
+          <div className="wf-step-note workflow-step-preview mt-3 rounded-[var(--radius-control)] border border-dashed border-[var(--color-accent)]/30 bg-[var(--color-accent-subtle)]/5 px-3 py-2">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Variable size={10} className="text-[var(--color-accent)]" />
             <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--color-accent)]">
@@ -1197,8 +1205,8 @@ function StepCard(
           <pre className="whitespace-pre-wrap break-all font-mono text-[var(--font-size-xs)] text-[var(--color-accent)] leading-relaxed">
             {preview}
           </pre>
-        </div>
-      )}
+          </div>
+        )}
       </div>
     </div>
   );
