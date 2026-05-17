@@ -343,3 +343,37 @@ Aligned the command macro workflow detail presentation with the UI design draft,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: Align workflow editor steps with design draft
+
+**Date**: 2026-05-17
+**Task**: Align workflow editor steps with design draft
+**Branch**: `main`
+
+### Summary
+
+完成命令宏（workflow）步骤页与设计稿 ui/workflows.html 的视觉对齐：编辑器移除冗余的顶部 Add step 按钮，统一使用底部虚线添加行；移除抽屉 tab 上的 count 标记；wf-step / wf-step-cmd / wf-step-add 视觉令牌与设计稿对齐，编辑器与只读详情步骤时间线视觉一致。验收前由 han（UI 设计师）确认无需进一步调整。同步在 .trellis/spec/frontend/component-guidelines.md 中记录「静态草图视觉对齐 + 不引入草图独有行为/伪状态」的规则。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `feae9c1` | (see git log) |
+| `ca49128` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

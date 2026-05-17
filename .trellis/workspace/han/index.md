@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
-- **Last Active**: 2026-05-12
+- **Total Sessions**: 8
+- **Last Active**: 2026-05-17
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~345 | Active |
+| `journal-1.md` | ~379 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-05-17 | Align workflow editor steps with design draft | `feae9c1`, `ca49128` | `main` |
 | 7 | 2026-05-12 | Workflow macro detail UI alignment | `0977715` | `main` |
 | 6 | 2026-05-10 | Settings save-on-apply | `a29f61b`, `093f397`, `109f44b` | `main` |
 | 5 | 2026-05-10 | Dual-theme M1 + settings 微调主体落地 | `dcf2154` | `main` |
