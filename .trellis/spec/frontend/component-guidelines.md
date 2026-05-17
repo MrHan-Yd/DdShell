@@ -86,6 +86,42 @@ Questions to answer:
 
 ---
 
+## Convention: Side drawer width animations must anchor fixed panels to the animated edge
+
+**What**: When a side drawer animates by changing the shell width and also uses `overflow: visible` for floating edge handles, keep the fixed-width drawer panel anchored to the shell edge that is moving. For a left-side drawer that expands rightward, align the panel to the shell's right edge; otherwise the full panel can appear immediately and the width transition will look broken.
+
+**Why**: Floating handles often require visible overflow. With visible overflow, a fixed-width child aligned to the wrong edge is no longer clipped by the animated shell, so users see the open state instantly even though the shell width is transitioning.
+
+**Example**:
+
+```css
+/* Wrong: the panel is left-aligned and becomes visible immediately. */
+.left-drawer-shell[data-state="open"] {
+  width: 280px;
+  overflow: visible;
+}
+
+/* Correct: the fixed panel follows the shell's animated right edge. */
+.left-drawer-shell[data-state="open"] {
+  display: flex;
+  justify-content: flex-end;
+  width: 280px;
+  overflow: visible;
+}
+
+.left-drawer-panel {
+  flex: 0 0 280px;
+}
+```
+
+**Required check**: For mirrored side drawers, compare both DOM order and CSS anchoring. Matching transition declarations are not enough; verify the panel is attached to the moving edge and that floating handles do not force the panel to bypass clipping.
+
+**Related**:
+- `app/src/features/workflows/components/WorkflowEditor.tsx`
+- `app/src/styles.css` drawer shell/panel styles
+
+---
+
 ## Convention: Update entry actions must preserve browser fallback
 
 **What**: Components that surface app update actions should treat in-app download/open as an enhancement over the existing GitHub releases path, not as a hard dependency.

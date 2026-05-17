@@ -2351,6 +2351,8 @@ input[type="number"] {
 
 /* Workflow left step drawer (desktop) */
 .step-drawer-shell {
+  display: flex;
+  justify-content: flex-end;
   width: 0;
   overflow: hidden;
   will-change: width;
@@ -2358,11 +2360,14 @@ input[type="number"] {
 }
 
 .step-drawer-shell[data-state="open"] {
-  width: 312px;
+  width: 280px;
+  overflow: visible;
 }
 
 .step-drawer-panel {
-  width: 312px;
+  position: relative;
+  flex: 0 0 280px;
+  width: 280px;
   opacity: 0;
   transition: opacity 120ms ease-in 160ms;
 }
@@ -2381,11 +2386,13 @@ input[type="number"] {
 }
 
 .param-drawer-shell[data-state="open"] {
-  width: 390px;
+  width: 350px;
+  overflow: visible;
 }
 
 .param-drawer-panel {
-  width: 390px;
+  position: relative;
+  width: 350px;
   opacity: 0;
   transition: opacity 120ms ease-in 160ms;
 }
@@ -2393,6 +2400,69 @@ input[type="number"] {
 .param-drawer-shell[data-state="open"] .param-drawer-panel {
   opacity: 1;
   transition: opacity 160ms ease-out 0ms;
+}
+
+.workflow-drawer-tab {
+  width: 28px;
+  min-width: 28px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  cursor: pointer;
+  border-color: color-mix(in srgb, var(--color-border) 70%, var(--color-text-muted));
+  box-shadow:
+    var(--border-hairline-inner),
+    var(--border-hairline-outer);
+}
+
+.workflow-drawer-tab[data-state="closed"] {
+  border-color: color-mix(in srgb, var(--color-border) 42%, var(--color-text-secondary));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-border) 52%, transparent),
+    var(--border-hairline-inner),
+    var(--border-hairline-outer);
+}
+
+.workflow-drawer-tab[data-state="open"] {
+  z-index: 30;
+  flex-shrink: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    var(--color-bg-elevated);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.28),
+    var(--border-hairline-inner),
+    var(--border-hairline-outer);
+}
+
+.workflow-drawer-tab--steps {
+  border-left-width: 0;
+  border-radius: 0 999px 999px 0;
+}
+
+.workflow-drawer-tab--params {
+  border-right-width: 0;
+  border-radius: 999px 0 0 999px;
+}
+
+.step-drawer-panel .workflow-drawer-tab--steps[data-state="open"] {
+  position: absolute;
+  top: 16px;
+  left: 100%;
+}
+
+.param-drawer-panel .workflow-drawer-tab--params[data-state="open"] {
+  position: absolute;
+  top: 16px;
+  right: 100%;
+}
+
+.workflow-drawer-tab--steps[data-state="open"] {
+  border-color: color-mix(in srgb, var(--color-border) 58%, var(--color-accent));
+}
+
+.workflow-drawer-tab--params[data-state="open"] {
+  border-color: color-mix(in srgb, var(--color-border) 58%, var(--color-text-muted));
 }
 
 /* Context menu smooth hover transition */
@@ -3005,6 +3075,12 @@ input[type="number"] {
   color: var(--color-success);
 }
 
+.workflow-editor-step:not([data-active="true"]) .wf-step-num {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--color-success) 16%, transparent);
+  color: var(--color-success);
+}
+
 .workflow-detail-step--visual-current {
   border-color: var(--color-accent);
   background: linear-gradient(135deg, var(--color-accent-subtle), transparent 62%), var(--color-bg-surface);
@@ -3089,7 +3165,7 @@ input[type="number"] {
   display: none;
 }
 
-.workflow-editor-step-add {
+.workflow-editor-add-row {
   position: relative;
   z-index: 1;
   display: flex;
@@ -3097,7 +3173,7 @@ input[type="number"] {
   margin-top: 12px;
 }
 
-.workflow-editor-step-add .wf-step-add-btn {
+.workflow-editor-add-row .wf-step-add-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -3112,7 +3188,7 @@ input[type="number"] {
               color var(--duration-fast) var(--ease-smooth);
 }
 
-.workflow-editor-step-add .wf-step-add-btn:hover {
+.workflow-editor-add-row .wf-step-add-btn:hover {
   border-color: var(--color-accent);
   background: var(--color-accent-subtle);
   color: var(--color-accent);

@@ -191,10 +191,6 @@ export function WorkflowEditor({
             {draft.steps.length} {t("workflows.stepsCount")}
           </p>
         </div>
-        <Button size="sm" variant="ghost" onClick={addStep}>
-          <Plus size={14} />
-          {t("workflows.addStep")}
-        </Button>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleNavSortEnd}>
@@ -444,10 +440,6 @@ export function WorkflowEditor({
                     <p className="mt-2 text-[var(--font-size-xs)] text-[var(--color-error)]">{t(validation.message as never)}</p>
                   )}
                 </div>
-                <Button size="sm" onClick={addStep}>
-                  <Plus size={14} />
-                  {t("workflows.addStep")}
-                </Button>
               </div>
 
               <DndContext sensors={sensors} collisionDetection={editorCollisionDetection} onDragEnd={handleEditorSortEnd}>
@@ -505,7 +497,7 @@ export function WorkflowEditor({
                         </SortableWorkflowStep>
                       );
                     })}
-                    <div className="wf-step-add workflow-editor-step-add">
+                    <div className="wf-step-add workflow-editor-add-row workflow-editor-step-add">
                       <button type="button" className="wf-step-add-btn" onClick={addStep}>
                         <Plus size={13} />
                         {t("workflows.addStep")}
@@ -521,13 +513,6 @@ export function WorkflowEditor({
 
       <div className="pointer-events-none absolute left-0 top-24 bottom-24 z-20 hidden lg:flex items-start">
         <div ref={stepLayerRef} className="pointer-events-auto flex items-start pt-4">
-          {activeSideLayer !== "steps" && (
-            <StepDrawerTab
-              open={false}
-              count={draft.steps.length}
-              onClick={() => openSideLayer("steps")}
-            />
-          )}
           <div
             className="step-drawer-shell"
             data-state={activeSideLayer === "steps" ? "open" : "closed"}
@@ -538,11 +523,16 @@ export function WorkflowEditor({
               </div>
               <StepDrawerTab
                 open
-                count={draft.steps.length}
                 onClick={closeSideLayer}
               />
             </div>
           </div>
+          {activeSideLayer !== "steps" && (
+            <StepDrawerTab
+              open={false}
+              onClick={() => openSideLayer("steps")}
+            />
+          )}
         </div>
       </div>
 
@@ -555,7 +545,6 @@ export function WorkflowEditor({
             <div className="param-drawer-panel flex items-start">
               <ParamDrawerTab
                 open
-                count={draft.params.length}
                 onClick={closeSideLayer}
               />
               <div className="min-w-0 flex-1">
@@ -571,7 +560,6 @@ export function WorkflowEditor({
           {activeSideLayer !== "params" && (
             <ParamDrawerTab
               open={false}
-              count={draft.params.length}
               onClick={() => openSideLayer("params")}
             />
           )}
@@ -617,11 +605,9 @@ export function WorkflowEditor({
 
 function StepDrawerTab({
   open,
-  count,
   onClick,
 }: {
   open: boolean;
-  count: number;
   onClick: () => void;
 }) {
   const t = useT();
@@ -631,60 +617,26 @@ function StepDrawerTab({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative z-10 flex w-10 min-h-[136px] flex-col items-center justify-center gap-2 self-start rounded-r-[var(--radius-control)] border border-l-0 px-1.5 py-3 transition-all duration-150",
+        "workflow-drawer-tab workflow-drawer-tab--steps relative z-10 inline-flex items-center justify-center self-start border transition-all duration-150",
         open
-          ? "border-[var(--color-accent)]/24 bg-[var(--color-bg-surface)] text-[var(--color-accent)]"
-          : "border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)),var(--color-bg-surface)] text-[var(--color-text-muted)] hover:-translate-x-0.5 hover:border-[var(--color-accent)]/20 hover:bg-[linear-gradient(180deg,rgba(59,130,246,0.12),rgba(59,130,246,0.04)),var(--color-bg-hover)] hover:text-[var(--color-text-secondary)]",
+          ? "border-[var(--color-accent)]/30 bg-[var(--color-bg-elevated)] text-[var(--color-accent)]"
+          : "border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)),var(--color-bg-surface)] text-[var(--color-text-muted)] hover:-translate-x-0.5 hover:border-[var(--color-accent)]/30 hover:bg-[linear-gradient(180deg,rgba(59,130,246,0.12),rgba(59,130,246,0.04)),var(--color-bg-hover)] hover:text-[var(--color-accent)]",
       )}
+      data-state={open ? "open" : "closed"}
       title={open ? t("workflows.hideStepNavigator") : t("workflows.showStepNavigator")}
       aria-label={open ? t("workflows.hideStepNavigator") : t("workflows.showStepNavigator")}
       aria-expanded={open}
     >
-      {open && <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-[var(--color-accent)]" />}
-      <div className={cn(
-        "flex h-7 w-7 items-center justify-center rounded-full border transition-colors",
-        open
-          ? "border-[var(--color-accent)]/25 bg-[var(--color-accent)]/12 text-[var(--color-accent)]"
-          : "border-[var(--color-border)] bg-[var(--color-bg-base)]/70 text-[var(--color-text-muted)]",
-      )}>
-        <Terminal size={14} />
-      </div>
-      <span
-        className={cn(
-          "text-[11px] font-semibold tracking-[0.12em] uppercase",
-          open ? "text-[var(--color-accent)]" : "text-[var(--color-text-secondary)]",
-        )}
-        style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
-      >
-        {t("workflows.stepNavigatorShort")}
-      </span>
-      <span className={cn(
-        "rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
-        open
-          ? "border-[var(--color-accent)]/22 bg-[var(--color-bg-base)] text-[var(--color-accent)]"
-          : "border-[var(--color-border)] bg-[var(--color-bg-base)] text-[var(--color-text-secondary)]",
-      )}>
-        {count}
-      </span>
-      <div className={cn(
-        "flex h-6 w-6 items-center justify-center rounded-full transition-colors",
-        open
-          ? "bg-[var(--color-bg-base)] text-[var(--color-accent)]"
-          : "bg-[var(--color-bg-base)]/70 text-[var(--color-text-secondary)]",
-      )}>
-        {open ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-      </div>
+      <Terminal size={14} />
     </button>
   );
 }
 
 function ParamDrawerTab({
   open,
-  count,
   onClick,
 }: {
   open: boolean;
-  count: number;
   onClick: () => void;
 }) {
   const t = useT();
@@ -694,49 +646,17 @@ function ParamDrawerTab({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative z-10 flex w-10 min-h-[136px] flex-col items-center justify-center gap-2 self-start rounded-bl-[var(--radius-control)] rounded-tl-[var(--radius-control)] border border-r-0 px-1.5 py-3 transition-all duration-150",
+        "workflow-drawer-tab workflow-drawer-tab--params relative z-10 inline-flex items-center justify-center self-start border transition-all duration-150",
         open
-          ? "border-[var(--color-text-muted)]/24 bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)]"
-          : "border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)),var(--color-bg-surface)] text-[var(--color-text-muted)] hover:translate-x-0.5 hover:border-[var(--color-accent)]/20 hover:bg-[linear-gradient(180deg,rgba(59,130,246,0.12),rgba(59,130,246,0.04)),var(--color-bg-hover)] hover:text-[var(--color-text-secondary)]",
+          ? "border-[var(--color-text-muted)]/30 bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)]"
+          : "border-[var(--color-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)),var(--color-bg-surface)] text-[var(--color-text-muted)] hover:translate-x-0.5 hover:border-[var(--color-accent)]/30 hover:bg-[linear-gradient(180deg,rgba(59,130,246,0.12),rgba(59,130,246,0.04)),var(--color-bg-hover)] hover:text-[var(--color-text-secondary)]",
       )}
+      data-state={open ? "open" : "closed"}
       title={open ? t("workflows.hideParamsInspector") : t("workflows.showParamsInspector")}
       aria-label={open ? t("workflows.hideParamsInspector") : t("workflows.showParamsInspector")}
       aria-expanded={open}
     >
-      {open && <span className="absolute inset-y-2 right-0 w-[2px] rounded-l-full bg-[var(--color-text-muted)]" />}
-      <div className={cn(
-        "flex h-7 w-7 items-center justify-center rounded-full border transition-colors",
-        open
-          ? "border-[var(--color-border)] bg-[var(--color-bg-base)] text-[var(--color-text-secondary)]"
-          : "border-[var(--color-border)] bg-[var(--color-bg-base)]/70 text-[var(--color-text-muted)]",
-      )}>
-        <Settings2 size={14} />
-      </div>
-      <span
-        className={cn(
-          "text-[11px] font-semibold tracking-[0.12em] uppercase",
-          open ? "text-[var(--color-text-secondary)]" : "text-[var(--color-text-muted)]",
-        )}
-        style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
-      >
-        {t("workflows.paramInspectorShort")}
-      </span>
-      <span className={cn(
-        "rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
-        open
-          ? "border-[var(--color-border)] bg-[var(--color-bg-base)] text-[var(--color-text-secondary)]"
-          : "border-[var(--color-border)] bg-[var(--color-bg-base)] text-[var(--color-text-muted)]",
-      )}>
-        {count}
-      </span>
-      <div className={cn(
-        "flex h-6 w-6 items-center justify-center rounded-full transition-colors",
-        open
-          ? "bg-[var(--color-bg-base)] text-[var(--color-text-secondary)]"
-          : "bg-[var(--color-bg-base)]/70 text-[var(--color-text-muted)]",
-      )}>
-        {open ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </div>
+      <Settings2 size={14} />
     </button>
   );
 }
@@ -1273,10 +1193,12 @@ function ParamInspectorPanel({
           <div className="rounded-[var(--radius-control)] border border-dashed border-[var(--color-border)] bg-[var(--color-bg-base)]/30 px-4 py-6 text-center">
             <Variable size={22} className="mx-auto mb-2 text-[var(--color-text-muted)] opacity-50" />
             <p className="text-[var(--font-size-sm)] text-[var(--color-text-muted)]">{t("workflows.noParams")}</p>
-            <Button size="sm" variant="ghost" className="mt-3" onClick={addParam}>
-              <Plus size={14} />
-              {t("workflows.addFirstParam")}
-            </Button>
+            <div className="wf-step-add workflow-editor-add-row mt-3">
+              <button type="button" className="wf-step-add-btn" onClick={addParam}>
+                <Plus size={13} />
+                {t("workflows.addFirstParam")}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -1325,14 +1247,16 @@ function ParamInspectorPanel({
                 </div>
               );
             })}
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-control)] border border-dashed border-[var(--color-border)] px-3 py-2.5 text-[var(--font-size-sm)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-              onClick={addParam}
-            >
-              <Plus size={14} />
-              {t("workflows.addParam")}
-            </button>
+            <div className="wf-step-add workflow-editor-add-row">
+              <button
+                type="button"
+                className="wf-step-add-btn w-full justify-center"
+                onClick={addParam}
+              >
+                <Plus size={13} />
+                {t("workflows.addParam")}
+              </button>
+            </div>
           </div>
         )}
       </div>
