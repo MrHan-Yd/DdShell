@@ -627,6 +627,9 @@ const dict = {
   "snippets.selectAll": { zh: "全选", en: "Select All" },
   "snippets.batchSelect": { zh: "多选", en: "Select" },
   "snippets.cancelSelect": { zh: "取消选择", en: "Cancel" },
+  "snippets.allSnippets": { zh: "全部片段", en: "All snippets" },
+  "snippets.libraryHeading": { zh: "库", en: "Library" },
+  "snippets.groupsHeading": { zh: "分组", en: "Groups" },
 
   // ── WorkflowsPage ──
   "workflows.title": { zh: "命令宏", en: "Macros" },

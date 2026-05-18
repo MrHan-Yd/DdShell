@@ -46,6 +46,27 @@ Questions to answer:
 
 Overlay components must have a semantic class name (e.g. `toast-overlay`, `confirm-overlay`) so they can be targeted by `:not()` selectors.
 
+### Don't: `t(key) || "fallback"` to bypass i18n key typecheck
+
+```tsx
+// Don't do this
+<span>{t("snippets.allSnippets") || "All snippets"}</span>
+<span>{t("snippets.libraryHeading" as DictKey) || "Library"}</span>
+```
+
+**Why it's bad**: `t()` is typed as `t(key: DictKey, ...)` where `DictKey = keyof typeof dict` — a literal union of registered keys. Calling `t("not.registered")` should be a compile error so missing keys are caught at build time. Two patterns silently defeat this:
+
+1. `t("foo.bar") || "fallback"` — when `"foo.bar"` is not in `dict`, the call may still typecheck (the union narrows) but at runtime `t` returns the key itself, and the `||` masks the regression in dev. The build went red mid-task because of unregistered keys, and the `|| fallback` made it look like a "safe default" rather than a missing-key bug.
+2. `t("foo.bar" as DictKey)` / `t("foo.bar" as any)` — explicit assertion that throws the type system away.
+
+**Instead**:
+
+1. Register the key in `app/src/lib/i18n.ts` `dict` (both `zh` and `en` entries) **before** using it in any component.
+2. Call `t("foo.bar")` with no fallback. If TS complains, the key is missing — fix it at the source, not at the call site.
+3. If a string is genuinely runtime-dynamic (not a registered key), don't pretend `t()` handles it — render the plain string directly with a comment.
+
+This contract makes "missing i18n key" a build-time error, the way the type system intends.
+
 ---
 
 ## Required Patterns
