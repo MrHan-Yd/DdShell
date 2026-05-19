@@ -85,14 +85,16 @@ function SnippetForm({
         <label className="snip-form-label">
           {t("snippets.formCommand")}
         </label>
-        <textarea
-          value={command}
-          onChange={(e) => setCommand(e.target.value)}
-          placeholder={t("snippets.placeholderCommand")}
-          required
-          rows={4}
-          className="snip-form-cmd"
-        />
+        <div className="snip-form-cmd-glow">
+          <textarea
+            value={command}
+            onChange={(e) => setCommand(e.target.value)}
+            placeholder={t("snippets.placeholderCommand")}
+            required
+            rows={4}
+            className="snip-form-cmd"
+          />
+        </div>
       </div>
       <div>
         <label className="snip-form-label">

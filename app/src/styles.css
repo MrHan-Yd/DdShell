@@ -4726,19 +4726,26 @@ input[type="number"] {
   margin-bottom: 6px;
 }
 
+.snippets-shell .snip-form-cmd-glow {
+  padding: 1px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.18) 0%, rgba(103, 232, 249, 0.18) 100%);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.08), 0 12px 36px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+}
+
 .snippets-shell .snip-form-cmd {
   width: 100%;
+  padding: 14px 16px;
   background: rgba(11, 12, 18, 0.96);
   color: #E8E9F1;
-  border: 1px solid rgba(167, 139, 250, 0.16);
-  border-radius: 8px;
-  padding: 14px 16px;
+  border: none;
+  border-radius: 7px;
   font-family: var(--font-mono);
   font-size: var(--font-size-base);
   line-height: 1.6;
   resize: vertical;
   outline: none;
-  transition: border-color var(--duration-fast) var(--ease-smooth), box-shadow var(--duration-fast) var(--ease-smooth);
 }
 
 .snippets-shell .snip-form-cmd::placeholder {
@@ -4746,8 +4753,12 @@ input[type="number"] {
 }
 
 .snippets-shell .snip-form-cmd:focus {
-  border-color: rgba(167, 139, 250, 0.32);
-  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.08);
+  box-shadow: none;
+}
+
+.snippets-shell .snip-form-cmd-glow:focus-within {
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.32) 0%, rgba(103, 232, 249, 0.32) 100%);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.08), 0 12px 36px rgba(0, 0, 0, 0.32);
 }
 
 .snippets-shell .snip-form-actions {
@@ -4759,12 +4770,15 @@ input[type="number"] {
   margin-top: 8px;
 }
 
-[data-theme="light"] .snippets-shell .snip-form-cmd {
-  background: #14151B;
-  border-color: rgba(124, 58, 237, 0.18);
+[data-theme="light"] .snippets-shell .snip-form-cmd-glow {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.10) 0%, rgba(14, 165, 233, 0.10) 100%);
 }
 
-[data-theme="light"] .snippets-shell .snip-form-cmd:focus {
-  border-color: rgba(124, 58, 237, 0.32);
-  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.08);
+[data-theme="light"] .snippets-shell .snip-form-cmd {
+  background: #14151B;
+}
+
+[data-theme="light"] .snippets-shell .snip-form-cmd-glow:focus-within {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.18) 0%, rgba(14, 165, 233, 0.18) 100%);
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.08), 0 12px 36px rgba(0, 0, 0, 0.32);
 }
