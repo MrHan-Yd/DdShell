@@ -4317,7 +4317,7 @@ input[type="number"] {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid transparent;
-  border-radius: var(--radius-control);
+  border-radius: 8px;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -4443,7 +4443,7 @@ input[type="number"] {
   padding: 12px;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-card);
+  border-radius: 8px;
   text-align: left;
   cursor: pointer;
   color: inherit;
@@ -4499,7 +4499,7 @@ input[type="number"] {
 .snippets-shell .snip-card-title {
   flex: 1;
   min-width: 0;
-  font-size: var(--font-size-sm);
+  font-size: 12px;
   font-weight: 500;
   color: var(--color-text-primary);
   overflow: hidden;
@@ -4554,14 +4554,14 @@ input[type="number"] {
   min-height: 0;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 60% 30% at 80% 0%, color-mix(in srgb, var(--color-accent-subtle) 82%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 30% at 80% 0%, var(--color-accent-subtle), transparent 70%),
     var(--color-bg-base);
 }
 
 .snippets-shell .snip-detail-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 28px;
+  padding: 32px;
 }
 
 .snippets-shell .snip-detail-head {
@@ -4569,11 +4569,11 @@ input[type="number"] {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .snippets-shell .snip-detail-title {
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--color-text-primary);
@@ -4617,10 +4617,10 @@ input[type="number"] {
 
 .snippets-shell .snip-cmd-block {
   margin-bottom: 24px;
-  border-radius: var(--radius-card);
-  background: rgba(11, 12, 18, 0.96);
-  border: 1px solid rgba(167, 139, 250, 0.16);
-  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.08), 0 12px 36px rgba(0, 0, 0, 0.32);
+  border-radius: 8px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(103, 232, 249, 0.18) 100%);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.08), 0 12px 36px rgba(0, 0, 0, 0.32);
   overflow: hidden;
 }
 
@@ -4630,6 +4630,7 @@ input[type="number"] {
   justify-content: flex-end;
   padding: 8px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(11, 12, 18, 0.96);
 }
 
 .snippets-shell .snip-cmd-block pre {
@@ -4641,6 +4642,7 @@ input[type="number"] {
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
+  background: rgba(11, 12, 18, 0.96);
 }
 
 .snippets-shell .snip-detail-meta {
@@ -4662,8 +4664,12 @@ input[type="number"] {
 }
 
 [data-theme="light"] .snippets-shell .snip-cmd-block {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.10) 0%, rgba(14, 165, 233, 0.10) 100%);
+}
+
+[data-theme="light"] .snippets-shell .snip-cmd-block-head,
+[data-theme="light"] .snippets-shell .snip-cmd-block pre {
   background: #14151B;
-  border-color: rgba(124, 58, 237, 0.18);
 }
 
 [data-theme="light"] .snippets-shell .snip-card.is-active .snip-card-preview {
@@ -4700,8 +4706,8 @@ input[type="number"] {
   width: 100%;
   background: rgba(11, 12, 18, 0.96);
   color: #E8E9F1;
-  border: 1px solid rgba(167, 139, 250, 0.16);
-  border-radius: var(--radius-card);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 8px;
   padding: 14px 16px;
   font-family: var(--font-mono);
   font-size: var(--font-size-base);
@@ -4716,8 +4722,8 @@ input[type="number"] {
 }
 
 .snippets-shell .snip-form-cmd:focus {
-  border-color: rgba(167, 139, 250, 0.32);
-  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.08);
+  border-color: rgba(59, 130, 246, 0.32);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.08);
 }
 
 .snippets-shell .snip-form-actions {
@@ -4732,4 +4738,9 @@ input[type="number"] {
 [data-theme="light"] .snippets-shell .snip-form-cmd {
   background: #14151B;
   border-color: rgba(124, 58, 237, 0.18);
+}
+
+[data-theme="light"] .snippets-shell .snip-form-cmd:focus {
+  border-color: rgba(124, 58, 237, 0.32);
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.08);
 }
