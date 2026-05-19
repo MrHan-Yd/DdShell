@@ -4,7 +4,7 @@ import {
   Search,
   Code2,
   Trash2,
-  Pencil,
+  PenLine,
   Copy,
   FolderPlus,
   Folder,
@@ -15,6 +15,7 @@ import {
   Check,
   ListChecks,
   Star,
+  StarOff,
 } from "lucide-react";
 import { ContextMenu, useContextMenu } from "@/components/ui/ContextMenu";
 import type { MenuItem } from "@/components/ui/ContextMenu";
@@ -148,6 +149,8 @@ function SnippetCard({
   onToggleSelect,
   onMouseDown,
   isDragging = false,
+  faved = false,
+  onToggleFav,
 }: {
   snippet: Snippet;
   selected: boolean;
@@ -158,6 +161,8 @@ function SnippetCard({
   onToggleSelect?: () => void;
   onMouseDown?: (e: React.MouseEvent) => void;
   isDragging?: boolean;
+  faved?: boolean;
+  onToggleFav?: () => void;
 }) {
   return (
     <button
@@ -182,8 +187,8 @@ function SnippetCard({
           </span>
         )}
         <span className="snip-card-title">{snippet.title}</span>
-        <span className="snip-card-fav">
-          <Star size={11} fill="currentColor" />
+        <span className={cn("snip-card-fav", faved && "is-faved")} onClick={(e) => { e.stopPropagation(); onToggleFav?.(); }}>
+          {faved ? <Star size={11} fill="currentColor" /> : <StarOff size={11} />}
         </span>
       </div>
       <pre className="snip-card-preview">{snippet.command}</pre>
@@ -204,10 +209,14 @@ function SnippetDetail({
   snippet,
   onEdit,
   onDelete,
+  faved = false,
+  onToggleFav,
 }: {
   snippet: Snippet;
   onEdit: () => void;
   onDelete: () => void;
+  faved?: boolean;
+  onToggleFav?: () => void;
 }) {
   const t = useT();
   const [copied, setCopied] = useState(false);
@@ -237,11 +246,15 @@ function SnippetDetail({
           )}
         </div>
         <div className="snip-detail-actions">
-          <Button size="icon" variant="ghost" title={t("snippets.favorite")}>
-            <Star size={14} strokeWidth={1.8} fill="currentColor" className="text-[var(--color-warning)]" />
+          <Button size="icon" variant="ghost" onClick={onToggleFav} title={faved ? t("snippets.unfavorite") : t("snippets.favorite")}>
+            {faved ? (
+              <Star size={14} strokeWidth={1.8} fill="currentColor" className="text-[var(--color-warning)]" />
+            ) : (
+              <StarOff size={14} strokeWidth={1.8} />
+            )}
           </Button>
           <Button size="icon" variant="ghost" onClick={onEdit} title={t("snippets.editSnippet")}>
-            <Pencil size={14} strokeWidth={1.8} />
+            <PenLine size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteSnippet")}>
             <Trash2 size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
@@ -419,7 +432,7 @@ function GroupDetail({
         </div>
         <div className="snip-detail-actions">
           <Button size="icon" variant="ghost" onClick={onRename} title={t("snippets.renameGroup")}>
-            <Pencil size={14} strokeWidth={1.8} />
+            <PenLine size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteGroup")}>
             <Trash2 size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
@@ -478,6 +491,7 @@ export function SnippetsPage() {
   const [moveTargetSnippetId, setMoveTargetSnippetId] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [favSnippetIds, setFavSnippetIds] = useState<Set<string>>(() => new Set());
   const [showUngrouped, setShowUngrouped] = useState(false);
   const newGroupInputRef = useRef<HTMLInputElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -565,7 +579,7 @@ export function SnippetsPage() {
     ? [
         {
           label: t("snippets.renameGroup"),
-          icon: <Pencil size={14} strokeWidth={1.8} />,
+          icon: <PenLine size={14} strokeWidth={1.8} />,
           onClick: () => setRenamingGroupId(groupMenuState.data.id),
         },
         {
@@ -588,7 +602,7 @@ export function SnippetsPage() {
     ? [
         {
           label: t("snippets.editSnippet"),
-          icon: <Pencil size={14} strokeWidth={1.8} />,
+          icon: <PenLine size={14} strokeWidth={1.8} />,
           onClick: () => {
             setEditingSnippet(menuState.data);
             setSelectedSnippetId(menuState.data.id);
@@ -632,6 +646,15 @@ export function SnippetsPage() {
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleFav = (id: string) => {
+    setFavSnippetIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -748,6 +771,8 @@ export function SnippetsPage() {
     onContextMenu: (e: React.MouseEvent) => onContextMenu(e, s),
     onMouseDown: !selectionMode ? (e: React.MouseEvent) => handleSnippetMouseDown(e, s.id) : undefined,
     isDragging: dragSnippetId === s.id,
+    faved: favSnippetIds.has(s.id),
+    onToggleFav: () => toggleFav(s.id),
   });
 
   const isAllActive = selectedGroupId === null && !showUngrouped;
@@ -988,6 +1013,8 @@ export function SnippetsPage() {
             <div key="detail" className="animate-fade-in-up">
               <SnippetDetail
                 snippet={selectedSnippet}
+                faved={favSnippetIds.has(selectedSnippet.id)}
+                onToggleFav={() => toggleFav(selectedSnippet.id)}
                 onEdit={() => {
                   setEditingSnippet(selectedSnippet);
                   setShowForm(true);

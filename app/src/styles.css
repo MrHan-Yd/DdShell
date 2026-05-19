@@ -4510,15 +4510,25 @@ input[type="number"] {
 .snippets-shell .snip-card-fav {
   display: inline-flex;
   align-items: center;
-  color: var(--color-warning);
+  color: var(--color-text-muted);
   flex-shrink: 0;
   margin-left: 4px;
-  opacity: 0.5;
-  transition: opacity 0.15s;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  cursor: pointer;
 }
 
 .snippets-shell .snip-card:hover .snip-card-fav {
   opacity: 1;
+}
+
+.snippets-shell .snip-card-fav.is-faved {
+  opacity: 1;
+  color: var(--color-warning);
+}
+
+.snippets-shell .snip-card-fav:hover {
+  color: var(--color-warning);
 }
 
 .snippets-shell .snip-card-preview {

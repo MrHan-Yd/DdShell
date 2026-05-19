@@ -631,6 +631,7 @@ const dict = {
   "snippets.libraryHeading": { zh: "库", en: "Library" },
   "snippets.groupsHeading": { zh: "分组", en: "Groups" },
   "snippets.favorite": { zh: "收藏", en: "Favorite" },
+  "snippets.unfavorite": { zh: "取消收藏", en: "Unfavorite" },
 
   // ── WorkflowsPage ──
   "workflows.title": { zh: "命令宏", en: "Macros" },
