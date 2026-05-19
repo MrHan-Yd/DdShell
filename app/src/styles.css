@@ -2465,8 +2465,47 @@ input[type="number"] {
   border-color: color-mix(in srgb, var(--color-border) 58%, var(--color-text-muted));
 }
 
-/* Context menu smooth hover transition */
+/* Context menu — popover-aligned styling with accent gradient border */
+.context-menu {
+  min-width: 200px;
+  padding: 1px;
+  background: var(--accent-gradient-soft, linear-gradient(135deg, rgba(167,139,250,0.18), rgba(103,232,249,0.18)));
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.28), 0 16px 40px rgba(0, 0, 0, 0.44);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.context-menu-inner {
+  background: var(--color-bg-surface);
+  border-radius: 11px;
+  padding: 6px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="light"] .context-menu {
+  box-shadow: 0 4px 12px rgba(20, 21, 27, 0.10), 0 24px 48px rgba(20, 21, 27, 0.12);
+}
+
+.context-menu-highlight {
+  background: var(--color-accent-subtle);
+  border-radius: var(--radius-control);
+  transition: top 150ms var(--ease-smooth), height 150ms var(--ease-smooth);
+}
+
+.context-menu-separator {
+  margin: 8px 0;
+  border-top: 1px solid var(--color-border);
+}
+
 .context-menu-item {
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: var(--font-size-sm);
+  gap: 10px;
+  border-radius: var(--radius-control);
   transition: background-color 80ms var(--ease-smooth);
 }
 

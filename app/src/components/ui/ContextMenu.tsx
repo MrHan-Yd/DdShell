@@ -110,33 +110,33 @@ export function ContextMenu({ x, y, items, onClose, containerRef }: ContextMenuP
       <div className="fixed inset-0 z-40" onContextMenu={(e) => { e.preventDefault(); handleClose(); }} />
       <div
         ref={menuRef}
-        className={`absolute z-50 min-w-[180px] py-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg shadow-lg ${closing ? "animate-context-menu-exit" : "animate-context-menu"}`}
+        className={`context-menu absolute z-50 ${closing ? "animate-context-menu-exit" : "animate-context-menu"}`}
         style={{ left: pos.x, top: pos.y }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Sliding highlight */}
-        <div
-          data-menu-highlight
-          className="absolute left-0.5 right-0.5 bg-[var(--color-bg-hover)] rounded pointer-events-none"
-          style={{ transition: 'top 150ms var(--ease-smooth), height 150ms var(--ease-smooth)' }}
-        />
+        <div className="context-menu-inner">
+          {/* Sliding highlight */}
+          <div
+            data-menu-highlight
+            className="context-menu-highlight absolute left-0.5 right-0.5 pointer-events-none"
+          />
 
-        {(() => {
-          let staggerIdx = 0;
-          return items.map((item, i) => {
-          if ("type" in item && item.type === "separator") {
-            return <div key={`sep-${i}`} className="my-1 border-t border-[var(--color-border)]" />;
-          }
+          {(() => {
+            let staggerIdx = 0;
+            return items.map((item, i) => {
+            if ("type" in item && item.type === "separator") {
+              return <div key={`sep-${i}`} className="context-menu-separator" />;
+            }
 
-          const menuItem = item as ContextMenuItem;
-          const idx = staggerIdx++;
-          return (
-            <button
-              key={`item-${i}`}
-              data-menu-item
-              disabled={menuItem.disabled}
-              className={[
-                "w-full px-3 py-1.5 text-left text-[var(--font-size-sm)] flex items-center gap-2 relative z-10 transition-colors",
+            const menuItem = item as ContextMenuItem;
+            const idx = staggerIdx++;
+            return (
+              <button
+                key={`item-${i}`}
+                data-menu-item
+                disabled={menuItem.disabled}
+                className={[
+                  "context-menu-item w-full flex items-center relative z-10",
                 !closing && "animate-menu-item",
                 menuItem.disabled
                   ? "opacity-40 cursor-not-allowed"
@@ -163,7 +163,8 @@ export function ContextMenu({ x, y, items, onClose, containerRef }: ContextMenuP
             </button>
           );
           });
-        })()}
+          })()}
+        </div>
       </div>
     </>
   );
