@@ -4315,7 +4315,7 @@ input[type="number"] {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 6px 8px;
+  padding: 8px 12px;
   border: 1px solid transparent;
   border-radius: var(--radius-control);
   font-size: var(--font-size-sm);
@@ -4366,10 +4366,6 @@ input[type="number"] {
   margin-left: auto;
   font-size: 10px;
   color: var(--color-text-muted);
-  background: var(--color-bg-elevated);
-  border-radius: 999px;
-  padding: 1px 8px;
-  letter-spacing: 0;
 }
 
 .snippets-shell .snip-nav-rename {
@@ -4447,7 +4443,7 @@ input[type="number"] {
   padding: 12px;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-card);
   text-align: left;
   cursor: pointer;
   color: inherit;
@@ -4577,7 +4573,7 @@ input[type="number"] {
 }
 
 .snippets-shell .snip-detail-title {
-  font-size: var(--font-size-xl);
+  font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--color-text-primary);
@@ -4638,7 +4634,7 @@ input[type="number"] {
 
 .snippets-shell .snip-cmd-block pre {
   margin: 0;
-  padding: 14px 18px;
+  padding: 12px 16px;
   color: #E8E9F1;
   font-family: var(--font-mono);
   font-size: var(--font-size-base);
@@ -4673,4 +4669,67 @@ input[type="number"] {
 [data-theme="light"] .snippets-shell .snip-card.is-active .snip-card-preview {
   background: rgba(0, 0, 0, 0.18);
   color: var(--color-text-primary);
+}
+
+/* ─── SnippetForm ─── */
+.snippets-shell .snip-form {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.snippets-shell .snip-form-title {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+  margin-bottom: 20px;
+}
+
+.snippets-shell .snip-form-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.snippets-shell .snip-form-cmd {
+  width: 100%;
+  background: rgba(11, 12, 18, 0.96);
+  color: #E8E9F1;
+  border: 1px solid rgba(167, 139, 250, 0.16);
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-smooth), box-shadow var(--duration-fast) var(--ease-smooth);
+}
+
+.snippets-shell .snip-form-cmd::placeholder {
+  color: rgba(232, 233, 241, 0.42);
+}
+
+.snippets-shell .snip-form-cmd:focus {
+  border-color: rgba(167, 139, 250, 0.32);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.08);
+}
+
+.snippets-shell .snip-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--color-border-subtle);
+  margin-top: 8px;
+}
+
+[data-theme="light"] .snippets-shell .snip-form-cmd {
+  background: #14151B;
+  border-color: rgba(124, 58, 237, 0.18);
 }

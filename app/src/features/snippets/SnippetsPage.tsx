@@ -69,7 +69,7 @@ function SnippetForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div>
-        <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
+        <label className="snip-form-label">
           {t("snippets.formTitle")}
         </label>
         <Input
@@ -80,7 +80,7 @@ function SnippetForm({
         />
       </div>
       <div>
-        <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
+        <label className="snip-form-label">
           {t("snippets.formCommand")}
         </label>
         <textarea
@@ -89,11 +89,11 @@ function SnippetForm({
           placeholder={t("snippets.placeholderCommand")}
           required
           rows={4}
-          className="w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-2 text-[var(--font-size-sm)] text-[var(--color-text-primary)] font-mono focus:border-[var(--color-border-focus)] focus:outline-none resize-y"
+          className="snip-form-cmd"
         />
       </div>
       <div>
-        <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
+        <label className="snip-form-label">
           {t("snippets.formDescription")}
         </label>
         <Input
@@ -103,7 +103,7 @@ function SnippetForm({
         />
       </div>
       <div>
-        <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
+        <label className="snip-form-label">
           {t("snippets.formTags")}
         </label>
         <Input
@@ -114,7 +114,7 @@ function SnippetForm({
       </div>
       {groups.length > 0 && (
         <div>
-          <label className="mb-1 block text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
+          <label className="snip-form-label">
             {t("snippets.formGroup")}
           </label>
           <Select
@@ -127,7 +127,7 @@ function SnippetForm({
           />
         </div>
       )}
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="snip-form-actions">
         <Button type="button" variant="secondary" onClick={onCancel}>
           {t("snippets.cancel")}
         </Button>
@@ -935,8 +935,8 @@ export function SnippetsPage() {
       <section className="snip-detail-shell">
         <div className="snip-detail-scroll">
           {showForm ? (
-            <div key="form" className="animate-fade-in-up mx-auto w-full max-w-md">
-              <h2 className="mb-4 text-[var(--font-size-lg)] font-medium">
+            <div key="form" className="animate-fade-in-up snip-form">
+              <h2 className="snip-form-title">
                 {editingSnippet ? t("snippets.editSnippet") : t("snippets.newSnippet")}
               </h2>
               <SnippetForm
