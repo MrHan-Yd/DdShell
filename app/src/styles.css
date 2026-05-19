@@ -2491,9 +2491,7 @@ input[type="number"] {
 .context-menu-highlight {
   left: 4px;
   right: 4px;
-  border-left: 28px solid transparent;
   background: var(--color-accent-subtle);
-  background-clip: padding-box;
   border-radius: var(--radius-control);
   transition: top 150ms var(--ease-smooth), height 150ms var(--ease-smooth);
 }
@@ -2505,7 +2503,7 @@ input[type="number"] {
 
 .context-menu-item {
   width: 100%;
-  padding: 8px 12px;
+  padding: 8px 12px 8px 20px;
   text-align: left;
   font-size: var(--font-size-sm);
   min-height: 32px;
