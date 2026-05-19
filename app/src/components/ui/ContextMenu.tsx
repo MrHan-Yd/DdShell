@@ -118,7 +118,7 @@ export function ContextMenu({ x, y, items, onClose, containerRef }: ContextMenuP
           {/* Sliding highlight */}
           <div
             data-menu-highlight
-            className="context-menu-highlight absolute left-0.5 right-0.5 pointer-events-none"
+            className="context-menu-highlight absolute pointer-events-none"
           />
 
           {(() => {
