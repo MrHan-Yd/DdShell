@@ -630,6 +630,7 @@ const dict = {
   "snippets.allSnippets": { zh: "全部片段", en: "All snippets" },
   "snippets.libraryHeading": { zh: "库", en: "Library" },
   "snippets.groupsHeading": { zh: "分组", en: "Groups" },
+  "snippets.favorite": { zh: "收藏", en: "Favorite" },
 
   // ── WorkflowsPage ──
   "workflows.title": { zh: "命令宏", en: "Macros" },

@@ -14,6 +14,7 @@ import {
   X,
   Check,
   ListChecks,
+  Star,
 } from "lucide-react";
 import { ContextMenu, useContextMenu } from "@/components/ui/ContextMenu";
 import type { MenuItem } from "@/components/ui/ContextMenu";
@@ -181,6 +182,9 @@ function SnippetCard({
           </span>
         )}
         <span className="snip-card-title">{snippet.title}</span>
+        <span className="snip-card-fav">
+          <Star size={11} fill="currentColor" />
+        </span>
       </div>
       <pre className="snip-card-preview">{snippet.command}</pre>
       {snippet.tags && snippet.tags.length > 0 && (
@@ -233,11 +237,14 @@ function SnippetDetail({
           )}
         </div>
         <div className="snip-detail-actions">
+          <Button size="icon" variant="ghost" title={t("snippets.favorite")}>
+            <Star size={14} strokeWidth={1.8} fill="currentColor" className="text-[var(--color-warning)]" />
+          </Button>
           <Button size="icon" variant="ghost" onClick={onEdit} title={t("snippets.editSnippet")}>
-            <Pencil size={14} />
+            <Pencil size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteSnippet")}>
-            <Trash2 size={14} className="text-[var(--color-error)]" />
+            <Trash2 size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
           </Button>
         </div>
       </header>
@@ -245,7 +252,7 @@ function SnippetDetail({
       <div className="snip-cmd-block">
         <div className="snip-cmd-block-head">
           <Button size="sm" variant="ghost" onClick={handleCopy}>
-            <Copy size={12} />
+            <Copy size={12} strokeWidth={1.8} />
             {copied ? t("snippets.copied") : t("snippets.copy")}
           </Button>
         </div>
@@ -412,10 +419,10 @@ function GroupDetail({
         </div>
         <div className="snip-detail-actions">
           <Button size="icon" variant="ghost" onClick={onRename} title={t("snippets.renameGroup")}>
-            <Pencil size={14} />
+            <Pencil size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteGroup")}>
-            <Trash2 size={14} className="text-[var(--color-error)]" />
+            <Trash2 size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
           </Button>
         </div>
       </header>
@@ -558,12 +565,12 @@ export function SnippetsPage() {
     ? [
         {
           label: t("snippets.renameGroup"),
-          icon: <Pencil size={14} />,
+          icon: <Pencil size={14} strokeWidth={1.8} />,
           onClick: () => setRenamingGroupId(groupMenuState.data.id),
         },
         {
           label: t("snippets.deleteGroup"),
-          icon: <Trash2 size={14} />,
+          icon: <Trash2 size={14} strokeWidth={1.8} />,
           danger: true,
           onClick: async () => {
             const ok = await confirm({
@@ -581,7 +588,7 @@ export function SnippetsPage() {
     ? [
         {
           label: t("snippets.editSnippet"),
-          icon: <Pencil size={14} />,
+          icon: <Pencil size={14} strokeWidth={1.8} />,
           onClick: () => {
             setEditingSnippet(menuState.data);
             setSelectedSnippetId(menuState.data.id);
@@ -609,7 +616,7 @@ export function SnippetsPage() {
         { type: "separator" as const },
         {
           label: t("snippets.deleteSnippet"),
-          icon: <Trash2 size={14} />,
+          icon: <Trash2 size={14} strokeWidth={1.8} />,
           danger: true,
           onClick: async () => {
             const ok = await confirm({
@@ -774,7 +781,7 @@ export function SnippetsPage() {
         <div className="snip-aside-scroll">
           <div className="snip-aside-section">{t("snippets.libraryHeading")}</div>
           <button type="button" className={cn("snip-nav-item", isAllActive && "is-active")} onClick={selectAllView}>
-            <span className="nav-icon"><Code2 size={14} /></span>
+            <span className="nav-icon"><Code2 size={14} strokeWidth={1.8} /></span>
             <span className="nav-label">{t("snippets.allSnippets")}</span>
             <span className="nav-count">{filteredSnippets.length}</span>
           </button>
@@ -824,7 +831,7 @@ export function SnippetsPage() {
                     onClick={() => selectGroup(group.id)}
                     onContextMenu={(e) => onGroupContextMenu(e, group)}
                   >
-                    <span className="nav-icon"><Folder size={14} /></span>
+                    <span className="nav-icon"><Folder size={14} strokeWidth={1.8} /></span>
                     <span className="nav-label">{group.name}</span>
                     <span className="nav-count">{groupCount}</span>
                   </button>
@@ -924,7 +931,7 @@ export function SnippetsPage() {
               onClick={handleBatchDelete}
               className="text-[var(--color-error)]"
             >
-              <Trash2 size={14} />
+              <Trash2 size={14} strokeWidth={1.8} />
               {t("confirm.delete")}
             </Button>
           </div>
@@ -1046,7 +1053,7 @@ export function SnippetsPage() {
           className="fixed left-0 top-0 z-[100] pointer-events-none rounded-[var(--radius-control)] border border-[var(--color-accent)] bg-[var(--color-bg-elevated)] px-3 py-2 shadow-[var(--shadow-floating)] max-w-[260px] opacity-90"
         >
           <div className="flex items-center gap-2">
-            <Code2 size={14} className="text-[var(--color-accent)]" />
+            <Code2 size={14} strokeWidth={1.8} className="text-[var(--color-accent)]" />
             <span className="truncate text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
               {snippets.find((s) => s.id === dragSnippetId)?.title}
             </span>
