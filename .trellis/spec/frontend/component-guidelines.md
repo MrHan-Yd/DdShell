@@ -146,3 +146,42 @@ try {
 **Related**:
 - Backend command contract: `check_update` / `open_installer`
 - Browser fallback is required for unsupported MVP targets such as Linux
+
+---
+
+## Convention: Custom drag ghost must use portal and center on cursor
+
+**What**: When implementing a custom drag ghost (fixed-position element following the cursor), render it via `createPortal(jsx, document.body)` to escape any ancestor `transform`, and position it horizontally centered on the cursor X with a Y offset below so the drop target remains visible.
+
+**Why**: Two issues commonly break drag ghost positioning:
+1. A ghost offset to the right of the cursor (e.g. `left: clientX + 8px`) combined with the ghost's own width (e.g. 260px) causes the ghost to appear in a different column than the cursor.
+2. Any ancestor with CSS `transform` (including animation `fill-mode: both` that persists `transform: translateY(0)`) creates a new containing block for `position: fixed`, making viewport coordinates (`e.clientX/clientY`) incorrect — the ghost shifts by the ancestor's offset (e.g. Sidebar width).
+
+**Example**:
+
+```tsx
+// Wrong: ghost inside transform ancestor, offset right, no centering
+dragGhostRef.current.style.transform = `translate(${e.clientX + 12}px, ${e.clientY + 8}px)`;
+// renders inside .snippets-shell which is under animate-fade-in-up parent
+
+// Correct: ghost portaled to body, centered on cursor, offset below for visibility
+import { createPortal } from "react-dom";
+
+// In JSX:
+{dragSnippetId && createPortal(
+  <div ref={dragGhostRef}
+    className="fixed z-[100] pointer-events-none -translate-x-1/2 ..."
+  >...</div>,
+  document.body
+)}
+
+// In mousemove handler:
+dragGhostRef.current.style.left = `${e.clientX}px`;
+dragGhostRef.current.style.top = `${e.clientY + 12}px`;
+```
+
+**Required check**: After implementing a drag ghost, verify: (1) ghost renders via portal to `document.body`, (2) ghost follows the cursor column-by-column, (3) no ancestor with `transform` interferes with `position: fixed`.
+
+**Related**:
+- `app/src/features/snippets/SnippetsPage.tsx` drag ghost implementation
+- `App.tsx:41` `animate-fade-in-up` animation on page wrapper

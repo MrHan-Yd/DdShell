@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus,
   Search,
@@ -527,7 +528,8 @@ export function SnippetsPage() {
 
       if (isDraggingRef.current) {
         if (dragGhostRef.current) {
-          dragGhostRef.current.style.transform = `translate(${e.clientX + 12}px, ${e.clientY + 8}px)`;
+          dragGhostRef.current.style.left = `${e.clientX}px`;
+          dragGhostRef.current.style.top = `${e.clientY + 12}px`;
         }
         const el = document.elementFromPoint(e.clientX, e.clientY);
         const dropTarget = el?.closest("[data-drop-group-id]") as HTMLElement | null;
@@ -814,8 +816,10 @@ export function SnippetsPage() {
           </button>
 
           {groups.length > 0 && (
+            <div className="snip-aside-section">{t("snippets.groupsHeading")}</div>
+          )}
+          {(creatingGroup || groups.length > 0) && (
             <>
-              <div className="snip-aside-section">{t("snippets.groupsHeading")}</div>
               {creatingGroup && (
                 <div className="px-2 py-1">
                   <input
@@ -1076,10 +1080,10 @@ export function SnippetsPage() {
       )}
 
       {/* Drag ghost */}
-      {dragSnippetId && (
+      {dragSnippetId && createPortal(
         <div
           ref={dragGhostRef}
-          className="fixed left-0 top-0 z-[100] pointer-events-none rounded-[var(--radius-control)] border border-[var(--color-accent)] bg-[var(--color-bg-elevated)] px-3 py-2 shadow-[var(--shadow-floating)] max-w-[260px] opacity-90"
+          className="fixed z-[100] pointer-events-none -translate-x-1/2 rounded-[var(--radius-control)] border border-[var(--color-accent)] bg-[var(--color-bg-elevated)] px-3 py-2 shadow-[var(--shadow-floating)] max-w-[260px] opacity-90"
         >
           <div className="flex items-center gap-2">
             <Code2 size={14} strokeWidth={1.8} className="text-[var(--color-accent)]" />
@@ -1090,7 +1094,8 @@ export function SnippetsPage() {
           <p className="truncate font-mono text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
             {snippets.find((s) => s.id === dragSnippetId)?.command}
           </p>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Context menus */}
