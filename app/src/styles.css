@@ -4451,14 +4451,14 @@ input[type="number"] {
 }
 
 .snippets-shell .snip-card:hover {
-  border-color: var(--color-border);
+  border-color: rgba(255, 255, 255, 0.16);
   background: var(--color-bg-active);
 }
 
 .snippets-shell .snip-card.is-active {
   border-color: var(--color-accent);
   background: var(--color-accent-subtle);
-  box-shadow: 0 0 0 1px var(--color-accent-subtle), 0 0 18px rgba(167, 139, 250, 0.10);
+  box-shadow: 0 0 0 1px var(--color-accent-subtle), 0 0 18px rgba(59, 130, 246, 0.10);
 }
 
 .snippets-shell .snip-card.is-checked {
@@ -4641,7 +4641,7 @@ input[type="number"] {
 
 .snippets-shell .snip-cmd-block {
   margin-bottom: 24px;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 1px;
   background: linear-gradient(135deg, rgba(167, 139, 250, 0.18) 0%, rgba(103, 232, 249, 0.18) 100%);
   box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.08), 0 12px 36px rgba(0, 0, 0, 0.32);
@@ -4701,6 +4701,10 @@ input[type="number"] {
   color: var(--color-text-primary);
 }
 
+[data-theme="light"] .snippets-shell .snip-card:hover {
+  border-color: rgba(20, 21, 27, 0.18);
+}
+
 /* ─── SnippetForm ─── */
 .snippets-shell .snip-form {
   max-width: 480px;
@@ -4728,7 +4732,7 @@ input[type="number"] {
 
 .snippets-shell .snip-form-cmd-glow {
   padding: 1px;
-  border-radius: 8px;
+  border-radius: 12px;
   background: linear-gradient(135deg, rgba(167, 139, 250, 0.18) 0%, rgba(103, 232, 249, 0.18) 100%);
   box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.08), 0 12px 36px rgba(0, 0, 0, 0.32);
   overflow: hidden;
@@ -4740,7 +4744,7 @@ input[type="number"] {
   background: rgba(11, 12, 18, 0.96);
   color: #E8E9F1;
   border: none;
-  border-radius: 7px;
+  border-radius: 11px;
   font-family: var(--font-mono);
   font-size: var(--font-size-base);
   line-height: 1.6;
