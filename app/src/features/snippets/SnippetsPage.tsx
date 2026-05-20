@@ -16,6 +16,9 @@ import {
   ListChecks,
   Star,
   StarOff,
+  ArrowDownAZ,
+  Clock,
+  BarChart3,
 } from "lucide-react";
 
 const TrashNoLid = ({ size = 14, strokeWidth = 1.8, className }: { size?: number; strokeWidth?: number; className?: string }) => (
@@ -509,6 +512,7 @@ export function SnippetsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [favSnippetIds, setFavSnippetIds] = useState<Set<string>>(() => new Set());
   const [showUngrouped, setShowUngrouped] = useState(false);
+  const [sortBy, setSortBy] = useState<"recent" | "az" | "used">("recent");
   const newGroupInputRef = useRef<HTMLInputElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const dragGhostRef = useRef<HTMLDivElement>(null);
@@ -731,6 +735,12 @@ export function SnippetsPage() {
     viewTitle = `${t("snippets.allSnippets")} · ${displayedSnippets.length}`;
   }
 
+  if (sortBy === "az") {
+    displayedSnippets = [...displayedSnippets].sort((a, b) => a.title.localeCompare(b.title));
+  } else if (sortBy === "used") {
+    displayedSnippets = [...displayedSnippets].sort((a, b) => (b.useCount ?? 0) - (a.useCount ?? 0));
+  }
+
   const handleCreateGroup = () => {
     setCreatingGroup(true);
     setTimeout(() => newGroupInputRef.current?.focus(), 0);
@@ -907,6 +917,23 @@ export function SnippetsPage() {
         <header className="snip-list-head">
           <span className="snip-list-title">{viewTitle}</span>
           <div className="snip-list-actions">
+            <div className="seg-control">
+              {(["recent", "az", "used"] as const).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={cn("seg", sortBy === key && "is-active")}
+                  onClick={() => setSortBy(key)}
+                >
+                  {key === "recent" && <Clock size={10} strokeWidth={2} />}
+                  {key === "az" && <ArrowDownAZ size={10} strokeWidth={2} />}
+                  {key === "used" && <BarChart3 size={10} strokeWidth={2} />}
+                  {key === "recent" && t("snippets.sortRecent")}
+                  {key === "az" && t("snippets.sortAZ")}
+                  {key === "used" && t("snippets.sortUsed")}
+                </button>
+              ))}
+            </div>
             <Button
               size="icon"
               variant={selectionMode ? "secondary" : "ghost"}

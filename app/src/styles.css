@@ -4463,8 +4463,40 @@ input[type="number"] {
 .snippets-shell .snip-list-head .snip-list-actions {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   flex-shrink: 0;
+}
+
+.snippets-shell .snip-list-actions .seg-control {
+  display: inline-flex;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: 2px;
+}
+
+.snippets-shell .snip-list-actions .seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: background var(--duration-fast) var(--ease-smooth), color var(--duration-fast) var(--ease-smooth);
+}
+
+.snippets-shell .snip-list-actions .seg:hover {
+  color: var(--color-text-primary);
+}
+
+.snippets-shell .snip-list-actions .seg.is-active {
+  background: linear-gradient(135deg, #7c3aed, #0ea5e9);
+  color: white;
 }
 
 .snippets-shell .snip-list-scroll {
