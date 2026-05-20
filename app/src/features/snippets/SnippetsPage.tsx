@@ -4,7 +4,6 @@ import {
   Plus,
   Search,
   Code2,
-  Trash,
   PenLine,
   Copy,
   FolderPlus,
@@ -18,6 +17,14 @@ import {
   Star,
   StarOff,
 } from "lucide-react";
+
+const TrashNoLid = ({ size = 14, strokeWidth = 1.8, className }: { size?: number; strokeWidth?: number; className?: string }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+  </svg>
+);
+
 import { ContextMenu, useContextMenu } from "@/components/ui/ContextMenu";
 import type { MenuItem } from "@/components/ui/ContextMenu";
 import { Button } from "@/components/ui/Button";
@@ -260,7 +267,7 @@ function SnippetDetail({
             <PenLine size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteSnippet")}>
-            <Trash size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
+            <TrashNoLid size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
           </Button>
         </div>
       </header>
@@ -438,7 +445,7 @@ function GroupDetail({
             <PenLine size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteGroup")}>
-            <Trash size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
+            <TrashNoLid size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
           </Button>
         </div>
       </header>
@@ -588,7 +595,7 @@ export function SnippetsPage() {
         },
         {
           label: t("snippets.deleteGroup"),
-          icon: <Trash size={14} strokeWidth={1.8} />,
+          icon: <TrashNoLid size={14} strokeWidth={1.8} />,
           danger: true,
           onClick: async () => {
             const ok = await confirm({
@@ -634,7 +641,7 @@ export function SnippetsPage() {
         { type: "separator" as const },
         {
           label: t("snippets.deleteSnippet"),
-          icon: <Trash size={14} strokeWidth={1.8} />,
+          icon: <TrashNoLid size={14} strokeWidth={1.8} />,
           danger: true,
           onClick: async () => {
             const ok = await confirm({
@@ -962,7 +969,7 @@ export function SnippetsPage() {
               onClick={handleBatchDelete}
               className="text-[var(--color-error)]"
             >
-              <Trash size={14} strokeWidth={1.8} />
+              <TrashNoLid size={14} strokeWidth={1.8} />
               {t("confirm.delete")}
             </Button>
           </div>
