@@ -4,7 +4,7 @@ import {
   Plus,
   Search,
   Code2,
-  PenLine,
+  SquarePen,
   Copy,
   FolderPlus,
   Folder,
@@ -264,7 +264,7 @@ function SnippetDetail({
             )}
           </Button>
           <Button size="icon" variant="ghost" onClick={onEdit} title={t("snippets.editSnippet")}>
-            <PenLine size={14} strokeWidth={1.8} />
+            <SquarePen size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteSnippet")}>
             <TrashNoLid size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
@@ -442,7 +442,7 @@ function GroupDetail({
         </div>
         <div className="snip-detail-actions">
           <Button size="icon" variant="ghost" onClick={onRename} title={t("snippets.renameGroup")}>
-            <PenLine size={14} strokeWidth={1.8} />
+            <SquarePen size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteGroup")}>
             <TrashNoLid size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
@@ -590,7 +590,7 @@ export function SnippetsPage() {
     ? [
         {
           label: t("snippets.renameGroup"),
-          icon: <PenLine size={14} strokeWidth={1.8} />,
+          icon: <SquarePen size={14} strokeWidth={1.8} />,
           onClick: () => setRenamingGroupId(groupMenuState.data.id),
         },
         {
@@ -613,7 +613,7 @@ export function SnippetsPage() {
     ? [
         {
           label: t("snippets.editSnippet"),
-          icon: <PenLine size={14} strokeWidth={1.8} />,
+          icon: <SquarePen size={14} strokeWidth={1.8} />,
           onClick: () => {
             setEditingSnippet(menuState.data);
             setSelectedSnippetId(menuState.data.id);
