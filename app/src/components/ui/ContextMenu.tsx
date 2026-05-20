@@ -155,7 +155,7 @@ export function ContextMenu({ x, y, items, onClose, containerRef }: ContextMenuP
               }}
             >
               {menuItem.icon && (
-                <span className={menuItem.danger ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)]"}>
+                <span className={`context-menu-icon ${menuItem.danger ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)]"}`}>
                   {menuItem.icon}
                 </span>
               )}
