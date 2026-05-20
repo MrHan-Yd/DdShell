@@ -279,6 +279,7 @@ function SnippetDetail({
 
       <div className="snip-cmd-block">
         <div className="snip-cmd-block-head">
+          <span className="lang-tag mono">bash</span>
           <Button size="sm" variant="ghost" onClick={handleCopy}>
             <Copy size={12} strokeWidth={1.8} />
             {copied ? t("snippets.copied") : t("snippets.copy")}

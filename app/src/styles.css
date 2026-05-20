@@ -4713,6 +4713,14 @@ input[type="number"] {
   border-radius: 11px 11px 0 0;
 }
 
+.snippets-shell .snip-cmd-block-head .lang-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  margin-right: auto;
+}
+
 .snippets-shell .snip-cmd-block pre {
   margin: 0;
   padding: 12px 16px;
