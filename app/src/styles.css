@@ -2491,10 +2491,11 @@ input[type="number"] {
 .context-menu-highlight {
   left: 4px;
   right: 4px;
+  top: 0;
   background: var(--color-accent-subtle);
   border-radius: var(--radius-control);
-  will-change: top, height;
-  transition: top 120ms cubic-bezier(0.2, 0, 0, 1), height 120ms cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform, height;
+  transition: transform 80ms cubic-bezier(0.2, 0, 0, 1), height 80ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .context-menu-icon {

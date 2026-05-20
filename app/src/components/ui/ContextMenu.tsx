@@ -100,7 +100,7 @@ export function ContextMenu({ x, y, items, onClose, containerRef }: ContextMenuP
   const updateHighlight = useCallback((el: HTMLElement | null) => {
     const highlight = menuRef.current?.querySelector<HTMLElement>("[data-menu-highlight]");
     if (!highlight || !el) return;
-    highlight.style.top = `${el.offsetTop}px`;
+    highlight.style.transform = `translateY(${el.offsetTop}px)`;
     highlight.style.height = `${el.offsetHeight}px`;
   }, []);
 
