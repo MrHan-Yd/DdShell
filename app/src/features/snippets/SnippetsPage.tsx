@@ -16,9 +16,6 @@ import {
   ListChecks,
   Star,
   StarOff,
-  ArrowDownAZ,
-  Clock,
-  BarChart3,
 } from "lucide-react";
 
 const TrashNoLid = ({ size = 14, strokeWidth = 1.8, className }: { size?: number; strokeWidth?: number; className?: string }) => (
@@ -33,6 +30,7 @@ import type { MenuItem } from "@/components/ui/ContextMenu";
 import { Button } from "@/components/ui/themed/Button";
 import { Input } from "@/components/ui/themed/Input";
 import { Select } from "@/components/ui/themed/Select";
+import { SegmentedControl } from "@/components/ui/themed/SegmentedControl";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import { useSnippetsStore } from "@/stores/snippets";
@@ -917,23 +915,15 @@ export function SnippetsPage() {
         <header className="snip-list-head">
           <span className="snip-list-title">{viewTitle}</span>
           <div className="snip-list-actions">
-            <div className="seg-control">
-              {(["recent", "az", "used"] as const).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={cn("seg", sortBy === key && "is-active")}
-                  onClick={() => setSortBy(key)}
-                >
-                  {key === "recent" && <Clock size={10} strokeWidth={2} />}
-                  {key === "az" && <ArrowDownAZ size={10} strokeWidth={2} />}
-                  {key === "used" && <BarChart3 size={10} strokeWidth={2} />}
-                  {key === "recent" && t("snippets.sortRecent")}
-                  {key === "az" && t("snippets.sortAZ")}
-                  {key === "used" && t("snippets.sortUsed")}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              value={sortBy}
+              onChange={(v) => setSortBy(v)}
+              options={[
+                { value: "recent", label: t("snippets.sortRecent") },
+                { value: "az", label: t("snippets.sortAZ") },
+                { value: "used", label: t("snippets.sortUsed") },
+              ]}
+            />
             <Button
               size="icon"
               variant={selectionMode ? "secondary" : "ghost"}
