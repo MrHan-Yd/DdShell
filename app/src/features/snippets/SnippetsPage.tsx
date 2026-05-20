@@ -946,15 +946,15 @@ export function SnippetsPage() {
               {selectionMode ? <X size={14} /> : <ListChecks size={14} />}
             </Button>
             <Button
-              size="icon"
-              variant="secondary"
+              size="sm"
               onClick={() => {
                 setEditingSnippet(null);
                 setShowForm(true);
               }}
               title={t("snippets.newSnippet")}
             >
-              <Plus size={14} />
+              <Plus size={13} strokeWidth={2.2} />
+              {t("snippets.newSnippet")}
             </Button>
           </div>
         </header>
