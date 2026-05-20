@@ -410,3 +410,36 @@ Aurora 主题 SegmentedControl 切换 tab 无动画。根因：active 用 backgr
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Fix workflows list context menu position offset
+
+**Date**: 2026-05-20
+**Task**: Fix workflows list context menu position offset
+**Branch**: `main`
+
+### Summary
+
+WorkflowList 右键菜单出现在远高于鼠标 100+ 像素的位置。根因：listContainerRef 所在 div 标了 data-context-menu-container 但缺 position: relative，ContextMenu 用 absolute 定位会向上找到 .app-body 作为 containing block，与 useContextMenu 计算的容器相对坐标错位（page-header ~60px + wf-list-toolbar ~52px = 112px 偏移）。修复：在该 div className 加 relative，让坐标系与 absolute 参考点对齐。同类隐患：snippets-shell 也无 position: relative，但偏移仅 ~48px 视觉可接受，未连带修。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `58d2f3d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

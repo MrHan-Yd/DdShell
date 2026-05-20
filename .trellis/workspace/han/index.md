@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 9
+- **Total Sessions**: 10
 - **Last Active**: 2026-05-20
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~412 | Active |
+| `journal-1.md` | ~445 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 10 | 2026-05-20 | Fix workflows list context menu position offset | `58d2f3d` | `main` |
 | 9 | 2026-05-20 | fix: Aurora SegmentedControl 滑动动画 | `3c39a12` | `main` |
 | 8 | 2026-05-17 | Align workflow editor steps with design draft | `feae9c1`, `ca49128` | `main` |
 | 7 | 2026-05-12 | Workflow macro detail UI alignment | `0977715` | `main` |
