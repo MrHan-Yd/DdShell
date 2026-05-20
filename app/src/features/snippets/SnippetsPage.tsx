@@ -29,7 +29,7 @@ import { ContextMenu, useContextMenu } from "@/components/ui/ContextMenu";
 import type { MenuItem } from "@/components/ui/ContextMenu";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/themed/Input";
-import { Select } from "@/components/ui/Select";
+import { Select } from "@/components/ui/themed/Select";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import { useSnippetsStore } from "@/stores/snippets";
