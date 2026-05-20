@@ -174,6 +174,7 @@ function SnippetCard({
   faved?: boolean;
   onToggleFav?: () => void;
 }) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -210,7 +211,7 @@ function SnippetCard({
             </span>
           ))}
           {snippet.useCount != null && (
-            <span className="snip-uses">used {snippet.useCount}&times;</span>
+            <span className="snip-uses">{t("snippets.usedCount", { n: snippet.useCount })}</span>
           )}
         </div>
       )}
