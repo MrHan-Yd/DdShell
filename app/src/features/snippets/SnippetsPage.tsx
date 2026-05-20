@@ -4,7 +4,7 @@ import {
   Plus,
   Search,
   Code2,
-  Trash2,
+  Trash,
   PenLine,
   Copy,
   FolderPlus,
@@ -260,7 +260,7 @@ function SnippetDetail({
             <PenLine size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteSnippet")}>
-            <Trash2 size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
+            <Trash size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
           </Button>
         </div>
       </header>
@@ -438,7 +438,7 @@ function GroupDetail({
             <PenLine size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteGroup")}>
-            <Trash2 size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
+            <Trash size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
           </Button>
         </div>
       </header>
@@ -588,7 +588,7 @@ export function SnippetsPage() {
         },
         {
           label: t("snippets.deleteGroup"),
-          icon: <Trash2 size={14} strokeWidth={1.8} />,
+          icon: <Trash size={14} strokeWidth={1.8} />,
           danger: true,
           onClick: async () => {
             const ok = await confirm({
@@ -634,7 +634,7 @@ export function SnippetsPage() {
         { type: "separator" as const },
         {
           label: t("snippets.deleteSnippet"),
-          icon: <Trash2 size={14} strokeWidth={1.8} />,
+          icon: <Trash size={14} strokeWidth={1.8} />,
           danger: true,
           onClick: async () => {
             const ok = await confirm({
@@ -962,7 +962,7 @@ export function SnippetsPage() {
               onClick={handleBatchDelete}
               className="text-[var(--color-error)]"
             >
-              <Trash2 size={14} strokeWidth={1.8} />
+              <Trash size={14} strokeWidth={1.8} />
               {t("confirm.delete")}
             </Button>
           </div>
