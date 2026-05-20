@@ -64,6 +64,7 @@ pub struct Snippet {
     pub tags: Option<String>,
     pub group_id: Option<String>,
     pub sort_order: i64,
+    pub use_count: i64,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -242,17 +243,18 @@ impl Database {
         .await?;
 
         sqlx::query(
-            "CREATE TABLE IF NOT EXISTS snippets (
-                id TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
-                command TEXT NOT NULL,
-                description TEXT,
-                tags TEXT,
-                group_id TEXT,
-                sort_order INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
-            )",
+             "CREATE TABLE IF NOT EXISTS snippets (
+                 id TEXT PRIMARY KEY,
+                 title TEXT NOT NULL,
+                 command TEXT NOT NULL,
+                 description TEXT,
+                 tags TEXT,
+                 group_id TEXT,
+                 sort_order INTEGER NOT NULL DEFAULT 0,
+                 use_count INTEGER NOT NULL DEFAULT 0,
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT NOT NULL
+             )",
         )
         .execute(&self.pool)
         .await?;
@@ -300,6 +302,19 @@ impl Database {
         .unwrap_or(false);
         if !has_group_id {
             sqlx::query("ALTER TABLE snippets ADD COLUMN group_id TEXT")
+                .execute(&self.pool)
+                .await?;
+        }
+
+        // Migrate: add use_count column if missing (existing databases)
+        let has_use_count: bool = sqlx::query_scalar(
+            "SELECT COUNT(*) > 0 FROM pragma_table_info('snippets') WHERE name = 'use_count'",
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(false);
+        if !has_use_count {
+            sqlx::query("ALTER TABLE snippets ADD COLUMN use_count INTEGER NOT NULL DEFAULT 0")
                 .execute(&self.pool)
                 .await?;
         }
@@ -741,7 +756,7 @@ impl Database {
         let now = chrono::Utc::now().to_rfc3339();
 
         let current: Snippet = sqlx::query_as(
-            "SELECT id, title, command, description, tags, group_id, sort_order, created_at, updated_at FROM snippets WHERE id = ?",
+            "SELECT id, title, command, description, tags, group_id, sort_order, use_count, created_at, updated_at FROM snippets WHERE id = ?",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -786,7 +801,7 @@ impl Database {
 
     pub async fn list_snippets(&self) -> anyhow::Result<Vec<Snippet>> {
         let rows: Vec<Snippet> = sqlx::query_as(
-            "SELECT id, title, command, description, tags, group_id, sort_order, created_at, updated_at FROM snippets ORDER BY sort_order, title",
+            "SELECT id, title, command, description, tags, group_id, sort_order, use_count, created_at, updated_at FROM snippets ORDER BY sort_order, title",
         )
         .fetch_all(&self.pool)
         .await?;
