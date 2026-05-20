@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Quality bar reference — verify no scope creep beyond 1-line CSS + mock cleanup."}
+{"file": ".trellis/tasks/05-20-fix-snippets-third-column-width-and-sidebar-mock-cleanup/prd.md", "reason": "Source of truth: AC requires no >100px whitespace in 4 detail states, no horizontal scrollbar, both themes verified."}

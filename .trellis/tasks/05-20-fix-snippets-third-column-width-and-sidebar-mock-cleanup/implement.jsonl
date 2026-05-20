@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Project code quality bar — naming, minimum-invasive edits, no premature abstraction. Crucial for a 1-line CSS + 3-field TS delete fix."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Frontend component conventions — ensures Sidebar.tsx edit follows existing nav-item pattern without unnecessary refactor."}
