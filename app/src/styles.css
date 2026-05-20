@@ -4280,6 +4280,46 @@ input[type="number"] {
 }
 
 /* ─── Snippets three-column shell (parity with ui/styles/pages/snippets.css) ─── */
+.snippets-page-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.snippets-page-wrapper .snip-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 48px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.snippets-page-wrapper .snip-page-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.snippets-page-wrapper .snip-page-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.snippets-page-wrapper .snip-page-subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.snippets-page-wrapper .snip-page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .snippets-shell {
   display: grid;
   grid-template-columns: 220px 320px minmax(0, 1fr);

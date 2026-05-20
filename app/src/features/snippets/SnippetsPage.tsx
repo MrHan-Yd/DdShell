@@ -16,6 +16,7 @@ import {
   ListChecks,
   Star,
   StarOff,
+  ArrowDownAZ,
 } from "lucide-react";
 
 const TrashNoLid = ({ size = 14, strokeWidth = 1.8, className }: { size?: number; strokeWidth?: number; className?: string }) => (
@@ -804,7 +805,24 @@ export function SnippetsPage() {
   const isUngroupedActive = selectedGroupId === null && showUngrouped;
 
   return (
-    <div ref={shellRef} className="snippets-shell" data-context-menu-container>
+    <div className="snippets-page-wrapper">
+      <header className="snip-page-header">
+        <div className="snip-page-header-title">
+          <span className="snip-page-title">{t("snippets.title")}</span>
+          <span className="snip-page-subtitle">{t("snippets.subtitle", { n: snippets.length })}</span>
+        </div>
+        <div className="snip-page-header-actions">
+          <Button size="sm" variant="secondary">
+            <ArrowDownAZ size={13} strokeWidth={2} />
+            {t("snippets.import")}
+          </Button>
+          <Button size="sm" onClick={() => { setEditingSnippet(null); setShowForm(true); }}>
+            <Plus size={13} strokeWidth={2.2} />
+            {t("snippets.newSnippet")}
+          </Button>
+        </div>
+      </header>
+      <div ref={shellRef} className="snippets-shell" data-context-menu-container>
       {/* Left: groups aside */}
       <aside className="snip-aside">
         <div className="snip-aside-toolbar">
@@ -934,17 +952,6 @@ export function SnippetsPage() {
               title={selectionMode ? t("snippets.cancelSelect") : t("snippets.batchSelect")}
             >
               {selectionMode ? <X size={14} /> : <ListChecks size={14} />}
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditingSnippet(null);
-                setShowForm(true);
-              }}
-              title={t("snippets.newSnippet")}
-            >
-              <Plus size={13} strokeWidth={2.2} />
-              {t("snippets.newSnippet")}
             </Button>
           </div>
         </header>
@@ -1148,6 +1155,7 @@ export function SnippetsPage() {
           items={groupContextMenuItems}
         />
       )}
+    </div>
     </div>
   );
 }

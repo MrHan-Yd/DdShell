@@ -582,6 +582,8 @@ const dict = {
 
   // ── SnippetsPage ──
   "snippets.title": { zh: "命令片段", en: "Snippets" },
+  "snippets.subtitle": { zh: "{n} 个片段", en: "{n} snippets" },
+  "snippets.import": { zh: "导入", en: "Import" },
   "snippets.search": { zh: "搜索片段...", en: "Search snippets..." },
   "snippets.loading": { zh: "加载中...", en: "Loading..." },
   "snippets.noSnippets": { zh: "暂无片段", en: "No snippets yet" },
