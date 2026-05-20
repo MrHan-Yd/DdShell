@@ -377,3 +377,36 @@ Aligned the command macro workflow detail presentation with the UI design draft,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: fix: Aurora SegmentedControl 滑动动画
+
+**Date**: 2026-05-20
+**Task**: fix: Aurora SegmentedControl 滑动动画
+**Branch**: `main`
+
+### Summary
+
+Aurora 主题 SegmentedControl 切换 tab 无动画。根因：active 用 background: linear-gradient 直刷在 button 上，gradient 不可 transition 故瞬切。修复：给 AuroraSegmentedControl 加 .seg-pill 滑块（useRef + useEffect 计算位置）+ spring 滑动 transition，与 Classic 实现机制对齐；active 视觉从 button background 转移到 pill 上。改 2 个文件：aurora/SegmentedControl.tsx + styles/aurora/pages/settings.css。影响：所有 Aurora 主题下 SegmentedControl（snippets 排序 + settings 11 处）统一获得滑块动画。Classic 主题与 themed 分发器未触碰。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3c39a12` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
