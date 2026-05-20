@@ -70,6 +70,7 @@ export interface Snippet {
   tags?: string[] | null;
   groupId?: string | null;
   sortOrder: number;
+  useCount?: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -4620,6 +4620,12 @@ input[type="number"] {
   color: var(--color-text-secondary);
 }
 
+.snippets-shell .snip-uses {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
 .snippets-shell .snip-detail-shell {
   display: flex;
   flex-direction: column;

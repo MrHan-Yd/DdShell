@@ -202,13 +202,16 @@ function SnippetCard({
         </span>
       </div>
       <pre className="snip-card-preview">{snippet.command}</pre>
-      {snippet.tags && snippet.tags.length > 0 && (
+      {((snippet.tags && snippet.tags.length > 0) || snippet.useCount != null) && (
         <div className="snip-card-meta">
-          {snippet.tags.map((tag) => (
+          {snippet.tags?.map((tag) => (
             <span key={tag} className="snip-card-tag">
               {tag}
             </span>
           ))}
+          {snippet.useCount != null && (
+            <span className="snip-uses">used {snippet.useCount}&times;</span>
+          )}
         </div>
       )}
     </button>
