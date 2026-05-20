@@ -136,6 +136,7 @@ function SnippetForm({
               { value: "", label: t("snippets.noGroup") },
               ...groups.map((g) => ({ value: g.id, label: g.name })),
             ]}
+            className="w-full"
           />
         </div>
       )}
