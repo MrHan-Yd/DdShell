@@ -527,7 +527,7 @@ export function WorkflowList({
         </div>
       </div>
 
-      <div ref={listContainerRef} data-context-menu-container className="flex flex-1 flex-col overflow-hidden">
+      <div ref={listContainerRef} data-context-menu-container className="relative flex flex-1 flex-col overflow-hidden">
         <div className="workflow-list-scroll wf-list-scroll">
           {loading && (
             <div className="flex flex-col gap-2 p-2">
