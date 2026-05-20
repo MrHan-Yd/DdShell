@@ -27,7 +27,7 @@ const TrashNoLid = ({ size = 14, strokeWidth = 1.8, className }: { size?: number
 
 import { ContextMenu, useContextMenu } from "@/components/ui/ContextMenu";
 import type { MenuItem } from "@/components/ui/ContextMenu";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/themed/Button";
 import { Input } from "@/components/ui/themed/Input";
 import { Select } from "@/components/ui/themed/Select";
 import { cn } from "@/lib/utils";

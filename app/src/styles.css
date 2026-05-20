@@ -4764,8 +4764,6 @@ input[type="number"] {
 
 /* ─── SnippetForm ─── */
 .snippets-shell .snip-form {
-  max-width: 480px;
-  margin: 0 auto;
   width: 100%;
 }
 
