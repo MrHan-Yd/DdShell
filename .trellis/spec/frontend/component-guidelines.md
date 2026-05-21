@@ -185,3 +185,34 @@ dragGhostRef.current.style.top = `${e.clientY + 12}px`;
 **Related**:
 - `app/src/features/snippets/SnippetsPage.tsx` drag ghost implementation
 - `App.tsx:41` `animate-fade-in-up` animation on page wrapper
+
+---
+
+## Convention: Tab/button elements with i18n text must use padding-driven sizing, not fixed height
+
+**What**: When styling tab buttons, chips, or similar inline controls that display translated text (especially CJK languages), size them with `padding` alone rather than a fixed `height` + `line-height` combination. Ensure vertical padding is always non-zero so text never touches the background edge on hover/active states.
+
+**Why**: Design mockups typically use English text (short, smaller cap height). CJK characters like Chinese are taller and visually fill a fixed-height container more, making zero-vertical-padding buttons look cramped — the text appears to "touch" the background edge. Padding-driven sizing adapts naturally to the actual text height across all languages.
+
+**Example**:
+
+```css
+/* Wrong: fixed height with zero vertical padding — CJK text touches edges */
+.chart-tab {
+  height: 26px;
+  padding: 0 12px;
+  line-height: 26px;
+}
+
+/* Correct: padding drives the height, adapts to any text size */
+.chart-tab {
+  padding: 4px 14px;
+  border-radius: 6px;
+}
+```
+
+**Required check**: For any button/tab/chip with hover or active background states, verify that vertical padding is non-zero and that Chinese text does not touch the background edge.
+
+**Related**:
+- `app/src/styles.css` `.mon-chart-tab` styles
+- `ui/styles/pages/monitor.css` design mockup
