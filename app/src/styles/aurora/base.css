@@ -46,6 +46,10 @@ body:has([data-ui-theme="aurora"]),
   cursor: pointer;
   color: inherit;
 }
+[data-ui-theme="aurora"] button.mon-chart-tab {
+  padding: 6px 14px;
+  line-height: 1.2;
+}
 
 [data-ui-theme="aurora"] a {
   color: var(--accent);
