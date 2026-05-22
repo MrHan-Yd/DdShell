@@ -50,6 +50,48 @@ body:has([data-ui-theme="aurora"]),
   padding: 6px 14px;
   line-height: 1.2;
 }
+[data-ui-theme="aurora"] button.mon-session-pick-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--fg-primary);
+  padding: 8px 22px 8px 18px;
+  transition: background var(--d-fast) var(--ease-smooth),
+              border-color var(--d-fast) var(--ease-smooth),
+              box-shadow var(--d-fast) var(--ease-smooth),
+              transform var(--d-fast) var(--ease-smooth);
+}
+[data-ui-theme="aurora"] button.mon-session-pick-card:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.05);
+}
+[data-ui-theme="aurora"] button.mon-session-pick-card:active {
+  transform: scale(0.99);
+}
+[data-ui-theme="aurora"] button.mon-session-pick-card:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+[data-ui-theme="aurora"] .mon-session-pick-glyph {
+  background: var(--accent-gradient-soft);
+  color: var(--accent);
+}
+[data-ui-theme="aurora"] .mon-session-pick-name { color: var(--fg-primary); }
+[data-ui-theme="aurora"] .mon-session-pick-meta {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+}
+[data-ui-theme="aurora"] .mon-session-pick-status-dot {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+[data-ui-theme="aurora"] .mon-session-pick-header-icon {
+  background: var(--accent-gradient-soft);
+  color: var(--accent);
+}
 
 [data-ui-theme="aurora"] a {
   color: var(--accent);

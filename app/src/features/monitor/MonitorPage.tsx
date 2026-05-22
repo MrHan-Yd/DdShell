@@ -1,27 +1,22 @@
-import { useEffect, useRef, useCallback, useState, memo } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { listen } from "@tauri-apps/api/event";
 import {
   Activity,
-  Cpu,
-  MemoryStick,
-  ArrowDown,
-  ArrowUp,
-  Clock,
-  Gauge,
   AlertCircle,
-  Copy,
-  Check,
-  ChevronDown,
-  Heart,
+  MoreHorizontal,
+  Search,
+  RotateCw,
+  ArrowDownUp,
+  Server,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMetricsStore, initMetricsListeners } from "@/stores/metrics";
 import { useTerminalStore } from "@/stores/terminal";
+import { useConnectionsStore } from "@/stores/connections";
 import { toast } from "@/stores/toast";
 import * as api from "@/lib/tauri";
 import { useT } from "@/lib/i18n";
-import type { DictKey } from "@/lib/i18n";
 import type { MetricsSnapshot, SystemInfo } from "@/types";
 
 // ── Utility ──
@@ -34,117 +29,38 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
-function formatMemory(mb: number): string {
-  if (mb < 1024) return `${mb}`;
-  return `${(mb / 1024).toFixed(1)}G`;
+function formatRate(bytesPerSec: number): string {
+  return `${formatBytes(bytesPerSec)}/s`;
 }
 
-function formatLoad(load: number, coreCount: number): string {
-  if (coreCount <= 0) return load.toFixed(2);
-  const percent = (load / coreCount) * 100;
-  return `${percent.toFixed(0)}%`;
+function formatMemGb(mb: number): string {
+  return (mb / 1024).toFixed(1);
 }
 
-// Extract uptime days from full uptime string (e.g., "5 days, 3:22" -> "5")
 function extractUptimeDays(uptime: string): string {
-  const match = uptime.match(/(\d+)\s*days?/);
-  if (match) return match[1];
-  // If less than 1 day, return the hours part
-  const hourMatch = uptime.match(/(\d+):(\d+)/);
-  if (hourMatch) {
-    const hours = parseInt(hourMatch[1], 10);
-    if (hours > 0) return hours.toString();
-  }
+  const m = uptime.match(/(\d+)\s*days?/);
+  if (m) return m[1];
+  const h = uptime.match(/(\d+):(\d+)/);
+  if (h && parseInt(h[1], 10) > 0) return h[1];
   return "0";
 }
 
-// Extract time parts from serverTime string (e.g., "2026-03-13 13:11" -> {hours: "13", mins: "11"})
-function extractTimeParts(serverTime: string): { hours: string; mins: string } | null {
-  const match = serverTime.match(/(\d+):(\d+)$/);
-  if (match) return { hours: match[1], mins: match[2] };
-  return null;
+function pickBadge(kind: "info" | "warn" | "ok" | "err") {
+  return `mon-kpi-badge is-${kind}`;
 }
 
-// Extract date part from serverTime string (e.g., "2026-03-13 13:11" -> "2026-03-13")
-function extractDatePart(serverTime: string): string {
-  const match = serverTime.match(/^\d{4}-\d{2}-\d{2}/);
-  return match ? match[0] : "";
-}
+// ── Sparkline (lightweight, no animation cost) ──
 
-// ── Collapsible Section ──
-
-function CollapsibleSection({
-  title,
-  defaultOpen = false,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState(0);
-
-  // Measure content height when opening
-  useEffect(() => {
-    if (isOpen && contentRef.current) {
-      setHeight(contentRef.current.scrollHeight);
-    } else {
-      setHeight(0);
-    }
-  }, [isOpen]);
-
-  return (
-    <div className="flex flex-col gap-0">
-      <button
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center gap-2 rounded-[var(--radius-control)] px-2 py-1.5 text-left text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)] transition-colors"
-      >
-        <ChevronDown
-          size={16}
-          className={cn(
-            "text-[var(--color-text-muted)] transition-transform duration-200",
-            !isOpen && "-rotate-90",
-          )}
-        />
-        {title}
-      </button>
-      <div
-        className="overflow-hidden transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height]"
-        style={{ height: isOpen ? height : 0 }}
-      >
-        <div ref={contentRef} className={isOpen ? "opacity-100" : "opacity-0"}>
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Mini Chart (Canvas) ──
-
-const MiniChart = memo(function MiniChart({
+const Sparkline = memo(function Sparkline({
   data,
   color,
   maxValue,
-  height = 80,
-  label,
-  valueFormatter,
-  direction = "up",
 }: {
   data: number[];
   color: string;
   maxValue?: number;
-  height?: number;
-  label: string;
-  valueFormatter?: (v: number) => string;
-  direction?: "up" | "down";
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const previousDataRef = useRef<number[] | null>(null);
-  const frameRef = useRef<number | null>(null);
-  const currentValue = data[data.length - 1] ?? 0;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -162,178 +78,143 @@ const MiniChart = memo(function MiniChart({
     const h = rect.height;
     const padding = 2;
 
-    const drawChart = (series: number[]) => {
-      ctx.clearRect(0, 0, w, h);
+    ctx.clearRect(0, 0, w, h);
+    if (data.length < 2) return;
 
-      if (series.length < 2) return;
+    const max = maxValue ?? Math.max(...data, 1);
+    const step = (w - padding * 2) / (data.length - 1);
 
-      const max = maxValue ?? Math.max(...series, 1);
-      const step = (w - padding * 2) / (series.length - 1);
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, color + "55");
+    grad.addColorStop(1, color + "00");
 
-      const gradient = ctx.createLinearGradient(0, 0, 0, h);
-      gradient.addColorStop(0, color + "40");
-      gradient.addColorStop(1, color + "05");
+    ctx.beginPath();
+    ctx.moveTo(padding, h);
+    for (let i = 0; i < data.length; i++) {
+      const x = padding + i * step;
+      const y = h - padding - (data[i] / max) * (h - padding * 2);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(padding + (data.length - 1) * step, h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.beginPath();
+    for (let i = 0; i < data.length; i++) {
+      const x = padding + i * step;
+      const y = h - padding - (data[i] / max) * (h - padding * 2);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.4;
+    ctx.lineJoin = "round";
+    ctx.stroke();
+  }, [data, color, maxValue]);
+
+  return <canvas ref={canvasRef} className="mon-kpi-spark" />;
+});
+
+// ── Large area chart (single or dual series) ──
+
+interface ChartSeries {
+  data: number[];
+  color: string;
+  label: string;
+}
+
+const AreaChart = memo(function AreaChart({
+  series,
+  maxValue,
+  height = 220,
+}: {
+  series: ChartSeries[];
+  maxValue?: number;
+  height?: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    const padding = 6;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // grid
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+      const y = (h / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+
+    const validSeries = series.filter((s) => s.data.length >= 2);
+    if (validSeries.length === 0) return;
+
+    const computedMax =
+      maxValue ??
+      Math.max(
+        1,
+        ...validSeries.flatMap((s) => s.data),
+      );
+
+    for (const s of validSeries) {
+      const step = (w - padding * 2) / (s.data.length - 1);
+
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, s.color + "55");
+      grad.addColorStop(1, s.color + "00");
 
       ctx.beginPath();
       ctx.moveTo(padding, h);
-
-      for (let i = 0; i < series.length; i++) {
+      for (let i = 0; i < s.data.length; i++) {
         const x = padding + i * step;
-        const y = h - padding - ((series[i] / max) * (h - padding * 2));
+        const y = h - padding - (s.data[i] / computedMax) * (h - padding * 2);
         ctx.lineTo(x, y);
       }
-
-      ctx.lineTo(padding + (series.length - 1) * step, h);
+      ctx.lineTo(padding + (s.data.length - 1) * step, h);
       ctx.closePath();
-      ctx.fillStyle = gradient;
+      ctx.fillStyle = grad;
       ctx.fill();
 
       ctx.beginPath();
-      for (let i = 0; i < series.length; i++) {
+      for (let i = 0; i < s.data.length; i++) {
         const x = padding + i * step;
-        const y = h - padding - ((series[i] / max) * (h - padding * 2));
+        const y = h - padding - (s.data[i] / computedMax) * (h - padding * 2);
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 1.8;
+      ctx.lineJoin = "round";
       ctx.stroke();
-    };
-
-    const alignSeriesValue = (series: number[], targetLength: number, index: number) => {
-      if (series.length === 0) return 0;
-      const sourceIndex = index - (targetLength - series.length);
-      if (sourceIndex < 0) return series[0];
-      if (sourceIndex >= series.length) return series[series.length - 1];
-      return series[sourceIndex];
-    };
-
-    const previousData = previousDataRef.current;
-
-    if (!previousData || previousData.length < 2 || data.length < 2) {
-      if (frameRef.current != null) {
-        cancelAnimationFrame(frameRef.current);
-        frameRef.current = null;
-      }
-      drawChart(data);
-      previousDataRef.current = data;
-      return;
     }
-
-    if (frameRef.current != null) {
-      cancelAnimationFrame(frameRef.current);
-      frameRef.current = null;
-    }
-
-    const fromData = data.map((_, index) => alignSeriesValue(previousData, data.length, index));
-    const startTime = performance.now();
-    const duration = 220;
-
-    const animate = (now: number) => {
-      const progress = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const interpolated = data.map(
-        (value, index) => fromData[index] + (value - fromData[index]) * eased,
-      );
-
-      drawChart(interpolated);
-
-      if (progress < 1) {
-        frameRef.current = requestAnimationFrame(animate);
-        return;
-      }
-
-      frameRef.current = null;
-      previousDataRef.current = data;
-    };
-
-    frameRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (frameRef.current != null) {
-        cancelAnimationFrame(frameRef.current);
-        frameRef.current = null;
-      }
-    };
-  }, [data, color, maxValue, height]);
+  }, [series, maxValue, height]);
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between">
-        <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-          {label}
-        </span>
-        <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-text-primary)]">
-          <RollingNumber value={valueFormatter ? valueFormatter(currentValue) : `${currentValue.toFixed(1)}%`} direction={direction} />
-        </span>
-      </div>
-      <canvas
-        ref={canvasRef}
-        className="w-full rounded-[var(--radius-control)]"
-        style={{ height }}
-      />
+    <div className="mon-chart-canvas" style={{ height }}>
+      <canvas ref={canvasRef} />
     </div>
   );
 });
 
-// ── Time Window Picker (Elastic Slide) ──
-
-type TimeWindowOption = 5 | 15 | 60;
-
-const TimeWindowPicker = memo(function TimeWindowPicker({
-  value,
-  onChange,
-}: {
-  value: TimeWindowOption;
-  onChange: (v: TimeWindowOption) => void;
-}) {
-  const options: readonly TimeWindowOption[] = [5, 15, 60];
-  const btnRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
-  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
-
-  useEffect(() => {
-    const btn = btnRefs.current.get(value);
-    if (!btn) return;
-    setPill({ left: btn.offsetLeft, width: btn.offsetWidth });
-  }, [value]);
-
-  return (
-    <div className="relative flex items-center gap-2">
-      {pill && (
-        <motion.div
-          className="absolute top-0 bottom-0 rounded-[var(--radius-control)] bg-[var(--color-accent)]"
-          initial={false}
-          animate={{ left: pill.left, width: pill.width }}
-          transition={{
-            type: "spring",
-            stiffness: 500,
-            damping: 18,
-            mass: 1,
-          }}
-        />
-      )}
-      {options.map((m) => (
-        <button
-          key={m}
-          ref={(el) => {
-            if (el) btnRefs.current.set(m, el);
-          }}
-          onClick={() => onChange(m)}
-          className={cn(
-            "relative z-[1] w-[42px] text-center rounded-[var(--radius-control)] py-1 text-[var(--font-size-xs)] transition-colors duration-150",
-            value === m
-              ? "text-white"
-              : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
-          )}
-        >
-          {m}m
-        </button>
-      ))}
-    </div>
-  );
-});
-
-// ── Rolling Number Animation ──
+// ── Rolling number ──
 
 const RollingNumber = memo(function RollingNumber({
   value,
@@ -362,140 +243,341 @@ const RollingNumber = memo(function RollingNumber({
   );
 });
 
-// ── Overview Card ──
+// ── Time window picker (5-step) ──
 
-const OverviewCard = memo(function OverviewCard({
-  icon: Icon,
-  label,
+// UI exposes 5 options (matches design mock). Store still only persists 5/15/60
+// — 360/1440 currently map to 60 (extending backend collector history is out of scope).
+type UiWindow = 5 | 15 | 60 | 360 | 1440;
+const UI_WINDOW_OPTIONS: { value: UiWindow; label: string }[] = [
+  { value: 5, label: "5m" },
+  { value: 15, label: "15m" },
+  { value: 60, label: "1h" },
+  { value: 360, label: "6h" },
+  { value: 1440, label: "24h" },
+];
+
+function uiToStoreWindow(v: UiWindow): 5 | 15 | 60 {
+  if (v === 5 || v === 15 || v === 60) return v;
+  return 60;
+}
+
+const TimeWindowPicker = memo(function TimeWindowPicker({
   value,
-  subValue,
-  colorClass,
-  bgClass,
-  animateClass,
-  disableRolling,
-  cornerContent,
+  onChange,
 }: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-  value: string;
-  subValue?: string;
-  colorClass: string;
-  bgClass: string;
-  animateClass?: string;
-  disableRolling?: boolean;
-  cornerContent?: React.ReactNode;
+  value: UiWindow;
+  onChange: (v: UiWindow) => void;
 }) {
+  const btnRefs = useRef<Map<UiWindow, HTMLButtonElement>>(new Map());
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+
+  useEffect(() => {
+    const btn = btnRefs.current.get(value);
+    if (!btn) return;
+    setPill({ left: btn.offsetLeft - 2, width: btn.offsetWidth });
+  }, [value]);
+
   return (
-    <div className="glass-card relative flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-3">
-      {cornerContent && (
-        <div className="absolute right-2 top-2">
-          {cornerContent}
-        </div>
+    <div className="mon-seg" role="tablist">
+      {pill && (
+        <motion.div
+          className="mon-seg-pill"
+          initial={false}
+          animate={{ left: pill.left + 2, width: pill.width }}
+          transition={{ type: "spring", stiffness: 500, damping: 32 }}
+        />
       )}
-      <div
-        className={cn("flex h-9 w-9 items-center justify-center rounded-lg", bgClass)}
-      >
-        <Icon size={18} className={colorClass} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-          {label}
-        </p>
-        <p className={cn("truncate text-[var(--font-size-base)] font-medium text-[var(--color-text-primary)]", animateClass)} title={value}>
-          {disableRolling ? value : <RollingNumber value={value} />}
-        </p>
-        {subValue && (
-          <p className="truncate text-[var(--font-size-xs)] text-[var(--color-text-muted)]" title={subValue}>
-            {subValue}
-          </p>
-        )}
-      </div>
+      {UI_WINDOW_OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          ref={(el) => {
+            if (el) btnRefs.current.set(opt.value, el);
+          }}
+          onClick={() => onChange(opt.value)}
+          className={cn("mon-seg-btn", value === opt.value && "is-active")}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 });
 
-// ── Session Health helpers ──
-
-function getHealthColor(score: number): string {
-  if (score >= 80) return "var(--color-good)";
-  if (score >= 50) return "var(--color-fair)";
-  return "var(--color-poor)";
-}
-
-function getHealthBg(score: number): string {
-  if (score >= 80) return "bg-green-500/10";
-  if (score >= 50) return "bg-yellow-500/10";
-  return "bg-red-500/10";
-}
-
-function getHealthTextClass(score: number): string {
-  if (score >= 80) return "text-green-500";
-  if (score >= 50) return "text-yellow-500";
-  return "text-red-500";
-}
+// ── Session health helpers ──
 
 // ── Session Picker ──
 
 function SessionPicker({
-  sessionId,
   onSelect,
 }: {
-  sessionId: string | null;
   onSelect: (id: string) => void;
 }) {
   const t = useT();
   const tabs = useTerminalStore((s) => s.tabs);
+  const hosts = useConnectionsStore((s) => s.hosts);
   const connected = tabs.filter((t) => t.state === "connected");
 
   if (connected.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <Activity
-            size={48}
-            className="mx-auto mb-4 text-[var(--color-text-muted)]"
-          />
+          <span className="mon-session-pick-header-icon mx-auto mb-6">
+            <Activity size={28} strokeWidth={1.8} />
+          </span>
           <p className="text-[var(--font-size-base)] text-[var(--color-text-secondary)]">
             {t("monitor.noActiveSessions")}
           </p>
-          <p className="mt-1 text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
-            {t("monitor.connectFirst")}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!sessionId) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="text-center">
-          <Activity
-            size={48}
-            className="mx-auto mb-4 text-[var(--color-text-muted)]"
-          />
-          <p className="mb-4 text-[var(--font-size-base)] text-[var(--color-text-secondary)]">
-            {t("monitor.selectSession")}
-          </p>
-          <div className="flex flex-col gap-2">
-            {connected.map((tab) => (
-              <button
-                key={tab.sessionId}
-                onClick={() => onSelect(tab.sessionId)}
-                className="rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-4 py-2 text-left text-[var(--font-size-sm)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)] transition-colors"
-              >
-                <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[var(--color-success)]" />
-                {tab.title}
-              </button>
-            ))}
+          <div className="mt-1">
+            <p className="text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
+              {t("monitor.connectFirst")}
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
-  return null;
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="text-center">
+        <span className="mon-session-pick-header-icon mx-auto mb-6">
+          <Activity size={28} strokeWidth={1.8} />
+        </span>
+        <p className="text-[var(--font-size-base)] font-medium text-[var(--color-text-primary)]">
+          {t("monitor.selectSession")}
+        </p>
+        <div className="mon-session-pick-grid">
+          {connected.map((tab) => {
+            const host = hosts.find((h) => h.id === tab.hostId);
+            const meta = host
+              ? `${host.username}@${host.host}:${host.port}`
+              : `session · ${tab.sessionId.slice(0, 8)}`;
+            return (
+              <button
+                key={tab.sessionId}
+                onClick={() => onSelect(tab.sessionId)}
+                className="mon-session-pick-card"
+              >
+                <span className="mon-session-pick-glyph">
+                  <Server size={16} strokeWidth={1.8} />
+                </span>
+                <span className="mon-session-pick-info">
+                  <span className="mon-session-pick-name">{tab.title}</span>
+                  <span className="mon-session-pick-meta">{meta}</span>
+                </span>
+                <span className="mon-session-pick-status-dot" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
+
+// ── KPI Card ──
+
+interface KpiCardProps {
+  label: string;
+  badge?: { text: string; kind: "info" | "warn" | "ok" | "err" };
+  num: string;
+  unit?: string;
+  meta?: string;
+  sparkData: number[];
+  sparkColor: string;
+  sparkMax?: number;
+}
+
+const KpiCard = memo(function KpiCard({
+  label,
+  badge,
+  num,
+  unit,
+  meta,
+  sparkData,
+  sparkColor,
+  sparkMax,
+}: KpiCardProps) {
+  return (
+    <div className="mon-kpi-card">
+      <header className="mon-kpi-head">
+        <span className="mon-kpi-label">{label}</span>
+        {badge && <span className={pickBadge(badge.kind)}>{badge.text}</span>}
+      </header>
+      <div className="mon-kpi-value">
+        <span className="mon-kpi-num">
+          <RollingNumber value={num} />
+        </span>
+        {unit && <span className="mon-kpi-unit">{unit}</span>}
+      </div>
+      {meta && <span className="mon-kpi-meta">{meta}</span>}
+      <Sparkline data={sparkData} color={sparkColor} maxValue={sparkMax} />
+    </div>
+  );
+});
+
+// ── Chart Card with tabs ──
+
+type ChartTab = "cpu" | "memory" | "network" | "disk";
+
+const ChartCard = memo(function ChartCard({
+  tab,
+  onTabChange,
+  snapshots,
+  latest,
+}: {
+  tab: ChartTab;
+  onTabChange: (t: ChartTab) => void;
+  snapshots: MetricsSnapshot[];
+  latest: MetricsSnapshot;
+}) {
+  const t = useT();
+
+  const tabs: { value: ChartTab; label: string }[] = [
+    { value: "cpu", label: t("monitor.cpuUsage") },
+    { value: "memory", label: t("monitor.memory") },
+    { value: "network", label: t("monitor.networkIo") },
+    { value: "disk", label: t("monitor.diskIo") },
+  ];
+
+  // legend + series per tab
+  let legend: { color: string; label: string }[] = [];
+  let series: ChartSeries[] = [];
+  let maxValue: number | undefined;
+  let unit = "";
+
+  if (tab === "cpu") {
+    legend = [{ color: "#A78BFA", label: t("monitor.legendUser") }];
+    series = [
+      {
+        data: snapshots.map((s) => s.cpu.usagePercent),
+        color: "#A78BFA",
+        label: "cpu",
+      },
+    ];
+    maxValue = 100;
+    unit = "%";
+  } else if (tab === "memory") {
+    legend = [{ color: "#22C55E", label: t("monitor.memory") }];
+    series = [
+      {
+        data: snapshots.map((s) => s.memory.usagePercent),
+        color: "#22C55E",
+        label: "mem",
+      },
+    ];
+    maxValue = 100;
+    unit = "%";
+  } else if (tab === "network") {
+    legend = [
+      { color: "#67E8F9", label: t("monitor.legendRx") },
+      { color: "#A78BFA", label: t("monitor.legendTx") },
+    ];
+    series = [
+      {
+        data: snapshots.map((s) => s.network.rxBytesPerSec),
+        color: "#67E8F9",
+        label: "rx",
+      },
+      {
+        data: snapshots.map((s) => s.network.txBytesPerSec),
+        color: "#A78BFA",
+        label: "tx",
+      },
+    ];
+  }
+
+  // axis labels — first / mid / last sample timestamps if available
+  const axis = useMemo(() => {
+    if (snapshots.length === 0) return [];
+    const fmt = (n: number) => {
+      const d = new Date(snapshots[n].timestamp * 1000);
+      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    };
+    const len = snapshots.length;
+    const pts = [0, Math.floor(len * 0.25), Math.floor(len * 0.5), Math.floor(len * 0.75), len - 1];
+    return pts.map(fmt);
+  }, [snapshots]);
+
+  return (
+    <section className="mon-chart-card">
+      <header className="mon-chart-head">
+        <div className="mon-chart-tabs">
+          {tabs.map((tb) => (
+            <button
+              key={tb.value}
+              onClick={() => onTabChange(tb.value)}
+              className={cn("mon-chart-tab", tab === tb.value && "is-active")}
+            >
+              {tb.label}
+            </button>
+          ))}
+        </div>
+        {tab !== "disk" && (
+          <div className="mon-chart-legend">
+            {legend.map((lg) => (
+              <span key={lg.label} className="lg-item">
+                <span className="lg-dot" style={{ background: lg.color }} />
+                {lg.label}
+              </span>
+            ))}
+            {tab !== "network" && (
+              <span className="lg-item" style={{ color: "var(--color-text-muted)" }}>
+                {tab === "cpu"
+                  ? `${latest.cpu.usagePercent.toFixed(1)}${unit}`
+                  : `${latest.memory.usagePercent.toFixed(1)}${unit}`}
+              </span>
+            )}
+          </div>
+        )}
+      </header>
+
+      <div className="mon-chart-body" key={tab}>
+      {tab === "disk" ? (
+        <div className="mon-disk-list">
+          {latest.disks.length === 0 ? (
+            <div className="mon-proc-empty">{t("monitor.noDiskData")}</div>
+          ) : (
+            latest.disks.map((d) => (
+              <div key={d.mount} className="mon-disk-row">
+                <span className="mon-disk-name" title={d.filesystem}>
+                  {d.filesystem}
+                </span>
+                <span className="mon-disk-mount" title={d.mount}>
+                  {d.mount}
+                </span>
+                <div
+                  className={cn(
+                    "mon-disk-bar",
+                    d.usagePercent > 90 && "is-err",
+                    d.usagePercent > 70 && d.usagePercent <= 90 && "is-warn",
+                  )}
+                >
+                  <span style={{ width: `${Math.min(d.usagePercent, 100)}%` }} />
+                </div>
+                <span className="mon-disk-usage">
+                  {d.used} / {d.total}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        <>
+          <AreaChart series={series} maxValue={maxValue} />
+          {axis.length > 0 && (
+            <footer className="mon-chart-axis">
+              {axis.map((a, i) => (
+                <span key={i}>{a}</span>
+              ))}
+            </footer>
+          )}
+        </>
+      )}
+      </div>
+    </section>
+  );
+});
 
 // ── Process Table ──
 
@@ -505,280 +587,110 @@ const ProcessTable = memo(function ProcessTable({
   processes: MetricsSnapshot["processes"];
 }) {
   const t = useT();
+  const [filter, setFilter] = useState("");
+  const [sortByCpu, setSortByCpu] = useState(true);
+
+  const rows = useMemo(() => {
+    let r = processes;
+    if (filter.trim()) {
+      const q = filter.toLowerCase();
+      r = r.filter(
+        (p) =>
+          p.command.toLowerCase().includes(q) ||
+          p.user.toLowerCase().includes(q) ||
+          String(p.pid).includes(q),
+      );
+    }
+    if (sortByCpu) {
+      r = [...r].sort((a, b) => b.cpuPercent - a.cpuPercent);
+    }
+    return r;
+  }, [processes, filter, sortByCpu]);
 
   return (
-    <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-      <div className="border-b border-[var(--color-border)] px-4 py-3">
-        <h3 className="text-[var(--font-size-base)] font-medium text-[var(--color-text-primary)]">
-          {t("monitor.processesTop15")}
-        </h3>
-      </div>
-      <div className="overflow-x-auto w-full max-w-full rounded-b-[var(--radius-card)]">
-        <table className="w-full text-[var(--font-size-xs)]">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] text-[var(--color-text-muted)]">
-              <th className="px-4 py-2 text-left font-medium">{t("monitor.pid")}</th>
-              <th className="px-4 py-2 text-left font-medium">{t("monitor.user")}</th>
-              <th className="px-4 py-2 text-right font-medium">CPU%</th>
-              <th className="px-4 py-2 text-right font-medium">MEM%</th>
-              <th className="px-4 py-2 text-left font-medium">{t("monitor.command")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {processes.map((p) => (
-              <tr
-                key={p.pid}
-                className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-hover)]"
-              >
-                <td className="px-4 py-1.5 text-[var(--color-text-secondary)]">
-                  {p.pid}
-                </td>
-                <td className="px-4 py-1.5 text-[var(--color-text-secondary)]">
-                  {p.user}
-                </td>
-                <td className="px-4 py-1.5 text-right">
+    <section className="mon-proc-card">
+      <header className="mon-proc-head">
+        <h3 className="mon-proc-title">{t("monitor.processes")}</h3>
+        <div className="mon-proc-actions">
+          <span className="mon-proc-search">
+            <Search size={12} />
+            <input
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder={t("monitor.filterByCommand")}
+            />
+          </span>
+          <button
+            className="mon-proc-sort"
+            onClick={() => setSortByCpu((v) => !v)}
+            title={t("monitor.sortByCpu")}
+          >
+            <ArrowDownUp size={12} />
+            {t("monitor.sortByCpu")}
+          </button>
+        </div>
+      </header>
+
+      <div className="mon-proc-table">
+        <div className="mon-proc-row is-head">
+          <span>{t("monitor.pid")}</span>
+          <span>{t("monitor.user")}</span>
+          <span>{t("monitor.cpuPercent")}</span>
+          <span>{t("monitor.memPercent")}</span>
+          <span>{t("monitor.timeHeader")}</span>
+          <span>{t("monitor.command")}</span>
+          <span />
+        </div>
+        {rows.length === 0 ? (
+          <div className="mon-proc-empty">{t("monitor.noProcessData")}</div>
+        ) : (
+          rows.map((p) => (
+            <div className="mon-proc-row" key={p.pid}>
+              <span className="mon-proc-cell-mono">{p.pid}</span>
+              <span>{p.user}</span>
+              <span className="mon-proc-bar-cell">
+                <span className="mon-proc-bar">
                   <span
-                    className={cn(
-                      p.cpuPercent > 50
-                        ? "text-[var(--color-error)]"
-                        : p.cpuPercent > 20
-                          ? "text-[var(--color-warning)]"
-                          : "text-[var(--color-text-secondary)]",
-                    )}
-                  >
-                    {p.cpuPercent.toFixed(1)}
-                  </span>
-                </td>
-                <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)]">
-                  {p.memPercent.toFixed(1)}
-                </td>
-                <td
-                  className="max-w-[300px] truncate px-4 py-1.5 text-[var(--color-text-muted)]"
-                  title={p.command}
-                >
-                  {p.command}
-                </td>
-              </tr>
-            ))}
-            {processes.length === 0 && (
-              <tr>
-                <td
-                  colSpan={5}
-                  className="px-4 py-4 text-center text-[var(--color-text-muted)]"
-                >
-                  {t("monitor.noProcessData")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-});
-
-// ── Disk Table ──
-
-const DiskTable = memo(function DiskTable({ disks }: { disks: MetricsSnapshot["disks"] }) {
-  const t = useT();
-
-  return (
-    <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-      <div className="border-b border-[var(--color-border)] px-4 py-3">
-        <h3 className="text-[var(--font-size-base)] font-medium text-[var(--color-text-primary)]">
-          {t("monitor.diskUsage")}
-        </h3>
-      </div>
-      <div className="overflow-x-auto w-full max-w-full rounded-b-[var(--radius-card)]">
-        <table className="w-full text-[var(--font-size-xs)]">
-          <thead>
-            <tr className="border-b border-[var(--color-border)]">
-              <th className="px-4 py-2 text-left font-medium text-[var(--color-text-secondary)]">{t("monitor.filesystem")}</th>
-              <th className="px-4 py-2 text-left font-medium text-[var(--color-text-secondary)] min-w-[90px]">{t("monitor.usage")}</th>
-              <th className="px-4 py-2 text-right font-medium text-[var(--color-text-secondary)] min-w-[70px]">{t("monitor.available")}</th>
-              <th className="px-4 py-2 text-right font-medium text-[var(--color-text-secondary)] min-w-[60px]">{t("monitor.used")}</th>
-              <th className="px-4 py-2 text-right font-medium text-[var(--color-text-secondary)] min-w-[60px]">{t("monitor.total")}</th>
-              <th className="px-4 py-2 text-left font-medium text-[var(--color-text-secondary)]">{t("monitor.mount")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {disks.map((d) => (
-              <tr
-                key={d.mount}
-                className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-hover)]"
-              >
-                <td className="px-4 py-1.5 text-[var(--color-text-secondary)]">
-                  {d.filesystem}
-                </td>
-                <td className="px-4 py-1.5 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--color-bg-elevated)]">
-                      <div
-                        className={cn(
-                          "h-full rounded-full transition-all",
-                          d.usagePercent > 90
-                            ? "bg-[var(--color-error)]"
-                            : d.usagePercent > 70
-                              ? "bg-[var(--color-warning)]"
-                              : "bg-[var(--color-accent)]",
-                        )}
-                        style={{ width: `${Math.min(d.usagePercent, 100)}%` }}
-                      />
-                    </div>
-                    <span
-                      className={cn(
-                        "w-12 text-right",
-                        d.usagePercent > 90
-                          ? "text-[var(--color-error)]"
-                          : "text-[var(--color-text-secondary)]",
-                      )}
-                    >
-                      {d.usagePercent.toFixed(0)}%
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)] whitespace-nowrap">
-                  {d.available}
-                </td>
-                <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)] whitespace-nowrap">
-                  {d.used}
-                </td>
-                <td className="px-4 py-1.5 text-right text-[var(--color-text-secondary)] whitespace-nowrap">
-                  {d.total}
-                </td>
-                <td className="px-4 py-1.5 text-[var(--color-text-secondary)]" title={d.mount}>
-                  {d.mount}
-                </td>
-              </tr>
-            ))}
-            {disks.length === 0 && (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-4 text-center text-[var(--color-text-muted)]"
-                >
-                  {t("monitor.noDiskData")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-});
-
-// ── Command Templates ──
-
-interface CmdTemplate {
-  titleKey: DictKey;
-  command: string;
-}
-
-const commandTemplates: { categoryKey: DictKey; commands: CmdTemplate[] }[] = [
-  {
-    categoryKey: "monitor.catSystemInfo",
-    commands: [
-      { titleKey: "monitor.cmdOsInfo", command: "cat /etc/os-release" },
-      { titleKey: "monitor.cmdKernel", command: "uname -a" },
-      { titleKey: "monitor.cmdUptime", command: "uptime" },
-      { titleKey: "monitor.cmdHostname", command: "hostname" },
-      { titleKey: "monitor.cmdCurrentUser", command: "whoami" },
-    ],
-  },
-  {
-    categoryKey: "monitor.catNetwork",
-    commands: [
-      { titleKey: "monitor.cmdIpAddr", command: "ip addr show" },
-      { titleKey: "monitor.cmdListenPorts", command: "ss -tlnp" },
-      { titleKey: "monitor.cmdActiveConn", command: "ss -tunp" },
-      { titleKey: "monitor.cmdDnsConfig", command: "cat /etc/resolv.conf" },
-      { titleKey: "monitor.cmdRouteTable", command: "ip route" },
-    ],
-  },
-  {
-    categoryKey: "monitor.catDiskFiles",
-    commands: [
-      { titleKey: "monitor.cmdDiskUsage", command: "df -h" },
-      { titleKey: "monitor.cmdDirSize", command: "du -sh *" },
-      { titleKey: "monitor.cmdInodeUsage", command: "df -i" },
-      { titleKey: "monitor.cmdMountPoints", command: "mount | column -t" },
-      { titleKey: "monitor.cmdLargestFiles", command: "find / -type f -exec du -h {} + 2>/dev/null | sort -rh | head -20" },
-    ],
-  },
-  {
-    categoryKey: "monitor.catProcess",
-    commands: [
-      { titleKey: "monitor.cmdTopCpu", command: "ps aux --sort=-%cpu | head -15" },
-      { titleKey: "monitor.cmdTopMemory", command: "ps aux --sort=-%mem | head -15" },
-      { titleKey: "monitor.cmdProcessTree", command: "pstree -p" },
-      { titleKey: "monitor.cmdOpenFiles", command: "lsof | head -50" },
-    ],
-  },
-  {
-    categoryKey: "monitor.catService",
-    commands: [
-      { titleKey: "monitor.cmdRunningServices", command: "systemctl list-units --type=service --state=running" },
-      { titleKey: "monitor.cmdFailedServices", command: "systemctl list-units --type=service --state=failed" },
-      { titleKey: "monitor.cmdRecentLogs", command: "journalctl -n 50 --no-pager" },
-      { titleKey: "monitor.cmdCronJobs", command: "crontab -l 2>/dev/null; ls /etc/cron.d/" },
-    ],
-  },
-];
-
-const CommandTemplates = memo(function CommandTemplates() {
-  const t = useT();
-  const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
-
-  const handleCopy = useCallback((command: string) => {
-    navigator.clipboard.writeText(command).then(() => {
-      setCopiedCmd(command);
-      setTimeout(() => setCopiedCmd(null), 1500);
-    });
-  }, []);
-
-  return (
-    <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-      <div className="border-b border-[var(--color-border)] px-4 py-2">
-        <h3 className="text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
-          {t("monitor.commandTemplates")}
-        </h3>
-      </div>
-      <div className="grid grid-cols-5 gap-px bg-[var(--color-border)]">
-        {commandTemplates.map((group) => (
-          <div key={group.categoryKey} className="bg-[var(--color-bg-surface)] p-3">
-            <p className="mb-2 text-[var(--font-size-xs)] font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
-              {t(group.categoryKey)}
-            </p>
-            <div className="flex flex-col gap-1">
-              {group.commands.map((cmd) => (
-                <button
-                  key={cmd.command}
-                  onClick={() => handleCopy(cmd.command)}
-                  className="group flex items-center justify-between rounded px-2 py-1 text-left text-[var(--font-size-xs)] hover:bg-[var(--color-bg-hover)] transition-colors"
-                >
-                  <span className="truncate text-[var(--color-text-secondary)]">
-                    {t(cmd.titleKey)}
-                  </span>
-                  {copiedCmd === cmd.command ? (
-                    <Check size={12} className="shrink-0 text-[var(--color-success)]" />
-                  ) : (
-                    <Copy
-                      size={12}
-                      className="shrink-0 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100"
-                    />
-                  )}
+                    style={{
+                      width: `${Math.min(p.cpuPercent, 100)}%`,
+                      background:
+                        p.cpuPercent > 50
+                          ? "var(--color-error)"
+                          : "#A78BFA",
+                    }}
+                  />
+                </span>
+                <span className="mon-proc-bar-num">{p.cpuPercent.toFixed(1)}</span>
+              </span>
+              <span className="mon-proc-bar-cell">
+                <span className="mon-proc-bar">
+                  <span
+                    style={{
+                      width: `${Math.min(p.memPercent, 100)}%`,
+                      background: "#67E8F9",
+                    }}
+                  />
+                </span>
+                <span className="mon-proc-bar-num">{p.memPercent.toFixed(1)}</span>
+              </span>
+              <span className="mon-proc-cell-mono">--</span>
+              <span className="mon-proc-cell-mono" title={p.command}>
+                {p.command}
+              </span>
+              <span style={{ textAlign: "right" }}>
+                <button className="mon-proc-act-btn" aria-label="more">
+                  <MoreHorizontal size={12} />
                 </button>
-              ))}
+              </span>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
-    </div>
+    </section>
   );
 });
 
-// ── Main Monitor Page ──
+// ── Main Page ──
 
 export function MonitorPage() {
   const t = useT();
@@ -795,28 +707,27 @@ export function MonitorPage() {
     loadHistory,
   } = useMetricsStore();
 
+  const setStatusBarData = useMetricsStore((s) => s.setStatusBarData);
+
   const tabs = useTerminalStore((s) => s.tabs);
   const connected = tabs.filter((t) => t.state === "connected");
   const sessionIdRef = useRef<string | null>(null);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
-  const [showNetworkTx, setShowNetworkTx] = useState(false);
-  const [prevShowNetworkTx, setPrevShowNetworkTx] = useState(false);
+  const [uiWindow, setUiWindow] = useState<UiWindow>(timeWindow);
+  const [chartTab, setChartTab] = useState<ChartTab>("cpu");
+  const [now, setNow] = useState(() => Date.now());
 
-  // Compute animation class based on direction change
-  const networkAnimClass = showNetworkTx !== prevShowNetworkTx
-    ? showNetworkTx
-      ? "animate-slide-in-from-bottom"
-      : "animate-slide-in-from-top"
-    : "";
-
-  // Toggle network display between TX and RX every 3 seconds
+  // Tick every second to keep "last sample Xs ago" current
   useEffect(() => {
-    const interval = setInterval(() => {
-      setPrevShowNetworkTx(showNetworkTx);
-      setShowNetworkTx((prev) => !prev);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [showNetworkTx]);
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Sync UI window → store window
+  useEffect(() => {
+    const mapped = uiToStoreWindow(uiWindow);
+    if (mapped !== timeWindow) setTimeWindow(mapped);
+  }, [uiWindow, timeWindow, setTimeWindow]);
 
   useEffect(() => {
     initMetricsListeners();
@@ -827,35 +738,6 @@ export function MonitorPage() {
     void loadHistory();
   }, [collectorId, timeWindow, loadHistory]);
 
-  // Scroll to top on mount with smooth animation
-  useEffect(() => {
-    if (scrollRef.current) {
-      // Use manual animation for more control
-      const startTime = performance.now();
-      const startTop = scrollRef.current.scrollTop;
-      const duration = 400;
-
-      const animate = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        // Ease out cubic
-        const easeProgress = 1 - Math.pow(1 - progress, 3);
-
-        scrollRef.current?.scrollTo({
-          top: startTop * (1 - easeProgress),
-          behavior: "auto",
-        });
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        }
-      };
-
-      requestAnimationFrame(animate);
-    }
-  }, []);
-
-  // Auto-stop collector on unmount
   useEffect(() => {
     return () => {
       stopCollector();
@@ -867,18 +749,16 @@ export function MonitorPage() {
       sessionIdRef.current = sessionId;
       setSystemInfo(null);
       await startCollector(sessionId);
-      // Detect remote system info
       try {
         const info = await api.systemDetect(sessionId);
         setSystemInfo(info);
       } catch {
-        // Non-critical — silently ignore
+        /* non-critical */
       }
     },
     [startCollector],
   );
 
-  // Use refs to get latest values in event listeners
   const stopCollectorRef = useRef(stopCollector);
   stopCollectorRef.current = stopCollector;
   const collectorIdRef = useRef(collectorId);
@@ -886,7 +766,6 @@ export function MonitorPage() {
   const tRef = useRef(t);
   tRef.current = t;
 
-  // Listen for session state changes to handle disconnection
   useEffect(() => {
     const unlistenState = listen<{ sessionId: string; state: string }>(
       "session:state_changed",
@@ -899,31 +778,33 @@ export function MonitorPage() {
         }
       },
     );
-
     return () => {
       unlistenState.then((fn) => fn());
     };
   }, []);
 
-  // If no collector is running, show session picker
+  const currentTab = connected.find((c) => c.sessionId === sessionIdRef.current);
+  const hostTitle = currentTab?.title ?? null;
+
+  // Feed statusbar data to global StatusBar
+  useEffect(() => {
+    if (latest && collectorState === "running") {
+      setStatusBarData({ hostTitle, latest });
+    } else {
+      setStatusBarData(null);
+    }
+    return () => setStatusBarData(null);
+  }, [latest, collectorState, hostTitle, setStatusBarData]);
+
   if (!collectorId || collectorState === "stopped") {
-    return (
-      <SessionPicker
-        sessionId={null}
-        onSelect={handleSelectSession}
-      />
-    );
+    return <SessionPicker onSelect={handleSelectSession} />;
   }
 
-  // Error state
   if (collectorState === "error") {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <AlertCircle
-            size={48}
-            className="mx-auto mb-4 text-[var(--color-error)]"
-          />
+          <AlertCircle size={48} className="mx-auto mb-4 text-[var(--color-error)]" />
           <p className="text-[var(--font-size-base)] text-[var(--color-text-secondary)]">
             {t("monitor.collectionFailed")}
           </p>
@@ -931,9 +812,7 @@ export function MonitorPage() {
             {t("monitor.sessionDisconnected")}
           </p>
           <button
-            onClick={() => {
-              stopCollector();
-            }}
+            onClick={() => stopCollector()}
             className="mt-4 rounded-[var(--radius-control)] bg-[var(--color-accent)] px-4 py-2 text-[var(--font-size-sm)] text-white hover:bg-[var(--color-accent-hover)] transition-colors"
           >
             {t("monitor.selectAnother")}
@@ -943,15 +822,11 @@ export function MonitorPage() {
     );
   }
 
-  // Loading state
   if (!latest) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <Activity
-            size={32}
-            className="mx-auto mb-3 animate-pulse text-[var(--color-accent)]"
-          />
+          <Activity size={32} className="mx-auto mb-3 animate-pulse text-[var(--color-accent)]" />
           <p className="text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
             {t("monitor.collecting")}
           </p>
@@ -960,201 +835,147 @@ export function MonitorPage() {
     );
   }
 
-  // Extract chart data arrays
+  // ── Derive sparkline data ──
   const cpuData = snapshots.map((s) => s.cpu.usagePercent);
   const memData = snapshots.map((s) => s.memory.usagePercent);
   const rxData = snapshots.map((s) => s.network.rxBytesPerSec);
-  const txData = snapshots.map((s) => s.network.txBytesPerSec);
+  const loadData = snapshots.map((s) => s.load.one);
 
-  const currentTab = connected.find(
-    (t) => t.sessionId === sessionIdRef.current,
-  );
+  // ── Derive subtitle ──
+  const lastAgoSec = Math.max(0, Math.floor(now / 1000 - latest.timestamp));
+  const distroLine = systemInfo
+    ? [
+        systemInfo.distro
+          ? `${systemInfo.distro}${systemInfo.distroVersion ? ` ${systemInfo.distroVersion}` : ""}`
+          : systemInfo.os,
+        systemInfo.kernel,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : "";
+  const uptimeDays = extractUptimeDays(latest.uptime);
 
-  // Session health score
-  const healthScore = latest.sessionHealth;
+  // ── KPI badges ──
+  const cpuBadge = {
+    text: t("monitor.coresShort", { n: latest.cpu.coreCount }),
+    kind: "info" as const,
+  };
+  const memBadge =
+    latest.memory.usagePercent > 85
+      ? { text: t("monitor.warning"), kind: "warn" as const }
+      : latest.memory.usagePercent > 60
+        ? { text: t("monitor.healthy"), kind: "ok" as const }
+        : { text: t("monitor.healthy"), kind: "ok" as const };
+  const netBadge = { text: t("monitor.rxTx"), kind: "info" as const };
+  const loadBadge =
+    latest.cpu.coreCount > 0 && latest.load.one / latest.cpu.coreCount > 1
+      ? { text: t("monitor.warning"), kind: "warn" as const }
+      : { text: t("monitor.healthy"), kind: "ok" as const };
+
+  // ── KPI primary number ──
+  const cpuNum = latest.cpu.usagePercent.toFixed(0);
+  const memNum = formatMemGb(latest.memory.usedMb);
+  const memUnit = `/ ${formatMemGb(latest.memory.totalMb)} GB`;
+  const netNum = formatBytes(latest.network.rxBytesPerSec + latest.network.txBytesPerSec);
+  const netUnit = "/s";
+  const loadNum = latest.load.one.toFixed(2);
+  const loadUnit = `/ ${latest.load.five.toFixed(2)} / ${latest.load.fifteen.toFixed(2)}`;
 
   return (
-    <div ref={scrollRef} className="monitor-scroll flex w-full flex-1 flex-col p-4 gap-4">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <Activity size={20} className="text-[var(--color-accent)]" />
-            <h1 className="text-[var(--font-size-lg)] font-medium text-[var(--color-text-primary)]">
-              {t("monitor.title")}
-            </h1>
-            {currentTab && (
-              <span className="rounded-full bg-[var(--color-accent-subtle)] px-2.5 py-0.5 text-[var(--font-size-xs)] text-[var(--color-accent)]">
-                {currentTab.title}
-              </span>
-            )}
-          </div>
-          {systemInfo && latest.serverTime && (
-            <span className="flex items-center gap-2 text-[var(--font-size-xs)] text-[var(--color-text-muted)] ml-8">
-              <span>
-                {[
-                  systemInfo.distro
-                    ? `${systemInfo.distro}${systemInfo.distroVersion ? ` ${systemInfo.distroVersion}` : ""}`
-                    : systemInfo.os,
-                  systemInfo.kernel,
-                  systemInfo.shell,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
-              <span>· </span>
-              <span>{extractDatePart(latest.serverTime)} </span>
-              {extractTimeParts(latest.serverTime) && (() => {
-                const timeParts = extractTimeParts(latest.serverTime)!;
-                return (
-                  <span className="flex items-center">
-                    <RollingNumber value={timeParts.hours} />
-                    <span>:</span>
-                    <RollingNumber value={timeParts.mins} />
+    <div className="mon-page">
+      <div ref={scrollRef} className="mon-scroll">
+        <div className="mon-body">
+          {/* ── Header ── */}
+          <header className="mon-header">
+            <div>
+              <h1 className="mon-title">
+                <Activity size={18} className="text-[var(--color-accent)]" />
+                {t("monitor.title")}
+                {hostTitle && (
+                  <span className="rounded-full bg-[var(--color-accent-subtle)] px-2.5 py-0.5 text-[var(--font-size-xs)] text-[var(--color-accent)]">
+                    {hostTitle}
                   </span>
-                );
-              })()}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <TimeWindowPicker value={timeWindow} onChange={setTimeWindow} />
-          <button
-            onClick={stopCollector}
-            className="rounded-[var(--radius-control)] bg-[var(--color-bg-elevated)] px-3 py-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] border border-[var(--color-border)]"
-          >
-            {t("monitor.stop")}
-          </button>
-        </div>
-      </div>
+                )}
+              </h1>
+              <div className="mon-subtitle">
+                {distroLine && <span>{distroLine}</span>}
+                {distroLine && <span>·</span>}
+                <span>
+                  {t("monitor.uptimeDays", { n: uptimeDays })}
+                </span>
+                <span>·</span>
+                <span>{t("monitor.lastSampleAgo", { n: lastAgoSec })}</span>
+              </div>
+            </div>
+            <div className="mon-actions">
+              <TimeWindowPicker value={uiWindow} onChange={setUiWindow} />
+              <button className="mon-btn-auto is-on" title="Auto refresh">
+                <RotateCw size={12} />
+                {t("monitor.autoBadge", { n: 2 })}
+              </button>
+              <button
+                onClick={() => stopCollector()}
+                className="rounded-[var(--radius-control)] bg-[var(--color-bg-elevated)] px-3 py-1.5 text-[var(--font-size-xs)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] border border-[var(--color-border)]"
+              >
+                {t("monitor.stop")}
+              </button>
+            </div>
+          </header>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-6 gap-3">
-        <OverviewCard
-          icon={Clock}
-          label={t("monitor.uptime")}
-          value={`${extractUptimeDays(latest.uptime)}${t("monitor.days")}`}
-          colorClass="text-blue-500"
-          bgClass="bg-blue-500/10"
-        />
-        <OverviewCard
-          icon={Gauge}
-          label={t("monitor.load")}
-          value={formatLoad(latest.load.one, latest.cpu.coreCount)}
-          colorClass="text-violet-500"
-          bgClass="bg-violet-500/10"
-        />
-        <OverviewCard
-          icon={Cpu}
-          label={t("monitor.cpu")}
-          value={`${latest.cpu.usagePercent.toFixed(1)}%`}
-          colorClass="text-amber-500"
-          bgClass="bg-amber-500/10"
-        />
-        <OverviewCard
-          icon={MemoryStick}
-          label={t("monitor.memory")}
-          value={`${formatMemory(latest.memory.usedMb)} / ${formatMemory(latest.memory.totalMb)}`}
-          colorClass="text-green-500"
-          bgClass="bg-green-500/10"
-        />
-        <OverviewCard
-          icon={showNetworkTx ? ArrowUp : ArrowDown}
-          label={t("monitor.network")}
-          value={`${showNetworkTx ? "↑" : "↓"} ${formatBytes(showNetworkTx ? latest.network.txBytesPerSec : latest.network.rxBytesPerSec)}/s`}
-          colorClass="text-cyan-500"
-          bgClass="bg-cyan-500/10"
-          animateClass={networkAnimClass}
-          disableRolling
-        />
-        {/* Session Health Card */}
-        <div
-          className="glass-card flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-3"
-        >
-          <div
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-lg",
-              healthScore != null ? getHealthBg(healthScore) : "bg-gray-500/10",
-            )}
-          >
-            <Heart
-              size={18}
-              className={healthScore != null ? getHealthTextClass(healthScore) : "text-gray-500"}
+          {/* ── KPI grid ── */}
+          <div className="mon-kpi-grid">
+            <KpiCard
+              label={t("monitor.cpu")}
+              badge={cpuBadge}
+              num={cpuNum}
+              unit="%"
+              meta={t("monitor.load1Cores", { load1: latest.load.one.toFixed(2), cores: latest.cpu.coreCount })}
+              sparkData={cpuData}
+              sparkColor="#A78BFA"
+              sparkMax={100}
+            />
+            <KpiCard
+              label={t("monitor.memory")}
+              badge={memBadge}
+              num={memNum}
+              unit={memUnit}
+              meta={t("monitor.memUsed", { n: latest.memory.usagePercent.toFixed(0), cache: formatMemGb(latest.memory.cacheMb) })}
+              sparkData={memData}
+              sparkColor="#FBBF24"
+              sparkMax={100}
+            />
+            <KpiCard
+              label={t("monitor.network")}
+              badge={netBadge}
+              num={netNum}
+              unit={netUnit}
+              meta={t("monitor.netRate", { rx: formatRate(latest.network.rxBytesPerSec), tx: formatRate(latest.network.txBytesPerSec) })}
+              sparkData={rxData}
+              sparkColor="#67E8F9"
+            />
+            <KpiCard
+              label={t("monitor.loadAvg")}
+              badge={loadBadge}
+              num={loadNum}
+              unit={loadUnit}
+              meta={t("monitor.loadPeriods")}
+              sparkData={loadData}
+              sparkColor="#4ADE80"
             />
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-              {t("monitor.sessionHealth")}
-            </p>
-            <p
-              className="truncate text-[var(--font-size-base)] font-medium"
-              style={{
-                color: healthScore != null ? getHealthColor(healthScore) : undefined,
-              }}
-              title={healthScore != null ? `${healthScore.toFixed(0)}` : undefined}
-            >
-              {healthScore != null ? String(healthScore) : "--"}
-            </p>
-          </div>
+
+          {/* ── Chart card ── */}
+          <ChartCard
+            tab={chartTab}
+            onTabChange={setChartTab}
+            snapshots={snapshots}
+            latest={latest}
+          />
+
+          {/* ── Process table ── */}
+          <ProcessTable processes={latest.processes} />
         </div>
       </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4">
-          <MiniChart
-            data={cpuData}
-            color="#F59E0B"
-            maxValue={100}
-            height={100}
-            label={t("monitor.cpuUsage")}
-          />
-        </div>
-        <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4">
-          <MiniChart
-            data={memData}
-            color="#22C55E"
-            maxValue={100}
-            height={100}
-            label={t("monitor.memoryUsage")}
-          />
-        </div>
-        <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4">
-          <MiniChart
-            data={rxData}
-            color="#3B82F6"
-            height={100}
-            label={t("monitor.networkRx")}
-            valueFormatter={(v) => `${formatBytes(v)}/s`}
-            direction="down"
-          />
-        </div>
-        <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4">
-          <MiniChart
-            data={txData}
-            color="#06B6D4"
-            height={100}
-            label={t("monitor.networkTx")}
-            valueFormatter={(v) => `${formatBytes(v)}/s`}
-            direction="up"
-          />
-        </div>
-      </div>
-
-      {/* Collapsible: Process Table */}
-      <CollapsibleSection title={t("monitor.processes")} defaultOpen={false}>
-        <ProcessTable processes={latest.processes} />
-      </CollapsibleSection>
-
-      {/* Collapsible: Disk Table */}
-      <CollapsibleSection title={t("monitor.diskUsage")} defaultOpen={false}>
-        <DiskTable disks={latest.disks} />
-      </CollapsibleSection>
-
-      {/* Collapsible: Command Templates */}
-      <CollapsibleSection title={t("monitor.commandTemplates")} defaultOpen={false}>
-        <CommandTemplates />
-      </CollapsibleSection>
     </div>
   );
 }
