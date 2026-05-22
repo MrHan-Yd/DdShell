@@ -41,10 +41,16 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       state: "connected",
     };
 
-    set((s) => ({
-      tabs: [...s.tabs, tab],
-      activeTabId: sessionId,
-    }));
+    set((s) => {
+      // Dedupe by sessionId: if a tab for this session already exists (e.g.
+      // user double-clicked Connect before the button's `disabled` flipped, or
+      // any other duplicate-add path), don't push a second entry.
+      const exists = s.tabs.some((t) => t.sessionId === sessionId);
+      return {
+        tabs: exists ? s.tabs : [...s.tabs, tab],
+        activeTabId: sessionId,
+      };
+    });
 
     return sessionId;
   },
