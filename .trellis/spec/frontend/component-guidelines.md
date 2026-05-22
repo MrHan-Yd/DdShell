@@ -216,3 +216,136 @@ dragGhostRef.current.style.top = `${e.clientY + 12}px`;
 **Related**:
 - `app/src/styles.css` `.mon-chart-tab` styles
 - `ui/styles/pages/monitor.css` design mockup
+
+---
+
+## Convention: Aurora button classes must restate reset-clobbered properties in the Aurora override block
+
+**What**: When a class targets a `<button>` element and sets `padding`, `border`, or `background` in the base layer (`app/src/styles.css` or `ui/styles/`), the Aurora override block in `app/src/styles/aurora/base.css` must restate those same declarations on `[data-ui-theme="aurora"] button.<class>`. The values must match the base layer exactly to prevent drift.
+
+**Why**: Aurora has a global button reset that wins on specificity:
+
+```css
+/* app/src/styles/aurora/base.css */
+[data-ui-theme="aurora"] button {       /* specificity (0,1,1) */
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+```
+
+A plain class selector like `.mon-session-pick-card` has specificity (0,1,0) — it **always loses** to the Aurora reset (0,1,1). The base-layer `padding` / `border` / `background` declarations silently evaporate under the Aurora theme, even though they render correctly in dev tools' "Computed" panel for non-Aurora themes. To win, the override must use a compound selector `[data-ui-theme="aurora"] button.<class>` which has specificity (0,2,1) and beats the reset.
+
+**Bug history** (same pitfall, three occurrences):
+- commit `d54214a` — `.mon-chart-tab` `padding` disappeared under Aurora until restated in the override block
+- session 2026-05-22 — `.mon-session-pick-card` `padding: 12px 22px 12px 18px` disappeared under Aurora; user reported "glyph 贴左边框、绿点贴右边框" twice before root cause was traced
+- session 2026-05-22 — `.mon-session-pick-card` `border` style was also reset, requiring the same restate pattern
+
+**Example**:
+
+```css
+/* Wrong: base layer only — Aurora reset clobbers padding & border */
+/* app/src/styles.css */
+.mon-session-pick-card {
+  padding: 8px 22px 8px 18px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+}
+/* (no entry in app/src/styles/aurora/base.css → Aurora users see padding: 0, border: 0) */
+
+/* Correct: base layer AND Aurora override block restate the properties */
+/* app/src/styles.css */
+.mon-session-pick-card {
+  padding: 8px 22px 8px 18px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+}
+/* app/src/styles/aurora/base.css */
+[data-ui-theme="aurora"] button.mon-session-pick-card {
+  padding: 8px 22px 8px 18px;          /* exact same value */
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+}
+```
+
+**Required check**: For any `button.<class>` styled in the base layer, grep `aurora/base.css` for `button.<class>` and confirm:
+1. An override block exists.
+2. `padding`, `border`, `background` values match the base layer exactly (no drift).
+
+**Verification command**:
+```bash
+# Find base-layer button styles
+rg 'button\.\w+|^\.\w[\w-]*\s*\{[^}]*padding' app/src/styles.css ui/styles/
+
+# Verify each has an Aurora override
+rg '\[data-ui-theme="aurora"\] button\.\w+' app/src/styles/aurora/base.css
+```
+
+**Related**:
+- `app/src/styles/aurora/base.css:42-48` — Aurora button reset block
+- `.mon-chart-tab`, `.mon-session-pick-card` — correct examples of the override pattern
+
+---
+
+## Convention: Never put Tailwind margin utilities on `<p>`, `<h1>`–`<h6>`, `<ul>`, `<ol>` elements
+
+**What**: Aurora has a global typography reset that strips margins from semantic block elements. Tailwind margin utilities (`mt-*`, `mb-*`, `my-*`) on these elements are silently overridden under the Aurora theme. Put the margin utility on a wrapping `<div>` instead, or use a parent flex/grid `gap`.
+
+**Why**: Aurora's typography reset:
+
+```css
+/* app/src/styles/aurora/base.css */
+[data-ui-theme="aurora"] p { margin: 0; }                                         /* (0,1,1) */
+[data-ui-theme="aurora"] h1, h2, h3, h4, h5, h6 { margin: 0; ... }                 /* (0,1,1) each */
+[data-ui-theme="aurora"] ul, ol { margin: 0; padding: 0; list-style: none; }      /* (0,1,1) */
+```
+
+Tailwind's `.mb-8 { margin-bottom: 2rem }` has specificity (0,1,0) — it **always loses** to the Aurora reset (0,1,1). The margin is silently 0 under Aurora, breaking spacing only on themed pages. This is the same specificity pattern as the button reset above, but applied to semantic typography elements.
+
+**Bug history** (session 2026-05-22):
+- `<p className="mb-8">{t("monitor.selectSession")}</p>` — the 32px gap between the title and the picker grid completely vanished under Aurora; user reported "按钮离上面的字太近" three rounds in a row before root cause was traced
+- `MonitorPage.tsx:811` — pre-existing `<p className="mt-1 ...">` in the `collectorState === "error"` branch carries the same latent bug; left for future cleanup
+
+**Example**:
+
+```tsx
+// Wrong: margin on the <p> — Aurora reset wipes it
+<p className="mb-8 text-base font-medium">{t("monitor.selectSession")}</p>
+<div className="mon-session-pick-grid">...</div>
+
+// Correct option 1 (simplest): wrapper <div> carries the margin
+<div className="mb-8">
+  <p className="text-base font-medium">{t("monitor.selectSession")}</p>
+</div>
+<div className="mon-session-pick-grid">...</div>
+
+// Correct option 2: move the spacing onto the next sibling (a <div>)
+<p className="text-base font-medium">{t("monitor.selectSession")}</p>
+<div className="mon-session-pick-grid" style={{ marginTop: '32px' }}>...</div>
+// or use a custom class with margin-top — <div> margins are untouched by reset
+
+// Correct option 3: parent uses flex/grid gap
+<div className="flex flex-col gap-8">
+  <p className="text-base font-medium">{t("monitor.selectSession")}</p>
+  <div className="mon-session-pick-grid">...</div>
+</div>
+
+// Last resort: dedicated class + Aurora override (verbose, only when wrapper isn't possible)
+// CSS:  [data-ui-theme="aurora"] p.session-pick-title { margin-bottom: 32px; }
+```
+
+**Required check**: Before merging, grep for margin utilities on semantic block elements and refactor to a wrapper.
+
+**Verification command**:
+```bash
+# Find all violations across the codebase
+rg '<(p|h[1-6]|ul|ol)\b[^>]*className="[^"]*\b(mt|mb|my)-' app/src/
+
+# Every match is a bug — relocate the margin to a wrapping <div> or use parent gap
+```
+
+**Related**:
+- `app/src/styles/aurora/base.css:102-108` — Aurora typography reset block
+- Aurora button reset convention above — same specificity pattern, different element scope
