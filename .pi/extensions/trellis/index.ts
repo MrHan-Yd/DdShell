@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { createHash, randomBytes } from "node:crypto";
 import { delimiter, dirname, join, resolve } from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 type JsonObject = Record<string, unknown>;
 type TextContent = { type: "text"; text: string };
@@ -632,6 +632,166 @@ function buildTrellisContext(
   ].join("\n");
 }
 
+// ---------------------------------------------------------------------------
+// Workflow-state breadcrumb (TypeScript port of the shared workflow-state
+// hook used by class-1 platforms).
+//
+// Pi is extension-backed and MUST NOT receive Python hook scripts under .pi/.
+// We therefore parse `.trellis/workflow.md` `[workflow-state:STATUS]...
+// [/workflow-state:STATUS]` blocks directly in TypeScript and emit the
+// per-turn `<workflow-state>` breadcrumb in `before_agent_start` and `input`.
+// Tag regex mirrors the shared parser so the breadcrumb body stays
+// byte-identical with hook-driven platforms.
+// ---------------------------------------------------------------------------
+
+const WORKFLOW_STATE_TAG_RE =
+  /\[workflow-state:([A-Za-z0-9_-]+)\]\s*\n([\s\S]*?)\n\s*\[\/workflow-state:\1\]/g;
+
+function loadWorkflowBreadcrumbs(projectRoot: string): Record<string, string> {
+  const workflow = readText(join(projectRoot, ".trellis", "workflow.md"));
+  if (!workflow) return {};
+  const result: Record<string, string> = {};
+  for (const match of workflow.matchAll(WORKFLOW_STATE_TAG_RE)) {
+    const status = match[1] ?? "";
+    const body = (match[2] ?? "").trim();
+    if (status && body) result[status] = body;
+  }
+  return result;
+}
+
+function readActiveTaskStatus(
+  projectRoot: string,
+  taskDir: string,
+): { taskId: string; status: string } | null {
+  try {
+    const data = JSON.parse(
+      readText(join(taskDir, "task.json")),
+    ) as JsonObject;
+    const status = stringValue(data.status);
+    if (!status) return null;
+    const id = stringValue(data.id) ?? taskDir.split(/[\\/]/).pop() ?? "";
+    return { taskId: id, status };
+  } catch {
+    return null;
+  }
+}
+
+function buildWorkflowStateBreadcrumb(
+  projectRoot: string,
+  contextKey: string | null,
+): string {
+  const templates = loadWorkflowBreadcrumbs(projectRoot);
+  const taskDir = readCurrentTask(
+    projectRoot,
+    undefined,
+    undefined,
+    contextKey,
+  );
+  let header: string;
+  let lookupKey: string;
+  if (!taskDir) {
+    header = "Status: no_task\nSource: session";
+    lookupKey = "no_task";
+  } else {
+    const info = readActiveTaskStatus(projectRoot, taskDir);
+    if (!info) {
+      header = "Status: no_task\nSource: session";
+      lookupKey = "no_task";
+    } else {
+      header = `Task: ${info.taskId} (${info.status})\nSource: session`;
+      lookupKey = info.status;
+    }
+  }
+  const body = templates[lookupKey] ?? "Refer to workflow.md for current step.";
+  return `<workflow-state>\n${header}\n${body}\n</workflow-state>`;
+}
+
+// ---------------------------------------------------------------------------
+// Session overview (developer / git branch / active tasks)
+//
+// Spawns `python3 .trellis/scripts/get_context.py` (the same script other
+// platform session-start hooks invoke) to keep developer/git/active-task
+// summary byte-identical with class-1 platforms. Failure is non-fatal — we
+// emit an empty overview rather than block the conversation.
+// ---------------------------------------------------------------------------
+
+const SESSION_OVERVIEW_TIMEOUT_MS = 5000;
+
+function pythonExecutable(): string {
+  const override = stringValue(process.env.TRELLIS_PYTHON);
+  if (override) return override;
+  return process.platform === "win32" ? "python" : "python3";
+}
+
+function buildSessionOverview(
+  projectRoot: string,
+  contextKey: string | null,
+): string {
+  const script = join(projectRoot, ".trellis", "scripts", "get_context.py");
+  if (!isExistingFile(script)) return "";
+  try {
+    const result = spawnSync(pythonExecutable(), [script], {
+      cwd: projectRoot,
+      env: contextKey
+        ? { ...process.env, TRELLIS_CONTEXT_ID: contextKey }
+        : process.env,
+      encoding: "utf-8",
+      timeout: SESSION_OVERVIEW_TIMEOUT_MS,
+      windowsHide: true,
+    });
+    if (result.status !== 0) return "";
+    const stdout = (result.stdout ?? "").trim();
+    if (!stdout) return "";
+    return `<session-overview>\n${stdout}\n</session-overview>`;
+  } catch {
+    return "";
+  }
+}
+
+// Per-turn cache so input + before_agent_start in the same turn don't double-spawn.
+class TurnContextCache {
+  private key: string | null = null;
+  private timestamp = 0;
+  private workflowState = "";
+  private sessionOverview = "";
+  // Refresh window: per-turn injections that fire close together share a
+  // single python3 spawn; anything older than this re-runs the resolver.
+  private static readonly TTL_MS = 1500;
+
+  get(
+    projectRoot: string,
+    contextKey: string | null,
+  ): { workflowState: string; sessionOverview: string } {
+    const now = Date.now();
+    if (this.key === contextKey && now - this.timestamp < TurnContextCache.TTL_MS) {
+      return {
+        workflowState: this.workflowState,
+        sessionOverview: this.sessionOverview,
+      };
+    }
+    this.workflowState = buildWorkflowStateBreadcrumb(projectRoot, contextKey);
+    this.sessionOverview = buildSessionOverview(projectRoot, contextKey);
+    this.key = contextKey;
+    this.timestamp = now;
+    return {
+      workflowState: this.workflowState,
+      sessionOverview: this.sessionOverview,
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sub-agent dispatch protocol snippet (registered with the `subagent` tool).
+// Mirrors the [workflow-state:in_progress] dispatch protocol text in
+// trellis/workflow.md so the AI sees the same `Active task: <path>` rule
+// whether it reads workflow.md, the per-turn breadcrumb, or the tool prompt.
+// ---------------------------------------------------------------------------
+
+const SUBAGENT_DISPATCH_PROTOCOL = `Sub-agent dispatch protocol (Trellis): your dispatch prompt MUST start with one line "Active task: <task path from \`task.py current\`>" before any other instructions. No exceptions. On class-2 platforms (codex / copilot / gemini / qoder) the sub-agent depends on this line because there is no hook to inject task context. On class-1 platforms (claude / cursor / opencode / kiro / codebuddy / droid) and on Pi, the line is the canonical fallback when hook/extension injection misses. trellis-research uses the line to know which {task_dir}/research/ to write into.
+
+Wrong: prompt: "implement the new feature"
+Correct: prompt: "Active task: .trellis/tasks/05-09-pi-workflow-state-injection\\n\\nImplement the new feature ..."`;
+
 function normalizeAgentName(agent: string): string {
   return agent.startsWith("trellis-") ? agent : `trellis-${agent}`;
 }
@@ -886,6 +1046,15 @@ export default function trellisExtension(pi: {
   const projectRoot = findProjectRoot(pi.cwd ?? process.cwd());
   const processContextKey = createProcessContextKey(projectRoot);
   let currentContextKey: string | null = null;
+  const turnContextCache = new TurnContextCache();
+
+  const buildPerTurnInjection = (contextKey: string | null): string => {
+    const { workflowState, sessionOverview } = turnContextCache.get(
+      projectRoot,
+      contextKey,
+    );
+    return [workflowState, sessionOverview].filter(Boolean).join("\n\n");
+  };
 
   const getContextKey = (input?: unknown, ctx?: PiExtensionContext): string => {
     const resolvedContextKey = resolveContextKey(
@@ -904,6 +1073,8 @@ export default function trellisExtension(pi: {
     name: "subagent",
     label: "Subagent",
     description: "Run a Trellis project sub-agent with active task context.",
+    promptSnippet: SUBAGENT_DISPATCH_PROTOCOL,
+    promptGuidelines: SUBAGENT_DISPATCH_PROTOCOL,
     parameters: {
       type: "object",
       properties: {
@@ -976,8 +1147,9 @@ export default function trellisExtension(pi: {
       ctx,
       contextKey,
     );
+    const perTurn = buildPerTurnInjection(contextKey);
     return {
-      systemPrompt: [current, context].filter(Boolean).join("\n\n"),
+      systemPrompt: [current, context, perTurn].filter(Boolean).join("\n\n"),
     };
   });
   pi.on?.("context", (event, ctx) => {
@@ -986,8 +1158,11 @@ export default function trellisExtension(pi: {
     return Array.isArray(messages) ? { messages } : undefined;
   });
   pi.on?.("input", (event, ctx) => {
-    getContextKey(event, ctx);
-    return { action: "continue" };
+    const contextKey = getContextKey(event, ctx);
+    const additionalContext = buildPerTurnInjection(contextKey);
+    return additionalContext
+      ? { action: "continue", additionalContext, systemPrompt: additionalContext }
+      : { action: "continue" };
   });
   pi.on?.("tool_call", (event, ctx) => {
     const contextKey = getContextKey(event, ctx);
