@@ -782,7 +782,6 @@ export function SnippetsPage() {
   };
 
   const snippetCardProps = (s: Snippet) => ({
-    key: s.id,
     snippet: s,
     selected: s.id === selectedSnippetId,
     selectable: selectionMode,
@@ -970,7 +969,7 @@ export function SnippetsPage() {
           )}
 
           {!loading && displayedSnippets.map((s) => (
-            <SnippetCard {...snippetCardProps(s)} />
+            <SnippetCard key={s.id} {...snippetCardProps(s)} />
           ))}
         </div>
 

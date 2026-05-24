@@ -16,11 +16,11 @@ import type { Page } from "@/types";
 import type { DictKey } from "@/lib/i18n";
 
 const navItems: { page: Page; labelKey: DictKey; icon: typeof Server; meta?: string; badge?: string }[] = [
-  { page: "connections", labelKey: "nav.connections", icon: Server, meta: "12" },
-  { page: "terminal", labelKey: "nav.terminal", icon: Terminal, badge: "3" },
+  { page: "connections", labelKey: "nav.connections", icon: Server },
+  { page: "terminal", labelKey: "nav.terminal", icon: Terminal },
   { page: "sftp", labelKey: "nav.sftp", icon: FolderOpen },
   { page: "monitor", labelKey: "nav.monitor", icon: Activity },
-  { page: "snippets", labelKey: "nav.snippets", icon: Code2, meta: "24" },
+  { page: "snippets", labelKey: "nav.snippets", icon: Code2 },
   { page: "macros", labelKey: "nav.macros", icon: Workflow },
 ];
 
