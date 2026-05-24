@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 11
-- **Last Active**: 2026-05-22
+- **Total Sessions**: 12
+- **Last Active**: 2026-05-24
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~479 | Active |
+| `journal-1.md` | ~512 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 12 | 2026-05-24 | SFTP page UI alignment with design mockup | `936600b` | `main` |
 | 11 | 2026-05-22 | Fix monitor chart-tab padding | `d54214a`, `baf785b` | `main` |
 | 10 | 2026-05-20 | Fix workflows list context menu position offset | `58d2f3d` | `main` |
 | 9 | 2026-05-20 | fix: Aurora SegmentedControl 滑动动画 | `3c39a12` | `main` |

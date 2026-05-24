@@ -477,3 +477,36 @@ Fixed monitor chart-tab buttons where text touched the background edges. Root ca
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: SFTP page UI alignment with design mockup
+
+**Date**: 2026-05-24
+**Task**: SFTP page UI alignment with design mockup
+**Branch**: `main`
+
+### Summary
+
+Aligned SftpPage.tsx with ui/sftp.html design: created sftp.css with semantic classes, migrated from Tailwind inline to CSS, added column headers/footers, Perm column, inline row-progress bar with upload speed, gutter arrow button (circle-only click, disabled state), transfer drawer 8-column grid with route ellipsis+tooltip, minimize/expand animation, TransferMinPill outside sftp-main, SessionPicker reuse mon-session-pick-* classes, i18n keys for headers/status/uploading, toast.info for non-critical messages.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `936600b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
