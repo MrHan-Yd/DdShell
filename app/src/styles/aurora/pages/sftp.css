@@ -1,0 +1,539 @@
+/* Auto-scoped Aurora CSS mapped from ui/styles/pages/sftp.css. */
+
+/* ─── SFTP Layout ─── */
+[data-ui-theme="aurora"] .sftp-main {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+[data-ui-theme="aurora"] .sftp-body {
+  display: grid;
+  grid-template-columns: 1fr 32px 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+[data-ui-theme="aurora"] .sftp-gutter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+}
+
+[data-ui-theme="aurora"] .sftp-gutter .gutter-arrow {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  color: var(--fg-on-accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity var(--d-fast) var(--ease-smooth), background var(--d-fast) var(--ease-smooth), box-shadow var(--d-fast) var(--ease-smooth);
+}
+
+[data-ui-theme="aurora"] .sftp-gutter .gutter-arrow:hover {
+  box-shadow: 0 0 18px var(--accent-glow);
+}
+
+[data-ui-theme="aurora"] .gutter-arrow.is-disabled {
+  background: var(--bg-active);
+  color: var(--fg-muted);
+  box-shadow: none;
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ─── File pane ─── */
+[data-ui-theme="aurora"] .file-pane {
+  display: grid;
+  grid-template-rows: 36px 38px 1fr 28px;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-base);
+  position: relative;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  cursor: default;
+}
+
+[data-ui-theme="aurora"] .file-pane.is-active-pane::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid var(--accent-subtle);
+  border-radius: var(--radius-lg);
+}
+
+/* Pane header */
+[data-ui-theme="aurora"] .file-pane-head {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--fs-xs);
+  min-height: 36px;
+}
+
+[data-ui-theme="aurora"] .file-pane-head .pane-tag-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+[data-ui-theme="aurora"] .pane-icon {
+  color: var(--fg-muted);
+  display: inline-flex;
+}
+
+[data-ui-theme="aurora"] .pane-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-xs);
+}
+
+[data-ui-theme="aurora"] .pane-host {
+  color: var(--fg-secondary);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+}
+
+[data-ui-theme="aurora"] .file-pane-head .pane-actions {
+  display: inline-flex;
+  gap: 2px;
+}
+
+/* Toolbar (path + filter) */
+[data-ui-theme="aurora"] .file-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border-subtle);
+  min-height: 38px;
+}
+
+[data-ui-theme="aurora"] .file-toolbar .path-up {
+  width: 24px;
+  height: 24px;
+}
+
+/* File list */
+[data-ui-theme="aurora"] .file-list {
+  overflow: auto;
+  font-size: var(--fs-sm);
+}
+
+[data-ui-theme="aurora"] .file-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 90px 110px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px var(--space-3);
+  text-align: left;
+  color: var(--fg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  width: 100%;
+  transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
+}
+
+[data-ui-theme="aurora"] .file-row:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="aurora"] .file-row.is-selected {
+  background: var(--accent-subtle);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="aurora"] .file-row.is-uploading {
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="aurora"] .row-progress {
+  display: inline-block;
+  flex-shrink: 0;
+  height: 3px;
+  width: 80px;
+  margin-left: var(--space-2);
+  background: var(--bg-active);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+[data-ui-theme="aurora"] .row-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent-gradient);
+}
+
+[data-ui-theme="aurora"] .file-row.is-drop-target {
+  background: var(--accent-subtle);
+  outline: 1px dashed var(--accent);
+  outline-offset: -2px;
+}
+
+[data-ui-theme="aurora"] .file-row.file-head,
+[data-ui-theme="aurora"] .file-row-local.file-head {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-default);
+  position: sticky;
+  top: 0;
+  cursor: default;
+}
+
+[data-ui-theme="aurora"] .file-row.file-head:hover,
+[data-ui-theme="aurora"] .file-row-local.file-head:hover {
+  background: var(--bg-elevated);
+}
+
+[data-ui-theme="aurora"] .file-row .col-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-ui-theme="aurora"] .file-row .col-size,
+[data-ui-theme="aurora"] .file-row .col-mtime {
+  color: var(--fg-muted);
+  font-size: var(--fs-xs);
+}
+
+[data-ui-theme="aurora"] .file-row .col-perm {
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+}
+
+[data-ui-theme="aurora"] .file-row.is-dir .col-name {
+  color: var(--accent);
+}
+
+[data-ui-theme="aurora"] .file-row-local {
+  display: grid;
+  grid-template-columns: 1fr 80px 90px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px var(--space-3);
+  text-align: left;
+  color: var(--fg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  width: 100%;
+  transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
+}
+
+[data-ui-theme="aurora"] .file-row-local:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="aurora"] .file-row-local.is-selected {
+  background: var(--accent-subtle);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="aurora"] .file-row-local.is-dir {
+  color: var(--accent);
+}
+
+[data-ui-theme="aurora"] .file-row-local .col-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-ui-theme="aurora"] .file-row-local .col-size,
+[data-ui-theme="aurora"] .file-row-local .col-mtime {
+  color: var(--fg-muted);
+  font-size: var(--fs-xs);
+  text-align: right;
+}
+
+/* File foot */
+[data-ui-theme="aurora"] .file-foot {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-subtle);
+  min-height: 28px;
+}
+
+[data-ui-theme="aurora"] .file-foot .spacer {
+  flex: 1;
+}
+
+/* ─── Transfer queue drawer ─── */
+[data-ui-theme="aurora"] .transfer-drawer {
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-default);
+  display: grid;
+  grid-template-rows: 36px 1fr;
+  max-height: 220px;
+  min-height: 0;
+  overflow: hidden;
+  transition: max-height var(--d-panel) var(--ease-smooth), opacity var(--d-base) var(--ease-smooth);
+}
+
+[data-ui-theme="aurora"] .transfer-drawer.is-collapsed {
+  max-height: 0;
+  opacity: 0;
+  border-top-color: transparent;
+}
+
+[data-ui-theme="aurora"] .transfer-drawer.is-expanding {
+  max-height: 0;
+  opacity: 0;
+}
+
+[data-ui-theme="aurora"] .td-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--fs-sm);
+  color: var(--fg-secondary);
+}
+
+[data-ui-theme="aurora"] .td-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: var(--fw-semibold);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="aurora"] .td-title svg {
+  color: var(--accent);
+}
+
+[data-ui-theme="aurora"] .td-spacer {
+  flex: 1;
+}
+
+[data-ui-theme="aurora"] .td-list {
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+[data-ui-theme="aurora"] .td-row {
+  display: grid;
+  grid-template-columns: 18px 1fr 160px 100px 36px 70px 44px 30px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-xs);
+  color: var(--fg-secondary);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+[data-ui-theme="aurora"] .td-row:hover {
+  background: var(--bg-hover);
+}
+
+[data-ui-theme="aurora"] .td-row.is-active {
+  background: var(--bg-base);
+  border-color: var(--accent-subtle);
+}
+
+[data-ui-theme="aurora"] .td-row.is-done .td-name {
+  color: var(--fg-muted);
+}
+
+[data-ui-theme="aurora"] .td-dir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 10px;
+}
+
+[data-ui-theme="aurora"] .td-dir.up {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+[data-ui-theme="aurora"] .td-dir.down {
+  background: var(--info-subtle);
+  color: var(--info);
+}
+
+[data-ui-theme="aurora"] .td-name {
+  font-size: var(--fs-xs);
+  color: var(--fg-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-ui-theme="aurora"] .td-route {
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+[data-ui-theme="aurora"] .td-bar {
+  display: block;
+  height: 4px;
+  background: var(--bg-active);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+[data-ui-theme="aurora"] .td-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent-gradient);
+  box-shadow: 0 0 6px var(--accent-glow);
+  transition: width var(--d-base) var(--ease-smooth);
+}
+
+[data-ui-theme="aurora"] .td-bar-fill.is-done {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success-subtle);
+}
+
+[data-ui-theme="aurora"] .td-pct {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+[data-ui-theme="aurora"] .td-row.is-done .td-pct {
+  color: var(--success);
+}
+
+[data-ui-theme="aurora"] .td-speed {
+  color: var(--fg-muted);
+}
+
+[data-ui-theme="aurora"] .td-eta {
+  color: var(--fg-muted);
+  text-align: right;
+}
+
+[data-ui-theme="aurora"] .td-actions {
+  display: inline-flex;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+[data-ui-theme="aurora"] .td-minimized {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 50;
+}
+
+[data-ui-theme="aurora"] .td-min-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: border-color var(--d-fast) var(--ease-smooth);
+}
+
+[data-ui-theme="aurora"] .td-min-pill:hover {
+  border-color: var(--accent);
+}
+
+[data-ui-theme="aurora"] .td-min-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s infinite;
+  flex-shrink: 0;
+}
+
+[data-ui-theme="aurora"] .td-min-label {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--fg-primary);
+  white-space: nowrap;
+}
+
+/* Badge for Connected status */
+[data-ui-theme="aurora"] .badge-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: var(--fw-medium);
+  background: var(--success-subtle);
+  color: var(--success);
+}
+
+[data-ui-theme="aurora"] .badge-success .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+/* Badge for transfer count */
+[data-ui-theme="aurora"] .badge-accent {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: var(--fw-medium);
+  background: var(--accent-gradient);
+  color: var(--fg-on-accent);
+}

@@ -14,7 +14,6 @@ import {
   Pencil,
   ChevronRight,
   X,
-  Minus,
   Loader2,
   HardDrive,
   Upload,
@@ -32,6 +31,7 @@ import type { MenuItem } from "@/components/ui/ContextMenu";
 import { cn } from "@/lib/utils";
 import { useSftpStore, initSftpListeners } from "@/stores/sftp";
 import { useTerminalStore } from "@/stores/terminal";
+import { useConnectionsStore } from "@/stores/connections";
 import * as api from "@/lib/tauri";
 import type { LocalFileEntry } from "@/lib/tauri";
 import { toast } from "@/stores/toast";
@@ -292,6 +292,15 @@ function formatBytes(bytes: number): string {
 function formatTime(mtime: number): string {
   if (mtime === 0) return "-";
   return new Date(mtime * 1000).toLocaleString();
+}
+
+function formatPermissions(mode: number, fileType: string): string {
+  const typeChar = fileType === "dir" ? "d" : fileType === "symlink" ? "l" : "-";
+  const owner = ((mode >> 6) & 7);
+  const group = ((mode >> 3) & 7);
+  const other = (mode & 7);
+  const rwx = (bits: number) => `${bits & 4 ? "r" : "-"}${bits & 2 ? "w" : "-"}${bits & 1 ? "x" : "-"}`;
+  return `${typeChar}${rwx(owner)}${rwx(group)}${rwx(other)}`;
 }
 
 function FileIcon({ entry }: { entry: FileEntry }) {
@@ -798,10 +807,14 @@ function LocalFileList({
   sessionId,
   remotePath,
   onUploadStart,
+  onUploadRef,
+  onSelectedChange,
 }: {
   sessionId: string;
   remotePath: string;
   onUploadStart?: () => void;
+  onUploadRef?: React.MutableRefObject<(() => void) | null>;
+  onSelectedChange?: (count: number) => void;
 }) {
   const t = useT();
   const [localPath, setLocalPath] = useState<string>("");
@@ -881,16 +894,15 @@ function LocalFileList({
   const registerBatch = useSftpStore((s) => s.registerBatch);
 
   const handleUploadSelected = useCallback(async () => {
-    onUploadStart?.();
     const selectedNames = Array.from(selected);
 
     if (selectedNames.length === 0) {
-      toast.error("No files selected to upload");
+      toast.info(t("sftp.emptyDirectory") || "Select files to upload");
       return;
     }
 
     if (entries.length === 0) {
-      toast.error("Local file list not loaded, please wait");
+      toast.info("Local file list not loaded, please wait");
       return;
     }
 
@@ -928,7 +940,7 @@ function LocalFileList({
 
     const totalFiles = uploadTasks.reduce((n, t) => n + t.localPaths.length, 0);
     if (totalFiles === 0) {
-      toast.error("No files to upload");
+      toast.info("No files to upload");
       return;
     }
 
@@ -966,31 +978,43 @@ function LocalFileList({
     }
   }, [selected, entries, localPath, sessionId, remotePath, refreshTransfers, addUploadingEntry, registerBatch, onUploadStart, t]);
 
+  useEffect(() => {
+    if (onUploadRef) onUploadRef.current = handleUploadSelected;
+  });
+
+  const selectedCount = selected.size;
+  useEffect(() => {
+    onSelectedChange?.(selected.size);
+  }, [selected.size]);
+  const selectedSize = entries
+    .filter((e) => selected.has(e.name))
+    .reduce((sum, e) => sum + (e.fileType === "dir" ? 0 : e.size), 0);
+
+  const totalSize = entries
+    .filter((e) => e.fileType !== "dir")
+    .reduce((sum, e) => sum + e.size, 0);
+
   return (
-    <div className="flex flex-1 flex-col border rounded-[var(--radius-card)] border-[var(--color-border)] overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2">
-        <Monitor size={14} className="text-[var(--color-text-muted)]" />
-        <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-text-secondary)]">
-          {t("sftp.local")}
+    <section className="file-pane">
+      {/* Pane header */}
+      <div className="file-pane-head">
+        <span className="pane-tag-row">
+          <span className="pane-icon"><Monitor size={13} /></span>
+          <span className="pane-label">{t("sftp.local")}</span>
+          <span className="pane-host">{localPath || "~"}</span>
         </span>
-        <div className="flex-1" />
-        {selected.size > 0 && (
-          <Button size="sm" onClick={handleUploadSelected} title="Upload selected files">
-            <Upload size={12} className="mr-1" />
-            {t("sftp.upload")} ({selected.size})
+        <span className="pane-actions">
+          <Button size="icon" variant="ghost" onClick={refresh} title="Refresh">
+            <RefreshCw size={13} />
           </Button>
-        )}
-        <Button size="icon" variant="ghost" onClick={goUp} title="Go up">
-          <ArrowUp size={14} />
-        </Button>
-        <Button size="icon" variant="ghost" onClick={refresh} title="Refresh">
-          <RefreshCw size={14} />
-        </Button>
+        </span>
       </div>
 
-      {/* Breadcrumb with Path Tools */}
-      <div className="flex items-center gap-1.5 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1.5">
+      {/* Toolbar: path up + breadcrumb */}
+      <div className="file-toolbar">
+        <button className="path-up btn btn-icon btn-ghost" onClick={goUp} title="Go up">
+          <ArrowUp size={13} />
+        </button>
         <div className="flex-1 overflow-hidden">
           <Breadcrumb path={localPath || "/"} onNavigate={navigateLocalWithRecent} />
         </div>
@@ -1004,21 +1028,28 @@ function LocalFileList({
       </div>
 
       {/* File list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="file-list">
+        {/* Column header */}
+        <div className="file-row-local file-head">
+          <span className="col-name">{t("sftp.colName")}</span>
+          <span className="col-size">{t("sftp.colSize")}</span>
+          <span className="col-mtime">{t("sftp.colModified")}</span>
+        </div>
+
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-text-muted)] border-t-transparent" />
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--fg-muted)] border-t-transparent" />
           </div>
         )}
 
         {error && (
-          <div className="p-4 text-center text-[var(--font-size-sm)] text-[var(--color-error)]">
+          <div className="p-4 text-center text-[var(--fs-sm)] text-[var(--danger)]">
             {error}
           </div>
         )}
 
         {!loading && !error && entries.length === 0 && (
-          <div className="p-4 text-center text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
+          <div className="p-4 text-center text-[var(--fs-sm)] text-[var(--fg-muted)]">
             {t("sftp.emptyDirectory")}
           </div>
         )}
@@ -1028,24 +1059,30 @@ function LocalFileList({
             <div
               key={entry.name}
               className={cn(
-                "flex items-center gap-3 px-3 py-1.5 text-[var(--font-size-sm)] cursor-default hover:bg-[var(--color-bg-hover)] transition-colors",
-                selected.has(entry.name) && "bg-[var(--color-accent-subtle)]",
+                "file-row-local",
+                selected.has(entry.name) && "is-selected",
+                entry.fileType === "dir" && "is-dir",
               )}
               onClick={() => toggleSelect(entry.name)}
               onDoubleClick={() => handleDoubleClick(entry)}
             >
-              <LocalFileIcon entry={entry} />
-              <span className="flex-1 truncate">{entry.name}</span>
-              <span className="w-20 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-                {entry.fileType === "dir" ? "-" : formatBytes(entry.size)}
+              <span className="col-name">
+                <LocalFileIcon entry={entry} />
+                <span className="truncate">{entry.name}</span>
               </span>
-              <span className="w-36 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)] whitespace-nowrap">
-                {formatTime(entry.mtime)}
-              </span>
+              <span className="col-size">{entry.fileType === "dir" ? "—" : formatBytes(entry.size)}</span>
+              <span className="col-mtime">{formatTime(entry.mtime)}</span>
             </div>
           ))}
       </div>
-    </div>
+
+      {/* Footer status */}
+      <div className="file-foot">
+        <span>{selectedCount > 0 ? `${selectedCount} ${t("sftp.selected")} · ${formatBytes(selectedSize)}` : "—"}</span>
+        <span className="spacer" />
+        <span>{entries.length} {t("sftp.itemsTotal")} · {formatBytes(totalSize)}</span>
+      </div>
+    </section>
   );
 }
 
@@ -1053,7 +1090,16 @@ function RemoteFileList() {
   const t = useT();
   const tabs = useTerminalStore((s) => s.tabs);
   const uploadingFiles = useSftpStore((s) => s.uploadingFiles);
-  const completedUploads = useSftpStore((s) => s.completedUploads);
+  const taskIdToName = useSftpStore((s) => s.taskIdToName);
+  const transfers = useSftpStore((s) => s.transfers);
+  const uploadSpeeds = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of transfers) {
+      const name = taskIdToName.get(t.id);
+      if (name && t.speedBytesPerSec) map.set(name, t.speedBytesPerSec);
+    }
+    return map;
+  }, [transfers, taskIdToName]);
   const {
     sessionId,
     remotePath,
@@ -1578,79 +1624,69 @@ function RemoteFileList() {
     navigateRemoteWithRecent("/" + parts.join("/") || "/");
   }, [remotePath, navigateRemoteWithRecent]);
 
+  const connectedTab = tabs.find((tab) => tab.sessionId === sessionId && tab.state === "connected");
+  const remoteSelectedCount = selectedRemoteEntries.size;
+  const remoteSelectedSize = remoteEntries
+    .filter((e) => selectedRemoteEntries.has(e.name))
+    .reduce((sum, e) => sum + (e.fileType === "dir" ? 0 : e.size), 0);
+  const remoteTotalSize = remoteEntries
+    .filter((e) => e.fileType !== "dir")
+    .reduce((sum, e) => sum + e.size, 0);
+
   return (
-    <div
+    <section
       ref={dropRef}
-      className={cn(
-        "flex flex-1 flex-col rounded-[var(--radius-card)] overflow-hidden relative transition-colors",
-        isDragOver
-          ? "border-2 border-dashed border-[var(--color-accent)] bg-[var(--color-accent-subtle)]"
-          : "border border-[var(--color-border)]",
-      )}
+      className={cn("file-pane is-active-pane", isDragOver ? "is-drop-target" : "")}
       data-context-menu-container
     >
       {/* Drag overlay */}
       {isDragOver && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-bg-base)]/80 backdrop-blur-sm">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--bg-base)]/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-2">
-            <Upload size={32} className="text-[var(--color-accent)]" />
-            <p className="text-[var(--font-size-sm)] font-medium text-[var(--color-accent)]">
+            <Upload size={32} className="text-[var(--accent)]" />
+            <p className="text-[var(--fs-sm)] font-medium text-[var(--accent)]">
               {t("sftp.dropToUpload")}
             </p>
-            <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            <p className="text-[var(--fs-xs)] text-[var(--fg-muted)]">
               to {remotePath}
             </p>
           </div>
         </div>
       )}
-      {/* Header */}
-      <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-2">
-        <HardDrive size={14} className="text-[var(--color-text-muted)]" />
-        <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-text-secondary)]">
-          {t("sftp.remote")}
+      {/* Pane header */}
+      <div className="file-pane-head">
+        <span className="pane-tag-row">
+          <span className="pane-icon"><HardDrive size={13} /></span>
+          <span className="pane-label">{t("sftp.remote")}</span>
+          <span className="pane-host">{connectedTab ? `${connectedTab.title}:${remotePath}` : remotePath}</span>
+          {sessionId && (
+            <span className="badge-success">
+              <span className="dot" />
+              Connected
+            </span>
+          )}
         </span>
-        <div className="flex-1" />
-        <Button size="icon" variant="ghost" onClick={goUp} title="Go up">
-          <ArrowUp size={14} />
-        </Button>
-        <Button size="icon" variant="ghost" onClick={refreshRemote} title="Refresh">
-          <RefreshCw size={14} />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={() => {
-            setShowMkdir(true);
-            setNewDirName("");
-          }}
-          title="New folder"
-        >
-          <FolderPlus size={14} />
-        </Button>
-        {selectedQuickEditEntry && (
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => openQuickEdit(joinRemotePath(remotePath, selectedQuickEditEntry.name))}
-            title={t("sftp.quickEdit")}
-          >
-            <Pencil size={14} className="text-[var(--color-accent)]" />
-          </Button>
-        )}
-        {selectedRemoteEntries.size > 0 && (
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={handleDelete}
-            title={`Delete ${selectedRemoteEntries.size} item(s)`}
-          >
-            <Trash2 size={14} className="text-[var(--color-error)]" />
-          </Button>
-        )}
+        <span className="pane-actions">
+          <button className="btn btn-icon btn-ghost" onClick={() => { setShowMkdir(true); setNewDirName(""); }} title="New folder">
+            <FolderPlus size={13} />
+          </button>
+          {selectedQuickEditEntry && (
+            <button
+              className="btn btn-icon btn-ghost"
+              onClick={() => openQuickEdit(joinRemotePath(remotePath, selectedQuickEditEntry.name))}
+              title={t("sftp.quickEdit")}
+            >
+              <Pencil size={13} className="text-[var(--accent)]" />
+            </button>
+          )}
+        </span>
       </div>
 
-      {/* Breadcrumb with Path Tools */}
-      <div className="flex items-center gap-1.5 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1.5">
+      {/* Toolbar: path up + breadcrumb */}
+      <div className="file-toolbar">
+        <button className="path-up btn btn-icon btn-ghost" onClick={goUp} title="Go up">
+          <ArrowUp size={13} />
+        </button>
         <div className="flex-1 overflow-hidden">
           <Breadcrumb path={remotePath} onNavigate={navigateRemoteWithRecent} />
         </div>
@@ -1666,7 +1702,7 @@ function RemoteFileList() {
 
       {/* Mkdir inline input */}
       {showMkdir && (
-        <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-3 py-1.5 bg-[var(--color-bg-elevated)]">
+        <div className="flex items-center gap-2 border-b border-[var(--border-default)] px-3 py-1.5 bg-[var(--bg-elevated)]">
           <Input
             value={newDirName}
             onChange={(e) => setNewDirName(e.target.value)}
@@ -1699,35 +1735,40 @@ function RemoteFileList() {
       )}
 
       {/* File list */}
-      <div className="flex-1 overflow-y-auto relative">
+      <div className="file-list relative">
+        {/* Column header */}
+        <div className="file-row file-head">
+          <span className="col-name">{t("sftp.colName")}</span>
+          <span className="col-size">{t("sftp.colSize")}</span>
+          <span className="col-mtime">{t("sftp.colModified")}</span>
+          <span className="col-perm">{t("sftp.colPerm")}</span>
+        </div>
+
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-text-muted)] border-t-transparent" />
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--fg-muted)] border-t-transparent" />
           </div>
         )}
 
         {error && (
-          <div className="p-4 text-center text-[var(--font-size-sm)] text-[var(--color-error)]">
+          <div className="p-4 text-center text-[var(--fs-sm)] text-[var(--danger)]">
             {error}
           </div>
         )}
 
         {!loading && !error && remoteEntries.length === 0 && (
-          <div className="p-4 text-center text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
+          <div className="p-4 text-center text-[var(--fs-sm)] text-[var(--fg-muted)]">
             {t("sftp.emptyDirectory")}
           </div>
         )}
 
         {!loading &&
           remoteEntries.map((entry) => {
-            // Check if this file is being uploaded or just completed
             const totalSize = uploadingFiles.get(entry.name);
             const isUploading = totalSize !== undefined;
-            const isCompleted = completedUploads.has(entry.name);
-            const showProgress = isUploading || isCompleted;
             const progress = isUploading && totalSize! > 0
               ? Math.round((entry.size / totalSize!) * 100)
-              : isCompleted ? 100 : 0;
+              : 0;
 
             return (
               <div
@@ -1736,8 +1777,9 @@ function RemoteFileList() {
                 data-file-name={entry.name}
                 data-file-type={entry.fileType}
                 className={cn(
-                  "relative flex items-center gap-3 px-3 py-1.5 text-[var(--font-size-sm)] cursor-default hover:bg-[var(--color-bg-hover)] transition-colors",
-                  selectedRemoteEntries.has(entry.name) && "bg-[var(--color-accent-subtle)]",
+                  "file-row",
+                  selectedRemoteEntries.has(entry.name) && "is-selected",
+                  isUploading && "is-uploading",
                   deletingEntries.has(entry.name) && "animate-fade-out pointer-events-none",
                 )}
                 onClick={() => toggleSelectRemote(entry.name)}
@@ -1749,68 +1791,63 @@ function RemoteFileList() {
                   onContextMenu(e, entry);
                 }}
               >
-                {/* Progress bar background - 从左到右增长，完成后绿色淡出 */}
-                {showProgress && (
-                  <div
-                    className={cn(
-                      "absolute left-0 top-0 bottom-0 transition-all duration-300",
-                      isCompleted
-                        ? "bg-[var(--color-success)] opacity-0 duration-1000"
-                        : "bg-[var(--color-accent)] opacity-15",
-                    )}
-                    style={{ width: `${progress}%` }}
-                  />
-                )}
-                <FileIcon entry={entry} />
-                {showRename === entry.name ? (
-                  <Input
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    className="flex-1 h-6 text-[var(--font-size-sm)]"
-                    autoFocus
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter" && renameValue.trim()) {
-                        await rename(entry.name, renameValue.trim());
-                        setShowRename(null);
-                      }
-                      if (e.key === "Escape") setShowRename(null);
-                    }}
-                    onBlur={() => setShowRename(null)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <span className="flex-1 truncate">{entry.name}</span>
-                )}
-                {isUploading ? (
-                  <span className="w-24 text-right text-[var(--font-size-xs)] text-[var(--color-accent)]">
-                    {formatBytes(entry.size)} / {formatBytes(totalSize!)}
-                  </span>
-                ) : (
-                  <span className="w-20 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-                    {entry.fileType === "dir" ? "-" : formatBytes(entry.size)}
-                  </span>
-                )}
-                <span className="w-36 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)] whitespace-nowrap">
-                  {formatTime(entry.mtime)}
+                {/* Name column */}
+                <span className="col-name">
+                  {isUploading ? (
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent)" }}><circle cx="12" cy="12" r="10"/><polyline points="8 12 12 16 16 12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>
+                  ) : (
+                    <FileIcon entry={entry} />
+                  )}
+                  {showRename === entry.name ? (
+                    <Input
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      className="flex-1 h-6 text-[var(--fs-sm)]"
+                      autoFocus
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter" && renameValue.trim()) {
+                          await rename(entry.name, renameValue.trim());
+                          setShowRename(null);
+                        }
+                        if (e.key === "Escape") setShowRename(null);
+                      }}
+                      onBlur={() => setShowRename(null)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span className="truncate">{entry.name}</span>
+                  )}
+                  {isUploading && (
+                    <span className="row-progress">
+                      <span className="row-progress-fill" style={{ width: `${progress}%` }} />
+                    </span>
+                  )}
                 </span>
-                <div className="flex items-center gap-1 w-6">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowRename(entry.name);
-                      setRenameValue(entry.name);
-                    }}
-                    className="p-0.5 rounded hover:bg-[var(--color-bg-hover)] opacity-0 group-hover:opacity-100"
-                    title="Rename"
-                  >
-                    <Pencil size={12} className="text-[var(--color-text-muted)]" />
-                  </button>
-                </div>
+                {/* Size column */}
+                <span className="col-size">
+                  {entry.fileType === "dir" ? "—" : formatBytes(entry.size)}
+                </span>
+                {/* Modified column */}
+                <span className="col-mtime">
+                  {isUploading ? t("sftp.uploading") : formatTime(entry.mtime)}
+                </span>
+                {/* Perm column */}
+                <span className="col-perm">
+                  {isUploading
+                    ? `${progress}%${uploadSpeeds.has(entry.name) ? ` · ${formatBytes(uploadSpeeds.get(entry.name)!)}/s` : ""}`
+                    : formatPermissions(entry.permissions, entry.fileType)}
+                </span>
               </div>
             );
           })}
       </div>
 
+      {/* Footer status */}
+      <div className="file-foot">
+        <span>{remoteSelectedCount > 0 ? `${remoteSelectedCount} ${t("sftp.selected")} · ${formatBytes(remoteSelectedSize)}` : "—"}</span>
+        <span className="spacer" />
+        <span>{remoteEntries.length} {t("sftp.itemsTotal")} · {formatBytes(remoteTotalSize)}</span>
+      </div>
 
       {/* Context Menu */}
       {menuState && (
@@ -1822,106 +1859,94 @@ function RemoteFileList() {
           items={buildContextMenuItems(menuState.data)}
         />
       )}
-    </div>
+    </section>
   );
 }
 
-function TransferQueue() {
+function TransferDrawer({ minimized, onMinimize }: { minimized: boolean; onMinimize: () => void }) {
   const t = useT();
   const transfers = useSftpStore((s) => s.transfers);
   const cancelTransfer = useSftpStore((s) => s.cancelTransfer);
   const clearFinishedTransfers = useSftpStore((s) => s.clearFinishedTransfers);
-  const [minimized, setMinimized] = useState(false);
-  const [animatingOut, setAnimatingOut] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
-  // Only show active transfers (running or queued)
+  useEffect(() => {
+    if (!minimized) setCollapsed(false);
+  }, [minimized]);
+
   const activeTransfers = transfers.filter(
-    (t) => t.state === "running" || t.state === "queued",
+    (tr) => tr.state === "running" || tr.state === "queued",
   );
 
-  // Only show finished transfers (for a while)
   const recentFinished = transfers.filter(
-    (t) => t.state === "completed" || t.state === "failed",
+    (tr) => tr.state === "completed" || tr.state === "failed",
   );
 
-  const [panelKey, setPanelKey] = useState(0);
-
-  const handleMinimize = useCallback(() => {
-    setAnimatingOut(true);
-    setTimeout(() => {
-      setAnimatingOut(false);
-      setMinimized(true);
-    }, 250);
-  }, []);
-
-  const handleExpand = useCallback(() => {
-    setMinimized(false);
-    setPanelKey((k) => k + 1);
-  }, []);
-
-  // Only show drawer when there are transfers
   if (transfers.length === 0) return null;
 
-  // Minimized: small pill in bottom-right corner
   if (minimized) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 animate-transfer-panel-in">
-        <button
-          onClick={handleExpand}
-          className="flex items-center gap-2 px-3 py-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg shadow-lg hover:bg-[var(--color-bg-hover)] transition-colors"
-        >
-          {activeTransfers.length > 0 && (
-            <span className="h-2 w-2 rounded-full bg-[var(--color-accent)] animate-pulse shrink-0" />
-          )}
-          <Upload size={14} className="text-[var(--color-accent)] shrink-0" />
-          <span className="text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)] whitespace-nowrap">
-            {activeTransfers.length > 0
-              ? `${activeTransfers.length} ${t("sftp.transferring")}`
-              : `${transfers.length} ${t("sftp.transfers")}`}
-          </span>
-        </button>
-      </div>
+      <section className="transfer-drawer is-collapsed" />
     );
   }
 
-  // Floating drawer in bottom right corner
   return (
-    <div key={panelKey} className={`fixed bottom-4 right-4 z-50 w-[480px] ${animatingOut ? "animate-transfer-panel-out" : "animate-transfer-panel-in"}`}>
-      <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg shadow-lg overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border)]">
-          <div className="flex items-center gap-2">
-            <Upload size={14} className="text-[var(--color-accent)]" />
-            <span className="text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">
-              {t("sftp.transfers")} ({activeTransfers.length > 0 ? activeTransfers.length : transfers.length})
-            </span>
-            {activeTransfers.length > 0 && (
-              <span className="h-2 w-2 rounded-full bg-[var(--color-accent)] animate-pulse" />
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            {recentFinished.length > 0 && (
-              <Button size="sm" variant="ghost" onClick={clearFinishedTransfers}>
-                {t("sftp.clearFinished")}
-              </Button>
-            )}
-            <button
-              onClick={handleMinimize}
-              className="p-1 rounded hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] transition-colors"
-              title={t("sftp.minimize")}
-            >
-              <Minus size={14} />
-            </button>
-          </div>
-        </div>
-
-        {/* Transfer list */}
-        <div className="max-h-[192px] overflow-y-auto">
-          {transfers.map((task) => (
-            <TransferRow key={task.id} task={task} onCancel={cancelTransfer} />
-          ))}
-        </div>
+    <section className={cn("transfer-drawer", collapsed && "is-collapsed")}>
+      <div className="td-head">
+        <span className="td-title">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          {t("sftp.transfers")}
+        </span>
+        {activeTransfers.length > 0 && (
+          <span className="badge-accent">{activeTransfers.length} in progress</span>
+        )}
+        <span className="td-spacer" />
+        {recentFinished.length > 0 && (
+          <Button size="sm" variant="ghost" onClick={clearFinishedTransfers}>
+            {t("sftp.clearFinished")}
+          </Button>
+        )}
+        <button
+          onClick={() => {
+            setCollapsed(true);
+            setTimeout(onMinimize, 300);
+          }}
+          className="btn btn-icon btn-ghost"
+          title={t("sftp.minimize")}
+        >
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
       </div>
+
+      <div className="td-list">
+        {transfers.map((task) => (
+          <TransferRow key={task.id} task={task} onCancel={cancelTransfer} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TransferMinPill({ onClick }: { onClick: () => void }) {
+  const t = useT();
+  const transfers = useSftpStore((s) => s.transfers);
+  const activeTransfers = transfers.filter(
+    (tr) => tr.state === "running" || tr.state === "queued",
+  );
+
+  return (
+    <div className="td-minimized">
+      <button onClick={onClick} className="td-min-pill">
+        {activeTransfers.length > 0 && (
+          <span className="td-min-dot" />
+        )}
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent)" }}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        <span className="td-min-label">
+          {activeTransfers.length > 0
+            ? `${activeTransfers.length} ${t("sftp.transferring")}`
+            : `${transfers.length} ${t("sftp.transfers")}`}
+        </span>
+      </button>
     </div>
   );
 }
@@ -1942,6 +1967,10 @@ function TransferRow({
     ? task.localPath.split("/").pop() || task.localPath
     : task.remotePath.split("/").pop() || task.remotePath;
 
+  const route = task.direction === "upload"
+    ? `${task.localPath.split("/").slice(0, -1).join("/") || "~"} → ${task.remotePath.split("/").slice(0, -1).join("/") || "/"}`
+    : `${task.remotePath.split("/").slice(0, -1).join("/") || "/"} → ~/`;
+
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -1956,47 +1985,51 @@ function TransferRow({
   };
 
   return (
-    <div className="flex flex-col gap-1 px-3 py-2 text-[var(--font-size-xs)] border-b border-[var(--color-border-subtle)] last:border-0 overflow-hidden">
-      <div className="flex items-center gap-2 min-w-0">
-        {task.direction === "upload" ? (
-          <ArrowUp size={12} className="text-[var(--color-accent)] shrink-0" />
-        ) : (
-          <ArrowDown size={12} className="text-[var(--color-success)] shrink-0" />
-        )}
-        <span className="flex-1 truncate font-medium min-w-0">{fileName}</span>
+    <div className={cn(
+      "td-row",
+      task.state === "running" && "is-active",
+      task.state === "completed" && "is-done",
+    )}>
+      {/* Direction icon */}
+      {task.direction === "upload" ? (
+        <span className="td-dir up"><ArrowUp size={12} /></span>
+      ) : (
+        <span className="td-dir down"><ArrowDown size={12} /></span>
+      )}
+      {/* Name */}
+      <span className="td-name">{fileName}</span>
+      {/* Route */}
+      <span className="td-route" title={route}>
+        {route}
+      </span>
+      {/* Progress bar */}
+      <span className="td-bar">
+        <span className={cn("td-bar-fill", task.state === "completed" && "is-done")} style={{ width: `${progress}%` }} />
+      </span>
+      {/* Percentage */}
+      <span className="td-pct">
+        {task.state === "completed" ? (
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        ) : `${progress}%`}
+      </span>
+      {/* Speed */}
+      <span className="td-speed">{task.state === "running" ? formatSpeed(task.speedBytesPerSec || 0) : "—"}</span>
+      {/* ETA */}
+      <span className="td-eta">
+        {task.state === "completed" ? `Done · ${formatBytes(task.totalBytes)}` :
+         task.state === "failed" ? "Failed" :
+         task.state === "queued" ? "Waiting" :
+         "~ "}
+        {task.state === "running" && task.speedBytesPerSec ? `${Math.ceil((task.totalBytes - task.transferredBytes) / (task.speedBytesPerSec || 1))}s` : ""}
+      </span>
+      {/* Actions */}
+      <span className="td-actions">
         {(task.state === "running" || task.state === "queued") && (
-          <button
-            onClick={() => onCancel(task.id)}
-            className="p-0.5 rounded hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] shrink-0"
-            title="Cancel"
-          >
-            <X size={12} />
+          <button onClick={() => onCancel(task.id)} className="btn btn-icon btn-ghost" title="Cancel">
+            <X size={11} />
           </button>
         )}
-      </div>
-      {task.state === "running" && (
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="flex-1 h-1.5 bg-[var(--color-bg-base)] rounded-full overflow-hidden min-w-0">
-            <div
-              className="h-full bg-[var(--color-accent)] rounded-full transition-all"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <span className="shrink-0 text-right text-[var(--font-size-xs)] text-[var(--color-text-muted)] whitespace-nowrap">
-            {formatBytes(task.transferredBytes)} / {formatBytes(task.totalBytes)}
-            <span className="ml-2 text-[var(--color-accent)]">{formatSpeed(task.speedBytesPerSec || 0)}</span>
-          </span>
-        </div>
-      )}
-      {task.state === "completed" && (
-        <span className="text-[var(--color-success)]">Completed - {formatBytes(task.totalBytes)}</span>
-      )}
-      {task.state === "failed" && (
-        <span className="text-[var(--color-error)] truncate" title={task.error || undefined}>Failed: {task.error}</span>
-      )}
-      {task.state === "queued" && (
-        <span className="text-[var(--color-text-muted)]">Waiting...</span>
-      )}
+      </span>
     </div>
   );
 }
@@ -2008,19 +2041,24 @@ function SessionPicker({
 }) {
   const t = useT();
   const tabs = useTerminalStore((s) => s.tabs);
+  const hosts = useConnectionsStore((s) => s.hosts);
   const connectedTabs = tabs.filter((tab) => tab.state === "connected");
 
   if (connectedTabs.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
-          <HardDrive size={48} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
-          <p className="text-[var(--font-size-base)] text-[var(--color-text-secondary)]">
+          <span className="mon-session-pick-header-icon mx-auto mb-6">
+            <HardDrive size={28} strokeWidth={1.8} />
+          </span>
+          <p className="text-[var(--fs-base)] text-[var(--fg-secondary)]">
             {t("sftp.noActiveSessions")}
           </p>
-          <p className="mt-2 text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
-            {t("sftp.connectFirst")}
-          </p>
+          <div className="mt-1">
+            <p className="text-[var(--fs-sm)] text-[var(--fg-muted)]">
+              {t("sftp.connectFirst")}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -2028,23 +2066,36 @@ function SessionPicker({
 
   return (
     <div className="flex flex-1 items-center justify-center">
-      <div className="w-full max-w-sm">
-        <h2 className="mb-4 text-center text-[var(--font-size-lg)] font-medium">
+      <div className="text-center">
+        <span className="mon-session-pick-header-icon mx-auto mb-6">
+          <HardDrive size={28} strokeWidth={1.8} />
+        </span>
+        <p className="text-[var(--fs-base)] font-medium text-[var(--fg-primary)]">
           {t("sftp.selectSession")}
-        </h2>
-        <div className="space-y-2">
-          {connectedTabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => onSelect(tab.sessionId)}
-              className="flex w-full items-center gap-3 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-4 py-3 text-left hover:bg-[var(--color-bg-hover)] transition-colors"
-            >
-              <span className="h-2 w-2 rounded-full bg-[var(--color-success)]" />
-              <span className="text-[var(--font-size-sm)] font-medium">
-                {tab.title}
-              </span>
-            </button>
-          ))}
+        </p>
+        <div className="mon-session-pick-grid">
+          {connectedTabs.map((tab) => {
+            const host = hosts.find((h) => h.id === tab.hostId);
+            const meta = host
+              ? `${host.username}@${host.host}:${host.port}`
+              : `session · ${tab.sessionId.slice(0, 8)}`;
+            return (
+              <button
+                key={tab.sessionId}
+                onClick={() => onSelect(tab.sessionId)}
+                className="mon-session-pick-card"
+              >
+                <span className="mon-session-pick-glyph">
+                  <HardDrive size={16} strokeWidth={1.8} />
+                </span>
+                <span className="mon-session-pick-info">
+                  <span className="mon-session-pick-name">{tab.title}</span>
+                  <span className="mon-session-pick-meta">{meta}</span>
+                </span>
+                <span className="mon-session-pick-status-dot" />
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -2060,7 +2111,10 @@ export function SftpPage() {
   const transfers = useSftpStore((s) => s.transfers);
 
   const dualPaneRef = useRef<HTMLDivElement>(null);
+  const uploadActionRef = useRef<(() => void) | null>(null);
+  const [localSelectedCount, setLocalSelectedCount] = useState(0);
   const [showUploadAnim, setShowUploadAnim] = useState(false);
+  const [transferMinimized, setTransferMinimized] = useState(false);
 
   // Use refs to get latest values in event listeners
   const sessionIdRef = useRef(sessionId);
@@ -2109,22 +2163,39 @@ export function SftpPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Session indicator */}
-      <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-bg-surface)] px-4 py-2">
-        <span className="h-2 w-2 rounded-full bg-[var(--color-success)]" />
-        <span className="text-[var(--font-size-sm)] text-[var(--color-text-secondary)]">
-          {t("sftp.sftpSession")}
+    <div className="sftp-main">
+      {/* Page header */}
+      <div className="flex items-center gap-2 border-b border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2">
+        <span className="inline-flex items-center gap-2">
+          <span className="text-[var(--fs-lg)] font-semibold text-[var(--fg-primary)]">SFTP</span>
+          <span className="text-[var(--fs-xs)] text-[var(--fg-muted)]">
+            {t("sftp.sftpSession")}
+            {transfers.some((t) => t.state === "running" || t.state === "queued") && (
+              <span className="badge-accent ml-1">
+                {transfers.filter((t) => t.state === "running" || t.state === "queued").length} {t("sftp.transferring")}
+              </span>
+            )}
+          </span>
         </span>
-        <div className="flex-1" />
+        <span className="flex-1" />
         <Button size="sm" variant="ghost" onClick={() => setSessionId(null)}>
           {t("sftp.changeSession")}
         </Button>
       </div>
 
       {/* Dual-pane file browser */}
-      <div className="relative flex flex-1 overflow-hidden p-3 gap-3" ref={dualPaneRef}>
-        <LocalFileList sessionId={sessionId} remotePath={remotePath} onUploadStart={() => setShowUploadAnim(true)} />
+      <div className="sftp-body relative overflow-hidden p-3" ref={dualPaneRef}>
+        <LocalFileList sessionId={sessionId} remotePath={remotePath} onUploadStart={() => setShowUploadAnim(true)} onUploadRef={uploadActionRef} onSelectedChange={setLocalSelectedCount} />
+        <div className="sftp-gutter">
+          <button
+            className={`gutter-arrow${localSelectedCount === 0 ? " is-disabled" : ""}`}
+            onClick={() => uploadActionRef.current?.()}
+            disabled={localSelectedCount === 0}
+            title={localSelectedCount > 0 ? `Upload ${localSelectedCount} file(s)` : "Select files to upload"}
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </div>
         <RemoteFileList />
         {showUploadAnim && (
           <UploadFlyAnimation
@@ -2135,7 +2206,10 @@ export function SftpPage() {
       </div>
 
       {/* Transfer queue */}
-      <TransferQueue />
+      <TransferDrawer minimized={transferMinimized} onMinimize={() => setTransferMinimized(true)} />
+      {transferMinimized && (
+        <TransferMinPill onClick={() => setTransferMinimized(false)} />
+      )}
     </div>
   );
 }
