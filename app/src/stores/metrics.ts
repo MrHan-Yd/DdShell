@@ -9,11 +9,13 @@ interface MetricsStore {
   snapshots: MetricsSnapshot[];
   latest: MetricsSnapshot | null;
   timeWindow: 5 | 15 | 60; // minutes
+  StatusBarData: { hostTitle: string | null; latest: MetricsSnapshot } | null;
 
   startCollector: (sessionId: string) => Promise<void>;
   stopCollector: () => Promise<void>;
   setTimeWindow: (minutes: 5 | 15 | 60) => void;
   loadHistory: () => Promise<void>;
+  setStatusBarData: (data: { hostTitle: string | null; latest: MetricsSnapshot } | null) => void;
 }
 
 export const useMetricsStore = create<MetricsStore>((set, get) => ({
@@ -22,6 +24,7 @@ export const useMetricsStore = create<MetricsStore>((set, get) => ({
   snapshots: [],
   latest: null,
   timeWindow: 5,
+  StatusBarData: null,
 
   startCollector: async (sessionId) => {
     const { collectorId: existingId } = get();
@@ -52,6 +55,10 @@ export const useMetricsStore = create<MetricsStore>((set, get) => ({
 
   setTimeWindow: (minutes) => {
     set({ timeWindow: minutes });
+  },
+
+  setStatusBarData: (data) => {
+    set({ StatusBarData: data });
   },
 
   loadHistory: async () => {

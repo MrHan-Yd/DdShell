@@ -117,19 +117,20 @@
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
 }
-.chart-tabs { display: inline-flex; gap: 2px; }
+.chart-tabs { display: inline-flex; gap: 4px; }
 .chart-tab {
-  height: 26px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-sm);
+  height: 28px;
+  padding: 0 22px;
+  border-radius: 6px;
   font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
   color: var(--fg-muted);
 }
 .chart-tab:hover { background: var(--bg-hover); color: var(--fg-primary); }
 .chart-tab.is-active {
   background: var(--accent-subtle);
   color: var(--accent);
-  font-weight: var(--fw-medium);
+  font-weight: 600;
 }
 
 .chart-legend { display: inline-flex; gap: var(--space-3); font-size: var(--fs-xs); color: var(--fg-secondary); }

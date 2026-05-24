@@ -54,6 +54,7 @@ export function StatusBar() {
   const pingActiveSession = useTerminalStore((s) => s.pingActiveSession);
   const transfers = useSftpStore((s) => s.transfers);
   const latest = useMetricsStore((s) => s.latest);
+  const monitorStatusBar = useMetricsStore((s) => s.StatusBarData);
   const locale = useAppStore((s) => s.locale);
   const t = useT();
 
@@ -300,46 +301,83 @@ export function StatusBar() {
     }
   };
 
+
   return (
-    <>
-      <footer className="glass-surface flex h-[var(--height-statusbar)] items-center border-t border-[var(--color-border)] px-4 gap-4">
-        {renderVersion()}
-
-        <div className="flex-1" />
-
-        {connectedCount > 0 && (
+    <footer className="glass-surface flex h-[var(--height-statusbar)] items-center border-t border-[var(--color-border)] px-4 gap-4">
+      {monitorStatusBar ? (
+        <>
           <span className="flex items-center gap-1.5 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
-            {sessionLabel}
+            <span className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              monitorStatusBar.latest.sessionHealth != null && monitorStatusBar.latest.sessionHealth >= 80
+                ? "bg-[var(--color-good)]"
+                : monitorStatusBar.latest.sessionHealth != null && monitorStatusBar.latest.sessionHealth >= 50
+                  ? "bg-[var(--color-fair)]"
+                  : monitorStatusBar.latest.sessionHealth != null
+                    ? "bg-[var(--color-poor)]"
+                    : "bg-[var(--color-success)]",
+            )} />
+            {monitorStatusBar.hostTitle ?? "--"} · {t("monitor.samplingBadge", { n: 2 })}
           </span>
-        )}
-
-        {activeTransfers > 0 && (
-          <span className="text-[var(--font-size-xs)] text-[var(--color-accent)]">
-            {transferLabel}
-          </span>
-        )}
-
-        {connectedCount > 0 && latest && <HealthBadge level={healthLevel} />}
-
-        {latency !== undefined && activeTab?.state === "connected" && (
-          <span className="flex items-center gap-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-            <span
-              className={cn(
-                "h-1.5 w-1.5 rounded-full",
-                latency < 100 ? "bg-[var(--color-good)]" : latency < 300 ? "bg-[var(--color-fair)]" : "bg-[var(--color-poor)]",
-              )}
-            />
-            {latency}ms
-          </span>
-        )}
-
-        {connectedCount === 0 && activeTransfers === 0 && (
           <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-            {t("status.ready")}
+            {t("monitor.cpu")} {monitorStatusBar.latest.cpu.usagePercent.toFixed(0)}% · {t("monitor.memoryUsage", { n: monitorStatusBar.latest.memory.usagePercent.toFixed(0) })} · LA {monitorStatusBar.latest.load.one.toFixed(2)}
           </span>
-        )}
-      </footer>
-    </>
+          <div className="flex-1" />
+          <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            {t("monitor.lastAt", { t: monitorStatusBar.latest.serverTime.match(/\d+:\d+$/)?.[1] ?? "--:--" })}
+          </span>
+          <span className={cn(
+            "text-[var(--font-size-xs)] font-medium",
+            monitorStatusBar.latest.sessionHealth != null && monitorStatusBar.latest.sessionHealth >= 80 && "text-[var(--color-good)]",
+            monitorStatusBar.latest.sessionHealth != null && monitorStatusBar.latest.sessionHealth >= 50 && monitorStatusBar.latest.sessionHealth < 80 && "text-[var(--color-fair)]",
+            monitorStatusBar.latest.sessionHealth != null && monitorStatusBar.latest.sessionHealth < 50 && "text-[var(--color-poor)]",
+          )}>
+            {monitorStatusBar.latest.sessionHealth != null && monitorStatusBar.latest.sessionHealth >= 80 && t("monitor.healthy")}
+            {monitorStatusBar.latest.sessionHealth != null && monitorStatusBar.latest.sessionHealth >= 50 && monitorStatusBar.latest.sessionHealth < 80 && t("monitor.warning")}
+            {monitorStatusBar.latest.sessionHealth != null && monitorStatusBar.latest.sessionHealth < 50 && t("monitor.critical")}
+            {monitorStatusBar.latest.sessionHealth != null && ` · ${Math.round(monitorStatusBar.latest.sessionHealth)}`}
+          </span>
+        </>
+      ) : (
+        <>
+          {renderVersion()}
+
+          <div className="flex-1" />
+
+          {connectedCount > 0 && (
+            <span className="flex items-center gap-1.5 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
+              {sessionLabel}
+            </span>
+          )}
+
+          {activeTransfers > 0 && (
+            <span className="text-[var(--font-size-xs)] text-[var(--color-accent)]">
+              {transferLabel}
+            </span>
+          )}
+
+          {connectedCount > 0 && latest && <HealthBadge level={healthLevel} />}
+
+          {latency !== undefined && activeTab?.state === "connected" && (
+            <span className="flex items-center gap-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  latency < 100 ? "bg-[var(--color-good)]" : latency < 300 ? "bg-[var(--color-fair)]" : "bg-[var(--color-poor)]",
+                )}
+              />
+              {latency}ms
+            </span>
+          )}
+
+          {connectedCount === 0 && activeTransfers === 0 && (
+            <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+              {t("status.ready")}
+            </span>
+          )}
+        </>
+      )}
+    </footer>
   );
 }
