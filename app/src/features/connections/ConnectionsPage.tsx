@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Plus, Search, Server, Folder, FolderOpen, FolderInput, FolderX, Trash2, Pencil, Star, StarOff, Zap, Upload, Check, ChevronUp, ChevronDown, ChevronRight, FolderPlus, ListChecks, X } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Plus, Search, Server, Folder, FolderOpen, FolderInput, FolderX, SquarePen, Star, StarOff, Zap, Upload, Check, ChevronUp, ChevronDown, ChevronRight, FolderPlus, CheckSquare, X, Lock, CircleCheck, Terminal } from "lucide-react";
+import { TrashNoHandle } from "@/components/ui/icons";
+import { Button } from "@/components/ui/themed/Button";
 import { Input } from "@/components/ui/themed/Input";
-import { Select } from "@/components/ui/Select";
+import { Select } from "@/components/ui/themed/Select";
 import { cn } from "@/lib/utils";
 import { useConnectionsStore } from "@/stores/connections";
 import { useTerminalStore } from "@/stores/terminal";
@@ -635,7 +636,7 @@ export function ConnectionsPage() {
     ? [
         {
           label: t("conn.editConnection"),
-          icon: <Pencil size={14} />,
+          icon: <SquarePen size={14} />,
           onClick: () => {
             setEditingHost(hostMenuState.data);
             setSelectedHostId(hostMenuState.data.id);
@@ -678,7 +679,7 @@ export function ConnectionsPage() {
         { type: "separator" as const },
         {
           label: t("conn.deleteConnection"),
-          icon: <Trash2 size={14} />,
+          icon: <TrashNoHandle size={14} />,
           danger: true,
           onClick: async () => {
             const ok = await confirm({
@@ -696,12 +697,12 @@ export function ConnectionsPage() {
     ? [
         {
           label: t("conn.renameGroup"),
-          icon: <Pencil size={14} />,
+          icon: <SquarePen size={14} />,
           onClick: () => setRenamingGroupId(groupMenuState.data.id),
         },
         {
           label: t("conn.deleteGroup"),
-          icon: <Trash2 size={14} />,
+          icon: <TrashNoHandle size={14} />,
           danger: true,
           onClick: async () => {
             const ok = await confirm({
@@ -816,7 +817,7 @@ export function ConnectionsPage() {
             {hosts.length} hosts · {groups.length} groups · {hosts.filter((host) => host.isFavorite).length} favorites
           </span>
         </div>
-        <div className="actions flex items-center gap-2">
+        <div className="actions">
           <Button
             size="sm"
             variant="secondary"
@@ -827,7 +828,7 @@ export function ConnectionsPage() {
             }}
           >
             <Upload size={14} />
-            Import SSH Config
+            {t("conn.importSshConfig")}
           </Button>
           <Button
             size="sm"
@@ -845,18 +846,17 @@ export function ConnectionsPage() {
 
       <div className="split-layout flex flex-1 overflow-hidden">
       {/* Left: Connection List */}
-      <aside className="host-aside split-aside flex w-[280px] flex-col border-r border-[var(--color-border)]" ref={listContainerRef} data-context-menu-container>
-        <div className="aside-toolbar flex items-center gap-2 border-b border-[var(--color-border)] p-3">
-          <div className="input-with-icon relative flex-1">
+      <aside className="host-aside split-aside" ref={listContainerRef} data-context-menu-container>
+        <div className="aside-toolbar">
+          <div className="input-with-icon flex-1">
             <Search
               size={14}
-              className="input-icon absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+              className="input-icon"
             />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("conn.search")}
-              className="pl-8"
             />
           </div>
           <Button
@@ -865,7 +865,7 @@ export function ConnectionsPage() {
             onClick={handleCreateGroup}
             title={t("conn.newGroup")}
           >
-            <FolderPlus size={16} />
+            <FolderPlus size={15} />
           </Button>
           <Button
             size="icon"
@@ -876,34 +876,11 @@ export function ConnectionsPage() {
             }}
             title={selectionMode ? t("conn.cancelSelect") : t("conn.batchSelect")}
           >
-            {selectionMode ? <X size={16} /> : <ListChecks size={16} />}
-          </Button>
-          <Button
-            size="icon"
-            variant="secondary"
-            onClick={() => {
-              setShowForm(false);
-              setEditingHost(null);
-              setShowImport(true);
-            }}
-            title="Import SSH Config"
-          >
-            <Upload size={16} />
-          </Button>
-          <Button
-            size="icon"
-            variant="secondary"
-            onClick={() => {
-              setShowImport(false);
-              setEditingHost(null);
-              setShowForm(true);
-            }}
-          >
-            <Plus size={16} />
+            {selectionMode ? <X size={15} /> : <CheckSquare size={15} />}
           </Button>
         </div>
 
-        <div className="aside-scroll flex-1 overflow-y-auto p-2">
+        <div className="aside-scroll">
           {loading && (
             <p className="p-4 text-center text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
               {t("conn.loading")}
@@ -1127,7 +1104,7 @@ export function ConnectionsPage() {
               onClick={handleBatchDelete}
               className="text-[var(--color-error)]"
             >
-              <Trash2 size={14} />
+              <TrashNoHandle size={14} />
               {t("confirm.delete")}
             </Button>
           </div>
@@ -1135,7 +1112,7 @@ export function ConnectionsPage() {
       </aside>
 
       {/* Right: Detail / Form / Import */}
-      <section className="detail-pane split-main flex flex-1 flex-col overflow-y-auto p-6">
+      <section className="detail-pane split-main flex flex-1 flex-col overflow-y-auto">
         {showImport ? (
           <div key="import" className="animate-fade-in-up flex flex-1 flex-col overflow-hidden">
             <SshConfigImportPanel onDone={() => setShowImport(false)} />
@@ -1355,71 +1332,110 @@ function HostDetail({
     }
   };
 
+  const groups = useConnectionsStore((s) => s.groups);
+
   return (
-    <div className={`detail-wrap ${animClass} mx-auto w-full max-w-lg`}>
-      <header className="detail-head mb-6 flex items-center justify-between">
+    <div className={`detail-wrap ${animClass}`}>
+      <header className="detail-head">
         <div className="title-block">
-          <h2 className="detail-title text-[var(--font-size-xl)] font-medium">{host.name}</h2>
+          <h2 className="detail-title">{host.name}</h2>
+          <span className="badge badge-success">
+            <span className="dot dot-success" />
+            {t("conn.connected")}
+          </span>
         </div>
-        <div className="detail-actions flex items-center gap-2">
+        <div className="detail-actions">
           <Button size="icon" variant="ghost" onClick={onToggleFavorite}>
             {host.isFavorite ? (
               <span className="animate-star-pop">
-                <Star size={16} className="text-[var(--color-warning)] fill-[var(--color-warning)]" />
+                <Star size={15} className="text-[var(--color-warning)] fill-[var(--color-warning)]" />
               </span>
             ) : (
-              <StarOff size={16} />
+              <StarOff size={15} />
             )}
           </Button>
           <Button size="icon" variant="ghost" onClick={onEdit}>
-            <Pencil size={16} />
+            <SquarePen size={15} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete}>
-            <Trash2 size={16} className="text-[var(--color-error)]" />
+            <TrashNoHandle size={15} className="text-[var(--color-error)]" />
           </Button>
         </div>
       </header>
 
-      <div className="detail-card card-glow rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4">
-        <dl className="detail-grid grid grid-cols-[120px_1fr] gap-3 text-[var(--font-size-sm)]">
-          <dt className="text-[var(--color-text-muted)]">{t("form.host")}</dt>
-          <dd>{host.host}</dd>
-          <dt className="text-[var(--color-text-muted)]">{t("form.port")}</dt>
-          <dd>{host.port}</dd>
-          <dt className="text-[var(--color-text-muted)]">{t("form.username")}</dt>
-          <dd>{host.username}</dd>
-          <dt className="text-[var(--color-text-muted)]">{t("form.authType")}</dt>
-          <dd>{host.authType === "password" ? t("form.password") : t("form.publicKey")}</dd>
-          <dt className="text-[var(--color-text-muted)]">{t("form.created")}</dt>
-          <dd>{new Date(host.createdAt).toLocaleString()}</dd>
-          {host.lastConnectedAt && (
-            <>
-              <dt className="text-[var(--color-text-muted)]">{t("form.lastConnected")}</dt>
-              <dd>{new Date(host.lastConnectedAt).toLocaleString()}</dd>
-            </>
-          )}
-        </dl>
+      <div className="detail-card card-glow">
+        <div className="inner">
+          <dl className="detail-grid">
+            <dt>{t("form.host")}</dt>
+            <dd className="mono">{host.host}</dd>
+
+            <dt>{t("form.port")}</dt>
+            <dd className="mono">{host.port}</dd>
+
+            <dt>{t("form.username")}</dt>
+            <dd className="mono">{host.username}</dd>
+
+            <dt>{t("form.authType")}</dt>
+            <dd>
+              <span className="tag">
+                {host.authType === "password" ? <Lock size={11} /> : <Server size={11} />}
+                {host.authType === "password" ? t("form.password") : t("form.publicKey")}
+              </span>
+            </dd>
+
+            {host.groupId && (
+              <>
+                <dt>{t("form.group")}</dt>
+                <dd>
+                  <span className="tag">
+                    <Folder size={11} />
+                    {groups.find((g) => g.id === host.groupId)?.name ?? host.groupId}
+                  </span>
+                </dd>
+              </>
+            )}
+
+            <dt>{t("form.created")}</dt>
+            <dd>{new Date(host.createdAt).toLocaleString()}</dd>
+
+            {host.lastConnectedAt && (
+              <>
+                <dt>{t("form.lastConnected")}</dt>
+                <dd>{new Date(host.lastConnectedAt).toLocaleString()}</dd>
+              </>
+            )}
+          </dl>
+        </div>
       </div>
 
-      <div className="mt-6 space-y-3">
-        {host.authType === "password" && !hasSavedPassword && (
-          <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
-            {t("conn.noPasswordSaved")}
-          </p>
-        )}
-        {hasSavedPassword && (
-          <p className="text-[var(--font-size-xs)] text-[var(--color-success)]">
+      <div className="detail-tags">
+        {host.authType === "publickey" && <span className="tag">ssh-key</span>}
+      </div>
+
+      <p className="detail-hint">
+        {hasSavedPassword ? (
+          <>
+            <CircleCheck size={14} />
             {t("conn.passwordSaved")}
-          </p>
+          </>
+        ) : (
+          <>
+            <CircleCheck size={14} />
+            {t("conn.noPasswordHint")}
+          </>
         )}
-        {error && (
-          <p className="text-[var(--font-size-xs)] text-[var(--color-error)]">
-            {error}
-          </p>
-        )}
+      </p>
+
+      {error && (
+        <p className="text-[var(--font-size-xs)] text-[var(--color-error)]">
+          {error}
+        </p>
+      )}
+
+      <div className="detail-cta">
         <Button
-          className="w-full"
           size="lg"
+          className="btn-primary"
           onClick={handleConnect}
           disabled={connecting || testing || !hasSavedPassword}
         >
@@ -1429,13 +1445,17 @@ function HostDetail({
               {t("conn.connecting")}
             </>
           ) : (
-            t("conn.connect")
+            <>
+              <Terminal size={16} />
+              {t("conn.connect")}
+              <span className="kbd">⌘</span><span className="kbd">↵</span>
+            </>
           )}
         </Button>
         <Button
-          className="w-full"
           size="lg"
           variant="secondary"
+          className="btn-secondary"
           onClick={handleTest}
           disabled={connecting || testing || !hasSavedPassword}
         >
@@ -1452,6 +1472,19 @@ function HostDetail({
           )}
         </Button>
       </div>
+
+      <section className="detail-activity">
+        <h3 className="section-title">{t("conn.recentActivity")}</h3>
+        <ul className="activity-list">
+          {host.lastConnectedAt && (
+            <li>
+              <span className="dot dot-success" />
+              <span className="when mono">{new Date(host.lastConnectedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</span>
+              <span className="what">{t("conn.sessionOpened")}</span>
+            </li>
+          )}
+        </ul>
+      </section>
     </div>
   );
 }

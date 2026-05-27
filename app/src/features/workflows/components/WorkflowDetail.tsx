@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { Pencil, Trash2, Variable } from "lucide-react";
+import { Pencil, Variable } from "lucide-react";
+import { TrashNoHandle } from "@/components/ui/icons";
 import { Button } from "@/components/ui/Button";
 import { useT } from "@/lib/i18n";
 import { buildWorkflowPreviewValues, interpolateWorkflowCommand } from "@/stores/workflows";
@@ -109,7 +110,7 @@ export function WorkflowDetail({
             {t("workflows.editRecipe")}
           </Button>
           <Button size="sm" variant="ghost" className="workflow-action-button workflow-detail-quiet-action" onClick={onDelete} title={t("workflows.deleteTitle")}>
-            <Trash2 size={13} />
+            <TrashNoHandle size={13} />
             {t("workflows.deleteTitle")}
           </Button>
         </div>

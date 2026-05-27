@@ -15,7 +15,8 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { AlignLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, FolderOpen, GripVertical, Plus, Save, Search, Settings2, Terminal, Trash2, Variable } from "lucide-react";
+import { AlignLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, FolderOpen, GripVertical, Plus, Save, Search, Settings2, Terminal, Variable } from "lucide-react";
+import { TrashNoHandle } from "@/components/ui/icons";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/themed/Input";
 import { useT } from "@/lib/i18n";
@@ -1020,7 +1021,7 @@ function StepCard(
               onClick={onRemove}
               className="flex items-center justify-center h-7 w-7 rounded-[var(--radius-control)] hover:bg-[var(--color-error)]/10 text-[var(--color-text-muted)] hover:text-[var(--color-error)] transition-colors disabled:opacity-30"
             >
-              <Trash2 size={13} />
+              <TrashNoHandle size={13} />
             </button>
           </div>
         </div>
@@ -1231,7 +1232,7 @@ function ParamInspectorPanel({
                       className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] opacity-0 transition-all hover:bg-[var(--color-error)]/10 hover:text-[var(--color-error)] group-hover:opacity-100"
                       onClick={() => onChange({ ...draft, params: draft.params.filter((_, i) => i !== index) })}
                     >
-                      <Trash2 size={13} />
+                      <TrashNoHandle size={13} />
                     </button>
                   </div>
                   <input

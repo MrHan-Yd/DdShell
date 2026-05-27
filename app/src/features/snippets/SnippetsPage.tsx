@@ -13,18 +13,12 @@ import {
   FolderX,
   X,
   Check,
-  ListChecks,
+  CheckSquare,
   Star,
   StarOff,
   ArrowDownAZ,
 } from "lucide-react";
-
-const TrashNoLid = ({ size = 14, strokeWidth = 1.8, className }: { size?: number; strokeWidth?: number; className?: string }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <polyline points="3 6 5 6 21 6" />
-    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-  </svg>
-);
+import { TrashNoHandle } from "@/components/ui/icons";
 
 import { ContextMenu, useContextMenu } from "@/components/ui/ContextMenu";
 import type { MenuItem } from "@/components/ui/ContextMenu";
@@ -274,7 +268,7 @@ function SnippetDetail({
             <SquarePen size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteSnippet")}>
-            <TrashNoLid size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
+            <TrashNoHandle size={14} className="text-[var(--color-error)]" />
           </Button>
         </div>
       </header>
@@ -453,7 +447,7 @@ function GroupDetail({
             <SquarePen size={14} strokeWidth={1.8} />
           </Button>
           <Button size="icon" variant="ghost" onClick={onDelete} title={t("snippets.deleteGroup")}>
-            <TrashNoLid size={14} strokeWidth={1.8} className="text-[var(--color-error)]" />
+            <TrashNoHandle size={14} className="text-[var(--color-error)]" />
           </Button>
         </div>
       </header>
@@ -604,7 +598,7 @@ export function SnippetsPage() {
         },
         {
           label: t("snippets.deleteGroup"),
-          icon: <TrashNoLid size={14} strokeWidth={1.8} />,
+          icon: <TrashNoHandle size={14} />,
           danger: true,
           onClick: async () => {
             const ok = await confirm({
@@ -650,7 +644,7 @@ export function SnippetsPage() {
         { type: "separator" as const },
         {
           label: t("snippets.deleteSnippet"),
-          icon: <TrashNoLid size={14} strokeWidth={1.8} />,
+          icon: <TrashNoHandle size={14} />,
           danger: true,
           onClick: async () => {
             const ok = await confirm({
@@ -950,7 +944,7 @@ export function SnippetsPage() {
               }}
               title={selectionMode ? t("snippets.cancelSelect") : t("snippets.batchSelect")}
             >
-              {selectionMode ? <X size={14} /> : <ListChecks size={14} />}
+              {selectionMode ? <X size={14} /> : <CheckSquare size={14} />}
             </Button>
           </div>
         </header>
@@ -998,7 +992,7 @@ export function SnippetsPage() {
               onClick={handleBatchDelete}
               className="text-[var(--color-error)]"
             >
-              <TrashNoLid size={14} strokeWidth={1.8} />
+              <TrashNoHandle size={14} />
               {t("confirm.delete")}
             </Button>
           </div>

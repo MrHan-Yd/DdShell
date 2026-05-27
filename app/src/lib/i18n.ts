@@ -86,6 +86,11 @@ const dict = {
   "form.group": { zh: "分组", en: "Group" },
   "form.created": { zh: "创建时间", en: "Created" },
   "form.lastConnected": { zh: "最后连接", en: "Last Connected" },
+  "conn.connected": { zh: "已连接", en: "Connected" },
+  "conn.recentActivity": { zh: "最近活动", en: "Recent activity" },
+  "conn.sessionOpened": { zh: "会话已开启", en: "Session opened" },
+  "conn.passwordSavedHint": { zh: "密码已保存 · 上次验证于", en: "Password saved · last verified" },
+  "conn.noPasswordHint": { zh: "未保存密码，编辑连接以设置", en: "No password saved. Edit connection to set." },
 
   // ── TerminalPage ──
   "term.noActiveSessions": { zh: "暂无活动会话", en: "No active sessions" },

@@ -9,13 +9,14 @@ import {
   FolderInput,
   FolderX,
   ChevronRight,
+  CheckSquare,
   ListChecks,
   Pencil,
   RefreshCw,
   Search,
-  Trash2,
   X,
 } from "lucide-react";
+import { TrashNoHandle } from "@/components/ui/icons";
 import { ContextMenu, useContextMenu } from "@/components/ui/ContextMenu";
 import type { MenuItem } from "@/components/ui/ContextMenu";
 import { Button } from "@/components/ui/Button";
@@ -440,7 +441,7 @@ export function WorkflowList({
         { type: "separator" as const },
         {
           label: t("workflows.deleteTitle"),
-          icon: <Trash2 size={14} />,
+          icon: <TrashNoHandle size={14} />,
           danger: true,
           onClick: async () => {
             await onDelete(menuState.data);
@@ -458,7 +459,7 @@ export function WorkflowList({
         },
         {
           label: t("workflows.deleteGroup"),
-          icon: <Trash2 size={14} />,
+          icon: <TrashNoHandle size={14} />,
           danger: true,
           onClick: async () => {
             const ok = await confirm({
@@ -522,7 +523,7 @@ export function WorkflowList({
             }}
             title={selectionMode ? t("workflows.cancelSelect") : t("workflows.batchSelect")}
           >
-            {selectionMode ? <X size={16} /> : <ListChecks size={16} />}
+            {selectionMode ? <X size={16} /> : <CheckSquare size={16} />}
           </Button>
         </div>
       </div>
@@ -694,7 +695,7 @@ export function WorkflowList({
               onClick={handleBatchDelete}
               className="text-[var(--color-error)]"
             >
-              <Trash2 size={14} />
+              <TrashNoHandle size={14} />
               {t("confirm.delete")}
             </Button>
           </div>
