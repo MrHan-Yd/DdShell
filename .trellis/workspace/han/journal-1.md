@@ -543,3 +543,36 @@ Aligned SftpPage.tsx with ui/sftp.html design: created sftp.css with semantic cl
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: 对齐连接管理页面 UI 与设计稿
+
+**Date**: 2026-05-27
+**Task**: 对齐连接管理页面 UI 与设计稿
+**Branch**: `main`
+
+### Summary
+
+对齐连接管理页面UI：Detail侧边header加状态徽章、Auth/Group改为tag组件、detail-tags/detail-hint/detail-cta/detail-activity新增、图标对齐设计稿(TrashNoHandle/SquarePen/Terminal/CheckSquare)、按钮改用themed组件、aside toolbar去掉重复按钮、提取共享TrashNoHandle图标组件
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4746d68` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
