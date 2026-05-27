@@ -510,3 +510,36 @@ Aligned SftpPage.tsx with ui/sftp.html design: created sftp.css with semantic cl
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: 终端页面 UI 对齐设计稿
+
+**Date**: 2026-05-27
+**Task**: 终端页面 UI 对齐设计稿
+**Branch**: `main`
+
+### Summary
+
+对齐终端 tab bar 和分屏布局与设计稿：tab 宽度调整、状态点语义化、分屏改用 CSS grid、pane-bar 加服务器图标、终端文字区改为 flex 布局
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5ce9765` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
