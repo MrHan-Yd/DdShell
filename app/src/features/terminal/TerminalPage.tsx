@@ -1954,7 +1954,7 @@ export function TerminalPage() {
           }}
         >
           {/* Tab list - scrollable */}
-          <div className="tabs flex h-[var(--height-tabbar)] flex-1 items-center gap-1 overflow-x-auto px-2 min-w-0">
+          <div className="tabs flex h-[var(--height-tabbar)] flex-1 items-center overflow-x-auto min-w-0">
             {tabs.map((tab, index) => (
             <div key={tab.id} className="flex items-center">
               <div
@@ -1973,21 +1973,21 @@ export function TerminalPage() {
                   setDragDeltaX(0);
                 }}
                 className={cn(
-                    "tab group flex h-7 items-center gap-2 px-3 text-[var(--font-size-xs)] select-none rounded-[var(--radius-control)]",
+                    "tab group flex h-[var(--height-tabbar)] items-center gap-1.5 px-3 text-[var(--fs-sm)] select-none",
                     tab.id === activeTabId && "is-active",
                   tab.id === activeTabId
-                    ? "bg-[var(--color-bg-base)] text-[var(--color-text-primary)] border border-[var(--color-border)] shadow-[var(--shadow-card)]"
-                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)]",
+                    ? "text-[var(--fg-primary)]"
+                    : "text-[var(--fg-secondary)] hover:text-[var(--fg-primary)] hover:bg-[var(--bg-hover)]",
                   draggingTabId === tab.id && "opacity-90 z-10",
                 )}
                 style={{
-                  width: 120,
+                  width: 168,
                   flexShrink: 0,
                   ...(draggingTabId ? (() => {
                     const fromIndex = tabs.findIndex((t) => t.id === draggingTabId);
                     const toIndex = dragOverIndex ?? fromIndex;
-                    const TAB_WIDTH = 120;
-                    const TAB_GAP = 4;
+                    const TAB_WIDTH = 168;
+                    const TAB_GAP = 0;
 
                     if (tab.id === draggingTabId) {
                       return {
@@ -2000,12 +2000,10 @@ export function TerminalPage() {
                     let shift = 0;
                     if (fromIndex >= 0) {
                       if (toIndex > fromIndex) {
-                        // Dragging right: tabs between from and to shift left
                         if (index > fromIndex && index <= toIndex) {
                           shift = -(TAB_WIDTH + TAB_GAP);
                         }
                       } else if (toIndex < fromIndex) {
-                        // Dragging left: tabs between to and from shift right
                         if (index >= toIndex && index < fromIndex) {
                           shift = TAB_WIDTH + TAB_GAP;
                         }
@@ -2028,15 +2026,15 @@ export function TerminalPage() {
               >
                 <span
                   className={cn(
-                    "h-2 w-2 rounded-full",
+                    "tab-dot",
                     tab.state === "connected"
-                    ? "bg-[var(--color-success)]"
+                    ? "dot-success"
                     : tab.state === "failed"
-                      ? "bg-[var(--color-error)]"
-                      : "bg-[var(--color-text-muted)]",
+                      ? "dot-danger"
+                      : "dot-idle",
                 )}
               />
-              <span className="tab-label flex-1 truncate">{tab.title}</span>
+              <span className="tab-label font-medium truncate max-w-[80px]">{tab.title}</span>
               <button
                 onClick={async (e) => {
                   e.stopPropagation();
@@ -2049,10 +2047,10 @@ export function TerminalPage() {
                   closeSession(tab.id);
                 }}
                 onMouseDown={(e) => e.stopPropagation()}
-                className="tab-close ml-1 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors"
+                className="tab-close ml-auto inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[2px] text-[var(--fg-muted)] hover:bg-[var(--bg-active)] hover:text-[var(--fg-primary)] transition-colors"
                 aria-label={t("confirm.closeSessionTitle")}
               >
-                <X size={12} />
+                <X size={11} strokeWidth={2.2} />
               </button>
               </div>
             </div>
@@ -2060,7 +2058,7 @@ export function TerminalPage() {
           </div>
 
           {/* Right controls - fixed */}
-          <div className="tabbar-actions flex h-[var(--height-tabbar)] shrink-0 items-center px-1">
+          <div className="tabbar-actions flex h-[var(--height-tabbar)] shrink-0 items-center gap-1 px-1">
 
           {/* Split controls */}
           <button
@@ -2147,10 +2145,10 @@ export function TerminalPage() {
                   className={cn(
                     "term-panes relative flex-1 overflow-hidden",
                     splitDirection && `is-split is-split-${splitDirection}`,
-            splitDirection === "horizontal" ? "flex flex-col" : "flex flex-row",
           )}
           style={{
             backgroundColor: hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F1115"),
+            ...(splitDirection === "horizontal" ? { gridTemplateRows: `${splitRatio * 100}% 1px ${(1 - splitRatio) * 100}%` } : splitDirection === "vertical" ? { gridTemplateColumns: `${splitRatio * 100}% 1px ${(1 - splitRatio) * 100}%` } : {}),
           }}
         >
           {/* Background image layer (rendered at this level so it covers the entire terminal area) */}
@@ -2169,18 +2167,12 @@ export function TerminalPage() {
           {/* Primary pane */}
           <div
             className="term-pane is-active relative z-10 overflow-hidden"
-            style={
-              splitDirection
-                ? splitDirection === "horizontal"
-                  ? { height: `${splitRatio * 100}%` }
-                  : { width: `${splitRatio * 100}%` }
-                : { width: "100%", height: "100%" }
-            }
           >
             <div className="pane-bar">
+              <svg className="flex-shrink-0" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
               <span className="pane-host mono">{activeTab?.title ?? "terminal"}</span>
               <span className="pane-spacer" />
-              <span className="pane-tag"><span className="dot dot-success" />{activeTab?.state ?? "idle"}</span>
+              <span className="pane-tag"><span className={cn("tab-dot", activeTab?.state === "connected" ? "dot-success" : activeTab?.state === "failed" ? "dot-danger" : "dot-idle")} />{activeTab?.state ?? "idle"}</span>
             </div>
             <div className="term-window p-0">
             {tabs.map((tab) => (
@@ -2212,16 +2204,12 @@ export function TerminalPage() {
               <ResizeHandle direction={splitDirection} onResize={handleResize} />
               <div
                 className="term-pane relative z-10 overflow-hidden"
-                style={
-                  splitDirection === "horizontal"
-                    ? { height: `${(1 - splitRatio) * 100}%` }
-                    : { width: `${(1 - splitRatio) * 100}%` }
-                }
               >
                 <div className="pane-bar">
+                  <svg className="flex-shrink-0" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
                   <span className="pane-host mono">{splitTab.title}</span>
                   <span className="pane-spacer" />
-                  <span className="pane-tag"><span className="dot dot-success" />{splitTab.state}</span>
+                  <span className="pane-tag"><span className={cn("tab-dot", splitTab.state === "connected" ? "dot-success" : splitTab.state === "failed" ? "dot-danger" : "dot-idle")} />{splitTab.state}</span>
                 </div>
                 <div className="term-window p-0">
                   {termSettings && (

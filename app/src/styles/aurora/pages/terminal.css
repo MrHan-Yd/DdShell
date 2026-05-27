@@ -117,29 +117,51 @@
   margin-left: var(--space-2);
 }
 
+/* ──────────── Tab bar (React styled tabs — design spec alignment) ──────────── */
+
+/* Tab dot (connection status indicator) */
+[data-ui-theme="aurora"] .tab-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+[data-ui-theme="aurora"] .tab-dot.dot-success { background: var(--success); box-shadow: 0 0 8px var(--success); }
+[data-ui-theme="aurora"] .tab-dot.dot-warning { background: var(--warning); }
+[data-ui-theme="aurora"] .tab-dot.dot-danger  { background: var(--danger);  }
+[data-ui-theme="aurora"] .tab-dot.dot-idle    { background: var(--fg-muted); }
+
 /* ─────────────────────────── Pane area (分屏) ─────────────────────────── */
 [data-ui-theme="aurora"] .term-panes {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   background: var(--bg-base);
   position: relative;
 }
+/* 不分屏时，单面板占满 */
+[data-ui-theme="aurora"] .term-panes:not(.is-split) .term-pane {
+  flex: 1;
+}
+
+/* 分屏时用 CSS grid（ratio 通过 inline style 的 gridTemplateRows/Columns 控制） */
 [data-ui-theme="aurora"] .term-panes.is-split {
-  display: flex;
-  gap: 1px;
-  background: var(--border-subtle); /* 用 gap 背景模拟分隔线 */
+  display: grid;
+  gap: 0;
 }
 [data-ui-theme="aurora"] .term-panes.is-split-vertical {
-  flex-direction: row;
+  grid-template-columns: 1fr 1px 1fr;
+  grid-template-rows: 1fr;
 }
 [data-ui-theme="aurora"] .term-panes.is-split-horizontal {
-  flex-direction: column;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1px 1fr;
 }
 
 [data-ui-theme="aurora"] .term-pane {
-  display: grid;
-  grid-template-rows: 28px 1fr;
+  display: flex;
+  flex-direction: column;
   background: var(--term-bg);
   min-width: 0;
   min-height: 0;
@@ -164,12 +186,17 @@
   border-bottom: 1px solid var(--border-subtle);
   font-size: var(--fs-xs);
   color: var(--fg-muted);
+  height: 28px;
+  line-height: 28px;
 }
 [data-ui-theme="aurora"] .pane-bar .pane-host {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   color: var(--fg-secondary);
+}
+[data-ui-theme="aurora"] .pane-bar .pane-host svg {
+  flex-shrink: 0;
 }
 [data-ui-theme="aurora"] .pane-bar .pane-meta { color: var(--fg-muted); }
 [data-ui-theme="aurora"] .pane-bar .pane-spacer { flex: 1; }
@@ -182,13 +209,11 @@
 
 /* ─────────────────────────── 终端文字区 ─────────────────────────── */
 [data-ui-theme="aurora"] .term-window {
-  padding: var(--space-3) var(--space-4);
+  flex: 1;
+  min-height: 0;
   background: var(--term-bg);
   color: var(--term-fg);
-  font-size: var(--fs-base);
-  line-height: 1.55;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 [data-ui-theme="aurora"] .term-line {
