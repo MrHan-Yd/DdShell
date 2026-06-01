@@ -576,3 +576,36 @@ Aligned SftpPage.tsx with ui/sftp.html design: created sftp.css with semantic cl
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: 空状态图标统一与命令宏编辑按钮优化
+
+**Date**: 2026-06-02
+**Task**: 空状态图标统一与命令宏编辑按钮优化
+**Branch**: `main`
+
+### Summary
+
+统一片段/终端/命令宏空状态图标样式（accent 渐变圆角块），终端空状态新增图标并对齐设计稿 btn-primary 按钮（换插头图标、补内边距），命令宏空状态去除外框背景，命令宏编辑页更新按钮加宽。过程中定位到 aurora 全局 button 规则（background:none/padding:0）反复覆盖 Tailwind 类的隐患。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `95623a8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
