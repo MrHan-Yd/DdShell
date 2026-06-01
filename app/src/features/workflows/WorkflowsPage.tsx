@@ -214,7 +214,7 @@ export function WorkflowsPage() {
             </div>
           ) : (
             <div className="animate-fade-in flex flex-1 items-center justify-center text-center p-6">
-              <div className="rounded-[var(--radius-card)] border border-dashed border-[var(--color-border)] bg-[var(--color-bg-surface)] px-8 py-10 shadow-[var(--shadow-card)]">
+              <div>
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-accent-subtle)]">
                   <Workflow size={28} className="text-[var(--color-accent)]" />
                 </div>

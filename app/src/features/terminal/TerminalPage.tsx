@@ -7,7 +7,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { FitAddon } from "@xterm/addon-fit";
 import { PredictiveEcho } from "./predictiveEcho";
-import { X, Plus, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star } from "lucide-react";
+import { X, Plug, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star, Terminal as TerminalIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_DANGEROUS_COMMANDS, isCommandDangerous } from "@/lib/constants";
 import { useTerminalStore } from "@/stores/terminal";
@@ -1866,6 +1866,9 @@ export function TerminalPage() {
     return (
       <div className="terminal-empty flex flex-1 items-center justify-center">
         <div className="text-center">
+          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-accent-subtle)] text-[var(--color-accent)]">
+            <TerminalIcon size={28} strokeWidth={1.8} />
+          </span>
           <p className="text-[var(--font-size-lg)] font-medium text-[var(--color-text-secondary)]">
             {t("term.noActiveSessions")}
           </p>
@@ -1874,9 +1877,9 @@ export function TerminalPage() {
           </p>
           <button
             onClick={goToConnections}
-            className="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-accent)] px-4 py-2 text-[var(--font-size-sm)] text-white hover:bg-[var(--color-accent-hover)] transition-colors"
+            className="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-control)] !bg-[image:var(--color-accent-gradient)] !px-4 !py-2 text-[var(--font-size-sm)] !text-[var(--color-fg-on-accent)] shadow-[var(--shadow-accent-glow)] hover:brightness-[1.08] transition-[filter] duration-[var(--duration-base)]"
           >
-            <Plus size={16} />
+            <Plug size={16} />
             {t("term.openConnections")}
           </button>
         </div>

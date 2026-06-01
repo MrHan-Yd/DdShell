@@ -1086,7 +1086,9 @@ export function SnippetsPage() {
           ) : (
             <div key="empty" className="animate-fade-in flex h-full items-center justify-center text-center">
               <div>
-                <Code2 size={48} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
+              <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[var(--radius-card)] bg-[var(--color-accent-subtle)] text-[var(--color-accent)]">
+                <Code2 size={28} strokeWidth={1.8} />
+              </span>
                 <p className="text-[var(--font-size-base)] text-[var(--color-text-secondary)]">
                   {t("snippets.selectOrCreate")}
                 </p>

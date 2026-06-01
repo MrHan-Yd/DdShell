@@ -588,7 +588,7 @@ export function WorkflowEditor({
             {t("workflows.dirtyHint")}
           </span>
         )}
-        <Button onClick={() => void handleSave()}>
+        <Button onClick={() => void handleSave()} className="!px-6">
           {saveStatus === "saved" ? <Check size={14} /> : null}
           {saveStatus === "saved" ? t("workflows.saved") : savingLabel}
         </Button>
