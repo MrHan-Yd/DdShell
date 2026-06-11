@@ -86,6 +86,50 @@ Questions to answer:
 
 ---
 
+## Convention: Settings page layout skeleton is shared across UI themes
+
+**What**: `SettingsPage` must render one layout skeleton for `classic` and `aurora`. Do not branch the settings page DOM, section/row wrappers, navigation, hero, or about-page structure on `uiTheme`. Theme differences belong in CSS token values and narrowly scoped color overrides.
+
+**Why**: The settings page imports a layout-heavy static prototype. If React gives Aurora-only classes to one branch and Classic-only Tailwind/card fallbacks to the other, layout fixes land in only one theme and Classic regresses into a different page structure.
+
+**Wrong**:
+
+```tsx
+const isAurora = uiTheme === "aurora";
+
+<section className={isAurora ? "settings-group settings-section" : "settings-group glass-card p-5"}>
+  ...
+</section>
+```
+
+**Correct**:
+
+```tsx
+<section className="settings-group settings-section">
+  <div className="settings-section__header">
+    <h3 className="settings-group-title">{title}</h3>
+  </div>
+  <div className="settings-section__content">{children}</div>
+</section>
+```
+
+**CSS contract**:
+- Shared settings layout selectors use bare `.settings-*` selectors so both themes match the same rules.
+- Aurora token definitions stay scoped to `[data-ui-theme="aurora"]`.
+- Classic must provide aliases for prototype tokens such as `--bg-*`, `--fg-*`, `--space-*`, `--fs-*`, `--border-*`, and `--accent-*`.
+- If a settings rule group is unscoped, unscope the related overrides as a group so Aurora specificity and load-order behavior stay equivalent.
+- Keep semantic resets (`p`, headings, `ul`, `ol`) inside `.settings-page` when sharing prototype layout; otherwise Classic keeps browser margins that Aurora resets away.
+- When a shared settings selector styles a `<button>` (for example `.settings-nav-button`), also add an Aurora-specific compound selector such as `[data-ui-theme="aurora"] button.settings-nav-button` that restates `padding`, `border`, `background`, and `color`. Aurora's global `button` reset has higher specificity than a bare class selector.
+- When shared settings markup reuses Aurora component helpers such as `.input-with-icon`, restate required positioning inside the settings selector (for example `.settings-nav-search { position: relative; }` and `.settings-nav-search .settings-nav-search__icon { position: absolute; ... }`). Otherwise Classic will render the same DOM without the scoped Aurora helper rule and icons can anchor to the wrong container.
+
+**Related**:
+- `app/src/features/settings/SettingsPage.tsx`
+- `app/src/styles.css`
+- `app/src/styles/aurora/pages/settings.css`
+- `app/src/styles/aurora/tokens.css`
+
+---
+
 ## Convention: Side drawer width animations must anchor fixed panels to the animated edge
 
 **What**: When a side drawer animates by changing the shell width and also uses `overflow: visible` for floating edge handles, keep the fixed-width drawer panel anchored to the shell edge that is moving. For a left-side drawer that expands rightward, align the panel to the shell's right edge; otherwise the full panel can appear immediately and the width transition will look broken.

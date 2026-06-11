@@ -19,6 +19,12 @@
   --radius-control: 10px;
   --radius-card: 12px;
   --radius-popover: 14px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
 
   /* ── Font Size ── */
   --font-size-xs: 12px;
@@ -26,6 +32,32 @@
   --font-size-base: 14px;
   --font-size-lg: 16px;
   --font-size-xl: 20px;
+
+  /* ── Prototype Token Aliases ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
 
   /* ── Animation ── */
   --duration-fast: 120ms;
@@ -36,6 +68,9 @@
   --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
   --ease-bounce: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
 
   /* ── Dark Theme (default) ── */
   --color-bg-base: #0F1115;
@@ -90,10 +125,45 @@
   --color-fg-on-accent: #FFFFFF;
   --shadow-accent-glow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 20px var(--color-accent-glow);
 
-  /* alias：兼容 styles.css 中已有的无前缀引用 (--accent-gradient/--accent-glow/--fg-on-accent/--shadow-glow) */
-  --accent-gradient: var(--color-accent-gradient);
-  --accent-glow: var(--color-accent-glow);
+  /* Bridge ui/ prototype token names to the Classic color system. */
+  --bg-app: var(--color-bg-base);
+  --bg-base: var(--color-bg-base);
+  --bg-elevated: var(--color-bg-elevated);
+  --bg-surface: var(--color-bg-surface);
+  --bg-overlay: var(--surface-window);
+  --bg-hover: var(--color-bg-hover);
+  --bg-active: var(--color-bg-active);
+
+  --fg-primary: var(--color-text-primary);
+  --fg-secondary: var(--color-text-secondary);
+  --fg-muted: var(--color-text-muted);
+  --fg-disabled: color-mix(in srgb, var(--color-text-muted) 62%, transparent);
   --fg-on-accent: var(--color-fg-on-accent);
+
+  --accent: var(--color-accent);
+  --accent-hover: var(--color-accent-hover);
+  --accent-subtle: var(--color-accent-subtle);
+  --accent-glow: var(--color-accent-glow);
+  --accent-gradient: var(--color-accent);
+  --accent-gradient-soft: var(--color-accent-subtle);
+
+  --border-subtle: var(--color-border-subtle);
+  --border-default: var(--color-border);
+  --border-strong: var(--color-border);
+  --border-focus: var(--color-border-focus);
+
+  --success: var(--color-success);
+  --success-subtle: color-mix(in srgb, var(--color-success) 14%, transparent);
+  --warning: var(--color-warning);
+  --warning-subtle: color-mix(in srgb, var(--color-warning) 14%, transparent);
+  --danger: var(--color-error);
+  --danger-subtle: color-mix(in srgb, var(--color-error) 14%, transparent);
+  --info: var(--color-info);
+  --info-subtle: color-mix(in srgb, var(--color-info) 14%, transparent);
+  --health-good: var(--color-good);
+  --health-fair: var(--color-fair);
+  --health-poor: var(--color-poor);
+
   --shadow-glow: var(--shadow-accent-glow);
 }
 
@@ -1436,49 +1506,49 @@ body {
   color: var(--color-text-secondary);
 }
 
-[data-ui-theme="aurora"] .settings-section {
+.settings-section {
   overflow: hidden;
 }
 
-[data-ui-theme="aurora"] .settings-section__header h3 {
+.settings-section__header h3 {
   margin: 0;
 }
 
-[data-ui-theme="aurora"] .settings-section__content {
+.settings-section__content {
   min-width: 0;
 }
 
-[data-ui-theme="aurora"] .settings-row {
+.settings-row {
   gap: 16px;
 }
 
-[data-ui-theme="aurora"] .settings-row + .settings-row {
+.settings-row + .settings-row {
   border-top: 1px dashed var(--color-border-subtle);
 }
 
-[data-ui-theme="aurora"] .settings-row__text {
+.settings-row__text {
   min-width: 0;
 }
 
-[data-ui-theme="aurora"] .settings-row__label {
+.settings-row__label {
   color: var(--color-text-primary);
 }
 
-[data-ui-theme="aurora"] .settings-row__description {
+.settings-row__description {
   margin-top: 4px;
   line-height: 1.55;
 }
 
-[data-ui-theme="aurora"] .settings-row__control {
+.settings-row__control {
   display: flex;
   align-items: center;
 }
 
-[data-ui-theme="aurora"] .settings-floatbar > div {
+.settings-floatbar > div {
   border-radius: 18px;
 }
 
-[data-ui-theme="aurora"] .settings-page::before {
+.settings-page::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1492,47 +1562,47 @@ body {
   opacity: 0.16;
 }
 
-[data-ui-theme="aurora"] .settings-page__scroll {
+.settings-page__scroll {
   padding-bottom: 28px;
 }
 
-[data-ui-theme="aurora"] .settings-layout {
+.settings-layout {
   gap: 18px;
   max-width: 1520px;
 }
 
-[data-ui-theme="aurora"] .settings-nav-panel {
+.settings-nav-panel {
   top: 6px;
   gap: 20px;
   padding: 18px;
   border-radius: 28px;
 }
 
-[data-ui-theme="aurora"] .settings-nav-panel__hero {
+.settings-nav-panel__hero {
   padding: 4px 2px 0;
 }
 
-[data-ui-theme="aurora"] .settings-nav-panel__summary {
+.settings-nav-panel__summary {
   gap: 8px;
 }
 
-[data-ui-theme="aurora"] .settings-nav-search,
-[data-ui-theme="aurora"] .settings-account-card {
+.settings-nav-search,
+.settings-account-card {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
     var(--surface-card);
   box-shadow: var(--shadow-floating), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-[data-ui-theme="aurora"] .settings-nav-search {
+.settings-nav-search {
   border-radius: 20px;
 }
 
-[data-ui-theme="aurora"] .settings-nav-search__input::placeholder {
+.settings-nav-search__input::placeholder {
   color: color-mix(in srgb, var(--color-text-muted) 82%, white);
 }
 
-[data-ui-theme="aurora"] .settings-nav-stat {
+.settings-nav-stat {
   position: relative;
   overflow: hidden;
   padding: 13px 14px;
@@ -1542,7 +1612,7 @@ body {
     rgba(11, 14, 24, 0.42);
 }
 
-[data-ui-theme="aurora"] .settings-nav-stat::after {
+.settings-nav-stat::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1550,32 +1620,32 @@ body {
   pointer-events: none;
 }
 
-[data-ui-theme="aurora"] .settings-nav-button {
+.settings-nav-button {
   padding: 13px 14px 13px 16px;
   border-radius: 20px;
 }
 
-[data-ui-theme="aurora"] .settings-nav-button:hover {
+.settings-nav-button:hover {
   background:
     linear-gradient(135deg, rgba(167, 139, 250, 0.08), rgba(103, 232, 249, 0.06)),
     rgba(255, 255, 255, 0.03);
 }
 
-[data-ui-theme="aurora"] .settings-nav-button__icon {
+.settings-nav-button__icon {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
     rgba(18, 23, 35, 0.72);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
-[data-ui-theme="aurora"] .settings-nav-button[data-active="true"] .settings-nav-button__icon {
+.settings-nav-button[data-active="true"] .settings-nav-button__icon {
   background:
     linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(103, 232, 249, 0.16)),
     rgba(18, 23, 35, 0.78);
   color: var(--color-text-primary);
 }
 
-[data-ui-theme="aurora"] .settings-nav-empty {
+.settings-nav-empty {
   border-style: solid;
   border-color: rgba(167, 139, 250, 0.18);
   background:
@@ -1583,19 +1653,19 @@ body {
     rgba(255, 255, 255, 0.025);
 }
 
-[data-ui-theme="aurora"] .settings-account-card {
+.settings-account-card {
   border-radius: 24px;
 }
 
-[data-ui-theme="aurora"] .settings-account-card__avatar {
+.settings-account-card__avatar {
   box-shadow: 0 12px 26px rgba(103, 232, 249, 0.18);
 }
 
-[data-ui-theme="aurora"] .settings-content-panel {
+.settings-content-panel {
   gap: 0;
 }
 
-[data-ui-theme="aurora"] .settings-pane-frame {
+.settings-pane-frame {
   position: relative;
   padding: 18px;
   border: 1px solid var(--color-border);
@@ -1612,21 +1682,21 @@ body {
     rgba(255, 255, 255, 0.58);
 }
 
-[data-ui-theme="aurora"] .settings-hero-card {
+.settings-hero-card {
   padding: 24px 24px 22px;
   border-radius: 24px;
   border-color: rgba(167, 139, 250, 0.14);
 }
 
-[data-ui-theme="aurora"] .settings-hero-card__title {
+.settings-hero-card__title {
   font-size: 32px;
 }
 
-[data-ui-theme="aurora"] .settings-hero-card__subtitle {
+.settings-hero-card__subtitle {
   max-width: 640px;
 }
 
-[data-ui-theme="aurora"] .settings-hero-pill {
+.settings-hero-pill {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
     rgba(255, 255, 255, 0.02);
@@ -1734,51 +1804,51 @@ body {
   box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.14);
 }
 
-[data-ui-theme="aurora"] .settings-section {
+.settings-section {
   border-radius: 24px;
   padding: 22px 24px;
 }
 
-[data-ui-theme="aurora"] .settings-section__header {
+.settings-section__header {
   margin-bottom: 0;
   padding-bottom: 14px;
 }
 
-[data-ui-theme="aurora"] .settings-section__header h3 {
+.settings-section__header h3 {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-[data-ui-theme="aurora"] .settings-section__content {
+.settings-section__content {
   padding-top: 4px;
 }
 
-[data-ui-theme="aurora"] .settings-row {
+.settings-row {
   align-items: start;
   gap: 18px;
   padding: 18px 0;
 }
 
-[data-ui-theme="aurora"] .settings-row__label {
+.settings-row__label {
   font-weight: 600;
 }
 
-[data-ui-theme="aurora"] .settings-row__description {
+.settings-row__description {
   max-width: 520px;
 }
 
-[data-ui-theme="aurora"] .settings-row__control {
+.settings-row__control {
   justify-content: flex-end;
 }
 
-[data-ui-theme="aurora"] .settings-floatbar {
+.settings-floatbar {
   right: 24px;
   bottom: 22px;
 }
 
-[data-ui-theme="aurora"] .settings-floatbar > div {
+.settings-floatbar > div {
   padding: 10px 12px;
   border-color: rgba(167, 139, 250, 0.22);
   background:

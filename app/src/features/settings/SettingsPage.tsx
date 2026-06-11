@@ -127,27 +127,12 @@ function Section({
   className?: string;
   children: React.ReactNode;
 }) {
-  const isAurora = useAppStore((s) => s.uiTheme === "aurora");
-  const sectionCls = isAurora
-    ? "settings-group settings-section"
-    : "settings-group settings-section glass-card rounded-[var(--radius-card)] border border-[var(--color-border)] p-5";
-  const headerCls = isAurora
-    ? "settings-section__header"
-    : "settings-section__header mb-4 border-b border-[var(--color-border)] pb-3";
-  const titleCls = isAurora
-    ? "settings-group-title"
-    : "settings-group-title text-[var(--font-size-base)] font-semibold";
+  const sectionCls = "settings-group settings-section";
   return (
     <section className={`${sectionCls}${className ? ` ${className}` : ""}`}>
-      <div className={headerCls}>
-        <h3 className={titleCls}>{title}</h3>
-        {description ? (
-          isAurora ? (
-            <p>{description}</p>
-          ) : (
-            <p className="mt-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">{description}</p>
-          )
-        ) : null}
+      <div className="settings-section__header">
+        <h3 className="settings-group-title">{title}</h3>
+        {description ? <p>{description}</p> : null}
       </div>
       <div className="settings-section__content">{children}</div>
     </section>
@@ -167,30 +152,15 @@ function SettingRow({
   indented?: boolean;
   className?: string;
 }) {
-  const isAurora = useAppStore((s) => s.uiTheme === "aurora");
-  const indentCls = indented ? (isAurora ? " settings-row--indented" : " pl-6") : "";
-  const rowCls = isAurora
-    ? `settings-row${indentCls}`
-    : `settings-row flex items-center justify-between py-2${indentCls}`;
-  const textCls = isAurora
-    ? "settings-row-text settings-row__text"
-    : "settings-row-text settings-row__text min-w-0 flex-1";
-  const labelCls = isAurora
-    ? "settings-row-label settings-row__label"
-    : "settings-row-label settings-row__label text-[var(--font-size-sm)]";
-  const helpCls = isAurora
-    ? "settings-row-help settings-row__description"
-    : "settings-row-help settings-row__description text-[var(--font-size-xs)] text-[var(--color-text-muted)]";
-  const controlCls = isAurora
-    ? "settings-row-control settings-row__control"
-    : "settings-row-control settings-row__control ml-4 shrink-0";
+  const indentCls = indented ? " settings-row--indented" : "";
+  const rowCls = `settings-row${indentCls}`;
   return (
     <div className={`${rowCls}${className ? ` ${className}` : ""}`}>
-      <div className={textCls}>
-        <span className={labelCls}>{label}</span>
-        {description && <span className={helpCls}>{description}</span>}
+      <div className="settings-row-text settings-row__text">
+        <span className="settings-row-label settings-row__label">{label}</span>
+        {description && <span className="settings-row-help settings-row__description">{description}</span>}
       </div>
-      <div className={controlCls}>{children}</div>
+      <div className="settings-row-control settings-row__control">{children}</div>
     </div>
   );
 }
@@ -965,7 +935,6 @@ export function SettingsPage() {
 
   const activeTabMeta = tabItems.find((item) => item.value === activeTab) ?? tabItems[0];
   const hasFilteredTabs = filteredTabItems.length > 0;
-  const isAurora = committedUiTheme === "aurora";
   const currentUiThemeLabel = committedUiTheme === "aurora" ? t("settings.uiThemeAurora") : t("settings.uiThemeClassic");
   const currentModeLabel = committedTheme === "dark" ? t("settings.dark") : committedTheme === "light" ? t("settings.light") : t("settings.system");
   const activePanelId = `settings-panel-${activeTab}`;
@@ -991,7 +960,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className={`settings-page settings-main relative flex-1 overflow-hidden${isAurora ? " settings-page--aurora" : ""}`}>
+    <div className="settings-page settings-main settings-page--aurora relative flex-1 overflow-hidden">
       <div className="page-header">
         <div className="title-block">
           <span className="title">{t("settings.title")}</span>
@@ -1017,8 +986,8 @@ export function SettingsPage() {
         </div>
       </div>
       <div className="settings-body">
-          <aside className={`settings-nav${isAurora ? " settings-nav-panel" : ""}`}>
-            <div className={`input-with-icon settings-search${isAurora ? " settings-nav-search" : ""}`}>
+          <aside className="settings-nav settings-nav-panel">
+            <div className="input-with-icon settings-search settings-nav-search">
               <span className="input-icon settings-nav-search__icon" aria-hidden="true">
                 <Search size={13} />
               </span>
@@ -1027,11 +996,11 @@ export function SettingsPage() {
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder={t("settings.navSearchPlaceholder")}
                 aria-label={t("settings.navSearchPlaceholder")}
-                className={`input${isAurora ? " settings-nav-search__input" : ""}`}
+                className="input settings-nav-search__input"
               />
             </div>
 
-            <nav className={`settings-cat-list${isAurora ? " settings-nav-list" : ""}`} aria-label={t("settings.title")} role="tablist" aria-orientation="vertical">
+            <nav className="settings-cat-list settings-nav-list" aria-label={t("settings.title")} role="tablist" aria-orientation="vertical">
               {filteredTabItems.map(({ value, icon: Icon, label }) => {
                 const active = activeTab === value;
                 return (
@@ -1046,9 +1015,9 @@ export function SettingsPage() {
                     aria-selected={active}
                     aria-controls={`settings-panel-${value}`}
                     tabIndex={active ? 0 : -1}
-                    className={`settings-cat${isAurora ? " settings-nav-button" : ""}${active ? " is-active" : ""}`}
+                    className={`settings-cat settings-nav-button${active ? " is-active" : ""}`}
                   >
-                    <span className={`icon${isAurora ? " settings-nav-button__icon" : ""}`}>
+                    <span className="icon settings-nav-button__icon">
                       <Icon size={15} />
                     </span>
                     <span className="label block text-[var(--font-size-sm)] font-medium">{label}</span>
@@ -1063,26 +1032,26 @@ export function SettingsPage() {
               ) : null}
             </nav>
 
-            <div className={`settings-account${isAurora ? " settings-account-card" : ""}`} aria-label={t("settings.accountTitle")}>
-              <div className={`avatar avatar-sm${isAurora ? " settings-account-card__avatar" : ""}`} aria-hidden="true">D</div>
+            <div className="settings-account settings-account-card" aria-label={t("settings.accountTitle")}>
+              <div className="avatar avatar-sm settings-account-card__avatar" aria-hidden="true">D</div>
               <div className="settings-account-info min-w-0 flex-1">
-                <h3 className={`settings-account-name${isAurora ? " settings-account-card__title" : ""}`}>{t("settings.accountTitle")}</h3>
-                <p className={`settings-account-mail${isAurora ? " settings-account-card__subtitle" : ""}`}>{t("settings.accountSubtitle")}</p>
+                <h3 className="settings-account-name settings-account-card__title">{t("settings.accountTitle")}</h3>
+                <p className="settings-account-mail settings-account-card__subtitle">{t("settings.accountSubtitle")}</p>
               </div>
-              <span className={isAurora ? "settings-account-meta settings-account-card__meta" : "settings-account-meta settings-account-mail"}>{currentUiThemeLabel} · {currentModeLabel}</span>
+              <span className="settings-account-meta settings-account-card__meta">{currentUiThemeLabel} · {currentModeLabel}</span>
             </div>
           </aside>
 
-          <section className={`settings-pane min-w-0 flex-1${isAurora ? " settings-content-panel" : ""}`}>
+          <section className="settings-pane min-w-0 flex-1 settings-content-panel">
             <div className="settings-cat-panel is-active">
-              <header className={`settings-pane-head${isAurora ? " settings-hero-card" : ""}`}>
+              <header className="settings-pane-head settings-hero-card">
                 <div>
-                  <h2 className={`settings-pane-title${isAurora ? " settings-hero-card__title" : ""}`}>{heroSectionLabel}</h2>
-                  <p className={`settings-pane-sub${isAurora ? " settings-hero-card__subtitle" : ""}`}>{heroSectionDescription}</p>
+                  <h2 className="settings-pane-title settings-hero-card__title">{heroSectionLabel}</h2>
+                  <p className="settings-pane-sub settings-hero-card__subtitle">{heroSectionDescription}</p>
                 </div>
-                <div className={isAurora ? "settings-hero-card__side" : ""}>
-                  <span className={`settings-pane-saved${isAurora ? ` settings-pane-status settings-pane-status--${paneStatusTone ?? "idle"}` : ""}${saveStatus === "idle" ? " settings-pane-saved--idle" : ""}`}>
-                    {isAurora ? <span className="settings-pane-status__dot" aria-hidden="true" /> : <Check size={13} />}
+                <div className="settings-hero-card__side">
+                  <span className={`settings-pane-saved settings-pane-status settings-pane-status--${paneStatusTone ?? "idle"}${saveStatus === "idle" ? " settings-pane-saved--idle" : ""}`}>
+                    <span className="settings-pane-status__dot" aria-hidden="true" />
                     {paneStatusLabel ?? t("settings.saved")}
                   </span>
                 </div>
@@ -1094,7 +1063,7 @@ export function SettingsPage() {
                 id={activePanelId}
                 role="tabpanel"
                 aria-labelledby={activeTabId}
-                className={`${isAurora ? "" : "space-y-6 "}tab-slide-in-${slideDir}`}
+                className={`tab-slide-in-${slideDir}`}
               >
         {activeTab === "general" && (<>
         <Section title={t("settings.uiThemeSection")} description={t("settings.uiThemeDesc")}>
@@ -1134,7 +1103,7 @@ export function SettingsPage() {
                         <p className="text-[var(--font-size-sm)] font-semibold text-[var(--color-text-primary)]">
                           {option.title}
                         </p>
-                        <p className="mt-1 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                        <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
                           {option.description}
                         </p>
                       </div>
@@ -1497,7 +1466,7 @@ export function SettingsPage() {
           <div className="space-y-3">
             {/* Preview */}
             <div>
-              <p className="mb-2 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+              <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
                 {t("settings.preview")}
               </p>
               <div
@@ -1947,7 +1916,6 @@ export function SettingsPage() {
         </>)}
 
         {activeTab === "about" && (<>
-        {isAurora ? (<>
         <div className="settings-about-card card-glow">
           <div className="inner">
             <div className="settings-about-head">
@@ -1998,65 +1966,14 @@ export function SettingsPage() {
             <li><span className="settings-credit-name">Inter · JetBrains Mono</span><span className="muted">{t("settings.creditFontsDesc")}</span></li>
           </ul>
         </Section>
-        </>) : (<>
-        <Section title={t("settings.dataPrivacy")}>
-          <p className="text-[var(--font-size-sm)] leading-relaxed text-[var(--color-text-secondary)]">
-            {t("settings.dataPrivacyDesc")}
-          </p>
-        </Section>
-
-        <Section title={t("settings.about")}>
-          <div className="space-y-4 text-[var(--font-size-sm)]">
-            <div className="flex items-center gap-3">
-              <span className="settings-about-logo" aria-hidden="true">
-                <Logo size={48} />
-              </span>
-              <div className="min-w-0">
-                <h3 className="text-[var(--font-size-base)] font-semibold text-[var(--color-text-primary)]">DdShell</h3>
-                <p className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">{t("settings.aboutTagline")}</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-[var(--color-text-muted)]">{t("settings.version")}</span>
-                <span>v{appVersion}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--color-text-muted)]">{t("settings.framework")}</span>
-                <span>Tauri 2 + React</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--color-text-muted)]">{t("settings.aboutPlatform")}</span>
-                <span>{appPlatform}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--color-text-muted)]">{t("settings.license")}</span>
-                <span>MIT</span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-[var(--color-text-muted)]">GitHub</span>
-                <button
-                  type="button"
-                  onClick={() => void api.openBrowser(GITHUB_REPO_URL)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-accent)] hover:bg-[var(--color-bg-hover)]"
-                  title={GITHUB_REPO_URL}
-                  aria-label="GitHub"
-                >
-                  <Github size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </Section>
-        </>)}
         </>)}
               </div>
               ) : (
-                <section className="settings-group settings-section rounded-[var(--radius-card)] border border-[var(--color-border)] p-6">
+                <section className="settings-group settings-section">
                   <strong className="block text-[var(--font-size-base)] font-semibold text-[var(--color-text-primary)]">
                     {t("settings.navSearchEmptyTitle")}
                   </strong>
-                  <p className="mt-2 text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
+                  <p className="text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
                     {t("settings.navSearchEmptyDesc")}
                   </p>
                 </section>
