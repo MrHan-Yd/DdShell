@@ -609,3 +609,36 @@ Aligned SftpPage.tsx with ui/sftp.html design: created sftp.css with semantic cl
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: 对齐经典主题设置页布局
+
+**Date**: 2026-06-11
+**Task**: 对齐经典主题设置页布局
+**Branch**: `main`
+
+### Summary
+
+设置页改为经典与极光共用布局骨架，补齐经典 token 映射和共享 CSS 覆盖，修复顶部按钮、左侧 tab 和搜索图标定位，并记录主题共享约定。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5123278` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
