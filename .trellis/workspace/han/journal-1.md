@@ -642,3 +642,36 @@ Aligned SftpPage.tsx with ui/sftp.html design: created sftp.css with semantic cl
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: 对齐经典主题导航布局
+
+**Date**: 2026-06-12
+**Task**: 对齐经典主题导航布局
+**Branch**: `main`
+
+### Summary
+
+Classic sidebar, shell sizing, and Settings theme-option layout were aligned to Aurora layout rules while preserving Classic colors; captured cascade parity gotcha for theme-specific helper classes.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6ccbb95` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
