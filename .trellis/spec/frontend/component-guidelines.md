@@ -130,6 +130,43 @@ const isAurora = uiTheme === "aurora";
 
 ---
 
+## Convention: Theme parity must compare actual cascade, not only matching component selectors
+
+**What**: When making Classic match Aurora layout while keeping Classic colors, compare every class on the rendered DOM node against all theme-scoped rules that can match it. Do not stop after matching the primary component selector.
+
+**Why**: Generic helper class names can override a nested element only in one theme. For example, the sidebar menu text is rendered as `<span className="label">`; Aurora's generic `[data-ui-theme="aurora"] .label` rule makes it `var(--fs-xs)` with `0.02em` letter spacing, so matching only `[data-ui-theme="aurora"] .nav-item { font-size: var(--fs-sm); }` leaves Classic visually larger.
+
+**Wrong**:
+
+```css
+/* Incomplete parity check: misses the nested .label override. */
+[data-ui-theme="classic"] .nav-item {
+  font-size: var(--fs-sm);
+}
+```
+
+**Correct**:
+
+```css
+[data-ui-theme="classic"] .nav-item {
+  font-size: var(--fs-sm);
+}
+
+[data-ui-theme="classic"] .nav-item .label {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.02em;
+}
+```
+
+**Required check**: For a themed component, inspect the full class list from JSX and search each class name across `app/src/styles.css` and `app/src/styles/aurora/` before declaring parity.
+
+**Related**:
+- `app/src/components/Sidebar.tsx`
+- `app/src/styles/aurora/components.css`
+- `app/src/styles/aurora/layout.css`
+
+---
+
 ## Convention: Side drawer width animations must anchor fixed panels to the animated edge
 
 **What**: When a side drawer animates by changing the shell width and also uses `overflow: visible` for floating edge handles, keep the fixed-width drawer panel anchored to the shell edge that is moving. For a left-side drawer that expands rightward, align the panel to the shell's right edge; otherwise the full panel can appear immediately and the width transition will look broken.

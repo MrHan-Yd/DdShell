@@ -26,10 +26,8 @@ const navItems: { page: Page; labelKey: DictKey; icon: typeof Server; meta?: str
 
 export function Sidebar() {
   const currentPage = useAppStore((s) => s.currentPage);
-  const uiTheme = useAppStore((s) => s.uiTheme);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
   const t = useT();
-  const logoSize = uiTheme === "aurora" ? 28 : 30;
 
   const navigateTo = async (page: Page) => {
     if (page === currentPage) return;
@@ -51,7 +49,7 @@ export function Sidebar() {
     <aside className="sidebar flex w-[var(--width-sidebar)] flex-col border-r border-[var(--color-border)]">
       <div className="sidebar-brand flex items-center gap-2 px-3 py-2">
         <span className="logo">
-          <Logo size={logoSize} />
+          <Logo size={28} />
         </span>
         <span className="name select-none">DdShell</span>
       </div>
