@@ -129,8 +129,7 @@ export default function App() {
       body.classList.toggle("theme-dark", isDark);
       body.classList.toggle("theme-light", !isDark);
       if (favicon) {
-        const prefix = uiTheme === "aurora" ? "/logo-aurora" : "/logo";
-        favicon.href = isDark ? `${prefix}-dark.svg` : `${prefix}.svg`;
+        favicon.href = "/logo-aurora-dark.svg";
       }
     };
 

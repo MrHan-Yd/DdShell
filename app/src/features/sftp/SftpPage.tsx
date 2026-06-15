@@ -2165,7 +2165,7 @@ export function SftpPage() {
   return (
     <div className="sftp-main">
       {/* Page header */}
-      <div className="flex items-center gap-2 border-b border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2">
+      <div className="sftp-header flex items-center gap-2 border-b border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2">
         <span className="inline-flex items-center gap-2">
           <span className="text-[var(--fs-lg)] font-semibold text-[var(--fg-primary)]">SFTP</span>
           <span className="text-[var(--fs-xs)] text-[var(--fg-muted)]">

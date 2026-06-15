@@ -162,6 +162,8 @@
 }
 
 [data-ui-theme="aurora"] .detail-wrap {
+  width: 100%;
+  min-width: 0;
   max-width: 640px;
   margin: 0 auto;
   display: flex;
