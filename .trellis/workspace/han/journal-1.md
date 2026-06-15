@@ -675,3 +675,36 @@ Classic sidebar, shell sizing, and Settings theme-option layout were aligned to 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 18: 对齐经典主题连接管理布局
+
+**Date**: 2026-06-15
+**Task**: 对齐经典主题连接管理布局
+**Branch**: `main`
+
+### Summary
+
+对齐经典主题连接管理、终端和文件管理页面布局，统一暗色极光 Logo，并修复连接详情点击连接时宽度收缩问题。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `be63906` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
