@@ -78,6 +78,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     env:
       HAS_APPLE_SIGNING: ${{ startsWith(matrix.platform, 'macos') && secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_SIGNING_IDENTITY != '' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -121,6 +123,23 @@ jobs:
       - name: Install frontend dependencies
         working-directory: app
         run: pnpm install --frozen-lockfile
+
+      - name: Validate updater signing secrets
+        shell: bash
+        run: |
+          missing=0
+          for name in TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub secret: $name"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Tauri updater artifacts require signing secrets."
+            exit 1
+          fi
 
       - name: Validate macOS signing secrets
         if: startsWith(matrix.platform, 'macos') && env.HAS_APPLE_SIGNING == 'true'
@@ -201,6 +220,31 @@ jobs:
           files: app/src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.dmg
           tag_name: ${{ github.ref_name }}
 
+      - name: Copy macOS updater artifacts
+        if: startsWith(matrix.platform, 'macos')
+        run: |
+          cd app/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos
+          artifact=$(find . -maxdepth 1 -name "*.app.tar.gz" -print -quit)
+          if [ -z "$artifact" ]; then
+            echo "::error::macOS updater artifact not found"
+            exit 1
+          fi
+          if [ ! -f "$artifact.sig" ]; then
+            echo "::error::macOS updater signature not found: $artifact.sig"
+            exit 1
+          fi
+          cp "$artifact" "/tmp/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.app.tar.gz"
+          cp "$artifact.sig" "/tmp/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.app.tar.gz.sig"
+
+      - name: Upload macOS updater artifacts
+        if: startsWith(matrix.platform, 'macos')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            /tmp/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.app.tar.gz
+            /tmp/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.app.tar.gz.sig
+          tag_name: ${{ github.ref_name }}
+
       # ── Rename & Upload (Linux) ──
       - name: Rename and upload Linux packages
         if: matrix.platform == 'ubuntu-22.04'
@@ -235,16 +279,34 @@ jobs:
         shell: pwsh
         run: |
           $bundleDir = "app/src-tauri/target/release/bundle"
-          # MSI
           $msi = Get-ChildItem "$bundleDir/msi/*.msi" | Select-Object -First 1
-          if ($msi) {
-            Copy-Item $msi.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.msi"
+          if (-not $msi) {
+            Write-Error "Windows MSI installer not found"
+            exit 1
           }
-          # NSIS exe
+
           $exe = Get-ChildItem "$bundleDir/nsis/*.exe" | Select-Object -First 1
-          if ($exe) {
-            Copy-Item $exe.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe"
+          if (-not $exe) {
+            Write-Error "Windows NSIS installer not found"
+            exit 1
           }
+
+          $updaterZip = Get-ChildItem "$bundleDir/nsis/*.zip" | Select-Object -First 1
+          if (-not $updaterZip) {
+            Write-Error "Windows NSIS updater zip not found"
+            exit 1
+          }
+
+          $updaterSig = "$($updaterZip.FullName).sig"
+          if (-not (Test-Path $updaterSig)) {
+            Write-Error "Windows NSIS updater signature not found: $updaterSig"
+            exit 1
+          }
+
+          Copy-Item $msi.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.msi"
+          Copy-Item $exe.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe"
+          Copy-Item $updaterZip.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}-setup.exe.zip"
+          Copy-Item $updaterSig "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}-setup.exe.zip.sig"
 
       - name: Upload Windows msi
         if: matrix.platform == 'windows-latest'
@@ -258,4 +320,71 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ runner.temp }}/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe
+          tag_name: ${{ github.ref_name }}
+
+      - name: Upload Windows updater artifacts
+        if: matrix.platform == 'windows-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ runner.temp }}/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}-setup.exe.zip
+            ${{ runner.temp }}/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}-setup.exe.zip.sig
+          tag_name: ${{ github.ref_name }}
+
+  publish-updater-manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Download updater signatures
+        run: |
+          mkdir -p updater-signatures
+          gh release download "$TAG" --repo "$REPO" --pattern "*.sig" --dir updater-signatures
+
+      - name: Generate latest.json
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const tag = process.env.TAG;
+          const repo = process.env.REPO;
+          const baseUrl = `https://github.com/${repo}/releases/download/${tag}`;
+          const readSig = (name) => fs.readFileSync(`updater-signatures/${name}.sig`, "utf8").trim();
+
+          const manifest = {
+            version: tag,
+            notes: `DdShell ${tag}`,
+            pub_date: new Date().toISOString(),
+            platforms: {
+              "darwin-aarch64": {
+                signature: readSig(`DdShell-${tag}-macos-aarch64.app.tar.gz`),
+                url: `${baseUrl}/DdShell-${tag}-macos-aarch64.app.tar.gz`
+              },
+              "darwin-x86_64": {
+                signature: readSig(`DdShell-${tag}-macos-x86_64.app.tar.gz`),
+                url: `${baseUrl}/DdShell-${tag}-macos-x86_64.app.tar.gz`
+              },
+              "windows-x86_64-nsis": {
+                signature: readSig(`DdShell-${tag}-windows-x64-setup.exe.zip`),
+                url: `${baseUrl}/DdShell-${tag}-windows-x64-setup.exe.zip`
+              },
+              "windows-x86_64": {
+                signature: readSig(`DdShell-${tag}-windows-x64-setup.exe.zip`),
+                url: `${baseUrl}/DdShell-${tag}-windows-x64-setup.exe.zip`
+              }
+            }
+          };
+
+          fs.writeFileSync("latest.json", `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
+
+      - name: Upload updater manifest
+        uses: softprops/action-gh-release@v2
+        with:
+          files: latest.json
           tag_name: ${{ github.ref_name }}

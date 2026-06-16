@@ -1,18 +1,15 @@
-import { useState, useCallback, useEffect } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { useCallback, useEffect } from "react";
 import { useTerminalStore } from "@/stores/terminal";
 import { useSftpStore } from "@/stores/sftp";
 import { useMetricsStore } from "@/stores/metrics";
 import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/stores/app";
 import { cn } from "@/lib/utils";
-import { APP_NAME, getAppVersion } from "@/lib/constants";
-import { checkUpdate as apiCheckUpdate, downloadUpdate, openBrowser, openInstaller } from "@/lib/tauri";
+import { APP_NAME } from "@/lib/constants";
+import { useConfirmStore } from "@/stores/confirm";
+import { useUpdaterStore } from "@/stores/updater";
 
 type HealthLevel = "GOOD" | "FAIR" | "POOR";
-type UpdateAsset = { name: string; browserDownloadUrl: string; size: number };
-type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "downloadComplete" | "downloadFailed" | "upToDate" | "rateLimited" | "networkError" | "error";
-const GITHUB_RELEASES_URL = "https://github.com/MrHan-Yd/DdShell/releases/latest";
 
 function HealthBadge({ level }: { level: HealthLevel }) {
   const colors: Record<HealthLevel, string> = {
@@ -46,7 +43,6 @@ function computeHealthLevel(sessionHealth?: number): HealthLevel {
   return "POOR";
 }
 
-
 export function StatusBar() {
   const tabs = useTerminalStore((s) => s.tabs);
   const activeTabId = useTerminalStore((s) => s.activeTabId);
@@ -56,7 +52,21 @@ export function StatusBar() {
   const latest = useMetricsStore((s) => s.latest);
   const monitorStatusBar = useMetricsStore((s) => s.StatusBarData);
   const locale = useAppStore((s) => s.locale);
+  const updateStatus = useUpdaterStore((s) => s.status);
+  const appVersion = useUpdaterStore((s) => s.currentVersion);
+  const latestVersion = useUpdaterStore((s) => s.latestVersion);
+  const progress = useUpdaterStore((s) => s.progress);
+  const slowNetwork = useUpdaterStore((s) => s.slowNetwork);
+  const loadCurrentVersion = useUpdaterStore((s) => s.loadCurrentVersion);
+  const checkUpdate = useUpdaterStore((s) => s.checkForUpdate);
+  const downloadAndInstall = useUpdaterStore((s) => s.downloadAndInstall);
+  const restartApp = useUpdaterStore((s) => s.restartApp);
+  const openFallback = useUpdaterStore((s) => s.openFallback);
   const t = useT();
+
+  useEffect(() => {
+    void loadCurrentVersion();
+  }, [loadCurrentVersion]);
 
   // Ping active session every 5 seconds
   useEffect(() => {
@@ -65,128 +75,25 @@ export function StatusBar() {
     return () => clearInterval(id);
   }, [activeTabId, pingActiveSession]);
 
-  const activeTab = tabs.find((t) => t.id === activeTabId);
+  const activeTab = tabs.find((tab) => tab.id === activeTabId);
   const latency = activeTab ? latencyMap.get(activeTab.sessionId) : undefined;
-
-  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
-  const [appVersion, setAppVersion] = useState("");
-  const [latestVersion, setLatestVersion] = useState("");
-  const [selectedAsset, setSelectedAsset] = useState<UpdateAsset | null>(null);
-  const [downloadedPath, setDownloadedPath] = useState<string | null>(null);
-
-  useEffect(() => {
-    getAppVersion().then(setAppVersion);
-  }, []);
-
-  const openDownloadPage = useCallback(async () => {
-    try {
-      await openBrowser(GITHUB_RELEASES_URL);
-    } catch (err) {
-      console.error("Failed to open browser:", err);
-    }
-  }, []);
-
-  const openDownloadedInstaller = useCallback(async () => {
-    if (!downloadedPath) {
-      await openDownloadPage();
-      return;
-    }
-
-    try {
-      await openInstaller(downloadedPath);
-    } catch (err) {
-      console.error("Failed to open installer:", err);
-      await openDownloadPage();
-    }
-  }, [downloadedPath, openDownloadPage]);
-
-  useEffect(() => {
-    let active = true;
-    const unlisteners: Array<() => void> = [];
-
-    void (async () => {
-      const unlistenCompleted = await listen<{ path: string }>("update:download_completed", async (event) => {
-        setDownloadedPath(event.payload.path);
-        setUpdateStatus("downloadComplete");
-        try {
-          await openInstaller(event.payload.path);
-        } catch (err) {
-          console.error("Failed to open installer:", err);
-          await openDownloadPage();
-        }
-      });
-
-      const unlistenFailed = await listen<{ error: string }>("update:download_failed", async (event) => {
-        console.error("Update download failed:", event.payload.error);
-        setUpdateStatus("downloadFailed");
-        await openDownloadPage();
-      });
-
-      if (!active) {
-        unlistenCompleted();
-        unlistenFailed();
-        return;
-      }
-
-      unlisteners.push(unlistenCompleted, unlistenFailed);
-    })();
-
-    return () => {
-      active = false;
-      for (const unlisten of unlisteners) {
-        unlisten();
-      }
-    };
-  }, [openDownloadPage]);
-
-  const checkUpdate = useCallback(async () => {
-    if (updateStatus === "checking" || !appVersion) return;
-    setUpdateStatus("checking");
-    try {
-      const result = await apiCheckUpdate(appVersion);
-      if (result.hasUpdate) {
-        setLatestVersion(result.latestVersion);
-        setSelectedAsset(result.shouldFallbackToBrowser ? null : result.targetAsset);
-        setDownloadedPath(null);
-        setUpdateStatus("available");
-      } else {
-        setSelectedAsset(null);
-        setUpdateStatus("upToDate");
-      }
-    } catch (err) {
-      const msg = typeof err === "string" ? err : err instanceof Error ? err.message : "";
-      if (msg.includes("rate_limited")) {
-        setUpdateStatus("rateLimited");
-      } else if (msg.includes("network")) {
-        setUpdateStatus("networkError");
-      } else {
-        setUpdateStatus("error");
-      }
-    }
-  }, [updateStatus, appVersion]);
-
-  const handleUpdateDownload = useCallback(async () => {
-    if (!selectedAsset) {
-      await openDownloadPage();
-      return;
-    }
-
-    try {
-      setUpdateStatus("downloading");
-      await downloadUpdate(selectedAsset.browserDownloadUrl, selectedAsset.name);
-    } catch (err) {
-      console.error("Failed to start update download:", err);
-      setUpdateStatus("downloadFailed");
-      await openDownloadPage();
-    }
-  }, [openDownloadPage, selectedAsset]);
-
-  const connectedCount = tabs.filter((t) => t.state === "connected").length;
+  const connectedCount = tabs.filter((tab) => tab.state === "connected").length;
   const activeTransfers = transfers.filter(
-    (t) => t.state === "running" || t.state === "queued",
+    (transfer) => transfer.state === "running" || transfer.state === "queued",
   ).length;
-
   const healthLevel = computeHealthLevel(latest?.sessionHealth);
+
+  const confirmRestart = useCallback(async () => {
+    const hasActiveWork = connectedCount > 0 || activeTransfers > 0;
+    const ok = await useConfirmStore.getState()._show({
+      title: t("update.restartTitle"),
+      description: hasActiveWork ? t("update.restartActiveDesc") : t("update.restartDesc"),
+      confirmLabel: t("update.restartNow"),
+      cancelLabel: t("update.later"),
+      confirmVariant: "default",
+    });
+    if (ok) await restartApp();
+  }, [activeTransfers, connectedCount, restartApp, t]);
 
   const sessionLabel = locale === "zh"
     ? `${connectedCount} ${t("status.sessions")}`
@@ -197,7 +104,7 @@ export function StatusBar() {
     : `${activeTransfers} transfer${activeTransfers !== 1 ? "s" : ""}`;
 
   const renderVersion = () => {
-    const versionTag = `${APP_NAME} v${appVersion}`;
+    const versionTag = `${APP_NAME} v${appVersion || "..."}`;
 
     switch (updateStatus) {
       case "checking":
@@ -216,9 +123,9 @@ export function StatusBar() {
             </span>
             <button
               className="text-[var(--font-size-xs)] text-[var(--color-accent)] hover:underline cursor-pointer"
-              onClick={handleUpdateDownload}
+              onClick={downloadAndInstall}
             >
-              {t("update.download")}
+              {t("update.downloadInstall")}
             </button>
           </span>
         );
@@ -226,29 +133,49 @@ export function StatusBar() {
         return (
           <span className="flex items-center gap-1.5 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
             <span className="h-3 w-3 animate-spin rounded-full border border-[var(--color-text-muted)] border-t-transparent" />
-            {t("update.downloading")}
+            {progress.percent === null
+              ? t("update.downloading")
+              : t("update.downloadingProgress", { n: progress.percent })}
+            {slowNetwork && <span className="text-[var(--color-fair)]">{t("update.slowNetwork")}</span>}
           </span>
         );
-      case "downloadComplete":
+      case "installing":
+        return (
+          <span className="flex items-center gap-1.5 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            <span className="h-3 w-3 animate-spin rounded-full border border-[var(--color-text-muted)] border-t-transparent" />
+            {t("update.installing")}
+          </span>
+        );
+      case "readyToRestart":
         return (
           <span className="flex items-center gap-1.5">
-            <span className="text-[var(--font-size-xs)] text-[var(--color-success)]">✓ {t("update.downloadComplete")}</span>
+            <span className="text-[var(--font-size-xs)] text-[var(--color-success)]">✓ {t("update.readyToRestart")}</span>
             <button
               className="text-[var(--font-size-xs)] text-[var(--color-accent)] hover:underline cursor-pointer"
-              onClick={openDownloadedInstaller}
+              onClick={confirmRestart}
             >
-              {t("update.openFile")}
+              {t("update.restartNow")}
             </button>
           </span>
         );
+      case "restarting":
+        return (
+          <span className="flex items-center gap-1.5 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            <span className="h-3 w-3 animate-spin rounded-full border border-[var(--color-text-muted)] border-t-transparent" />
+            {t("update.restarting")}
+          </span>
+        );
       case "downloadFailed":
+      case "installFailed":
         return (
           <button
             className="flex items-center gap-1.5 text-[var(--font-size-xs)] cursor-pointer"
-            onClick={handleUpdateDownload}
+            onClick={openFallback}
           >
             <span className="text-[var(--color-text-muted)]">{versionTag}</span>
-            <span className="text-[var(--color-poor)]">{t("update.downloadFailed")}</span>
+            <span className="text-[var(--color-poor)]">
+              {updateStatus === "installFailed" ? t("update.installFailed") : t("update.downloadFailed")}
+            </span>
           </button>
         );
       case "upToDate":
@@ -258,27 +185,17 @@ export function StatusBar() {
             <span className="text-[var(--color-success)]">✓ {t("update.latest")}</span>
           </span>
         );
-      case "rateLimited":
+      case "unsupported":
         return (
           <button
             className="flex items-center gap-1.5 text-[var(--font-size-xs)] cursor-pointer"
-            onClick={checkUpdate}
+            onClick={openFallback}
           >
             <span className="text-[var(--color-text-muted)]">{versionTag}</span>
-            <span className="text-[var(--color-fair)]">{t("update.rateLimited")}</span>
+            <span className="text-[var(--color-fair)]">{t("update.openReleases")}</span>
           </button>
         );
-      case "networkError":
-        return (
-          <button
-            className="flex items-center gap-1.5 text-[var(--font-size-xs)] cursor-pointer"
-            onClick={checkUpdate}
-          >
-            <span className="text-[var(--color-text-muted)]">{versionTag}</span>
-            <span className="text-[var(--color-poor)]">{t("update.networkError")}</span>
-          </button>
-        );
-      case "error":
+      case "checkFailed":
         return (
           <button
             className="flex items-center gap-1.5 text-[var(--font-size-xs)] cursor-pointer"
@@ -300,7 +217,6 @@ export function StatusBar() {
         );
     }
   };
-
 
   return (
     <footer className="glass-surface flex h-[var(--height-statusbar)] items-center border-t border-[var(--color-border)] px-4 gap-4">

@@ -11,11 +11,14 @@ import { SegmentedControl } from "@/components/ui/themed/SegmentedControl";
 import { useAppStore } from "@/stores/app";
 import type { UiTheme } from "@/stores/app";
 import { useCommandAssistStore } from "@/stores/commandAssist";
+import { useTerminalStore } from "@/stores/terminal";
+import { useSftpStore } from "@/stores/sftp";
+import { useUpdaterStore } from "@/stores/updater";
 import { t as translate, useT } from "@/lib/i18n";
 import { getAppVersion } from "@/lib/constants";
 import type { DictKey, Locale } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
-import { confirm } from "@/stores/confirm";
+import { confirm, useConfirmStore } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
 import type { TerminalBgSource } from "@/types";
 
@@ -491,6 +494,17 @@ export function SettingsPage() {
   const setStoreUiTheme = useAppStore((s) => s.setUiTheme);
   const setStoreLocale = useAppStore((s) => s.setLocale);
   const setSettingsDirty = useAppStore((s) => s.setSettingsDirty);
+  const connectedCount = useTerminalStore((s) => s.tabs.filter((tab) => tab.state === "connected").length);
+  const activeTransfers = useSftpStore((s) => s.transfers.filter((transfer) => transfer.state === "running" || transfer.state === "queued").length);
+  const updateStatus = useUpdaterStore((s) => s.status);
+  const updateLatestVersion = useUpdaterStore((s) => s.latestVersion);
+  const updateProgress = useUpdaterStore((s) => s.progress);
+  const updateSlowNetwork = useUpdaterStore((s) => s.slowNetwork);
+  const loadUpdateCurrentVersion = useUpdaterStore((s) => s.loadCurrentVersion);
+  const checkForUpdate = useUpdaterStore((s) => s.checkForUpdate);
+  const downloadAndInstallUpdate = useUpdaterStore((s) => s.downloadAndInstall);
+  const restartUpdatedApp = useUpdaterStore((s) => s.restartApp);
+  const openUpdateFallback = useUpdaterStore((s) => s.openFallback);
   const t = useT();
 
   // Draft state — visual changes (theme/uiTheme/locale) only commit to global
@@ -554,9 +568,10 @@ export function SettingsPage() {
   }, [setSettingsDirty]);
 
   useEffect(() => {
+    void loadUpdateCurrentVersion();
     getAppVersion().then(setAppVersion);
     api.appPlatformInfo().then((info) => setAppPlatform(info.label)).catch(() => setAppPlatform("Unknown"));
-  }, []);
+  }, [loadUpdateCurrentVersion]);
 
   const maybeShowPredictiveEchoGuidance = useCallback(() => {
     try {
@@ -838,29 +853,91 @@ export function SettingsPage() {
     }
   };
 
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
-  const handleCheckUpdate = async () => {
-    if (checkingUpdate || !appVersion) return;
-    setCheckingUpdate(true);
-    try {
-      const result = await api.checkUpdate(appVersion);
-      if (result.hasUpdate) {
-        toast.info(t("update.available").replace("{v}", result.latestVersion));
-      } else {
-        toast.success(t("update.latest"));
-      }
-    } catch (err) {
-      const msg = typeof err === "string" ? err : err instanceof Error ? err.message : "";
-      if (msg.includes("rate_limited")) {
-        toast.error(t("update.rateLimited"));
-      } else if (msg.includes("network")) {
-        toast.error(t("update.networkError"));
-      } else {
-        toast.error(t("update.failed"));
-      }
-    } finally {
-      setCheckingUpdate(false);
+  const confirmUpdateRestart = async () => {
+    const hasActiveWork = connectedCount > 0 || activeTransfers > 0;
+    const ok = await useConfirmStore.getState()._show({
+      title: t("update.restartTitle"),
+      description: hasActiveWork ? t("update.restartActiveDesc") : t("update.restartDesc"),
+      confirmLabel: t("update.restartNow"),
+      cancelLabel: t("update.later"),
+      confirmVariant: "default",
+    });
+    if (ok) await restartUpdatedApp();
+  };
+
+  const renderAboutUpdateAction = () => {
+    if (updateStatus === "checking") {
+      return (
+        <Button size="sm" disabled>
+          <RefreshCw size={13} className="animate-spin" />
+          {t("update.checking")}
+        </Button>
+      );
     }
+
+    if (updateStatus === "available") {
+      return (
+        <Button size="sm" onClick={downloadAndInstallUpdate}>
+          <RefreshCw size={13} />
+          {t("update.downloadInstall")}
+        </Button>
+      );
+    }
+
+    if (updateStatus === "downloading") {
+      return (
+        <Button size="sm" disabled>
+          <RefreshCw size={13} className="animate-spin" />
+          {updateProgress.percent === null
+            ? t("update.downloading")
+            : t("update.downloadingProgress", { n: updateProgress.percent })}
+          {updateSlowNetwork ? ` · ${t("update.slowNetwork")}` : ""}
+        </Button>
+      );
+    }
+
+    if (updateStatus === "installing") {
+      return (
+        <Button size="sm" disabled>
+          <RefreshCw size={13} className="animate-spin" />
+          {t("update.installing")}
+        </Button>
+      );
+    }
+
+    if (updateStatus === "readyToRestart") {
+      return (
+        <Button size="sm" onClick={confirmUpdateRestart}>
+          <RefreshCw size={13} />
+          {t("update.restartNow")}
+        </Button>
+      );
+    }
+
+    if (updateStatus === "restarting") {
+      return (
+        <Button size="sm" disabled>
+          <RefreshCw size={13} className="animate-spin" />
+          {t("update.restarting")}
+        </Button>
+      );
+    }
+
+    if (updateStatus === "unsupported" || updateStatus === "downloadFailed" || updateStatus === "installFailed") {
+      return (
+        <Button size="sm" variant="secondary" onClick={openUpdateFallback}>
+          <RefreshCw size={13} />
+          {t("update.openReleases")}
+        </Button>
+      );
+    }
+
+    return (
+      <Button size="sm" onClick={checkForUpdate}>
+        <RefreshCw size={13} />
+        {t("settings.checkUpdate")}
+      </Button>
+    );
   };
 
   // Predictive Echo toggle — draft only, commits on Save.
@@ -1934,10 +2011,7 @@ export function SettingsPage() {
               <li><span className="muted">{t("settings.aboutPlatform")}</span><span className="mono">{appPlatform}</span></li>
             </ul>
             <div className="settings-about-actions">
-              <Button size="sm" onClick={handleCheckUpdate} disabled={checkingUpdate}>
-                <RefreshCw size={13} className={checkingUpdate ? "animate-spin" : undefined} />
-                {checkingUpdate ? t("update.checking") : t("settings.checkUpdate")}
-              </Button>
+              {renderAboutUpdateAction()}
               <Button size="sm" variant="ghost" onClick={() => void api.openBrowser(GITHUB_REPO_URL)}>
                 <Github size={13} />
                 GitHub
@@ -1947,6 +2021,16 @@ export function SettingsPage() {
                 {t("settings.aboutFeedback")}
               </Button>
             </div>
+            {(updateStatus === "available" || updateStatus === "upToDate" || updateStatus === "checkFailed" || updateStatus === "readyToRestart") && (
+              <div className="mt-3">
+                <p className="text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
+                  {updateStatus === "available" && t("update.available").replace("{v}", updateLatestVersion)}
+                  {updateStatus === "upToDate" && t("update.latest")}
+                  {updateStatus === "checkFailed" && t("update.failed")}
+                  {updateStatus === "readyToRestart" && t("update.readyToRestart")}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

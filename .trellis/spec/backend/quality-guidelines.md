@@ -79,6 +79,68 @@ const info = await api.appPlatformInfo();
 const platform = info.label;
 ```
 
+### Scenario: Tauri Official Updater Release Contract
+
+#### 1. Scope / Trigger
+- Trigger: release workflow, Tauri config, or frontend updater behavior changes for official in-app updates.
+- Applies to macOS and Windows official updater support. Linux stays on the GitHub Releases fallback until explicitly implemented.
+
+#### 2. Signatures
+- Tauri config: `app/src-tauri/tauri.conf.json` `plugins.updater.pubkey` and `plugins.updater.endpoints`.
+- GitHub Actions secrets: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+- Manifest endpoint: `https://github.com/MrHan-Yd/DdShell/releases/latest/download/latest.json`.
+- Frontend APIs: `@tauri-apps/plugin-updater` `check()` / `downloadAndInstall()` and `@tauri-apps/plugin-process` `relaunch()`.
+
+#### 3. Contracts
+- `bundle.createUpdaterArtifacts` must be enabled when release builds are expected to produce updater artifacts.
+- The updater private key must never be committed; only the public key belongs in `tauri.conf.json`.
+- macOS updater assets are `DdShell-{tag}-macos-aarch64.app.tar.gz` and `DdShell-{tag}-macos-x86_64.app.tar.gz`, each with matching `.sig`.
+- Windows updater asset must be the tauri-bundler generated NSIS zip, `DdShell-{tag}-windows-x64-setup.exe.zip`, with matching `.sig`. Do not use the ordinary `.exe` installer as the updater URL.
+- `latest.json` must include `darwin-aarch64`, `darwin-x86_64`, `windows-x86_64-nsis`, and a `windows-x86_64` fallback entry.
+- Restart is a user-confirmed frontend action. The updater may install silently/passively, but the app must not relaunch without explicit confirmation.
+
+#### 4. Validation & Error Matrix
+- Missing updater signing secret -> release workflow must fail before Tauri build with a clear secret name.
+- Missing updater artifact or `.sig` -> release workflow must fail before manifest generation.
+- Manifest points to a normal Windows `.exe` -> Windows official updater can download an unsupported payload and fail install.
+- Manifest lacks the bundle-specific key -> updater falls back to `{os}-{arch}`; keep that fallback key present.
+- Signature/private key mismatch -> official updater fails verification and UI must expose the GitHub Releases fallback.
+
+#### 5. Good/Base/Bad Cases
+- Good: Windows manifest `windows-x86_64-nsis` points to `DdShell-vX.Y.Z-windows-x64-setup.exe.zip` and the signature file signs that zip.
+- Base: `windows-x86_64` points to the same NSIS zip as a runtime fallback.
+- Bad: `windows-x86_64` points to `DdShell-vX.Y.Z-windows-x64.exe` with `.exe.sig`.
+
+#### 6. Tests Required
+- `cd app && pnpm build` verifies frontend updater API types and i18n keys.
+- `cd app/src-tauri && cargo check` verifies plugin registration and Rust integration.
+- A signed local or CI bundle build must produce `.app.tar.gz` plus `.sig` on macOS and `*-setup.exe.zip` plus `.sig` on Windows.
+- Release verification must check `latest.json` platform keys, URLs, and signatures before announcing the release.
+
+#### 7. Wrong vs Correct
+
+Wrong:
+
+```json
+"windows-x86_64": {
+  "signature": "<signature of DdShell-vX.Y.Z-windows-x64.exe>",
+  "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64.exe"
+}
+```
+
+Correct:
+
+```json
+"windows-x86_64-nsis": {
+  "signature": "<signature of DdShell-vX.Y.Z-windows-x64-setup.exe.zip>",
+  "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64-setup.exe.zip"
+},
+"windows-x86_64": {
+  "signature": "<signature of DdShell-vX.Y.Z-windows-x64-setup.exe.zip>",
+  "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64-setup.exe.zip"
+}
+```
+
 ---
 
 ## Testing Requirements
