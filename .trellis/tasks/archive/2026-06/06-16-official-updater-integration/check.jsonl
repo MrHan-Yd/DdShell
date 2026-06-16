@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend quality and consistency checks"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend quality and consistency checks"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Verify frontend/backend/release contract alignment"}
+{"file": ".trellis/tasks/06-16-official-updater-integration/prd.md", "reason": "Acceptance criteria"}
+{"file": ".trellis/tasks/06-16-official-updater-integration/design.md", "reason": "Design constraints and fallback expectations"}

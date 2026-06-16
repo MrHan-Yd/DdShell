@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend guideline index for updater UI/state work"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend guideline index for Tauri command/plugin integration"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Updater spans frontend, Tauri backend, release pipeline, and external manifest contracts"}
+{"file": ".trellis/tasks/06-16-official-updater-integration/prd.md", "reason": "Task requirements and acceptance criteria"}
+{"file": ".trellis/tasks/06-16-official-updater-integration/design.md", "reason": "Technical design and release-flow plan"}
