@@ -814,7 +814,11 @@ export function ConnectionsPage() {
         <div className="title-block">
           <span className="title">{t("nav.connections")}</span>
           <span className="subtitle">
-            {hosts.length} hosts · {groups.length} groups · {hosts.filter((host) => host.isFavorite).length} favorites
+            {t("conn.subtitleStats", {
+              hosts: hosts.length,
+              groups: groups.length,
+              favorites: hosts.filter((host) => host.isFavorite).length,
+            })}
           </span>
         </div>
         <div className="actions">
