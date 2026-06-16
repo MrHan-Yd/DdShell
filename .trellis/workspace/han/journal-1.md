@@ -19,7 +19,8 @@ Implemented macOS/Windows in-app update download flow with asset targeting, GitH
 
 ### Main Changes
 
-(Add details)
+- Excluded `.aurora-shell-orb` from the `.app-shell > *` positioning rule so Quick Edit decorative layers stay absolutely positioned and do not push the editor down.
+- Increased the Classic SFTP header button font size from `--fs-xs` to `--fs-sm` so the "Change session" control matches Aurora.
 
 ### Git Commits
 
@@ -31,7 +32,7 @@ Implemented macOS/Windows in-app update download flow with asset targeting, GitH
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `cd app && pnpm build`
 
 ### Status
 
@@ -696,6 +697,39 @@ Classic sidebar, shell sizing, and Settings theme-option layout were aligned to 
 | Hash | Message |
 |------|---------|
 | `be63906` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 19: Fix SFTP theme layout
+
+**Date**: 2026-06-16
+**Task**: Fix SFTP theme layout
+**Branch**: `main`
+
+### Summary
+
+Fixed Quick Edit blank space caused by Aurora orb layout participation, and aligned Classic SFTP change-session button font size with Aurora.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `be8b361` | (see git log) |
 
 ### Testing
 
