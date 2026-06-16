@@ -672,7 +672,7 @@ body {
   background: var(--app-shell-overlay);
 }
 
-.app-shell > *:not(.toast-overlay):not(.confirm-overlay) {
+.app-shell > *:not(.toast-overlay):not(.confirm-overlay):not(.aurora-shell-orb) {
   position: relative;
   z-index: 1;
 }
@@ -3053,7 +3053,7 @@ body.theme-light [data-ui-theme="classic"] .connections-page .detail-cta .kbd {
   min-height: 28px;
   padding: 0 10px;
   border-radius: var(--radius-md);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   line-height: 1.2;
 }
 
