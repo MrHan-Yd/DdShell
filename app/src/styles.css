@@ -3057,6 +3057,28 @@ body.theme-light [data-ui-theme="classic"] .connections-page .detail-cta .kbd {
   line-height: 1.2;
 }
 
+[data-ui-theme="classic"] .sftp-main .sftp-header button.sftp-change-session-button,
+[data-ui-theme="aurora"] .sftp-main .sftp-header button.sftp-change-session-button {
+  height: 28px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  line-height: 1.2;
+}
+
+[data-ui-theme="aurora"] .sftp-main .sftp-header button.sftp-change-session-button {
+  background: transparent;
+  border: 0;
+  color: var(--fg-secondary);
+}
+
+[data-ui-theme="aurora"] .sftp-main .sftp-header button.sftp-change-session-button:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
 [data-ui-theme="classic"] .sftp-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);

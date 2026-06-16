@@ -2178,7 +2178,7 @@ export function SftpPage() {
           </span>
         </span>
         <span className="flex-1" />
-        <Button size="sm" variant="ghost" onClick={() => setSessionId(null)}>
+        <Button className="sftp-change-session-button" size="sm" variant="ghost" onClick={() => setSessionId(null)}>
           {t("sftp.changeSession")}
         </Button>
       </div>
