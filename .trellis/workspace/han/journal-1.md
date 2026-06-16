@@ -124,7 +124,9 @@ Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout,
 
 ### Main Changes
 
-(Add details)
+- Added `sftp-change-session-button` to the SFTP header action.
+- Applied shared Classic/Aurora sizing rules for the change-session button.
+- Restated Aurora color and hover rules to override the global Aurora button reset.
 
 ### Git Commits
 
@@ -136,7 +138,7 @@ Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout,
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `cd app && pnpm build`
 
 ### Status
 
@@ -159,7 +161,9 @@ Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout,
 
 ### Main Changes
 
-(Add details)
+- Added `conn.subtitleStats` i18n text with Chinese and English variants.
+- Replaced the hard-coded Connections page subtitle with the typed i18n key.
+- Removed the English `Aurora` suffix from the Chinese settings theme label while keeping the English label unchanged.
 
 ### Git Commits
 
@@ -169,7 +173,7 @@ Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout,
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `cd app && pnpm build`
 
 ### Status
 
@@ -766,6 +770,39 @@ Aligned the SFTP change-session button across Classic and Aurora by adding a sem
 | Hash | Message |
 |------|---------|
 | `69bb9eb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 21: Localize connection and theme labels
+
+**Date**: 2026-06-16
+**Task**: Localize connection and theme labels
+**Branch**: `main`
+
+### Summary
+
+Localized the Connections page subtitle stats and removed the Aurora English suffix from the Chinese settings theme label.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `98f7940` | (see git log) |
 
 ### Testing
 
