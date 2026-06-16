@@ -815,3 +815,36 @@ Localized the Connections page subtitle stats and removed the Aurora English suf
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: Official updater integration
+
+**Date**: 2026-06-16
+**Task**: Official updater integration
+**Branch**: `main`
+
+### Summary
+
+Integrated Tauri official updater for macOS and Windows, preserved release fallback, updated release workflow/docs, and archived the Trellis task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `516859a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

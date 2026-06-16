@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 21
+- **Total Sessions**: 22
 - **Last Active**: 2026-06-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~813 | Active |
+| `journal-1.md` | ~850 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 22 | 2026-06-16 | Official updater integration | `516859a` | `main` |
 | 21 | 2026-06-16 | Localize connection and theme labels | `98f7940` | `main` |
 | 20 | 2026-06-16 | Match SFTP session switch sizing | `69bb9eb` | `main` |
 | 19 | 2026-06-16 | Fix SFTP theme layout | `be8b361` | `main` |
