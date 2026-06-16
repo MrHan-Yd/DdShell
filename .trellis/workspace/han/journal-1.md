@@ -55,7 +55,8 @@ Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout,
 
 ### Main Changes
 
-(Add details)
+- Excluded `.aurora-shell-orb` from the `.app-shell > *` positioning rule so Quick Edit decorative layers stay absolutely positioned and do not push the editor down.
+- Increased the Classic SFTP header button font size as an initial pass toward matching Aurora.
 
 ### Git Commits
 
@@ -65,7 +66,7 @@ Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout,
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `cd app && pnpm build`
 
 ### Status
 
@@ -88,7 +89,9 @@ Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout,
 
 ### Main Changes
 
-(Add details)
+- Added `sftp-change-session-button` to the SFTP header action so the specific control can be targeted in both themes.
+- Applied shared Classic/Aurora sizing for height, padding, border radius, font size, font weight, and line height.
+- Restated Aurora color/background hover rules to override the global Aurora `button` reset for this control.
 
 ### Git Commits
 
@@ -98,7 +101,7 @@ Released v0.2.2, switched Predictive Echo to M1 default-on experimental rollout,
 
 ### Testing
 
-- [OK] (Add test results)
+- [OK] `cd app && pnpm build`
 
 ### Status
 
@@ -730,6 +733,39 @@ Fixed Quick Edit blank space caused by Aurora orb layout participation, and alig
 | Hash | Message |
 |------|---------|
 | `be8b361` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 20: Match SFTP session switch sizing
+
+**Date**: 2026-06-16
+**Task**: Match SFTP session switch sizing
+**Branch**: `main`
+
+### Summary
+
+Aligned the SFTP change-session button across Classic and Aurora by adding a semantic button class and scoped shared sizing rules that override Aurora's button reset.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `69bb9eb` | (see git log) |
 
 ### Testing
 
