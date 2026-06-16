@@ -22,6 +22,10 @@ jobs:
           body: |
             ## DdShell ${{ github.ref_name }}
 
+            v0.2.4 重点补齐了应用内更新链路：macOS 和 Windows 现在接入 Tauri 官方 updater，支持更新包签名校验、应用内下载与安装，并在安装完成后明确提示用户确认重启。状态栏和「设置 > 关于」共用同一套更新状态，弱网下载会显示进度或慢网络提示；Linux 继续保留 GitHub Releases 下载页作为回退。
+
+            本次发布同时更新了 Release workflow 和发布文档，CI 会额外产出 updater 所需的 `latest.json`、macOS `.app.tar.gz` 及 Windows NSIS updater zip，并保留原有安装包下载方式。
+
             开源跨平台 SSH/SFTP 桌面客户端。
 
             ### 下载
