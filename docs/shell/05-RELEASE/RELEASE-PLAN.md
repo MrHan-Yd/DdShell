@@ -9,7 +9,7 @@
 - Windows：`msi` 或 `exe` 安装包。
 - macOS：`dmg` 安装包。
 - Linux：`AppImage` + `deb`（优先）。
-- 应用内更新：macOS 使用 `.app.tar.gz` updater 产物，Windows 使用 NSIS `*-setup.exe.zip` updater 产物，二者都配套 `.sig` 签名和 `latest.json` manifest；Linux 暂走 GitHub Releases fallback。
+- 应用内更新：macOS 使用 `.app.tar.gz` updater 产物，Windows 使用 NSIS `.exe` 安装器作为 updater 产物，二者都配套 `.sig` 签名和 `latest.json` manifest；Linux 暂走 GitHub Releases fallback。
 
 ## 3. 签名与安全
 - Windows：代码签名证书。
@@ -56,5 +56,5 @@ GitHub Actions 会自动构建并创建 Release。
 
 发布后必须验证：
 - 普通安装包已上传。
-- macOS / Windows updater 产物、`.sig` 和 `latest.json` 已上传；Windows updater 产物应为 NSIS `*-setup.exe.zip`。
+- macOS / Windows updater 产物、`.sig` 和 `latest.json` 已上传；Windows updater 签名应为 NSIS `.exe.sig`。
 - 旧版本客户端可检查到新版本，下载并安装后只提示用户重启，不自动重启。

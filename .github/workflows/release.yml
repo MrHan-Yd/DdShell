@@ -295,13 +295,7 @@ jobs:
             exit 1
           }
 
-          $updaterZip = Get-ChildItem "$bundleDir/nsis/*.zip" | Select-Object -First 1
-          if (-not $updaterZip) {
-            Write-Error "Windows NSIS updater zip not found"
-            exit 1
-          }
-
-          $updaterSig = "$($updaterZip.FullName).sig"
+          $updaterSig = "$($exe.FullName).sig"
           if (-not (Test-Path $updaterSig)) {
             Write-Error "Windows NSIS updater signature not found: $updaterSig"
             exit 1
@@ -309,8 +303,7 @@ jobs:
 
           Copy-Item $msi.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.msi"
           Copy-Item $exe.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe"
-          Copy-Item $updaterZip.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}-setup.exe.zip"
-          Copy-Item $updaterSig "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}-setup.exe.zip.sig"
+          Copy-Item $updaterSig "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe.sig"
 
       - name: Upload Windows msi
         if: matrix.platform == 'windows-latest'
@@ -330,9 +323,7 @@ jobs:
         if: matrix.platform == 'windows-latest'
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            ${{ runner.temp }}/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}-setup.exe.zip
-            ${{ runner.temp }}/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}-setup.exe.zip.sig
+          files: ${{ runner.temp }}/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe.sig
           tag_name: ${{ github.ref_name }}
 
   publish-updater-manifest:
@@ -374,12 +365,12 @@ jobs:
                 url: `${baseUrl}/DdShell-${tag}-macos-x86_64.app.tar.gz`
               },
               "windows-x86_64-nsis": {
-                signature: readSig(`DdShell-${tag}-windows-x64-setup.exe.zip`),
-                url: `${baseUrl}/DdShell-${tag}-windows-x64-setup.exe.zip`
+                signature: readSig(`DdShell-${tag}-windows-x64.exe`),
+                url: `${baseUrl}/DdShell-${tag}-windows-x64.exe`
               },
               "windows-x86_64": {
-                signature: readSig(`DdShell-${tag}-windows-x64-setup.exe.zip`),
-                url: `${baseUrl}/DdShell-${tag}-windows-x64-setup.exe.zip`
+                signature: readSig(`DdShell-${tag}-windows-x64.exe`),
+                url: `${baseUrl}/DdShell-${tag}-windows-x64.exe`
               }
             }
           };

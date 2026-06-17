@@ -95,36 +95,37 @@ const platform = info.label;
 - `bundle.createUpdaterArtifacts` must be enabled when release builds are expected to produce updater artifacts.
 - The updater private key must never be committed; only the public key belongs in `tauri.conf.json`.
 - macOS updater assets are `DdShell-{tag}-macos-aarch64.app.tar.gz` and `DdShell-{tag}-macos-x86_64.app.tar.gz`, each with matching `.sig`.
-- Windows updater asset must be the tauri-bundler generated NSIS zip, `DdShell-{tag}-windows-x64-setup.exe.zip`, with matching `.sig`. Do not use the ordinary `.exe` installer as the updater URL.
+- Windows updater asset is the tauri-bundler generated NSIS installer, `DdShell-{tag}-windows-x64.exe`, with matching `.sig`. Tauri's Windows updater accepts raw `.exe` and `.msi` payloads; do not require a zip unless CI actually generates one.
 - `latest.json` must include `darwin-aarch64`, `darwin-x86_64`, `windows-x86_64-nsis`, and a `windows-x86_64` fallback entry.
 - Restart is a user-confirmed frontend action. The updater may install silently/passively, but the app must not relaunch without explicit confirmation.
 
 #### 4. Validation & Error Matrix
 - Missing updater signing secret -> release workflow must fail before Tauri build with a clear secret name.
 - Missing updater artifact or `.sig` -> release workflow must fail before manifest generation.
-- Manifest points to a normal Windows `.exe` -> Windows official updater can download an unsupported payload and fail install.
+- Manifest points to an unsigned or mismatched Windows asset -> Windows official updater fails signature verification or install.
 - Manifest lacks the bundle-specific key -> updater falls back to `{os}-{arch}`; keep that fallback key present.
 - Signature/private key mismatch -> official updater fails verification and UI must expose the GitHub Releases fallback.
 
 #### 5. Good/Base/Bad Cases
-- Good: Windows manifest `windows-x86_64-nsis` points to `DdShell-vX.Y.Z-windows-x64-setup.exe.zip` and the signature file signs that zip.
-- Base: `windows-x86_64` points to the same NSIS zip as a runtime fallback.
-- Bad: `windows-x86_64` points to `DdShell-vX.Y.Z-windows-x64.exe` with `.exe.sig`.
+- Good: Windows manifest `windows-x86_64-nsis` points to `DdShell-vX.Y.Z-windows-x64.exe` and the signature file signs that exe.
+- Base: `windows-x86_64` points to the same NSIS exe as a runtime fallback.
+- Bad: workflow expects `*.zip` when the Tauri Windows build only produced `.exe`, `.msi`, and their `.sig` files.
 
 #### 6. Tests Required
 - `cd app && pnpm build` verifies frontend updater API types and i18n keys.
 - `cd app/src-tauri && cargo check` verifies plugin registration and Rust integration.
-- A signed local or CI bundle build must produce `.app.tar.gz` plus `.sig` on macOS and `*-setup.exe.zip` plus `.sig` on Windows.
+- A signed local or CI bundle build must produce `.app.tar.gz` plus `.sig` on macOS and NSIS `.exe` plus `.exe.sig` on Windows.
 - Release verification must check `latest.json` platform keys, URLs, and signatures before announcing the release.
 
 #### 7. Wrong vs Correct
 
 Wrong:
 
-```json
-"windows-x86_64": {
-  "signature": "<signature of DdShell-vX.Y.Z-windows-x64.exe>",
-  "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64.exe"
+```powershell
+$updaterZip = Get-ChildItem "$bundleDir/nsis/*.zip" | Select-Object -First 1
+if (-not $updaterZip) {
+  Write-Error "Windows NSIS updater zip not found"
+  exit 1
 }
 ```
 
@@ -132,12 +133,12 @@ Correct:
 
 ```json
 "windows-x86_64-nsis": {
-  "signature": "<signature of DdShell-vX.Y.Z-windows-x64-setup.exe.zip>",
-  "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64-setup.exe.zip"
+  "signature": "<signature of DdShell-vX.Y.Z-windows-x64.exe>",
+  "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64.exe"
 },
 "windows-x86_64": {
-  "signature": "<signature of DdShell-vX.Y.Z-windows-x64-setup.exe.zip>",
-  "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64-setup.exe.zip"
+  "signature": "<signature of DdShell-vX.Y.Z-windows-x64.exe>",
+  "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64.exe"
 }
 ```
 
