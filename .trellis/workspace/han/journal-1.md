@@ -848,3 +848,36 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 23: 应用内更新进度条
+
+**Date**: 2026-06-17
+**Task**: 应用内更新进度条
+**Branch**: `main`
+
+### Summary
+
+为状态栏和设置关于页添加应用内更新下载/安装进度条，支持确定进度、未知进度动画和慢网络提示色。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b7e9d11` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
