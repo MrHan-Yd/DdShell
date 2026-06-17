@@ -5,6 +5,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/themed/Button";
 import { Input } from "@/components/ui/themed/Input";
 import { Logo } from "@/components/Logo";
+import { UpdaterProgress } from "@/components/UpdaterProgress";
 import { DEFAULT_DANGEROUS_COMMANDS } from "@/lib/constants";
 import { Select } from "@/components/ui/themed/Select";
 import { SegmentedControl } from "@/components/ui/themed/SegmentedControl";
@@ -2021,6 +2022,14 @@ export function SettingsPage() {
                 {t("settings.aboutFeedback")}
               </Button>
             </div>
+            {(updateStatus === "downloading" || updateStatus === "installing") && (
+              <div className="settings-about-update-progress">
+                <UpdaterProgress
+                  percent={updateStatus === "downloading" ? updateProgress.percent : null}
+                  slowNetwork={updateStatus === "downloading" && updateSlowNetwork}
+                />
+              </div>
+            )}
             {(updateStatus === "available" || updateStatus === "upToDate" || updateStatus === "checkFailed" || updateStatus === "readyToRestart") && (
               <div className="mt-3">
                 <p className="text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">

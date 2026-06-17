@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { useConfirmStore } from "@/stores/confirm";
 import { useUpdaterStore } from "@/stores/updater";
+import { UpdaterProgress } from "@/components/UpdaterProgress";
 
 type HealthLevel = "GOOD" | "FAIR" | "POOR";
 
@@ -133,6 +134,7 @@ export function StatusBar() {
         return (
           <span className="flex items-center gap-1.5 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
             <span className="h-3 w-3 animate-spin rounded-full border border-[var(--color-text-muted)] border-t-transparent" />
+            <UpdaterProgress compact percent={progress.percent} slowNetwork={slowNetwork} />
             {progress.percent === null
               ? t("update.downloading")
               : t("update.downloadingProgress", { n: progress.percent })}
@@ -143,6 +145,7 @@ export function StatusBar() {
         return (
           <span className="flex items-center gap-1.5 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
             <span className="h-3 w-3 animate-spin rounded-full border border-[var(--color-text-muted)] border-t-transparent" />
+            <UpdaterProgress compact percent={null} />
             {t("update.installing")}
           </span>
         );
