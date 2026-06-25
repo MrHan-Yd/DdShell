@@ -1638,6 +1638,9 @@ export function TerminalPage() {
   const tabRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarkDrawerRef = useRef<HTMLDivElement>(null);
+  const historyDrawerRef = useRef<HTMLDivElement>(null);
+  const bookmarkToggleRef = useRef<HTMLButtonElement>(null);
+  const historyToggleRef = useRef<HTMLButtonElement>(null);
   const {
     activeMacroRun,
     macroOutputFilter,
@@ -1652,12 +1655,19 @@ export function TerminalPage() {
   } = useMacroRunner();
 
   useEffect(() => {
-    if (!showBookmarks) return;
+    if (!showBookmarks && !showHistory) return;
     const handler = (e: PointerEvent) => {
       const confirmEl = document.querySelector("[data-confirm-dialog]");
       if (confirmEl) return;
-      if (bookmarkDrawerRef.current && !bookmarkDrawerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (bookmarkToggleRef.current?.contains(target) || historyToggleRef.current?.contains(target)) {
+        return;
+      }
+      if (showBookmarks && bookmarkDrawerRef.current && !bookmarkDrawerRef.current.contains(target)) {
         setShowBookmarks(false);
+      }
+      if (showHistory && historyDrawerRef.current && !historyDrawerRef.current.contains(target)) {
+        setShowHistory(false);
       }
     };
     const timer = setTimeout(() => {
@@ -1667,7 +1677,7 @@ export function TerminalPage() {
       clearTimeout(timer);
       document.removeEventListener("pointerdown", handler);
     };
-  }, [showBookmarks]);
+  }, [showBookmarks, showHistory]);
 
   useEffect(() => {
     fetchRecipes().catch(() => {});
@@ -2166,9 +2176,31 @@ export function TerminalPage() {
 
           <div className="mx-1 h-4 w-px bg-[var(--color-border)]" />
 
+          {/* Bookmark toggle */}
+          <button
+            ref={bookmarkToggleRef}
+            onClick={() => {
+              setShowHistory(false);
+              setShowBookmarks((v) => !v);
+            }}
+            className={cn(
+              "flex h-7 items-center justify-center rounded-[var(--radius-control)] px-2 text-[var(--font-size-xs)] transition-colors",
+              showBookmarks
+                ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
+                : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-secondary)]",
+            )}
+            title={t("term.bookmarks")}
+          >
+            <Bookmark size={14} />
+          </button>
+
           {/* History toggle */}
           <button
-            onClick={() => setShowHistory(!showHistory)}
+            ref={historyToggleRef}
+            onClick={() => {
+              setShowBookmarks(false);
+              setShowHistory((v) => !v);
+            }}
             className={cn(
               "flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-[var(--font-size-xs)] transition-colors",
               showHistory
@@ -2270,28 +2302,12 @@ export function TerminalPage() {
             </>
           )}
 
-          {/* Bookmark drawer: tab peg + slide-out panel */}
+          {/* Bookmark drawer */}
           <div
             ref={bookmarkDrawerRef}
             className="absolute right-0 top-0 bottom-0 z-[15] flex transition-transform duration-[var(--duration-panel)] ease-[var(--ease-smooth)]"
             style={{ transform: showBookmarks ? 'translateX(0)' : 'translateX(280px)' }}
           >
-            <button
-              onClick={() => setShowBookmarks(!showBookmarks)}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1",
-                "w-[22px] self-center py-2",
-                "rounded-l-[var(--radius-control)]",
-                "border border-r-0 border-[var(--color-border)]",
-                "transition-colors duration-150",
-                showBookmarks
-                  ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
-                  : "bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
-              )}
-              title={t("term.bookmarks")}
-            >
-              <Bookmark size={13} />
-            </button>
             <div className="w-[280px] border-l border-[var(--color-border)]">
               {activeTab && (
                 <BookmarkPanel
@@ -2303,22 +2319,19 @@ export function TerminalPage() {
               )}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Command History Panel */}
-      <div
-        className={cn(
-          "shrink-0 overflow-hidden transition-[width] duration-[var(--duration-panel)] ease-[var(--ease-smooth)]",
-          showHistory ? "w-[280px]" : "w-0",
-        )}
-      >
-        {showHistory && (
-          <CommandHistoryPanel
-            onInsert={handleInsertCommand}
-            onClose={() => setShowHistory(false)}
-          />
-        )}
+          {/* Command History drawer */}
+          <div
+            ref={historyDrawerRef}
+            className="absolute right-0 top-0 bottom-0 z-[16] flex transition-transform duration-[var(--duration-panel)] ease-[var(--ease-smooth)]"
+            style={{ transform: showHistory ? 'translateX(0)' : 'translateX(280px)' }}
+          >
+            <CommandHistoryPanel
+              onInsert={handleInsertCommand}
+              onClose={() => setShowHistory(false)}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
