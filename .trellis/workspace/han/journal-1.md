@@ -918,3 +918,36 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: 默认启用实时候选
+
+**Date**: 2026-06-25
+**Task**: 默认启用实时候选
+**Branch**: `main`
+
+### Summary
+
+将命令助手未保存配置时的默认使用方式改为实时候选，并保留用户已保存的快捷唤起选择。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6fc527e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
