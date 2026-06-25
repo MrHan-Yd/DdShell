@@ -2194,6 +2194,8 @@ export function TerminalPage() {
             <Bookmark size={14} />
           </button>
 
+          <div className="mx-0.5 h-4 w-px bg-[var(--color-border)]" />
+
           {/* History toggle */}
           <button
             ref={historyToggleRef}
@@ -2209,7 +2211,7 @@ export function TerminalPage() {
             )}
           >
             <History size={14} />
-            {!showHistory && <span>{t("term.history")}</span>}
+            <span>{t("term.history")}</span>
           </button>
         </div>
         </div>
