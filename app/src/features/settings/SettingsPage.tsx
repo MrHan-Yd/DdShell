@@ -22,7 +22,7 @@ import * as api from "@/lib/tauri";
 import { confirm, useConfirmStore } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
 import type { TerminalBgSource } from "@/types";
-import type { CommandAssistMode } from "@/features/terminal/CommandAssist";
+import { DEFAULT_COMMAND_ASSIST_MODE, type CommandAssistMode } from "@/features/terminal/CommandAssist";
 
 const TABS = ["general", "transfer", "terminal", "commandAssist", "shortcuts", "about"] as const;
 type SettingsTab = (typeof TABS)[number];
@@ -566,7 +566,7 @@ export function SettingsPage() {
   const [predictiveEchoEnabled, setPredictiveEchoEnabled] = useState(true);
   // CommandAssist settings are drafted here and committed together on Save.
   const [caEnabled, setCaEnabled] = useState(false);
-  const [caMode, setCaMode] = useState<CommandAssistMode>("slash");
+  const [caMode, setCaMode] = useState<CommandAssistMode>(DEFAULT_COMMAND_ASSIST_MODE);
   const [caConfirmKey, setCaConfirmKey] = useState<"tab" | "enter">("tab");
   const [caPosition, setCaPosition] = useState("bottom-left");
   const [caEnabledCategories, setCaEnabledCategories] = useState<Record<string, boolean>>({});
@@ -757,7 +757,7 @@ export function SettingsPage() {
           api.settingGet("commandAssist.enabledAppCategories"),
         ]);
         setCaEnabled(savedCaEnabled === "true");
-        if (savedCaMode === "slash" || savedCaMode === "listview") setCaMode(savedCaMode);
+        setCaMode(savedCaMode === "slash" || savedCaMode === "listview" ? savedCaMode : DEFAULT_COMMAND_ASSIST_MODE);
         if (savedCaConfirmKey === "tab" || savedCaConfirmKey === "enter") setCaConfirmKey(savedCaConfirmKey);
         if (savedCaPosition) setCaPosition(savedCaPosition);
         const cats: Record<string, boolean> = {};

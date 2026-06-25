@@ -18,7 +18,7 @@ import { useT } from "@/lib/i18n";
 import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
 import { CommandAssist } from "./CommandAssist";
-import type { AssistPosition, CommandAssistMode } from "./CommandAssist";
+import { DEFAULT_COMMAND_ASSIST_MODE, type AssistPosition, type CommandAssistMode } from "./CommandAssist";
 import { useCommandAssistStore } from "@/stores/commandAssist";
 import { useWorkflowsStore } from "@/stores/workflows";
 import { useMacroRunner } from "./hooks/useMacroRunner";
@@ -253,7 +253,7 @@ function TerminalInstance({
   const [assistVisible, setAssistVisible] = useState(false);
   const [assistQuery, setAssistQuery] = useState("");
   const [assistEnabled, setAssistEnabled] = useState(false);
-  const [assistMode, setAssistMode] = useState<CommandAssistMode>("slash");
+  const [assistMode, setAssistMode] = useState<CommandAssistMode>(DEFAULT_COMMAND_ASSIST_MODE);
   const [assistConfirmKey, setAssistConfirmKey] = useState<"tab" | "enter">("tab");
   const [assistPosition, setAssistPosition] = useState<AssistPosition>("bottom-left");
   // Cursor position relative to the terminal container (not screen)
@@ -280,7 +280,7 @@ function TerminalInstance({
           api.settingGet("commandAssist.position"),
         ]);
         setAssistEnabled(enabled === "true");
-        setAssistMode(modeVal === "listview" ? "listview" : "slash");
+        setAssistMode(modeVal === "slash" || modeVal === "listview" ? modeVal : DEFAULT_COMMAND_ASSIST_MODE);
         if (confirmKeyVal === "tab" || confirmKeyVal === "enter") {
           setAssistConfirmKey(confirmKeyVal);
         }

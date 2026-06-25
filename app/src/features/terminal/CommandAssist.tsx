@@ -26,6 +26,7 @@ const CATEGORY_I18N_KEYS: Record<string, DictKey> = {
 
 export type AssistPosition = "bottom-left" | "bottom-right" | "follow-cursor";
 export type CommandAssistMode = "slash" | "listview";
+export const DEFAULT_COMMAND_ASSIST_MODE: CommandAssistMode = "listview";
 
 interface CommandAssistProps {
   visible: boolean;
