@@ -881,3 +881,40 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 24: 命令助手使用方式与输入体验
+
+**Date**: 2026-06-25
+**Task**: 命令助手使用方式与输入体验
+**Branch**: `main`
+
+### Summary
+
+为命令助手增加快捷唤起与实时候选两种使用方式，优化设置文案和快捷唤起输入体验。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b22693a` | (see git log) |
+| `b2d2458` | (see git log) |
+| `5394b36` | (see git log) |
+| `0a2434f` | (see git log) |
+| `79b3a3a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
