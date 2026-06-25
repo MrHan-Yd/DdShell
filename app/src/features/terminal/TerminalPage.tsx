@@ -18,7 +18,7 @@ import { useT } from "@/lib/i18n";
 import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
 import { CommandAssist } from "./CommandAssist";
-import type { AssistPosition } from "./CommandAssist";
+import type { AssistPosition, CommandAssistMode } from "./CommandAssist";
 import { useCommandAssistStore } from "@/stores/commandAssist";
 import { useWorkflowsStore } from "@/stores/workflows";
 import { useMacroRunner } from "./hooks/useMacroRunner";
@@ -244,6 +244,7 @@ function TerminalInstance({
   const [assistVisible, setAssistVisible] = useState(false);
   const [assistQuery, setAssistQuery] = useState("");
   const [assistEnabled, setAssistEnabled] = useState(false);
+  const [assistMode, setAssistMode] = useState<CommandAssistMode>("slash");
   const [assistConfirmKey, setAssistConfirmKey] = useState<"tab" | "enter">("tab");
   const [assistPosition, setAssistPosition] = useState<AssistPosition>("bottom-left");
   // Cursor position relative to the terminal container (not screen)
@@ -255,6 +256,7 @@ function TerminalInstance({
   const assistCheckScheduledRef = useRef(false);
   const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [osType, setOsType] = useState<string | null>(null);
+  const osTypeRef = useRef<string | null>(null);
   const assistVisibleRef = useRef(false);
   const composingRef = useRef(false);
 
@@ -262,12 +264,14 @@ function TerminalInstance({
   useEffect(() => {
     const load = async () => {
       try {
-        const [enabled, confirmKeyVal, positionVal] = await Promise.all([
+        const [enabled, modeVal, confirmKeyVal, positionVal] = await Promise.all([
           api.settingGet("commandAssist.enabled"),
+          api.settingGet("commandAssist.mode"),
           api.settingGet("commandAssist.confirmKey"),
           api.settingGet("commandAssist.position"),
         ]);
         setAssistEnabled(enabled === "true");
+        setAssistMode(modeVal === "listview" ? "listview" : "slash");
         if (confirmKeyVal === "tab" || confirmKeyVal === "enter") {
           setAssistConfirmKey(confirmKeyVal);
         }
@@ -315,10 +319,52 @@ function TerminalInstance({
     assistEnabledRef.current = assistEnabled;
   }, [assistEnabled]);
 
+  const assistModeRef = useRef<CommandAssistMode>(assistMode);
+  useEffect(() => {
+    assistModeRef.current = assistMode;
+  }, [assistMode]);
+
   const assistConfirmKeyRef = useRef(assistConfirmKey);
   useEffect(() => {
     assistConfirmKeyRef.current = assistConfirmKey;
   }, [assistConfirmKey]);
+
+  useEffect(() => {
+    osTypeRef.current = osType;
+  }, [osType]);
+
+  const closeAssist = useCallback(() => {
+    assistVisibleRef.current = false;
+    setAssistVisible(false);
+    setAssistQuery("");
+  }, []);
+
+  const showAssistForQuery = useCallback((query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      closeAssist();
+      return;
+    }
+
+    const result = useCommandAssistStore.getState().search(trimmed, osTypeRef.current, 0);
+    if (result.total === 0) {
+      closeAssist();
+      return;
+    }
+
+    assistVisibleRef.current = true;
+    const term = termRef.current;
+    const { charW, charH, offsetX, offsetY } = geoRef.current;
+    setAssistQuery(trimmed);
+    setAssistVisible(true);
+    if (term) {
+      setCursorPos({
+        col: term.buffer.active.cursorX,
+        row: term.buffer.active.cursorY,
+        charW, charH, offsetX, offsetY,
+      });
+    }
+  }, [closeAssist]);
 
   // ── Command Assist: extract // trigger from buffer ──
   const checkAssistTrigger = useCallback((buffer: string) => {
@@ -339,12 +385,20 @@ function TerminalInstance({
       return;
     }
 
+    if (assistModeRef.current === "listview") {
+      if (buffer.includes("://") || buffer.includes("\\\\")) {
+        closeAssist();
+        return;
+      }
+      showAssistForQuery(buffer);
+      return;
+    }
+
     // Find last occurrence of //
     const slashPos = buffer.lastIndexOf("//");
     if (slashPos < 0) {
       if (assistVisibleRef.current) {
-        setAssistVisible(false);
-        setAssistQuery("");
+        closeAssist();
       }
       return;
     }
@@ -362,27 +416,14 @@ function TerminalInstance({
     // Need at least 1 non-whitespace char after //
     if (afterSlash.length < 1 || afterSlash.trim().length < 1) {
       if (assistVisibleRef.current) {
-        setAssistVisible(false);
-        setAssistQuery("");
+        closeAssist();
       }
       return;
     }
 
     // Trigger!
-    assistVisibleRef.current = true;
-    const term = termRef.current;
-    const { charW, charH, offsetX, offsetY } = geoRef.current;
-    // Batch all state updates together to avoid multiple renders
-    setAssistQuery(afterSlash.trim());
-    setAssistVisible(true);
-    if (term) {
-      setCursorPos({
-        col: term.buffer.active.cursorX,
-        row: term.buffer.active.cursorY,
-        charW, charH, offsetX, offsetY,
-      });
-    }
-  }, []);
+    showAssistForQuery(afterSlash);
+  }, [closeAssist, showAssistForQuery]);
 
   // Hold the latest checkAssistTrigger in a ref so Effect 2 (session I/O
   // bindings) doesn't have to depend on it. This keeps onData / onResize /
@@ -394,15 +435,16 @@ function TerminalInstance({
   const handleAssistSelect = useCallback((command: string, id: string) => {
     const buffer = cmdBufferRef.current;
     const slashPos = buffer.lastIndexOf("//");
-    if (slashPos < 0) return;
+    const isListView = assistModeRef.current === "listview";
+    if (!isListView && slashPos < 0) return;
 
-    // Calculate the text to replace: everything from // to end of buffer
-    const textToReplace = buffer.substring(slashPos);
+    // Slash mode replaces //query. ListView mode replaces the whole command line.
+    const textToReplace = isListView ? buffer : buffer.substring(slashPos);
 
-    // Send backspaces to erase the // prefix + query, then type the command
+    // Send backspaces to erase the target text, then type the command.
     const encoder = TEXT_ENCODER;
 
-    // Erase: send backspace for each char of the trigger text
+    // Erase: send backspace for each char being replaced.
     const backspaces = "\x7f".repeat(textToReplace.length);
     const eraseBytes = Array.from(encoder.encode(backspaces));
     api.sessionWrite(sessionIdRef.current, eraseBytes).catch(() => {});
@@ -414,22 +456,19 @@ function TerminalInstance({
     }, 20);
 
     // Update buffer
-    cmdBufferRef.current = buffer.substring(0, slashPos) + command;
+    cmdBufferRef.current = isListView ? command : buffer.substring(0, slashPos) + command;
 
     // Update weight — also update local store weight
     api.commandAssistWeightUpdate(id).catch(() => {});
     useCommandAssistStore.getState().updateLocalWeight(id);
 
     // Close assist
-    setAssistVisible(false);
-    setAssistQuery("");
-  }, []);
+    closeAssist();
+  }, [closeAssist]);
 
   const handleAssistClose = useCallback(() => {
-    setAssistVisible(false);
-    assistVisibleRef.current = false;
-    setAssistQuery("");
-  }, []);
+    closeAssist();
+  }, [closeAssist]);
 
   // Effect 1: Create xterm instance (once, independent of sessionId)
   useEffect(() => {
@@ -777,8 +816,7 @@ function TerminalInstance({
           cmdBufferRef.current = "";
           // Close assist on enter
           if (assistVisibleRef.current) {
-            setAssistVisible(false);
-            setAssistQuery("");
+            closeAssist();
           }
         } else if (ch === "\x7f" || ch === "\b") {
           cmdBufferRef.current = cmdBufferRef.current.slice(0, -1);
@@ -786,8 +824,7 @@ function TerminalInstance({
           cmdBufferRef.current = "";
           // Close assist on Ctrl+C
           if (assistVisibleRef.current) {
-            setAssistVisible(false);
-            setAssistQuery("");
+            closeAssist();
           }
         } else if (ch === "\t") {
           // If assist is visible and confirmKey is tab, don't send tab to terminal
@@ -798,9 +835,7 @@ function TerminalInstance({
         } else if (ch === "\x1b") {
           // Esc — close assist if visible
           if (assistVisibleRef.current) {
-            assistVisibleRef.current = false;
-            setAssistVisible(false);
-            setAssistQuery("");
+            closeAssist();
             return;
           }
         } else if (ch.charCodeAt(0) >= 32) {
@@ -839,16 +874,18 @@ function TerminalInstance({
       const bytes = Array.from(encoder.encode(data));
       api.sessionWrite(sid, bytes).catch((err) => toast.error(String(err)));
 
-      // Command-assist trigger check: fast path. The vast majority of
-      // keystrokes are inside an ordinary command and need no work — only
-      // schedule a check when assist is already showing (might need to
-      // update the query or close), or when the buffer actually contains
-      // "//". Coalesce bursts via a microtask + re-entrancy guard so that
-      // typing a long word doesn't queue N redundant checks.
+      // Command-assist trigger check: slash mode keeps the existing // fast
+      // path; ListView mode checks ordinary command buffers locally so the
+      // suggestion list doesn't wait for remote echo.
       const buf = cmdBufferRef.current;
+      const shouldCheckAssist =
+        assistVisibleRef.current ||
+        (assistModeRef.current === "listview"
+          ? assistEnabledRef.current && buf.trim().length > 0
+          : buf.indexOf("//") >= 0);
       if (
         !assistCheckScheduledRef.current &&
-        (assistVisibleRef.current || buf.indexOf("//") >= 0)
+        shouldCheckAssist
       ) {
         assistCheckScheduledRef.current = true;
         queueMicrotask(() => {
@@ -969,7 +1006,10 @@ function TerminalInstance({
 
     // IME composition handling
     const termEl = term.element;
-    const handleCompositionStart = () => { composingRef.current = true; };
+    const handleCompositionStart = () => {
+      composingRef.current = true;
+      closeAssist();
+    };
     const handleCompositionEnd = () => { composingRef.current = false; };
     termEl?.addEventListener("compositionstart", handleCompositionStart);
     termEl?.addEventListener("compositionend", handleCompositionEnd);
@@ -1027,7 +1067,7 @@ function TerminalInstance({
       termEl?.removeEventListener("compositionend", handleCompositionEnd);
       termElForMouse?.removeEventListener("mousedown", handleMiddleClick);
     };
-  }, [sessionId, hostId, tabId, updateTabState]);
+  }, [sessionId, hostId, tabId, updateTabState, closeAssist]);
 
   const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
   const isDisconnected = tabState === "disconnected" || tabState === "failed";

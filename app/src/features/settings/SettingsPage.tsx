@@ -22,6 +22,7 @@ import * as api from "@/lib/tauri";
 import { confirm, useConfirmStore } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
 import type { TerminalBgSource } from "@/types";
+import type { CommandAssistMode } from "@/features/terminal/CommandAssist";
 
 const TABS = ["general", "transfer", "terminal", "commandAssist", "shortcuts", "about"] as const;
 type SettingsTab = (typeof TABS)[number];
@@ -284,10 +285,12 @@ const SETTINGS_TAB_META: Array<{
 interface CommandAssistSettingsProps {
   t: ReturnType<typeof useT>;
   enabled: boolean;
+  mode: CommandAssistMode;
   confirmKey: "tab" | "enter";
   position: string;
   enabledCategories: Record<string, boolean>;
   onToggleEnabled: (v: boolean) => void;
+  onChangeMode: (v: CommandAssistMode) => void;
   onChangeConfirmKey: (v: "tab" | "enter") => void;
   onChangePosition: (v: string) => void;
   onChangeCategories: (cats: Record<string, boolean>) => void;
@@ -296,10 +299,12 @@ interface CommandAssistSettingsProps {
 function CommandAssistSettings({
   t,
   enabled,
+  mode,
   confirmKey,
   position,
   enabledCategories,
   onToggleEnabled,
+  onChangeMode,
   onChangeConfirmKey,
   onChangePosition,
   onChangeCategories,
@@ -377,6 +382,22 @@ function CommandAssistSettings({
           >
             <span className="toggle-thumb" />
           </button>
+        </SettingRow>
+
+        <SettingRow
+          label={t("commandAssist.mode")}
+          description={t("commandAssist.modeDesc")}
+        >
+          <SegmentedControl
+            value={mode}
+            onChange={(v) => {
+              if (v === "slash" || v === "listview") onChangeMode(v);
+            }}
+            options={[
+              { value: "slash", label: t("commandAssist.modeSlash") },
+              { value: "listview", label: t("commandAssist.modeListView") },
+            ]}
+          />
         </SettingRow>
 
         <SettingRow
@@ -528,8 +549,9 @@ export function SettingsPage() {
   const [downloadPath, setDownloadPath] = useState("");
   const [transferNotify, setTransferNotify] = useState(true);
   const [predictiveEchoEnabled, setPredictiveEchoEnabled] = useState(true);
-  // CommandAssist 4 项纳入草稿（原本在子组件即时持久化，现在统一由 Save commit）
+  // CommandAssist settings are drafted here and committed together on Save.
   const [caEnabled, setCaEnabled] = useState(false);
+  const [caMode, setCaMode] = useState<CommandAssistMode>("slash");
   const [caConfirmKey, setCaConfirmKey] = useState<"tab" | "enter">("tab");
   const [caPosition, setCaPosition] = useState("bottom-left");
   const [caEnabledCategories, setCaEnabledCategories] = useState<Record<string, boolean>>({});
@@ -550,7 +572,7 @@ export function SettingsPage() {
     theme, uiTheme, locale, terminal, uiFontFamily, uiFontSize,
     confirmDanger, sessionTimeout, chunkSize, maxConcurrent, transferTimeout,
     retryCount, downloadPath, transferNotify, predictiveEchoEnabled,
-    caEnabled, caConfirmKey, caPosition, caEnabledCategories,
+    caEnabled, caMode, caConfirmKey, caPosition, caEnabledCategories,
   });
 
   useEffect(() => {
@@ -711,14 +733,16 @@ export function SettingsPage() {
         setUiFontFamily(savedUiFontFamily || DEFAULT_UI_FONT_FAMILY);
         setUiFontSize(savedUiFontSize ? parseInt(savedUiFontSize) : DEFAULT_UI_FONT_SIZE);
 
-        // CommandAssist — 纳入草稿统一管理，原本在子组件即时持久化
-        const [savedCaEnabled, savedCaConfirmKey, savedCaPosition, savedCaCats] = await Promise.all([
+        // CommandAssist settings are drafted here and committed together on Save.
+        const [savedCaEnabled, savedCaMode, savedCaConfirmKey, savedCaPosition, savedCaCats] = await Promise.all([
           api.settingGet("commandAssist.enabled"),
+          api.settingGet("commandAssist.mode"),
           api.settingGet("commandAssist.confirmKey"),
           api.settingGet("commandAssist.position"),
           api.settingGet("commandAssist.enabledAppCategories"),
         ]);
         setCaEnabled(savedCaEnabled === "true");
+        if (savedCaMode === "slash" || savedCaMode === "listview") setCaMode(savedCaMode);
         if (savedCaConfirmKey === "tab" || savedCaConfirmKey === "enter") setCaConfirmKey(savedCaConfirmKey);
         if (savedCaPosition) setCaPosition(savedCaPosition);
         const cats: Record<string, boolean> = {};
@@ -790,6 +814,7 @@ export function SettingsPage() {
         { key: "terminal.customDangerousCommands", value: JSON.stringify(terminal.customDangerousCommands) },
         { key: "terminal.predictiveEcho.enabled", value: String(predictiveEchoEnabled) },
         { key: "commandAssist.enabled", value: String(caEnabled) },
+        { key: "commandAssist.mode", value: caMode },
         { key: "commandAssist.confirmKey", value: caConfirmKey },
         { key: "commandAssist.position", value: caPosition },
         { key: "commandAssist.enabledAppCategories", value: JSON.stringify(enabledCats) },
@@ -1979,10 +2004,12 @@ export function SettingsPage() {
         <CommandAssistSettings
           t={t}
           enabled={caEnabled}
+          mode={caMode}
           confirmKey={caConfirmKey}
           position={caPosition}
           enabledCategories={caEnabledCategories}
           onToggleEnabled={setCaEnabled}
+          onChangeMode={setCaMode}
           onChangeConfirmKey={setCaConfirmKey}
           onChangePosition={setCaPosition}
           onChangeCategories={setCaEnabledCategories}
