@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfirmStore } from "@/stores/confirm";
@@ -11,6 +11,8 @@ export function ConfirmDialog() {
   const respond = useConfirmStore((s) => s._respond);
   const t = useT();
   const [show, setShow] = useState(false);
+  const titleId = useId();
+  const descriptionId = useId();
 
   useEffect(() => {
     if (visible) {
@@ -44,69 +46,58 @@ export function ConfirmDialog() {
   const cancelLabel = options.cancelLabel || t("confirm.cancel");
   const confirmVariant = options.confirmVariant || "danger";
   const scanning = options.scanning ?? false;
-  const toneColor = scanning
-    ? "var(--color-accent)"
+  const dialogTone = scanning
+    ? "confirm-dialog--scanning"
     : confirmVariant === "danger"
-      ? "var(--color-error)"
-      : "var(--color-fair)";
+      ? "confirm-dialog--danger"
+      : "confirm-dialog--default";
 
   return (
     <div
       data-confirm-dialog
       className={cn(
-        "confirm-overlay fixed inset-0 z-[100] flex items-center justify-center transition-opacity duration-200 ease-[var(--ease-smooth)]",
-        show ? "opacity-100" : "opacity-0",
+        "confirm-overlay",
+        show && "is-open",
       )}
     >
       <div
-        className={cn(
-          "absolute inset-0 bg-black/45 backdrop-blur-[6px] transition-opacity duration-200",
-          show ? "opacity-100" : "opacity-0",
-        )}
+        className="confirm-dialog__backdrop"
         onClick={() => { if (!scanning) respond(false); }}
       />
 
       <div
-        className={cn(
-          "relative z-10 w-[min(420px,calc(100vw-32px))] overflow-hidden rounded-[calc(var(--radius-popover)+2px)] border border-[var(--color-border)] bg-[var(--surface-card)] shadow-[var(--shadow-modal)] backdrop-blur-[24px] saturate-[1.6]",
-          "transition-all duration-[280ms] ease-[var(--ease-spring)]",
-          show ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-2",
-        )}
+        className={cn("confirm-dialog", dialogTone)}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/20" />
-        <div className="p-5">
-          <div className="flex items-start gap-3">
-            <span
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-control)] border"
-              style={{
-                color: toneColor,
-                borderColor: `color-mix(in srgb, ${toneColor} 28%, transparent)`,
-                background: `color-mix(in srgb, ${toneColor} 12%, transparent)`,
-              }}
-            >
+        <div className="confirm-dialog__body">
+          <div className="confirm-dialog__header">
+            <span className="confirm-dialog__icon" aria-hidden="true">
               {!scanning && <AlertTriangle size={20} />}
               {scanning && (
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <span className="confirm-dialog__spinner" />
               )}
             </span>
-            <div className="min-w-0 flex-1 pt-0.5">
-              <h3 className="text-[var(--font-size-base)] font-semibold leading-6 text-[var(--color-text-primary)]">
+            <div className="confirm-dialog__content">
+              <h3 id={titleId} className="confirm-dialog__title">
                 {options.title}
               </h3>
-              <p className="mt-1 text-[var(--font-size-sm)] leading-5 text-[var(--color-text-secondary)] whitespace-pre-line">
+              <p id={descriptionId} className="confirm-dialog__description">
                 {options.description}
               </p>
             </div>
           </div>
 
           {scanning && (
-            <div className="ml-[52px] mt-3 flex items-center gap-2 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-2.5 py-2">
-              <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-[var(--color-accent)] border-t-transparent" />
-              <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+            <div className="confirm-dialog__scan">
+              <span className="confirm-dialog__scan-spinner" />
+              <span className="confirm-dialog__scan-label">
                 {options.scanLabel || t("sftp.scanningDir")}
               </span>
               {options.scanCount !== undefined && options.scanCount > 0 && (
-                <span className="text-[var(--font-size-xs)] text-[var(--color-accent)]">
+                <span className="confirm-dialog__scan-count">
                   {t("sftp.scanningDirCount", { n: options.scanCount })}
                 </span>
               )}
@@ -114,13 +105,13 @@ export function ConfirmDialog() {
           )}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-bg-base)_42%,transparent)] px-5 py-3">
+        <div className="confirm-dialog__footer">
           <Button
             size="sm"
             variant="secondary"
             onClick={() => respond(false)}
             disabled={scanning}
-            className="min-w-[72px]"
+            className="confirm-dialog__button"
           >
             {cancelLabel}
           </Button>
@@ -129,7 +120,7 @@ export function ConfirmDialog() {
             variant={confirmVariant}
             onClick={() => respond(true)}
             disabled={scanning}
-            className="min-w-[72px]"
+            className="confirm-dialog__button"
           >
             {confirmLabel}
           </Button>
