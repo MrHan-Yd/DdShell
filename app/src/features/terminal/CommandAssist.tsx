@@ -240,6 +240,9 @@ export function CommandAssist({
           <span className="text-[10px] text-[var(--color-text-muted)]">
             {total} {t("commandAssist.matches")}
           </span>
+          <code className="inline-block max-w-[180px] truncate rounded border border-[var(--color-border)] px-1 py-0.5 align-middle text-[9px] text-[var(--color-text-primary)]">
+            {query}
+          </code>
         </div>
         <div className="flex items-center gap-1">
           <kbd className="rounded border border-[var(--color-border)] px-1 py-0.5 text-[9px] text-[var(--color-text-muted)]">
