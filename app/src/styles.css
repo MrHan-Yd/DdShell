@@ -763,9 +763,7 @@ body {
 .confirm-dialog__backdrop {
   position: absolute;
   inset: 0;
-  background: var(--bg-overlay);
-  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  background: transparent;
 }
 
 .confirm-dialog {
@@ -907,7 +905,7 @@ body {
 }
 
 [data-ui-theme="aurora"] .confirm-dialog__backdrop {
-  background: var(--bg-overlay);
+  background: transparent;
 }
 
 [data-ui-theme="aurora"] .confirm-dialog {
