@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 25
+- **Total Sessions**: 26
 - **Last Active**: 2026-06-25
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~953 | Active |
+| `journal-1.md` | ~989 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 26 | 2026-06-25 | 终端历史抽屉与确认弹窗主题适配 | `b2654f3`, `5c31834`, `0f4278a`, `72898d7` | `main` |
 | 25 | 2026-06-25 | 默认启用实时候选 | `6fc527e` | `main` |
 | 24 | 2026-06-25 | 命令助手使用方式与输入体验 | `b22693a`, `b2d2458`, `5394b36`, `0a2434f`, `79b3a3a` | `main` |
 | 23 | 2026-06-17 | 应用内更新进度条 | `b7e9d11` | `main` |

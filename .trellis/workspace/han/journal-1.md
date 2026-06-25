@@ -951,3 +951,39 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 26: 终端历史抽屉与确认弹窗主题适配
+
+**Date**: 2026-06-25
+**Task**: 终端历史抽屉与确认弹窗主题适配
+**Branch**: `main`
+
+### Summary
+
+将终端历史记录改为不挤压输入区的覆盖抽屉，调整收藏和历史工具栏顺序及分隔；优化确认弹窗并按现有主题 token 适配极光主题。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b2654f3` | (see git log) |
+| `5c31834` | (see git log) |
+| `0f4278a` | (see git log) |
+| `72898d7` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
