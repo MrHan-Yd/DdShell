@@ -987,3 +987,36 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 27: 确认弹窗遮罩修复
+
+**Date**: 2026-06-26
+**Task**: 确认弹窗遮罩修复
+**Branch**: `main`
+
+### Summary
+
+将确认弹窗的页面遮罩改为透明点击捕获层，保留外部点击取消，但不再压暗或模糊后方页面。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c70fee4` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
