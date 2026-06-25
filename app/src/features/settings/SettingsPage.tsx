@@ -394,7 +394,22 @@ function CommandAssistSettings({
               if (v === "slash" || v === "listview") onChangeMode(v);
             }}
             options={[
-              { value: "slash", label: t("commandAssist.modeSlash") },
+              {
+                value: "slash",
+                label: (
+                  <span
+                    className="inline-flex items-center gap-1"
+                    title={t("commandAssist.quickInvokeHint")}
+                  >
+                    {t("commandAssist.modeSlash")}
+                    <Info
+                      size={12}
+                      aria-label={t("commandAssist.quickInvokeHint")}
+                      className="text-[var(--color-text-muted)]"
+                    />
+                  </span>
+                ),
+              },
               { value: "listview", label: t("commandAssist.modeListView") },
             ]}
           />

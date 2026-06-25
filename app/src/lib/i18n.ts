@@ -831,6 +831,7 @@ const dict = {
   "commandAssist.modeDesc": { zh: "选择手动唤起候选，或在输入时自动显示智能列表", en: "Choose manual suggestion invocation or automatic smart-list suggestions while typing" },
   "commandAssist.modeSlash": { zh: "快捷唤起", en: "Quick Invoke" },
   "commandAssist.modeListView": { zh: "智能列表", en: "Smart List" },
+  "commandAssist.quickInvokeHint": { zh: "在终端输入 // 唤起命令助手", en: "Type // in terminal to open Command Assist" },
   "commandAssist.confirmKey": { zh: "回填确认键", en: "Confirm Key" },
   "commandAssist.confirmKeyDesc": { zh: "选择用于确认回填的按键", en: "Choose the key to confirm command insertion" },
   "commandAssist.position": { zh: "弹出位置", en: "Popup Position" },
