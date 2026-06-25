@@ -267,7 +267,6 @@ function TerminalInstance({
   const [osType, setOsType] = useState<string | null>(null);
   const osTypeRef = useRef<string | null>(null);
   const assistVisibleRef = useRef(false);
-  const slashQueryCaptureRef = useRef(false);
   const composingRef = useRef(false);
 
   // Load command assist settings
@@ -332,7 +331,6 @@ function TerminalInstance({
   const assistModeRef = useRef<CommandAssistMode>(assistMode);
   useEffect(() => {
     assistModeRef.current = assistMode;
-    if (assistMode !== "slash") slashQueryCaptureRef.current = false;
   }, [assistMode]);
 
   const assistConfirmKeyRef = useRef(assistConfirmKey);
@@ -410,7 +408,6 @@ function TerminalInstance({
       if (assistVisibleRef.current) {
         closeAssist();
       }
-      slashQueryCaptureRef.current = false;
       return;
     }
 
@@ -442,11 +439,7 @@ function TerminalInstance({
     if (!isListView && slashPos < 0) return;
 
     // Slash mode replaces //query. ListView mode replaces the whole command line.
-    const textToReplace = isListView
-      ? buffer
-      : slashQueryCaptureRef.current
-        ? "//"
-        : buffer.substring(slashPos);
+    const textToReplace = isListView ? buffer : buffer.substring(slashPos);
 
     // Send backspaces to erase the target text, then type the command.
     const encoder = TEXT_ENCODER;
@@ -464,7 +457,6 @@ function TerminalInstance({
 
     // Update buffer
     cmdBufferRef.current = isListView ? command : buffer.substring(0, slashPos) + command;
-    slashQueryCaptureRef.current = false;
 
     // Update weight — also update local store weight
     api.commandAssistWeightUpdate(id).catch(() => {});
@@ -806,7 +798,6 @@ function TerminalInstance({
       const sid = sessionIdRef.current;
 
       let pendingCommand = "";
-      let remoteData = "";
 
       // Process each character for command history buffering
       for (const ch of data) {
@@ -814,17 +805,6 @@ function TerminalInstance({
           // If assist is visible and confirmKey is enter, don't send enter to terminal
           // (handled by CommandAssist keydown handler)
           if (assistVisibleRef.current && assistConfirmKeyRef.current === "enter") {
-            return;
-          }
-          if (slashQueryCaptureRef.current) {
-            const slashPos = getCommandAssistSlashPos(cmdBufferRef.current);
-            if (slashPos >= 0) {
-              cmdBufferRef.current = cmdBufferRef.current.substring(0, slashPos);
-              const eraseTrigger = Array.from(TEXT_ENCODER.encode("\x7f\x7f"));
-              api.sessionWrite(sid, eraseTrigger).catch(() => {});
-            }
-            slashQueryCaptureRef.current = false;
-            closeAssist();
             return;
           }
           pendingCommand = cmdBufferRef.current.trim();
@@ -838,65 +818,28 @@ function TerminalInstance({
           if (assistVisibleRef.current) {
             closeAssist();
           }
-          remoteData += ch;
         } else if (ch === "\x7f" || ch === "\b") {
-          const before = cmdBufferRef.current;
-          const slashPos = getCommandAssistSlashPos(before);
-          const localQueryLength = slashPos >= 0 ? before.length - slashPos - 2 : 0;
           cmdBufferRef.current = cmdBufferRef.current.slice(0, -1);
-          if (slashQueryCaptureRef.current && localQueryLength > 0) {
-            if (localQueryLength === 1) closeAssist();
-            continue;
-          }
-          if (slashQueryCaptureRef.current && getCommandAssistSlashPos(cmdBufferRef.current) < 0) {
-            slashQueryCaptureRef.current = false;
-          }
-          remoteData += ch;
         } else if (ch === "\x03") {
           cmdBufferRef.current = "";
-          slashQueryCaptureRef.current = false;
           // Close assist on Ctrl+C
           if (assistVisibleRef.current) {
             closeAssist();
           }
-          remoteData += ch;
         } else if (ch === "\t") {
           // If assist is visible and confirmKey is tab, don't send tab to terminal
           // (handled by CommandAssist keydown handler)
           if (assistVisibleRef.current && assistConfirmKeyRef.current === "tab") {
             return;
           }
-          remoteData += ch;
         } else if (ch === "\x1b") {
           // Esc — close assist if visible
-          if (assistVisibleRef.current || slashQueryCaptureRef.current) {
-            if (slashQueryCaptureRef.current) {
-              const slashPos = getCommandAssistSlashPos(cmdBufferRef.current);
-              if (slashPos >= 0) {
-                cmdBufferRef.current = cmdBufferRef.current.substring(0, slashPos);
-                const eraseTrigger = Array.from(TEXT_ENCODER.encode("\x7f\x7f"));
-                api.sessionWrite(sid, eraseTrigger).catch(() => {});
-              }
-              slashQueryCaptureRef.current = false;
-            }
+          if (assistVisibleRef.current) {
             closeAssist();
             return;
           }
-          remoteData += ch;
         } else if (ch.charCodeAt(0) >= 32) {
-          const before = cmdBufferRef.current;
-          const shouldCaptureSlashQuery =
-            assistEnabledRef.current &&
-            assistModeRef.current === "slash" &&
-            getCommandAssistSlashPos(before) >= 0;
           cmdBufferRef.current += ch;
-          if (shouldCaptureSlashQuery) {
-            slashQueryCaptureRef.current = true;
-            continue;
-          }
-          remoteData += ch;
-        } else {
-          remoteData += ch;
         }
       }
 
@@ -917,7 +860,7 @@ function TerminalInstance({
               dangerousCmdPendingRef.current = false;
               if (ok) {
                 const encoder = TEXT_ENCODER;
-                const bytes = Array.from(encoder.encode(remoteData));
+                const bytes = Array.from(encoder.encode(data));
                 api.sessionWrite(sid, bytes).catch((err) => toast.error(String(err)));
               } else {
                 api.sessionWrite(sid, [3]).catch(() => {});
@@ -927,11 +870,9 @@ function TerminalInstance({
           }
        }
 
-      if (remoteData) {
-        const encoder = TEXT_ENCODER;
-        const bytes = Array.from(encoder.encode(remoteData));
-        api.sessionWrite(sid, bytes).catch((err) => toast.error(String(err)));
-      }
+      const encoder = TEXT_ENCODER;
+      const bytes = Array.from(encoder.encode(data));
+      api.sessionWrite(sid, bytes).catch((err) => toast.error(String(err)));
 
       // Command-assist trigger check: slash mode keeps the existing // fast
       // path; ListView mode checks ordinary command buffers locally so the
@@ -958,7 +899,7 @@ function TerminalInstance({
       // tab takeover / Esc-closes-assist) have already returned. Predicts
       // visible chars locally for instant feedback; control chars (Enter/
       // ESC/Tab/Ctrl) trigger freeze inside PredictiveEcho.
-      if (remoteData) predictiveEchoRef.current?.onUserInput(remoteData);
+      predictiveEchoRef.current?.onUserInput(data);
     });
 
     // Handle resize -> SSH (skip when container is hidden)
