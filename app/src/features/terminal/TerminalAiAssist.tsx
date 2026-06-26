@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Check, ChevronLeft, ChevronRight, Copy, History, Loader2, Send, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as api from "@/lib/tauri";
@@ -22,11 +22,57 @@ type AiHistoryItem = {
   createdAt: number;
 };
 
+const AI_HISTORY_LIMIT = 20;
+const AI_HISTORY_STORAGE_PREFIX = "terminal.aiAssist.history.";
+
 const DEFAULT_CONFIG: AiAgentConfig = {
   enabled: false,
   defaultProfileId: null,
   executionMode: "run",
   profiles: [],
+};
+
+const isHistoryItem = (value: unknown): value is AiHistoryItem => {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<AiHistoryItem>;
+  return (
+    typeof item.id === "string" &&
+    typeof item.question === "string" &&
+    typeof item.createdAt === "number" &&
+    Boolean(item.response) &&
+    typeof item.response?.answer === "string" &&
+    Array.isArray(item.response?.commands)
+  );
+};
+
+const getHistoryStorageKey = (hostId: string) => `${AI_HISTORY_STORAGE_PREFIX}${hostId}`;
+
+const readHistoryItems = (hostId: string): AiHistoryItem[] => {
+  if (!hostId) return [];
+  try {
+    const raw = window.localStorage.getItem(getHistoryStorageKey(hostId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isHistoryItem).slice(0, AI_HISTORY_LIMIT);
+  } catch {
+    return [];
+  }
+};
+
+const writeHistoryItems = (hostId: string, items: AiHistoryItem[]) => {
+  if (!hostId) return;
+  try {
+    window.localStorage.setItem(getHistoryStorageKey(hostId), JSON.stringify(items.slice(0, AI_HISTORY_LIMIT)));
+  } catch {
+    // localStorage may be unavailable or full; keep the in-memory list usable.
+  }
+};
+
+const addHistoryItem = (hostId: string, item: AiHistoryItem) => {
+  const next = [item, ...readHistoryItems(hostId)].slice(0, AI_HISTORY_LIMIT);
+  writeHistoryItems(hostId, next);
+  return next;
 };
 
 export function TerminalAiAssist({
@@ -47,6 +93,8 @@ export function TerminalAiAssist({
   const [historyItems, setHistoryItems] = useState<AiHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const historyHostId = activeTab?.hostId || "";
+  const historyHostIdRef = useRef(historyHostId);
 
   const loadConfig = useCallback(async () => {
     try {
@@ -72,6 +120,16 @@ export function TerminalAiAssist({
     if (open) void loadConfig();
   }, [loadConfig, open]);
 
+  useEffect(() => {
+    historyHostIdRef.current = historyHostId;
+    setHistoryItems(readHistoryItems(historyHostId));
+    setLastQuestion("");
+    setResponse(null);
+    setActiveCommandIndex(0);
+    setShowHistory(false);
+    setError("");
+  }, [historyHostId]);
+
   const selectedProfile: AiAgentProfile | undefined = useMemo(
     () => config.profiles.find((profile) => profile.id === profileId),
     [config.profiles, profileId],
@@ -84,6 +142,7 @@ export function TerminalAiAssist({
     event?.preventDefault();
     const trimmed = question.trim();
     if (!trimmed || !selectedProfile || !activeTab) return;
+    const submitHostId = activeTab.hostId;
     if (!selectedProfile.apiKeySet) {
       setError(t("aiAssist.missingKey"));
       return;
@@ -104,19 +163,22 @@ export function TerminalAiAssist({
           selectedText: null,
         },
       });
-      setResponse(result);
-      setHistoryItems((current) => [
-        {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          question: trimmed,
-          response: result,
-          createdAt: Date.now(),
-        },
-        ...current,
-      ].slice(0, 20));
-      setQuestion("");
+      const historyItem = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        question: trimmed,
+        response: result,
+        createdAt: Date.now(),
+      };
+      const nextHistoryItems = addHistoryItem(submitHostId, historyItem);
+      if (historyHostIdRef.current === submitHostId) {
+        setResponse(result);
+        setHistoryItems(nextHistoryItems);
+        setQuestion("");
+      }
     } catch (err) {
-      setError(String(err));
+      if (historyHostIdRef.current === submitHostId) {
+        setError(String(err));
+      }
     } finally {
       setLoading(false);
     }
@@ -151,15 +213,22 @@ export function TerminalAiAssist({
     }
   };
 
+  const confidenceLabel = (confidence: AiAgentCommand["confidence"]) => {
+    if (confidence === "high") return t("aiAssist.confidenceHigh");
+    if (confidence === "medium") return t("aiAssist.confidenceMedium");
+    if (confidence === "low") return t("aiAssist.confidenceLow");
+    return confidence;
+  };
+
   if (!open) return null;
 
   return (
-    <aside className="term-ai-popover" role="complementary" aria-label="AI command assistant">
+    <aside className="term-ai-popover" role="complementary" aria-label={t("aiAssist.title")}>
       <header className="ai-head">
         <span className="ai-title">
           <span className="ai-glow" />
           <Sparkles size={13} />
-          AI Assist
+          {t("aiAssist.title")}
         </span>
         <span className="ai-actions">
           <button
@@ -230,7 +299,7 @@ export function TerminalAiAssist({
       ) : (<>
       {lastQuestion && (
         <div className="ai-question">
-          <span className="who">You</span>
+          <span className="who">{t("aiAssist.user")}</span>
           <p>{lastQuestion}</p>
         </div>
       )}
@@ -263,7 +332,7 @@ export function TerminalAiAssist({
                 </span>
                 <span className="ai-confidence">
                   <Check size={11} />
-                  {activeCommand.confidence}
+                  {confidenceLabel(activeCommand.confidence)}
                 </span>
               </div>
               <div className="ai-cmd-block">

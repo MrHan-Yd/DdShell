@@ -71,9 +71,19 @@ This contract makes "missing i18n key" a build-time error, the way the type syst
 
 ## Required Patterns
 
-<!-- Patterns that must always be used -->
+### Terminal server-scoped local state uses `hostId`
 
-(To be filled by the team)
+Terminal UI state that users expect to follow a server across reconnects must be keyed by `TerminalTab.hostId`, not by `tab.id` or `sessionId`.
+
+```tsx
+// Correct: survives reconnects and isolates per saved server.
+const storageKey = `terminal.aiAssist.history.${activeTab.hostId}`;
+
+// Wrong: changes every reconnect, so history appears empty after reopening.
+const storageKey = `terminal.aiAssist.history.${activeTab.sessionId}`;
+```
+
+Use this for local-only, server-scoped records such as AI assistant history. Keep bounded collections explicitly capped at their product limit, for example `slice(0, 20)` for recent AI questions.
 
 ---
 
