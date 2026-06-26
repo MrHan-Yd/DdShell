@@ -200,6 +200,7 @@ export interface AiAgentCommand {
 
 export interface AiAgentSendResponse {
   answer: string;
+  commandMode: "alternatives" | "steps" | string;
   commands: AiAgentCommand[];
   rawText: string;
   parseMode: "json" | "jsonBlock" | "jsonObject" | "shellBlock" | "none" | string;

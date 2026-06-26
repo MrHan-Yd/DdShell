@@ -108,6 +108,7 @@ pub struct AiAgentCommand {
 #[serde(rename_all = "camelCase")]
 pub struct AiAgentSendResponse {
     pub answer: String,
+    pub command_mode: String,
     pub commands: Vec<AiAgentCommand>,
     pub raw_text: String,
     pub parse_mode: String,
@@ -490,6 +491,7 @@ Return ONLY valid JSON. Do not wrap it in markdown. Do not include text outside 
 Use this schema:
 {
   "answer": "short explanation for the user",
+  "commandMode": "alternatives | steps",
   "commands": [
     {
       "command": "single shell command",
@@ -499,6 +501,8 @@ Use this schema:
     }
   ]
 }
+Use commandMode "alternatives" when the commands are choices where running one is enough, for example ls vs ls -la.
+Use commandMode "steps" when commands should be run in order as a workflow, for example inspect status, then inspect logs, then validate config.
 Only suggest shell commands that answer the user's request. Prefer safe diagnostic commands.
 Do not suggest destructive commands unless the user explicitly asks for them."#
 }
@@ -558,6 +562,7 @@ fn response_schema() -> Value {
         "additionalProperties": false,
         "properties": {
             "answer": { "type": "string" },
+            "commandMode": { "type": "string", "enum": ["alternatives", "steps"] },
             "commands": {
                 "type": "array",
                 "items": {
@@ -573,7 +578,7 @@ fn response_schema() -> Value {
                 }
             }
         },
-        "required": ["answer", "commands"]
+        "required": ["answer", "commandMode", "commands"]
     })
 }
 
@@ -595,6 +600,7 @@ fn parse_agent_response(raw_text: &str) -> AiAgentSendResponse {
     if !shell_commands.is_empty() {
         return AiAgentSendResponse {
             answer: raw_text.trim().to_string(),
+            command_mode: "steps".to_string(),
             commands: shell_commands
                 .into_iter()
                 .map(|command| AiAgentCommand {
@@ -611,6 +617,7 @@ fn parse_agent_response(raw_text: &str) -> AiAgentSendResponse {
 
     AiAgentSendResponse {
         answer: raw_text.trim().to_string(),
+        command_mode: "alternatives".to_string(),
         commands: Vec::new(),
         raw_text: raw_text.to_string(),
         parse_mode: "none".to_string(),
@@ -654,11 +661,69 @@ fn parse_json_response(raw: &str, parse_mode: &str) -> Option<AiAgentSendRespons
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
+    let command_mode = normalize_command_mode(
+        value
+            .get("commandMode")
+            .or_else(|| value.get("command_mode"))
+            .or_else(|| value.get("groupType"))
+            .or_else(|| value.get("mode"))
+            .and_then(Value::as_str),
+        &answer,
+        &commands,
+    );
     Some(AiAgentSendResponse {
         answer,
+        command_mode,
         commands,
         raw_text: raw.to_string(),
         parse_mode: parse_mode.to_string(),
+    })
+}
+
+fn normalize_command_mode(
+    value: Option<&str>,
+    answer: &str,
+    commands: &[AiAgentCommand],
+) -> String {
+    match value.unwrap_or_default().trim().to_ascii_lowercase().as_str() {
+        "steps" | "step" | "sequence" | "workflow" => return "steps".to_string(),
+        "alternatives" | "alternative" | "choices" | "choice" | "options" => {
+            return "alternatives".to_string();
+        }
+        _ => {}
+    }
+
+    if commands.len() > 1 && looks_like_steps(answer, commands) {
+        "steps".to_string()
+    } else {
+        "alternatives".to_string()
+    }
+}
+
+fn looks_like_steps(answer: &str, commands: &[AiAgentCommand]) -> bool {
+    let answer = answer.to_ascii_lowercase();
+    if answer.contains("step")
+        || answer.contains("then")
+        || answer.contains("first")
+        || answer.contains("next")
+        || answer.contains("步骤")
+        || answer.contains("然后")
+        || answer.contains("先")
+        || answer.contains("接着")
+    {
+        return true;
+    }
+
+    commands.iter().any(|command| {
+        let description = command.description.to_ascii_lowercase();
+        description.contains("step")
+            || description.contains("then")
+            || description.contains("first")
+            || description.contains("next")
+            || description.contains("步骤")
+            || description.contains("然后")
+            || description.contains("先")
+            || description.contains("接着")
     })
 }
 

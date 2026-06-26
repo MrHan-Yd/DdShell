@@ -167,7 +167,8 @@ Correct:
 - `AiAgentProfile` response must include `apiKeySet: bool`, but must never include plaintext or encrypted API key.
 - `AiAgentProfile.contextWindowTokens` is the model capacity used for app-side prompt/context budgeting; it is not sent as a universal provider parameter and does not override real model limits.
 - `AiAgentSendReq` includes `profileId`, `question`, and optional terminal context (`tabTitle`, `cwd`, `selectedText`).
-- `AiAgentSendResponse` normalizes all providers to `answer`, `commands[]`, `rawText`, and `parseMode`.
+- `AiAgentSendResponse` normalizes all providers to `answer`, `commandMode`, `commands[]`, `rawText`, and `parseMode`.
+- `commandMode` must be `"alternatives"` when commands are equivalent choices where one is enough, and `"steps"` when commands should be run in order. Missing/unknown model output should default conservatively to `"alternatives"` unless fallback parsing clearly extracts a shell block workflow.
 - Provider adapters must keep protocol-specific request/response handling in backend code, not in frontend components.
 - The AI command second-confirm dialog is a frontend behavior controlled by `AiAgentConfig.confirmBeforeExecute`; backend must persist and return the setting but must not couple provider calls to UI confirmation state.
 

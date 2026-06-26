@@ -46,6 +46,11 @@ const isHistoryItem = (value: unknown): value is AiHistoryItem => {
   );
 };
 
+const normalizeResponse = (response: AiAgentSendResponse): AiAgentSendResponse => ({
+  ...response,
+  commandMode: response.commandMode === "steps" ? "steps" : "alternatives",
+});
+
 const getHistoryStorageKey = (hostId: string) => `${AI_HISTORY_STORAGE_PREFIX}${hostId}`;
 
 const readHistoryItems = (hostId: string): AiHistoryItem[] => {
@@ -167,12 +172,12 @@ export function TerminalAiAssist({
       const historyItem = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         question: trimmed,
-        response: result,
+        response: normalizeResponse(result),
         createdAt: Date.now(),
       };
       const nextHistoryItems = addHistoryItem(submitHostId, historyItem);
       if (historyHostIdRef.current === submitHostId) {
-        setResponse(result);
+        setResponse(normalizeResponse(result));
         setHistoryItems(nextHistoryItems);
         setQuestion("");
       }
@@ -187,7 +192,7 @@ export function TerminalAiAssist({
 
   const restoreHistoryItem = (item: AiHistoryItem) => {
     setLastQuestion(item.question);
-    setResponse(item.response);
+    setResponse(normalizeResponse(item.response));
     setActiveCommandIndex(0);
     setShowHistory(false);
     setError("");
@@ -195,16 +200,22 @@ export function TerminalAiAssist({
 
   const handleRun = async (command: AiAgentCommand) => {
     if (config.confirmBeforeExecute) {
+      const confirmLabel = response?.commandMode === "steps"
+        ? (config.executionMode === "run" ? t("aiAssist.runStep") : t("aiAssist.insertStep"))
+        : (config.executionMode === "run" ? t("aiAssist.runCommand") : t("aiAssist.insertCommand"));
       const ok = await confirm({
         title: t("aiAssist.runConfirmTitle"),
         description: `${command.command}\n\n${command.description}`,
-        confirmLabel: config.executionMode === "run" ? t("aiAssist.runCommand") : t("aiAssist.insertCommand"),
+        confirmLabel,
         cancelLabel: t("confirm.cancel"),
         confirmVariant: command.risk === "high" ? "danger" : "default",
       });
       if (!ok) return;
     }
     onRunCommand(command.command, config.executionMode === "run");
+    if (response?.commandMode === "steps" && activeCommandIndex < response.commands.length - 1) {
+      setActiveCommandIndex((index) => Math.min(index + 1, response.commands.length - 1));
+    }
   };
 
   const handleCopy = async (command: string) => {
@@ -222,6 +233,14 @@ export function TerminalAiAssist({
     if (confidence === "low") return t("aiAssist.confidenceLow");
     return confidence;
   };
+
+  const isStepMode = response?.commandMode === "steps";
+  const commandLabel = isStepMode
+    ? t("aiAssist.step", { current: activeCommandIndex + 1, total: response?.commands.length ?? 1 })
+    : t("aiAssist.option", { current: activeCommandIndex + 1, total: response?.commands.length ?? 1 });
+  const primaryActionLabel = isStepMode
+    ? (config.executionMode === "run" ? t("aiAssist.runStep") : t("aiAssist.insertStep"))
+    : (config.executionMode === "run" ? t("aiAssist.runCommand") : t("aiAssist.insertCommand"));
 
   if (!open) return null;
 
@@ -331,7 +350,7 @@ export function TerminalAiAssist({
             <>
               <div className="ai-suggestion-head">
                 <span className="ai-step-tag">
-                  {t("aiAssist.step", { current: activeCommandIndex + 1, total: response.commands.length })}
+                  {commandLabel}
                 </span>
                 <span className="ai-confidence">
                   <Check size={11} />
@@ -348,7 +367,7 @@ export function TerminalAiAssist({
               <div className="ai-cta">
                 <button className="btn btn-primary btn-sm" onClick={() => void handleRun(activeCommand)}>
                   <Check size={13} />
-                  {config.executionMode === "run" ? t("aiAssist.runCommand") : t("aiAssist.insertCommand")}
+                  {primaryActionLabel}
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setResponse(null)}>
                   <X size={13} />
