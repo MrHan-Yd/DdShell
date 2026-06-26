@@ -466,7 +466,7 @@ const updateHighlight = (item: HTMLElement) => {
   height: var(--highlight-height, 32px);
   transform: translate3d(0, var(--highlight-y, 0), 0);
   opacity: 0;
-  transition: transform 45ms linear, opacity 55ms var(--ease-smooth);
+  transition: transform 70ms cubic-bezier(0.16, 1, 0.3, 1), opacity 55ms var(--ease-smooth);
   will-change: transform, opacity;
 }
 
