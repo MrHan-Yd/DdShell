@@ -49,6 +49,7 @@ interface TerminalSettings {
   bgBlur: number;
   encoding: string;
   setLocale: boolean;
+  fileManagerDrawerEnabled: boolean;
   ansiColors: Record<string, string>;
   dangerousCmdProtection: boolean;
   disabledBuiltinCmds: string[];
@@ -90,6 +91,7 @@ const DEFAULT_TERMINAL: TerminalSettings = {
   bgBlur: 0,
   encoding: "utf-8",
   setLocale: false,
+  fileManagerDrawerEnabled: true,
   ansiColors: { ...DEFAULT_ANSI },
   dangerousCmdProtection: true,
   disabledBuiltinCmds: [],
@@ -659,6 +661,7 @@ export function SettingsPage() {
           savedUiFontSize,
           savedEncoding,
           savedSetLocale,
+          savedFileManagerDrawerEnabled,
           savedDangerousCmdProtection,
           savedDisabledBuiltinCmds,
           savedCustomDangerousCommands,
@@ -695,6 +698,7 @@ export function SettingsPage() {
           api.settingGet("ui.fontSize"),
           api.settingGet("terminal.encoding"),
           api.settingGet("terminal.setLocale"),
+          api.settingGet("terminal.fileManagerDrawer.enabled"),
           api.settingGet("terminal.dangerousCmdProtection"),
           api.settingGet("terminal.disabledBuiltinCmds"),
           api.settingGet("terminal.customDangerousCommands"),
@@ -725,6 +729,7 @@ export function SettingsPage() {
           bgBlur: savedBgBlur ? parseInt(savedBgBlur) : DEFAULT_TERMINAL.bgBlur,
           encoding: savedEncoding || DEFAULT_TERMINAL.encoding,
           setLocale: savedSetLocale === "true",
+          fileManagerDrawerEnabled: savedFileManagerDrawerEnabled !== "false",
           ansiColors: (() => { try { const p = JSON.parse(savedAnsiColors || ""); return { ...DEFAULT_ANSI, ...p }; } catch { return { ...DEFAULT_ANSI }; } })(),
           dangerousCmdProtection: savedDangerousCmdProtection !== "false",
           disabledBuiltinCmds: (() => { try { const arr = JSON.parse(savedDisabledBuiltinCmds || ""); return Array.isArray(arr) ? arr : []; } catch { return []; } })(),
@@ -824,6 +829,7 @@ export function SettingsPage() {
         { key: "ui.fontSize", value: String(uiFontSize) },
         { key: "terminal.encoding", value: terminal.encoding },
         { key: "terminal.setLocale", value: String(terminal.setLocale) },
+        { key: "terminal.fileManagerDrawer.enabled", value: String(terminal.fileManagerDrawerEnabled) },
         { key: "terminal.dangerousCmdProtection", value: String(terminal.dangerousCmdProtection) },
         { key: "terminal.disabledBuiltinCmds", value: JSON.stringify(terminal.disabledBuiltinCmds) },
         { key: "terminal.customDangerousCommands", value: JSON.stringify(terminal.customDangerousCommands) },
@@ -1874,6 +1880,18 @@ export function SettingsPage() {
             <button
               onClick={() => setTerminal((t) => ({ ...t, setLocale: !t.setLocale }))}
               data-state={terminal.setLocale ? "on" : "off"}
+              className="toggle-switch"
+            >
+              <span className="toggle-thumb" />
+            </button>
+          </SettingRow>
+          <SettingRow
+            label={t("settings.terminalFileManager")}
+            description={t("settings.terminalFileManagerDesc")}
+          >
+            <button
+              onClick={() => setTerminal((t) => ({ ...t, fileManagerDrawerEnabled: !t.fileManagerDrawerEnabled }))}
+              data-state={terminal.fileManagerDrawerEnabled ? "on" : "off"}
               className="toggle-switch"
             >
               <span className="toggle-thumb" />

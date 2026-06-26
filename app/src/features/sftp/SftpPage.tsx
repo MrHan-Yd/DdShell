@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { basename, dirname, downloadDir, join } from "@tauri-apps/api/path";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import {
   Folder,
@@ -40,15 +39,22 @@ import { useT } from "@/lib/i18n";
 import type { FileEntry, TransferTask, FavoritePath, RecentPath, QuickEditRecentItem } from "@/types";
 import { openQuickEditWindow } from "@/lib/quickEditWindow";
 import { clearQuickEditRecents, readQuickEditRecents, recordQuickEditRecent } from "@/lib/quickEditRecent";
+import {
+  collectExistingLocalTargets,
+  collectExistingRemoteUploadTargets,
+  confirmOverwritePaths,
+  formatBytes,
+  formatPermissions,
+  formatTime,
+  getPathName,
+  getRemoteDirPath,
+  joinRemotePath,
+  resolveDownloadBaseDir,
+  resolveDownloadTargetPath,
+  scanLocalDir,
+  type UploadTask,
+} from "./shared";
 
-type UploadTask = {
-  localPaths: string[];
-  remoteDir: string;
-};
-
-type Translate = ReturnType<typeof useT>;
-
-const OVERWRITE_PREVIEW_LIMIT = 5;
 const QUICK_EDIT_MAX_BYTES = 1024 * 1024;
 const QUICK_EDIT_TEXT_EXTENSIONS = new Set([
   ".conf",
@@ -107,23 +113,6 @@ const QUICK_EDIT_TEXT_FILENAMES = new Set([
   "nginx.conf",
 ]);
 
-function getPathName(path: string): string {
-  const normalized = path.replace(/\\/g, "/");
-  return normalized.split("/").pop() || path;
-}
-
-function joinRemotePath(dir: string, name: string): string {
-  if (dir === "/") return `/${name}`;
-  return dir.endsWith("/") ? `${dir}${name}` : `${dir}/${name}`;
-}
-
-function getRemoteDirPath(path: string): string {
-  const normalized = path.replace(/\\/g, "/");
-  const parts = normalized.split("/").filter(Boolean);
-  parts.pop();
-  return `/${parts.join("/")}` || "/";
-}
-
 function isLikelyQuickEditFile(entry: FileEntry): boolean {
   if (entry.fileType !== "file") return false;
   if (entry.size > QUICK_EDIT_MAX_BYTES) return false;
@@ -135,172 +124,6 @@ function isLikelyQuickEditFile(entry: FileEntry): boolean {
   const lastDotIndex = lowerName.lastIndexOf(".");
   if (lastDotIndex === -1) return false;
   return QUICK_EDIT_TEXT_EXTENSIONS.has(lowerName.slice(lastDotIndex));
-}
-
-async function collectExistingRemoteUploadTargets(
-  sessionId: string,
-  uploadTasks: UploadTask[],
-): Promise<string[]> {
-  const namesByRemoteDir = new Map<string, Set<string>>();
-
-  for (const task of uploadTasks) {
-    const fileNames = namesByRemoteDir.get(task.remoteDir) ?? new Set<string>();
-    for (const localPath of task.localPaths) {
-      const fileName = getPathName(localPath);
-      if (fileName) fileNames.add(fileName);
-    }
-    namesByRemoteDir.set(task.remoteDir, fileNames);
-  }
-
-  const duplicateLists = await Promise.all(
-    Array.from(namesByRemoteDir.entries()).map(async ([remoteDir, fileNames]) => {
-      try {
-        const entries = await api.sftpListDir(sessionId, remoteDir);
-        const existingNames = new Set(entries.map((entry) => entry.name));
-        return Array.from(fileNames)
-          .filter((fileName) => existingNames.has(fileName))
-          .map((fileName) => joinRemotePath(remoteDir, fileName));
-      } catch {
-        // Missing remote directories are created during upload, so they cannot overwrite yet.
-        return [];
-      }
-    }),
-  );
-
-  return Array.from(new Set(duplicateLists.flat())).sort((a, b) => a.localeCompare(b));
-}
-
-async function resolveDownloadBaseDir(): Promise<string> {
-  const configuredPath = await api.settingGet("transfer.downloadPath");
-  if (configuredPath?.trim()) return configuredPath.trim();
-
-  try {
-    return await downloadDir();
-  } catch {
-    const homeDir = await api.localHomeDir();
-    return join(homeDir, "Downloads");
-  }
-}
-
-async function resolveDownloadTargetPath(
-  baseDir: string,
-  remotePath: string,
-  subPath?: string,
-): Promise<string> {
-  if (subPath?.trim()) return join(baseDir, subPath);
-  return join(baseDir, getPathName(remotePath) || "download");
-}
-
-async function collectExistingLocalTargets(paths: string[]): Promise<string[]> {
-  const uniquePaths = Array.from(new Set(paths));
-  const targetInfo = await Promise.all(
-    uniquePaths.map(async (targetPath) => ({
-      targetPath,
-      parentDir: await dirname(targetPath),
-      fileName: await basename(targetPath),
-    })),
-  );
-
-  const targetsByParent = new Map<string, Map<string, string>>();
-  for (const target of targetInfo) {
-    const filesInParent = targetsByParent.get(target.parentDir) ?? new Map<string, string>();
-    filesInParent.set(target.fileName, target.targetPath);
-    targetsByParent.set(target.parentDir, filesInParent);
-  }
-
-  const duplicateLists = await Promise.all(
-    Array.from(targetsByParent.entries()).map(async ([parentDir, files]) => {
-      try {
-        const entries = await api.localListDir(parentDir);
-        const existingNames = new Set(entries.map((entry) => entry.name));
-        return Array.from(files.entries())
-          .filter(([fileName]) => existingNames.has(fileName))
-          .map(([, targetPath]) => targetPath);
-      } catch {
-        // Nested download directories are created during transfer if they do not exist yet.
-        return [];
-      }
-    }),
-  );
-
-  return Array.from(new Set(duplicateLists.flat())).sort((a, b) => a.localeCompare(b));
-}
-
-async function confirmOverwritePaths(
-  t: Translate,
-  direction: "upload" | "download",
-  loadPaths: () => Promise<string[]>,
-): Promise<boolean> {
-  const confirmResult = useConfirmStore.getState()._show({
-    title: t("confirm.overwriteTitle"),
-    description: t("confirm.overwriteChecking"),
-    confirmLabel: t("confirm.overwriteAction"),
-    cancelLabel: t("confirm.cancel"),
-    scanning: true,
-  });
-  const confirmResolve = useConfirmStore.getState()._resolve;
-
-  let paths: string[];
-  try {
-    paths = await loadPaths();
-  } catch (error) {
-    if (useConfirmStore.getState()._resolve === confirmResolve) {
-      useConfirmStore.getState()._respond(true);
-    }
-    console.warn("overwrite pre-check failed, continuing transfer", error);
-    return true;
-  }
-
-  if (paths.length === 0) {
-    if (useConfirmStore.getState()._resolve === confirmResolve) {
-      useConfirmStore.getState()._respond(true);
-    }
-    return true;
-  }
-
-  const preview = paths
-    .slice(0, OVERWRITE_PREVIEW_LIMIT)
-    .map((path) => `- ${path}`)
-    .join("\n");
-  const moreCount = paths.length - OVERWRITE_PREVIEW_LIMIT;
-  const intro =
-    direction === "upload"
-      ? t("confirm.overwriteUploadDesc", { n: paths.length })
-      : t("confirm.overwriteDownloadDesc", { n: paths.length });
-  const moreLine = moreCount > 0 ? `\n${t("confirm.overwriteMore", { n: moreCount })}` : "";
-
-  if (useConfirmStore.getState()._resolve !== confirmResolve) {
-    return confirmResult;
-  }
-
-  useConfirmStore.getState().updateOptions({
-    scanning: false,
-    description: `${intro}\n\n${preview}${moreLine}`,
-  });
-
-  return confirmResult;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
-}
-
-function formatTime(mtime: number): string {
-  if (mtime === 0) return "-";
-  return new Date(mtime * 1000).toLocaleString();
-}
-
-function formatPermissions(mode: number, fileType: string): string {
-  const typeChar = fileType === "dir" ? "d" : fileType === "symlink" ? "l" : "-";
-  const owner = ((mode >> 6) & 7);
-  const group = ((mode >> 3) & 7);
-  const other = (mode & 7);
-  const rwx = (bits: number) => `${bits & 4 ? "r" : "-"}${bits & 2 ? "w" : "-"}${bits & 1 ? "x" : "-"}`;
-  return `${typeChar}${rwx(owner)}${rwx(group)}${rwx(other)}`;
 }
 
 function FileIcon({ entry }: { entry: FileEntry }) {
@@ -777,32 +600,6 @@ function UploadFlyAnimation({
   );
 }
 
-// Recursively get all files in a local directory
-async function scanLocalDir(
-  dirPath: string,
-  relativeBase: string,
-): Promise<{ local: string; relative: string; isDir: boolean }[]> {
-  const result: { local: string; relative: string; isDir: boolean }[] = [];
-  try {
-    const entries = await api.localListDir(dirPath);
-    for (const entry of entries) {
-      if (entry.name === "." || entry.name === "..") continue;
-      const fullPath = dirPath === "/" ? `/${entry.name}` : `${dirPath}/${entry.name}`;
-      const relativePath = relativeBase ? `${relativeBase}/${entry.name}` : entry.name;
-      if (entry.fileType === "dir") {
-        result.push({ local: fullPath, relative: relativePath, isDir: true });
-        const subFiles = await scanLocalDir(fullPath, relativePath);
-        result.push(...subFiles);
-      } else {
-        result.push({ local: fullPath, relative: relativePath, isDir: false });
-      }
-    }
-  } catch (e) {
-    console.error("Error scanning directory:", dirPath, e);
-  }
-  return result;
-}
-
 function LocalFileList({
   sessionId,
   remotePath,
@@ -897,7 +694,7 @@ function LocalFileList({
     const selectedNames = Array.from(selected);
 
     if (selectedNames.length === 0) {
-      toast.info(t("sftp.emptyDirectory") || "Select files to upload");
+      toast.info(t("sftp.emptyDirectory"));
       return;
     }
 
@@ -926,9 +723,8 @@ function LocalFileList({
           const relativeDir = f.relative.includes("/")
             ? f.relative.substring(0, f.relative.lastIndexOf("/"))
             : "";
-          const remoteSubDir = relativeDir
-            ? `${remotePath}/${entry.name}/${relativeDir}`
-            : `${remotePath}/${entry.name}`;
+          const baseRemoteDir = joinRemotePath(remotePath, entry.name);
+          const remoteSubDir = relativeDir ? joinRemotePath(baseRemoteDir, relativeDir) : baseRemoteDir;
           if (!byDir.has(remoteSubDir)) byDir.set(remoteSubDir, []);
           byDir.get(remoteSubDir)!.push(f.local);
         }
@@ -1220,7 +1016,7 @@ function RemoteFileList() {
     if (entry.fileType === "dir") {
       items.push({
         icon: <FolderOpen size={14} className="text-[var(--color-accent)]" />,
-        label: t("sftp.open") || "打开",
+        label: t("sftp.open"),
         onClick: () => {
           const newPath = remotePath === "/" ? `/${entry.name}` : `${remotePath}/${entry.name}`;
           navigateRemoteWithRecent(newPath);
@@ -1323,7 +1119,7 @@ function RemoteFileList() {
     // Rename
     items.push({
       icon: <Pencil size={14} />,
-      label: t("sftp.rename") || "重命名",
+      label: t("sftp.rename"),
       onClick: () => {
         setShowRename(entry.name);
         setRenameValue(entry.name);
@@ -1366,7 +1162,7 @@ function RemoteFileList() {
           useConfirmStore.getState().updateOptions({
             scanning: false,
             description: count > 0
-              ? `${t("confirm.deleteNonEmptyDirDesc", { name: entry.name })}\n\n(${count} ${count === 1 ? (t("sftp.file") || "file") : (t("sftp.files") || "files")})`
+              ? `${t("confirm.deleteNonEmptyDirDesc", { name: entry.name })}\n\n(${count} ${count === 1 ? t("sftp.file") : t("sftp.files")})`
               : t("confirm.deleteFileDesc"),
           });
 
@@ -1425,7 +1221,7 @@ function RemoteFileList() {
           totalFileCount += count;
           useConfirmStore.getState().updateOptions({
             description: totalFileCount > 0
-              ? `${t("confirm.deleteNonEmptyDirDesc", { name: dirEntries.length === 1 ? dirEntries[0].name : dirEntries.map((d) => d.name).join(", ") })}\n\n(${totalFileCount} ${totalFileCount === 1 ? (t("sftp.file") || "file") : (t("sftp.files") || "files")})`
+              ? `${t("confirm.deleteNonEmptyDirDesc", { name: dirEntries.length === 1 ? dirEntries[0].name : dirEntries.map((d) => d.name).join(", ") })}\n\n(${totalFileCount} ${totalFileCount === 1 ? t("sftp.file") : t("sftp.files")})`
               : t("confirm.deleteBatchDesc", { n: selected.length }),
             scanCount: totalFileCount,
           });
@@ -1438,7 +1234,7 @@ function RemoteFileList() {
       useConfirmStore.getState().updateOptions({
         scanning: false,
         description: totalFileCount > 0
-          ? `${t("confirm.deleteNonEmptyDirDesc", { name: dirEntries.length === 1 ? dirEntries[0].name : dirEntries.map((d) => d.name).join(", ") })}\n\n(${totalFileCount} ${totalFileCount === 1 ? (t("sftp.file") || "file") : (t("sftp.files") || "files")})`
+          ? `${t("confirm.deleteNonEmptyDirDesc", { name: dirEntries.length === 1 ? dirEntries[0].name : dirEntries.map((d) => d.name).join(", ") })}\n\n(${totalFileCount} ${totalFileCount === 1 ? t("sftp.file") : t("sftp.files")})`
           : t("confirm.deleteBatchDesc", { n: selected.length }),
       });
 
@@ -1540,9 +1336,8 @@ function RemoteFileList() {
                   const relativeDir = f.relative.includes("/")
                       ? f.relative.substring(0, f.relative.lastIndexOf("/"))
                       : "";
-                  const remoteSubDir = relativeDir
-                      ? `${remotePath}/${fileName}/${relativeDir}`
-                      : `${remotePath}/${fileName}`;
+                  const baseRemoteDir = joinRemotePath(remotePath, fileName);
+                  const remoteSubDir = relativeDir ? joinRemotePath(baseRemoteDir, relativeDir) : baseRemoteDir;
                   if (!byDir.has(remoteSubDir)) byDir.set(remoteSubDir, []);
                   byDir.get(remoteSubDir)!.push(f.local);
                 }
@@ -1555,7 +1350,7 @@ function RemoteFileList() {
             }
 
             if (uploadTasks.length === 0) {
-              toast.error(t("sftp.emptyDirectory") || "No files to upload");
+              toast.error(t("sftp.emptyDirectory"));
               return;
             }
 

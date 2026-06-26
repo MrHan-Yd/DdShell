@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";
@@ -25,6 +26,7 @@ import { useMacroRunner } from "./hooks/useMacroRunner";
 import { MacroRunButton } from "./components/MacroRunButton";
 import { MacroQuickPanel } from "./components/MacroQuickPanel";
 import { RemoteFilePicker } from "./RemoteFilePicker";
+import { TerminalFileManagerDrawer } from "./TerminalFileManagerDrawer";
 import { cleanSelectedPath, extractAbsolutePathFromSelection, inferCwdFromBuffer } from "./cwdInfer";
 import { openQuickEditWindow } from "@/lib/quickEditWindow";
 import { getRemoteDirPath, readQuickEditPickerDir, recordQuickEditPickerDir } from "@/lib/quickEditPickerDir";
@@ -35,6 +37,7 @@ import "@xterm/xterm/css/xterm.css";
 // share; constructing one per keystroke / per IPC write is wasted work on the
 // hot input path.
 const TEXT_ENCODER = new TextEncoder();
+const FILE_MANAGER_DRAWER_TRANSITION_MS = 320;
 
 /** Strip ANSI escape sequences and trim whitespace */
 function cleanSelection(text: string): string {
@@ -113,6 +116,8 @@ function TerminalInstance({
   hostId,
   macroOutputFilter,
   termSettings,
+  onFocusSession,
+  onCwdChange,
 }: {
   tabId: string;
   sessionId: string;
@@ -139,6 +144,8 @@ function TerminalInstance({
     disabledBuiltinCmds?: string[];
     customDangerousCommands?: string[];
   };
+  onFocusSession?: (sessionId: string, cwd: string | null) => void;
+  onCwdChange?: (sessionId: string, cwd: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
@@ -156,6 +163,10 @@ function TerminalInstance({
   const macroFilterBufferRef = useRef("");
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
+  const onFocusSessionRef = useRef(onFocusSession);
+  onFocusSessionRef.current = onFocusSession;
+  const onCwdChangeRef = useRef(onCwdChange);
+  onCwdChangeRef.current = onCwdChange;
   const macroOutputFilterRef = useRef<{ runId: string; stepId: string; displayCommand: string } | null>(macroOutputFilter ?? null);
   macroOutputFilterRef.current = macroOutputFilter ?? null;
   const lastMacroDisplayKeyRef = useRef<string | null>(null);
@@ -603,6 +614,7 @@ function TerminalInstance({
         const decodedPath = decodeURIComponent(url.pathname);
         if (decodedPath.startsWith("/")) {
           oscCwdRef.current = decodedPath;
+          onCwdChangeRef.current?.(sessionIdRef.current, decodedPath);
           return true;
         }
       } catch {
@@ -730,6 +742,10 @@ function TerminalInstance({
     }
 
     fitAddon.fit();
+    const handleTermFocus = () => {
+      onFocusSessionRef.current?.(sessionIdRef.current, oscCwdRef.current ?? inferCwdFromBuffer(term));
+    };
+    term.element?.addEventListener("focusin", handleTermFocus);
     const updateGeo = () => {
       if (!containerRef.current || !term.element) return;
       const containerRect = containerRef.current.getBoundingClientRect();
@@ -761,6 +777,7 @@ function TerminalInstance({
 
     return () => {
       resizeObserver.disconnect();
+      term.element?.removeEventListener("focusin", handleTermFocus);
       window.removeEventListener("terminal:clear", handleClear);
       window.removeEventListener("terminal:settings-changed", handlePredictiveEchoChanged);
       if (predictiveEchoMetricsTimer !== null) clearInterval(predictiveEchoMetricsTimer);
@@ -1107,19 +1124,24 @@ function TerminalInstance({
         onClose={handleAssistClose}
       />
       {isDisconnected && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60">
-          <Zap size={40} className="mb-3 text-yellow-400" />
-          <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
-            {t("term.disconnected")}
-          </p>
-          <button
-            onClick={handleReconnect}
-            disabled={reconnecting}
-            className="inline-flex items-center gap-2 rounded-[var(--radius-control)] bg-[var(--color-accent)] px-4 py-2 text-sm text-white hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-60"
-          >
-            <Zap size={16} />
-            {reconnecting ? t("term.reconnecting") : t("term.reconnect")}
-          </button>
+        <div className="terminal-disconnect-overlay" role="status" aria-live="polite">
+          <div className="terminal-disconnect-card">
+            <span className="terminal-disconnect-icon" aria-hidden="true">
+              <Zap size={26} />
+            </span>
+            <div className="terminal-disconnect-message">
+              {t("term.disconnected")}
+            </div>
+            <button
+              type="button"
+              onClick={handleReconnect}
+              disabled={reconnecting}
+              className="terminal-reconnect-button"
+            >
+              <Zap size={15} />
+              {reconnecting ? t("term.reconnecting") : t("term.reconnect")}
+            </button>
+          </div>
         </div>
       )}
       {picker && (
@@ -1627,6 +1649,12 @@ export function TerminalPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showMacroPanel, setShowMacroPanel] = useState(false);
+  const [showFileManager, setShowFileManager] = useState(false);
+  const [renderFileManager, setRenderFileManager] = useState(false);
+  const [fileManagerEnabled, setFileManagerEnabled] = useState(true);
+  const [fileManagerHeight, setFileManagerHeight] = useState(320);
+  const [lastFocusedSessionId, setLastFocusedSessionId] = useState<string | null>(null);
+  const [sessionCwdMap, setSessionCwdMap] = useState<Record<string, string>>({});
   const [splitRatio, setSplitRatio] = useState(0.5);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
@@ -1636,6 +1664,7 @@ export function TerminalPage() {
   const ignoreClickRef = useRef(false);
   const tabBarRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const termMainRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarkDrawerRef = useRef<HTMLDivElement>(null);
   const historyDrawerRef = useRef<HTMLDivElement>(null);
@@ -1713,6 +1742,7 @@ export function TerminalPage() {
           foreground, cursor, cursorStyle, cursorWidth, selectionBg,
           bgSource, bgColor, bgImagePath, bgOpacity, bgBlur,
           ansiColors, dangerousCmdProtection, disabledBuiltinCmds, customDangerousCommands,
+          fileManagerDrawerEnabled,
         ] = await Promise.all([
           api.settingGet("terminal.fontFamily"),
           api.settingGet("terminal.fontSize"),
@@ -1733,7 +1763,11 @@ export function TerminalPage() {
           api.settingGet("terminal.dangerousCmdProtection"),
           api.settingGet("terminal.disabledBuiltinCmds"),
           api.settingGet("terminal.customDangerousCommands"),
+          api.settingGet("terminal.fileManagerDrawer.enabled"),
         ]);
+        const fileManagerEnabledNext = fileManagerDrawerEnabled !== "false";
+        setFileManagerEnabled(fileManagerEnabledNext);
+        if (!fileManagerEnabledNext) setShowFileManager(false);
         setTermSettings({
           fontFamily: fontFamily || undefined,
           fontSize: fontSize ? parseInt(fontSize) : undefined,
@@ -1754,8 +1788,10 @@ export function TerminalPage() {
           dangerousCmdProtection: dangerousCmdProtection !== "false",
           disabledBuiltinCmds: (() => { try { const arr = JSON.parse(disabledBuiltinCmds || ""); return Array.isArray(arr) ? arr : undefined; } catch { return undefined; } })(),
           customDangerousCommands: (() => { try { const arr = JSON.parse(customDangerousCommands || ""); return Array.isArray(arr) ? arr : undefined; } catch { return undefined; } })(),
+          fileManagerDrawerEnabled: fileManagerEnabledNext,
         });
       } catch {
+        setFileManagerEnabled(true);
         setTermSettings({});
       }
     };
@@ -1816,6 +1852,96 @@ export function TerminalPage() {
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
   const splitTab = splitTabId ? tabs.find((t) => t.id === splitTabId) ?? null : null;
+  const fileManagerTab = useMemo(() => {
+    const focused = lastFocusedSessionId
+      ? tabs.find((tab) => tab.sessionId === lastFocusedSessionId && tab.state === "connected")
+      : null;
+    if (focused) return focused;
+    return tabs.find((tab) => tab.id === activeTabId && tab.state === "connected") ?? null;
+  }, [activeTabId, lastFocusedSessionId, tabs]);
+  const fileManagerInitialPath = fileManagerTab
+    ? sessionCwdMap[fileManagerTab.sessionId] ?? "/"
+    : "/";
+  const fileManagerSessionId = fileManagerTab?.sessionId ?? null;
+  const fileManagerOpen = showFileManager && fileManagerEnabled && fileManagerSessionId !== null;
+  const shouldRenderFileManager = renderFileManager && fileManagerEnabled && fileManagerTab !== null;
+  const fileManagerLayoutHeight = fileManagerOpen ? fileManagerHeight : 0;
+
+  const handleTerminalFocus = useCallback((sessionId: string, cwd: string | null) => {
+    setLastFocusedSessionId(sessionId);
+    if (cwd) {
+      setSessionCwdMap((prev) => ({ ...prev, [sessionId]: cwd }));
+    }
+  }, []);
+
+  const handleTerminalCwdChange = useCallback((sessionId: string, cwd: string) => {
+    setSessionCwdMap((prev) => ({ ...prev, [sessionId]: cwd }));
+  }, []);
+
+  const handleToggleFileManager = useCallback(() => {
+    if (!fileManagerEnabled) return;
+    if (!fileManagerTab) {
+      toast.error(t("term.disconnected"));
+      return;
+    }
+    setShowHistory(false);
+    setShowBookmarks(false);
+    if (showFileManager) {
+      setShowFileManager(false);
+      return;
+    }
+    if (termMainRef.current) {
+      const rect = termMainRef.current.getBoundingClientRect();
+      const defaultHeight = Math.round(rect.height * 0.4);
+      setFileManagerHeight(Math.max(260, Math.min(defaultHeight, Math.round(rect.height * 0.7))));
+    }
+    setRenderFileManager(true);
+    window.requestAnimationFrame(() => setShowFileManager(true));
+  }, [fileManagerEnabled, fileManagerTab, showFileManager, t]);
+
+  const handleFileManagerResizeStart = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = fileManagerHeight;
+    const totalHeight = termMainRef.current?.getBoundingClientRect().height ?? window.innerHeight;
+    const minHeight = Math.min(260, Math.max(180, Math.round(totalHeight * 0.35)));
+    const maxHeight = Math.max(minHeight, Math.round(totalHeight * 0.7));
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = startY - moveEvent.clientY;
+      setFileManagerHeight(Math.max(minHeight, Math.min(maxHeight, startHeight + delta)));
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+  }, [fileManagerHeight]);
+
+  useEffect(() => {
+    if (showFileManager && (!fileManagerEnabled || !fileManagerTab)) {
+      setShowFileManager(false);
+    }
+  }, [fileManagerEnabled, fileManagerTab, showFileManager]);
+
+  useEffect(() => {
+    if (showFileManager && fileManagerEnabled && fileManagerSessionId) {
+      setRenderFileManager(true);
+      return;
+    }
+    if (!renderFileManager) return;
+    const timer = window.setTimeout(() => {
+      setRenderFileManager(false);
+    }, FILE_MANAGER_DRAWER_TRANSITION_MS);
+    return () => window.clearTimeout(timer);
+  }, [fileManagerEnabled, fileManagerSessionId, renderFileManager, showFileManager]);
 
   const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
   const bgOpacity = (termSettings?.bgOpacity ?? 100) / 100;
@@ -1922,9 +2048,9 @@ export function TerminalPage() {
           <p className="text-[var(--font-size-lg)] font-medium text-[var(--color-text-secondary)]">
             {t("term.noActiveSessions")}
           </p>
-          <p className="mt-2 text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
+          <div className="mt-2 text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
             {t("term.goToConnections")}
-          </p>
+          </div>
           <button
             onClick={goToConnections}
             className="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-control)] !bg-[image:var(--color-accent-gradient)] !px-4 !py-2 text-[var(--font-size-sm)] !text-[var(--color-fg-on-accent)] shadow-[var(--shadow-accent-glow)] hover:brightness-[1.08] transition-[filter] duration-[var(--duration-base)]"
@@ -1939,7 +2065,13 @@ export function TerminalPage() {
 
   return (
     <div className="terminal-page flex flex-1 overflow-hidden" style={{ userSelect: "text" }}>
-      <div className="term-main flex flex-1 flex-col overflow-hidden">
+      <div
+        ref={termMainRef}
+        className="term-main flex flex-1 flex-col overflow-hidden"
+        style={shouldRenderFileManager
+          ? { gridTemplateRows: `var(--tabbar-h) minmax(0, 1fr) ${fileManagerLayoutHeight}px` }
+          : undefined}
+      >
         {/* Tab bar */}
         {/* [AI-FEATURE]
             ID: TASK-TERM-TAB-DRAG
@@ -2075,6 +2207,7 @@ export function TerminalPage() {
                     return;
                   }
                   setActiveTab(tab.id);
+                  setLastFocusedSessionId(tab.sessionId);
                 }}
               >
                 <span
@@ -2176,6 +2309,27 @@ export function TerminalPage() {
 
           <div className="mx-1 h-4 w-px bg-[var(--color-border)]" />
 
+          {fileManagerEnabled && (
+            <>
+              <button
+                onClick={handleToggleFileManager}
+                disabled={!fileManagerTab}
+                className={cn(
+                  "flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-[var(--font-size-xs)] transition-colors disabled:opacity-40",
+                  showFileManager
+                    ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
+                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-secondary)]",
+                )}
+                title={t("terminalFileManager.title")}
+              >
+                <FolderOpen size={14} />
+                <span>{t("terminalFileManager.shortTitle")}</span>
+              </button>
+
+              <div className="mx-1 h-4 w-px bg-[var(--color-border)]" />
+            </>
+          )}
+
           {/* Bookmark toggle */}
           <button
             ref={bookmarkToggleRef}
@@ -2268,6 +2422,8 @@ export function TerminalPage() {
                     hostId={tab.hostId}
                     macroOutputFilter={macroOutputFilter?.sessionId === tab.sessionId ? macroOutputFilter : null}
                     termSettings={termSettings}
+                    onFocusSession={handleTerminalFocus}
+                    onCwdChange={handleTerminalCwdChange}
                   />
                 )}
               </div>
@@ -2297,6 +2453,8 @@ export function TerminalPage() {
                       hostId={splitTab.hostId}
                       macroOutputFilter={macroOutputFilter?.sessionId === splitTab.sessionId ? macroOutputFilter : null}
                       termSettings={termSettings}
+                      onFocusSession={handleTerminalFocus}
+                      onCwdChange={handleTerminalCwdChange}
                     />
                   )}
                 </div>
@@ -2334,6 +2492,34 @@ export function TerminalPage() {
             />
           </div>
         </div>
+        {shouldRenderFileManager && fileManagerTab && (
+          <div
+            className="terminal-file-manager-shell"
+            data-state={fileManagerOpen ? "open" : "closed"}
+            aria-hidden={!fileManagerOpen}
+            style={{
+              height: fileManagerLayoutHeight,
+              flex: `0 0 ${fileManagerLayoutHeight}px`,
+            }}
+          >
+            <div
+              className="terminal-file-manager-resize"
+              onMouseDown={handleFileManagerResizeStart}
+              title={t("terminalFileManager.resize")}
+            />
+            <TerminalFileManagerDrawer
+              open={shouldRenderFileManager}
+              sessionId={fileManagerTab.sessionId}
+              hostId={fileManagerTab.hostId}
+              hostName={fileManagerTab.title}
+              initialPath={fileManagerInitialPath}
+              onClose={() => setShowFileManager(false)}
+              onPathResolved={(path) => {
+                setSessionCwdMap((prev) => ({ ...prev, [fileManagerTab.sessionId]: path }));
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

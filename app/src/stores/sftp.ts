@@ -19,7 +19,7 @@ interface SftpState {
   completedUploads: Set<string>; // names of recently completed uploads (for fade-out)
   activeBatches: Map<string, { taskIds: Set<string>; completed: number; failed: number; total: number; direction: TransferDirection }>;
 
-  setSessionId: (id: string | null) => void;
+  setSessionId: (id: string | null, options?: { navigate?: boolean }) => void;
   navigateRemote: (path: string) => Promise<void>;
   refreshRemote: () => Promise<void>;
   mkdir: (name: string) => Promise<void>;
@@ -54,9 +54,9 @@ export const useSftpStore = create<SftpState>((set, get) => ({
   completedUploads: new Set(),
   activeBatches: new Map(),
 
-  setSessionId: (id) => {
+  setSessionId: (id, options) => {
     set({ sessionId: id, remotePath: "/", remoteEntries: [], error: null, uploadingFiles: new Map(), taskIdToName: new Map(), completedUploads: new Set() });
-    if (id) {
+    if (id && options?.navigate !== false) {
       get().navigateRemote("/");
     }
   },

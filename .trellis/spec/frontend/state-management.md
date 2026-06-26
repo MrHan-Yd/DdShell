@@ -140,3 +140,66 @@ window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
 - `app/src/features/settings/SettingsPage.tsx`
 - `app/src/stores/app.ts`
 - `app/src/App.tsx`
+
+---
+
+## Scenario: Embedded SFTP Store Session Binding
+
+### 1. Scope / Trigger
+
+- Trigger: UI features may embed remote file management outside the standalone SFTP page while reusing `useSftpStore`.
+- The store action signature is part of the frontend state contract because it controls whether selecting a session automatically loads `/`.
+
+### 2. Signatures
+
+```ts
+setSessionId(id: string | null, options?: { navigate?: boolean }): void;
+navigateRemote(path: string): Promise<void>;
+```
+
+### 3. Contracts
+
+- `setSessionId(id)` keeps the standalone SFTP page behavior: bind the session, reset remote state, then load `/`.
+- `setSessionId(id, { navigate: false })` only binds the session and resets remote state. The caller must explicitly call `navigateRemote(path)` after resolving the desired initial directory.
+- `setSessionId(null)` clears the bound SFTP session. The `navigate` option has no effect for `null`.
+- Embedded drawers that infer an initial directory from terminal cwd must resolve that directory once per drawer-open/session-change. Later terminal cwd updates must not move the file manager away from the directory the user is browsing.
+
+### 4. Validation & Error Matrix
+
+- `id` is `null` -> clear SFTP state; do not navigate.
+- `navigate !== false` and `id` is present -> attempt `navigateRemote("/")`; errors are surfaced through store `error`.
+- `navigate === false` and caller never calls `navigateRemote` -> remote list remains empty by design.
+- Inferred initial path is inaccessible -> caller should try recent path, then `/`, before showing an error state.
+
+### 5. Good/Base/Bad Cases
+
+- Good: terminal file manager calls `setSessionId(sessionId, { navigate: false })`, validates cwd/recent/root candidates, then calls `navigateRemote(candidate)`.
+- Base: standalone SFTP session picker calls `setSessionId(sessionId)` and lands at `/`.
+- Bad: embedded file manager calls `setSessionId(sessionId)` and also calls `navigateRemote(cwd)`; the `/` request can finish last and overwrite the cwd.
+
+### 6. Tests Required
+
+- Standalone SFTP selection still loads `/` after choosing a connected session.
+- Embedded terminal file manager opens on the inferred cwd when that directory is readable.
+- If terminal cwd changes while the drawer is already browsing another directory, the drawer does not jump.
+- If the inferred cwd fails, recent path is attempted before `/`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```tsx
+useEffect(() => {
+  setSessionId(sessionId);
+  void navigateRemote(initialPath);
+}, [sessionId, initialPath, setSessionId, navigateRemote]);
+```
+
+#### Correct
+
+```tsx
+useEffect(() => {
+  setSessionId(sessionId, { navigate: false });
+  void navigateRemote(resolvedInitialPath);
+}, [sessionId, setSessionId, navigateRemote]);
+```

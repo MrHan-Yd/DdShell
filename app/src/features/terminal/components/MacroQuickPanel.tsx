@@ -4,6 +4,8 @@ import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { WorkflowRecipe } from "@/types";
 
+const MACRO_PANEL_TRANSITION_MS = 320;
+
 interface ParsedMacroParam {
   key: string;
   defaultValue: string;
@@ -73,6 +75,8 @@ export function MacroQuickPanel({
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
   const [runtimeValuesByRecipe, setRuntimeValuesByRecipe] = useState<Record<string, Record<string, string>>>({});
   const [confirmRunId, setConfirmRunId] = useState<string | null>(null);
+  const [shouldRender, setShouldRender] = useState(open);
+  const [isActive, setIsActive] = useState(open);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -100,6 +104,17 @@ export function MacroQuickPanel({
     () => Object.keys(selectedOverrides).filter((key) => selectedOverrides[key] !== undefined).length,
     [selectedOverrides],
   );
+
+  useEffect(() => {
+    if (open) {
+      setShouldRender(true);
+      const frame = requestAnimationFrame(() => setIsActive(true));
+      return () => cancelAnimationFrame(frame);
+    }
+    setIsActive(false);
+    const timer = setTimeout(() => setShouldRender(false), MACRO_PANEL_TRANSITION_MS);
+    return () => clearTimeout(timer);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -215,12 +230,14 @@ export function MacroQuickPanel({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [confirmRunId, filtered, onClose, open, running, runtimeValuesByRecipe, selectedIndex]);
 
-  if (!open) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
       ref={containerRef}
-      className="absolute right-0 top-9 z-30 w-[420px] overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-floating)]"
+      className="terminal-macro-panel absolute right-0 top-9 z-30 w-[420px] overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-floating)]"
+      data-state={open && isActive ? "open" : "closed"}
+      aria-hidden={!open}
     >
       <div className="border-b border-[var(--color-border)] p-3">
         <div className="flex items-center gap-2 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-base)] px-2.5 py-1.5">
@@ -278,7 +295,7 @@ export function MacroQuickPanel({
                   <p className="truncate text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">{recipe.title}</p>
                   <span className="text-[10px] text-[var(--color-text-muted)]">{stepCount} {t("macro.steps")}</span>
                 </div>
-                <p className="mt-1 line-clamp-1 text-[11px] text-[var(--color-text-muted)]">{recipe.description || "-"}</p>
+                <div className="mt-1 line-clamp-1 text-[11px] text-[var(--color-text-muted)]">{recipe.description || "-"}</div>
                 <div className="mt-1.5 flex min-w-0 items-center gap-3 text-[10px] text-[var(--color-text-muted)]">
                   <div className="flex min-w-0 items-center gap-3 overflow-hidden">
                     <span>{paramCount} {t("macro.params")}</span>
@@ -310,9 +327,9 @@ export function MacroQuickPanel({
                 {t("macro.overrideCount", { n: selectedOverrideCount })}
               </span>
             </div>
-            <p className="mb-2 px-1 text-[10px] text-[var(--color-text-muted)]">
+            <div className="mb-2 px-1 text-[10px] text-[var(--color-text-muted)]">
               点击上方列表切换当前宏并进入确认态，再次点击同一项才会执行。
-            </p>
+            </div>
             {selectedParams.length === 0 ? (
               <p className="px-1 py-1 text-[11px] text-[var(--color-text-muted)]">{t("macro.noParams")}</p>
             ) : (

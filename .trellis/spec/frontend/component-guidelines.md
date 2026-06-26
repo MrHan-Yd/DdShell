@@ -203,6 +203,45 @@ const isAurora = uiTheme === "aurora";
 
 ---
 
+## Convention: Conditional overlays need a mounted closed state before opening
+
+**What**: Popovers, drawers, and panels that are conditionally rendered must not mount directly in their final open state when they need an entry transition. Keep a short-lived mounted state, render with `data-state="closed"` first, then switch to `data-state="open"` on the next animation frame. On close, switch back to `closed` and unmount only after the CSS transition duration.
+
+**Why**: CSS transitions need a previous computed value. A component that does `if (!open) return null` and then mounts with open classes has no previous opacity, transform, height, or grid/flex basis to interpolate from, so the panel appears instantly. This is especially visible for toolbar popovers and bottom drawers.
+
+**Example**:
+
+```tsx
+const PANEL_TRANSITION_MS = 180;
+const [mounted, setMounted] = useState(open);
+const [active, setActive] = useState(open);
+
+useEffect(() => {
+  if (open) {
+    setMounted(true);
+    const frame = requestAnimationFrame(() => setActive(true));
+    return () => cancelAnimationFrame(frame);
+  }
+
+  setActive(false);
+  const timer = setTimeout(() => setMounted(false), PANEL_TRANSITION_MS);
+  return () => clearTimeout(timer);
+}, [open]);
+
+if (!mounted) return null;
+
+return <div data-state={open && active ? "open" : "closed"} />;
+```
+
+**Required check**: For any conditionally rendered overlay with a CSS transition, verify both directions: opening starts from the closed styles, and closing keeps the DOM mounted until the transition finishes.
+
+**Related**:
+- `app/src/features/terminal/components/MacroQuickPanel.tsx`
+- `app/src/features/terminal/TerminalPage.tsx`
+- `app/src/styles.css` `.terminal-macro-panel` / `.terminal-file-manager-shell`
+
+---
+
 ## Convention: Update entry actions must preserve browser fallback
 
 **What**: Components that surface app update actions should treat in-app download/open as an enhancement over the existing GitHub releases path, not as a hard dependency.

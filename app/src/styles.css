@@ -3326,6 +3326,152 @@ body.theme-light [data-ui-theme="classic"] .connections-page .detail-cta .kbd {
   overflow: hidden;
 }
 
+/* Terminal disconnected overlay */
+.terminal-page .term-main {
+  transition: grid-template-rows var(--duration-panel) var(--ease-smooth);
+}
+
+.terminal-disconnect-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, #000 58%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.terminal-disconnect-card {
+  display: flex;
+  min-width: min(280px, calc(100% - 32px));
+  max-width: min(360px, calc(100% - 32px));
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-popover);
+  background: color-mix(in srgb, var(--color-bg-surface) 90%, transparent);
+  box-shadow: var(--shadow-floating), var(--border-hairline-inner);
+  color: var(--color-text-primary);
+  text-align: center;
+  animation: terminal-disconnect-card-in var(--duration-panel) var(--ease-spring) both;
+}
+
+.terminal-disconnect-icon {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
+  color: var(--color-warning);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--color-warning) 24%, transparent);
+}
+
+.terminal-disconnect-message {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+button.terminal-reconnect-button,
+[data-ui-theme="classic"] button.terminal-reconnect-button,
+[data-ui-theme="aurora"] button.terminal-reconnect-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: var(--accent-gradient);
+  color: var(--fg-on-accent);
+  padding: 8px 15px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--color-accent) 26%, transparent);
+  transition:
+    transform var(--duration-fast) var(--ease-smooth),
+    filter var(--duration-fast) var(--ease-smooth),
+    opacity var(--duration-fast) var(--ease-smooth),
+    box-shadow var(--duration-base) var(--ease-smooth);
+}
+
+button.terminal-reconnect-button:hover:not(:disabled),
+[data-ui-theme="classic"] button.terminal-reconnect-button:hover:not(:disabled),
+[data-ui-theme="aurora"] button.terminal-reconnect-button:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-accent) 34%, transparent);
+}
+
+button.terminal-reconnect-button:active:not(:disabled),
+[data-ui-theme="classic"] button.terminal-reconnect-button:active:not(:disabled),
+[data-ui-theme="aurora"] button.terminal-reconnect-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+button.terminal-reconnect-button:disabled,
+[data-ui-theme="classic"] button.terminal-reconnect-button:disabled,
+[data-ui-theme="aurora"] button.terminal-reconnect-button:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.75);
+  opacity: 0.62;
+  transform: none;
+}
+
+[data-ui-theme="aurora"] .terminal-disconnect-card {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-bg-surface) 92%, transparent), color-mix(in srgb, var(--color-bg-surface) 92%, transparent)),
+    var(--accent-gradient);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  border-color: transparent;
+}
+
+@keyframes terminal-disconnect-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Terminal toolbar popovers */
+.terminal-macro-panel {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top right;
+  transition:
+    opacity var(--duration-panel) var(--ease-spring),
+    transform var(--duration-panel) var(--ease-spring);
+  will-change: opacity, transform;
+}
+
+.terminal-macro-panel[data-state="open"] {
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.terminal-macro-panel[data-state="closed"] {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+}
+
 /* Classic file management mirrors the Aurora SFTP layout while using Classic colors. */
 [data-ui-theme="classic"] .sftp-main {
   display: grid;
@@ -3891,6 +4037,327 @@ body.theme-light [data-ui-theme="classic"] .connections-page .detail-cta .kbd {
   height: 6px;
   border-radius: 50%;
   background: var(--success);
+}
+
+/* ─── Terminal file manager drawer ─── */
+.terminal-file-manager-shell {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    height var(--duration-panel) var(--ease-smooth),
+    flex-basis var(--duration-panel) var(--ease-smooth),
+    border-color var(--duration-panel) var(--ease-smooth),
+    opacity var(--duration-panel) var(--ease-smooth),
+    transform var(--duration-panel) var(--ease-smooth);
+  will-change: height, flex-basis, opacity, transform;
+}
+
+.terminal-file-manager-shell[data-state="open"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.terminal-file-manager-shell[data-state="closed"] {
+  pointer-events: none;
+  border-top-color: transparent;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.terminal-file-manager-resize {
+  height: 6px;
+  flex: 0 0 6px;
+  cursor: row-resize;
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+  transition:
+    opacity var(--duration-panel) var(--ease-smooth),
+    background var(--duration-base) var(--ease-smooth),
+    border-color var(--duration-base) var(--ease-smooth);
+}
+
+.terminal-file-manager-shell[data-state="closed"] .terminal-file-manager-resize {
+  opacity: 0;
+}
+
+.terminal-file-manager-resize::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  width: 48px;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.terminal-file-manager {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg-base);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--duration-panel) var(--ease-smooth),
+    transform var(--duration-panel) var(--ease-smooth);
+}
+
+.terminal-file-manager-shell[data-state="open"] .terminal-file-manager {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tfm-head,
+.tfm-toolbar,
+.tfm-inline-editor,
+.tfm-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  padding: 0 12px;
+}
+
+.tfm-head {
+  min-height: 34px;
+}
+
+.tfm-toolbar {
+  min-height: 34px;
+  background: var(--color-bg-base);
+}
+
+.tfm-inline-editor {
+  min-height: 38px;
+}
+
+.tfm-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.tfm-title svg {
+  color: var(--color-accent);
+}
+
+.tfm-host,
+.tfm-path {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tfm-path {
+  flex: 1;
+}
+
+.tfm-spacer,
+.tfm-foot .spacer {
+  flex: 1;
+}
+
+.tfm-list {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+  font-size: var(--font-size-sm);
+}
+
+.tfm-list.is-drop-target {
+  outline: 1px dashed var(--color-accent);
+  outline-offset: -2px;
+}
+
+.tfm-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-bg-base) 86%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.tfm-foot {
+  min-height: 28px;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.tfm-transfer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+}
+
+button.tfm-transfer-summary {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  padding: 7px 12px;
+  text-align: left;
+}
+
+button.tfm-transfer-summary:hover {
+  background: var(--color-bg-hover);
+}
+
+.tfm-transfer-summary-bar {
+  height: 4px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-bg-active);
+}
+
+.tfm-transfer-summary-bar span,
+.tfm-transfer-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+}
+
+.tfm-transfer-list {
+  display: flex;
+  max-height: 140px;
+  flex-direction: column;
+  gap: 4px;
+  overflow: auto;
+  padding: 6px 10px 10px;
+}
+
+.tfm-transfer-row {
+  display: grid;
+  grid-template-columns: 18px minmax(120px, 1fr) minmax(80px, 120px) minmax(120px, 220px) 28px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  padding: 5px 6px;
+}
+
+.tfm-transfer-row:hover {
+  background: var(--color-bg-hover);
+}
+
+.tfm-transfer-name,
+.tfm-transfer-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tfm-transfer-bar {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-bg-active);
+}
+
+[data-ui-theme="aurora"] button.tfm-transfer-summary {
+  border: 0;
+  background: transparent;
+  padding: 7px 12px;
+  color: var(--color-text-secondary);
+}
+
+[data-ui-theme="classic"] .terminal-file-manager .file-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 140px 110px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  padding: 6px 12px;
+}
+
+[data-ui-theme="classic"] .terminal-file-manager .file-row:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+[data-ui-theme="classic"] .terminal-file-manager .file-row.is-selected {
+  background: var(--color-accent-subtle);
+  color: var(--color-text-primary);
+}
+
+[data-ui-theme="classic"] .terminal-file-manager .file-row.file-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+[data-ui-theme="classic"] .terminal-file-manager .file-row .col-name {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-ui-theme="classic"] .terminal-file-manager .file-row .col-size,
+[data-ui-theme="classic"] .terminal-file-manager .file-row .col-mtime,
+[data-ui-theme="classic"] .terminal-file-manager .file-row .col-perm {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+[data-ui-theme="classic"] .terminal-file-manager .row-progress {
+  display: inline-block;
+  width: 80px;
+  height: 3px;
+  margin-left: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-bg-active);
+}
+
+[data-ui-theme="classic"] .terminal-file-manager .row-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
 }
 
 [data-ui-theme="classic"] .sftp-main .badge-accent {
