@@ -436,6 +436,53 @@ const commitEditor = async () => {
 
 ---
 
+## Convention: Hover highlighters must animate compositor-friendly properties
+
+**What**: Shared popovers, context menus, lists, and command palettes that use a moving hover highlighter should animate only compositor-friendly properties such as `transform` and `opacity`. Do not transition `height`, `top`, `left`, `box-shadow`, `filter`, or layout-affecting properties on every hover move.
+
+**Why**: Hover movement can fire many times per second. If each move reads item geometry and then transitions `height` or other paint/layout-heavy properties, the highlighter feels delayed or sticky. Staggered item entrance animations can also compete with hover movement immediately after the popover opens.
+
+**Example**:
+
+```tsx
+// Good: read geometry, write transform variables on the next animation frame.
+const frameRef = useRef<number | null>(null);
+
+const updateHighlight = (item: HTMLElement) => {
+  const y = item.offsetTop;
+  const height = item.offsetHeight;
+  if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+  frameRef.current = requestAnimationFrame(() => {
+    highlight.style.setProperty("--highlight-y", `${y}px`);
+    highlight.style.setProperty("--highlight-height", `${height}px`);
+    highlight.dataset.active = "true";
+  });
+};
+```
+
+```css
+/* Good: height updates instantly; the movement itself stays on transform. */
+.menu-highlight {
+  height: var(--highlight-height, 32px);
+  transform: translate3d(0, var(--highlight-y, 0), 0);
+  opacity: 0;
+  transition: transform 45ms linear, opacity 55ms var(--ease-smooth);
+  will-change: transform, opacity;
+}
+
+.menu-highlight[data-active="true"] {
+  opacity: 1;
+}
+```
+
+**Required check**: For hover highlighters, verify fast pointer movement across adjacent items does not animate layout-affecting properties and does not compete with staggered item entrance delays.
+
+**Related**:
+- `app/src/components/ui/ContextMenu.tsx`
+- `app/src/styles.css` `.context-menu-highlight`
+
+---
+
 ## Convention: Aurora button classes must restate reset-clobbered properties in the Aurora override block
 
 **What**: When a class targets a `<button>` element and sets `padding`, `border`, or `background` in the base layer (`app/src/styles.css` or `ui/styles/`), the Aurora override block in `app/src/styles/aurora/base.css` must restate those same declarations on `[data-ui-theme="aurora"] button.<class>`. The values must match the base layer exactly to prevent drift.

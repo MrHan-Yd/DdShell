@@ -25,6 +25,7 @@ export interface ContextMenuProps {
 
 export function ContextMenu({ x, y, items, onClose, containerRef }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const highlightFrameRef = useRef<number | null>(null);
   const [pos, setPos] = useState({ x, y });
   const [closing, setClosing] = useState(false);
 
@@ -96,12 +97,39 @@ export function ContextMenu({ x, y, items, onClose, containerRef }: ContextMenuP
     return () => document.removeEventListener("keydown", handler);
   }, [handleClose]);
 
+  useEffect(() => {
+    return () => {
+      if (highlightFrameRef.current !== null) cancelAnimationFrame(highlightFrameRef.current);
+    };
+  }, []);
+
   // Move highlight to hovered item
   const updateHighlight = useCallback((el: HTMLElement | null) => {
     const highlight = menuRef.current?.querySelector<HTMLElement>("[data-menu-highlight]");
-    if (!highlight || !el) return;
-    highlight.style.transform = `translateY(${el.offsetTop}px)`;
-    highlight.style.height = `${el.offsetHeight}px`;
+    if (!highlight) return;
+
+    if (!el) {
+      highlight.dataset.active = "false";
+      return;
+    }
+
+    const activeItem = el.dataset.menuItemIndex;
+    if (activeItem && highlight.dataset.activeItem === activeItem) {
+      highlight.dataset.active = "true";
+      return;
+    }
+
+    const offsetTop = el.offsetTop;
+    const offsetHeight = el.offsetHeight;
+
+    if (highlightFrameRef.current !== null) cancelAnimationFrame(highlightFrameRef.current);
+    highlightFrameRef.current = requestAnimationFrame(() => {
+      highlight.style.setProperty("--context-menu-highlight-y", `${offsetTop}px`);
+      highlight.style.setProperty("--context-menu-highlight-height", `${offsetHeight}px`);
+      if (activeItem) highlight.dataset.activeItem = activeItem;
+      highlight.dataset.active = "true";
+      highlightFrameRef.current = null;
+    });
   }, []);
 
   return (
@@ -114,7 +142,7 @@ export function ContextMenu({ x, y, items, onClose, containerRef }: ContextMenuP
         style={{ left: pos.x, top: pos.y }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="context-menu-inner">
+        <div className="context-menu-inner" onMouseLeave={() => updateHighlight(null)}>
           {/* Sliding highlight */}
           <div
             data-menu-highlight
@@ -134,6 +162,7 @@ export function ContextMenu({ x, y, items, onClose, containerRef }: ContextMenuP
               <button
                 key={`item-${i}`}
                 data-menu-item
+                data-menu-item-index={idx}
                 disabled={menuItem.disabled}
                 className={[
                   "context-menu-item w-full flex items-center relative z-10",
@@ -145,9 +174,7 @@ export function ContextMenu({ x, y, items, onClose, containerRef }: ContextMenuP
                   ? "text-[var(--color-error)]"
                   : "text-[var(--color-text-primary)]",
               ].filter(Boolean).join(" ")}
-              style={!closing ? { '--i': idx } as React.CSSProperties : undefined}
-              onMouseEnter={(e) => updateHighlight(e.currentTarget)}
-              onMouseLeave={() => updateHighlight(null)}
+              onPointerEnter={(e) => updateHighlight(e.currentTarget)}
               onClick={() => {
                 if (menuItem.disabled) return;
                 menuItem.onClick?.();
