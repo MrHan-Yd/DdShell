@@ -1053,3 +1053,36 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 29: 移动目录弹窗布局修复
+
+**Date**: 2026-06-26
+**Task**: 移动目录弹窗布局修复
+**Branch**: `main`
+
+### Summary
+
+修复终端文件管理移动目录弹窗的搜索图标居中、小窗口裁剪和目录列表左侧间距问题。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `81efe9b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

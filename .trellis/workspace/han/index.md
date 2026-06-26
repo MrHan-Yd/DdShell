@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 28
+- **Total Sessions**: 29
 - **Last Active**: 2026-06-26
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1055 | Active |
+| `journal-1.md` | ~1088 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 29 | 2026-06-26 | 移动目录弹窗布局修复 | `81efe9b` | `main` |
 | 28 | 2026-06-26 | 终端文件管理抽屉 | `6967e5e` | `main` |
 | 27 | 2026-06-26 | 确认弹窗遮罩修复 | `c70fee4` | `main` |
 | 26 | 2026-06-25 | 终端历史抽屉与确认弹窗主题适配 | `b2654f3`, `5c31834`, `0f4278a`, `72898d7` | `main` |
