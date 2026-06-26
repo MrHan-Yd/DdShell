@@ -1185,3 +1185,36 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 33: 右键菜单 hover 流畅优化
+
+**Date**: 2026-06-26
+**Task**: 右键菜单 hover 流畅优化
+**Branch**: `main`
+
+### Summary
+
+优化通用 ContextMenu hover 高亮更新，取消菜单项阶梯入场延迟，改为 transform/opacity 合成层动画，并记录 hover highlighter 组件规范。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3514a9f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
