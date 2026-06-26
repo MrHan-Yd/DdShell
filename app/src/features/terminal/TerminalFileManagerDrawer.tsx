@@ -293,10 +293,41 @@ export function TerminalFileManagerDrawer({
   const [deletingEntries, setDeletingEntries] = useState<Set<string>>(new Set());
   const [focusInside, setFocusInside] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
+  const mkdirSubmittingRef = useRef(false);
   const onPathResolvedRef = useRef(onPathResolved);
   const { menuState, onContextMenu, closeMenu } = useContextMenu<FileEntry>();
 
   onPathResolvedRef.current = onPathResolved;
+
+  const openMkdirEditor = useCallback(() => {
+    mkdirSubmittingRef.current = false;
+    setNewDirName("");
+    setShowMkdir(true);
+  }, []);
+
+  const cancelMkdirEditor = useCallback(() => {
+    mkdirSubmittingRef.current = false;
+    setShowMkdir(false);
+    setNewDirName("");
+  }, []);
+
+  const commitMkdirEditor = useCallback(async () => {
+    if (mkdirSubmittingRef.current) return;
+
+    const name = newDirName.trim();
+    if (!name) {
+      cancelMkdirEditor();
+      return;
+    }
+
+    mkdirSubmittingRef.current = true;
+    try {
+      await mkdir(name);
+      cancelMkdirEditor();
+    } finally {
+      mkdirSubmittingRef.current = false;
+    }
+  }, [cancelMkdirEditor, mkdir, newDirName]);
 
   const uploadSpeeds = useMemo(() => {
     const map = new Map<string, number>();
@@ -751,13 +782,12 @@ export function TerminalFileManagerDrawer({
         void handleDeleteEntries(selectedEntries);
       } else if (event.key.toLowerCase() === "n" && event.shiftKey && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();
-        setShowMkdir(true);
-        setNewDirName("");
+        openMkdirEditor();
       }
     };
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
-  }, [focusInside, handleDeleteEntries, open, refreshRemote, selectedEntries]);
+  }, [focusInside, handleDeleteEntries, open, openMkdirEditor, refreshRemote, selectedEntries]);
 
   const goUp = useCallback(() => {
     if (remotePath === "/") return;
@@ -809,7 +839,7 @@ export function TerminalFileManagerDrawer({
           <ArrowUp size={13} />
         </button>
         <div className="tfm-path" title={remotePath}>{remotePath}</div>
-        <button className="btn btn-icon btn-ghost" onClick={() => { setShowMkdir(true); setNewDirName(""); }} title={t("sftp.newFolder")}>
+        <button className="btn btn-icon btn-ghost" onClick={openMkdirEditor} title={t("sftp.newFolder")}>
           <FolderPlus size={13} />
         </button>
         {selectedQuickEditEntry && (
@@ -833,30 +863,43 @@ export function TerminalFileManagerDrawer({
       </div>
 
       {showMkdir && (
-        <div className="tfm-inline-editor">
+        <div
+          className="tfm-inline-editor"
+          onBlur={(event) => {
+            const nextTarget = event.relatedTarget as Node | null;
+            if (nextTarget && event.currentTarget.contains(nextTarget)) return;
+            void commitMkdirEditor();
+          }}
+        >
           <Input
             value={newDirName}
             onChange={(event) => setNewDirName(event.target.value)}
             placeholder={t("sftp.newFolderName")}
             className="flex-1"
             autoFocus
-            onKeyDown={async (event) => {
-              if (event.key === "Enter" && newDirName.trim()) {
-                await mkdir(newDirName.trim());
-                setShowMkdir(false);
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void commitMkdirEditor();
+                return;
               }
-              if (event.key === "Escape") setShowMkdir(false);
+              if (event.key === "Escape") {
+                event.preventDefault();
+                cancelMkdirEditor();
+              }
             }}
           />
-          <Button size="sm" onClick={async () => {
-            if (newDirName.trim()) {
-              await mkdir(newDirName.trim());
-              setShowMkdir(false);
-            }
-          }}>
-            {t("conn.create")}
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setShowMkdir(false)}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            aria-label={t("terminalPicker.hintClose")}
+            onMouseDown={(event) => {
+              event.preventDefault();
+              cancelMkdirEditor();
+            }}
+            onClick={cancelMkdirEditor}
+          >
             <X size={14} />
           </Button>
         </div>

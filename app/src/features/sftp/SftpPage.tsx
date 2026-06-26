@@ -919,9 +919,40 @@ function RemoteFileList() {
   const mkdir = useSftpStore((s) => s.mkdir);
   const rename = useSftpStore((s) => s.rename);
   const dropRef = useRef<HTMLDivElement>(null);
+  const mkdirSubmittingRef = useRef(false);
   const currentHostId = tabs.find((tab) => tab.sessionId === sessionId)?.hostId ?? null;
 
   const { menuState, onContextMenu, closeMenu } = useContextMenu<FileEntry>();
+
+  const openMkdirEditor = useCallback(() => {
+    mkdirSubmittingRef.current = false;
+    setNewDirName("");
+    setShowMkdir(true);
+  }, []);
+
+  const cancelMkdirEditor = useCallback(() => {
+    mkdirSubmittingRef.current = false;
+    setShowMkdir(false);
+    setNewDirName("");
+  }, []);
+
+  const commitMkdirEditor = useCallback(async () => {
+    if (mkdirSubmittingRef.current) return;
+
+    const name = newDirName.trim();
+    if (!name) {
+      cancelMkdirEditor();
+      return;
+    }
+
+    mkdirSubmittingRef.current = true;
+    try {
+      await mkdir(name);
+      cancelMkdirEditor();
+    } finally {
+      mkdirSubmittingRef.current = false;
+    }
+  }, [cancelMkdirEditor, mkdir, newDirName]);
 
   // Wrap navigateRemote to also track recent paths
   const navigateRemoteWithRecent = useCallback(
@@ -1281,10 +1312,7 @@ function RemoteFileList() {
         setRenameValue(selected[0]);
       }
     };
-    const handleMkdir = () => {
-      setShowMkdir(true);
-      setNewDirName("");
-    };
+    const handleMkdir = openMkdirEditor;
 
     window.addEventListener("sftp:refresh", handleRefresh);
     window.addEventListener("sftp:rename", handleRename);
@@ -1297,7 +1325,7 @@ function RemoteFileList() {
       window.removeEventListener("sftp:delete", handleDelete);
       window.removeEventListener("sftp:mkdir", handleMkdir);
     };
-  }, [refreshRemote, selectedRemoteEntries, remoteEntries, remove, handleDelete]);
+  }, [refreshRemote, selectedRemoteEntries, remoteEntries, remove, handleDelete, openMkdirEditor]);
 
   // Handle native file drag-drop via Tauri drag events
   const addUploadingEntryDrop = useSftpStore((s) => s.addUploadingEntry);
@@ -1462,7 +1490,7 @@ function RemoteFileList() {
           )}
         </span>
         <span className="pane-actions">
-          <button className="btn btn-icon btn-ghost" onClick={() => { setShowMkdir(true); setNewDirName(""); }} title="New folder">
+          <button className="btn btn-icon btn-ghost" onClick={openMkdirEditor} title="New folder">
             <FolderPlus size={13} />
           </button>
           {selectedQuickEditEntry && (
@@ -1497,33 +1525,43 @@ function RemoteFileList() {
 
       {/* Mkdir inline input */}
       {showMkdir && (
-        <div className="flex items-center gap-2 border-b border-[var(--border-default)] px-3 py-1.5 bg-[var(--bg-elevated)]">
+        <div
+          className="flex items-center gap-2 border-b border-[var(--border-default)] px-3 py-1.5 bg-[var(--bg-elevated)]"
+          onBlur={(event) => {
+            const nextTarget = event.relatedTarget as Node | null;
+            if (nextTarget && event.currentTarget.contains(nextTarget)) return;
+            void commitMkdirEditor();
+          }}
+        >
           <Input
             value={newDirName}
             onChange={(e) => setNewDirName(e.target.value)}
             placeholder={t("sftp.newFolderName")}
             className="flex-1"
             autoFocus
-            onKeyDown={async (e) => {
-              if (e.key === "Enter" && newDirName.trim()) {
-                await mkdir(newDirName.trim());
-                setShowMkdir(false);
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void commitMkdirEditor();
+                return;
               }
-              if (e.key === "Escape") setShowMkdir(false);
+              if (e.key === "Escape") {
+                e.preventDefault();
+                cancelMkdirEditor();
+              }
             }}
           />
           <Button
+            type="button"
             size="sm"
-            onClick={async () => {
-              if (newDirName.trim()) {
-                await mkdir(newDirName.trim());
-                setShowMkdir(false);
-              }
+            variant="ghost"
+            aria-label={t("terminalPicker.hintClose")}
+            onMouseDown={(event) => {
+              event.preventDefault();
+              cancelMkdirEditor();
             }}
+            onClick={cancelMkdirEditor}
           >
-            {t("conn.create")}
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setShowMkdir(false)}>
             <X size={14} />
           </Button>
         </div>

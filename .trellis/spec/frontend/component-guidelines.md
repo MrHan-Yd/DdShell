@@ -375,6 +375,67 @@ return createPortal(
 
 ---
 
+## Convention: Inline auto-commit editors must separate blur confirm from cancel
+
+**What**: When an inline editor confirms on blur, attach blur handling to the editor container and ignore focus moves to controls inside that container. Cancel buttons must prevent the input's default blur on mouse down before closing the editor.
+
+**Why**: Browser event order fires `mousedown` before the input `blur`, then `click`. If the editor commits directly from input blur, clicking an `X` cancel button can accidentally create or save the current draft before the cancel click runs.
+
+**Example**:
+
+```tsx
+const commitEditor = async () => {
+  const value = draft.trim();
+  if (!value) {
+    closeEditor();
+    return;
+  }
+  await save(value);
+  closeEditor();
+};
+
+<div
+  onBlur={(event) => {
+    const nextTarget = event.relatedTarget as Node | null;
+    if (nextTarget && event.currentTarget.contains(nextTarget)) return;
+    void commitEditor();
+  }}
+>
+  <input
+    value={draft}
+    onChange={(event) => setDraft(event.target.value)}
+    onKeyDown={(event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void commitEditor();
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeEditor();
+      }
+    }}
+  />
+  <button
+    type="button"
+    onMouseDown={(event) => {
+      event.preventDefault();
+      closeEditor();
+    }}
+    onClick={closeEditor}
+  >
+    <X size={14} />
+  </button>
+</div>
+```
+
+**Required check**: For inline rename/create editors that commit on blur, verify clicking the cancel control does not commit the draft, and verify Enter/blur do not double-submit the same draft.
+
+**Related**:
+- `app/src/features/terminal/TerminalFileManagerDrawer.tsx`
+- `app/src/features/sftp/SftpPage.tsx`
+
+---
+
 ## Convention: Aurora button classes must restate reset-clobbered properties in the Aurora override block
 
 **What**: When a class targets a `<button>` element and sets `padding`, `border`, or `background` in the base layer (`app/src/styles.css` or `ui/styles/`), the Aurora override block in `app/src/styles/aurora/base.css` must restate those same declarations on `[data-ui-theme="aurora"] button.<class>`. The values must match the base layer exactly to prevent drift.
