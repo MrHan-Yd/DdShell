@@ -1251,3 +1251,36 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 35: 优化终端文件管理拖拽手感
+
+**Date**: 2026-06-26
+**Task**: 优化终端文件管理拖拽手感
+**Branch**: `main`
+
+### Summary
+
+优化终端文件管理抽屉拖拽：拖拽中关闭尺寸过渡，直接按帧写入高度和 grid 行高，暂停 xterm fit 并在释放后补最终 resize；补充可拖拽面板规范。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cfeb0fa` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

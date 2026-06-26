@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 34
+- **Total Sessions**: 35
 - **Last Active**: 2026-06-26
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1253 | Active |
+| `journal-1.md` | ~1286 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 35 | 2026-06-26 | 优化终端文件管理拖拽手感 | `cfeb0fa` | `main` |
 | 34 | 2026-06-26 | 右键菜单 hover 过渡微调 | `d74d2a8` | `main` |
 | 33 | 2026-06-26 | 右键菜单 hover 流畅优化 | `3514a9f` | `main` |
 | 32 | 2026-06-26 | 新建文件夹确认交互优化 | `bcfdf32` | `main` |
