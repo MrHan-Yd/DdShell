@@ -275,7 +275,7 @@ export function RemoteDirectoryPicker({
                 key={entry.name}
                 type="button"
                 onClick={() => loadDir(joinPath(currentPath, entry.name))}
-                className="flex w-full items-center gap-2 pl-5 pr-4 py-1.5 text-left text-[var(--font-size-sm)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]"
+                className="flex w-full items-center gap-2 pl-7 pr-4 py-1.5 text-left text-[var(--font-size-sm)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]"
               >
                 <Folder size={14} className="shrink-0 text-[var(--color-accent)]" />
                 <span className="flex-1 truncate font-mono">{entry.name}</span>
