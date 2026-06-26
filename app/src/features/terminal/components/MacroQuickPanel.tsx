@@ -252,7 +252,7 @@ export function MacroQuickPanel({
         </div>
       </div>
 
-      <div className="max-h-[320px] overflow-y-auto p-2">
+      <div className="max-h-[320px] space-y-2.5 overflow-y-auto p-3">
         {filtered.length === 0 ? (
           <div className="px-3 py-8 text-center text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
             {t("macro.noResults")}
@@ -278,10 +278,8 @@ export function MacroQuickPanel({
                   if (!showAdvancedParams) setSelectedIndex(index);
                 }}
                 className={cn(
-                  "relative mb-1 w-full overflow-hidden rounded-[var(--radius-control)] border px-3 py-2 text-left transition-colors",
-                  index === selectedIndex
-                    ? "border-[var(--color-accent)] bg-[var(--color-accent-subtle)]"
-                    : "border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-bg-hover)]",
+                  "terminal-macro-recipe relative w-full overflow-hidden rounded-[var(--radius-control)] text-left transition-colors",
+                  index === selectedIndex && "is-selected",
                   running && "cursor-not-allowed opacity-60",
                 )}
               >
@@ -295,8 +293,8 @@ export function MacroQuickPanel({
                   <p className="truncate text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">{recipe.title}</p>
                   <span className="text-[10px] text-[var(--color-text-muted)]">{stepCount} {t("macro.steps")}</span>
                 </div>
-                <div className="mt-1 line-clamp-1 text-[11px] text-[var(--color-text-muted)]">{recipe.description || "-"}</div>
-                <div className="mt-1.5 flex min-w-0 items-center gap-3 text-[10px] text-[var(--color-text-muted)]">
+                <div className="mt-1.5 line-clamp-1 text-[11px] leading-snug text-[var(--color-text-muted)]">{recipe.description || "-"}</div>
+                <div className="mt-2 flex min-w-0 items-center gap-3 text-[10px] leading-snug text-[var(--color-text-muted)]">
                   <div className="flex min-w-0 items-center gap-3 overflow-hidden">
                     <span>{paramCount} {t("macro.params")}</span>
                     <span className="truncate">{t("macro.lastRun")}: {formatLastRun(lastRunAtMap[recipe.id])}</span>
@@ -328,7 +326,7 @@ export function MacroQuickPanel({
               </span>
             </div>
             <div className="mb-2 px-1 text-[10px] text-[var(--color-text-muted)]">
-              点击上方列表切换当前宏并进入确认态，再次点击同一项才会执行。
+              {t("macro.advancedParamsHint")}
             </div>
             {selectedParams.length === 0 ? (
               <p className="px-1 py-1 text-[11px] text-[var(--color-text-muted)]">{t("macro.noParams")}</p>

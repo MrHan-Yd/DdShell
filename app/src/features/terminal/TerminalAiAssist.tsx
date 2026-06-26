@@ -29,6 +29,7 @@ const DEFAULT_CONFIG: AiAgentConfig = {
   enabled: false,
   defaultProfileId: null,
   executionMode: "run",
+  confirmBeforeExecute: true,
   profiles: [],
 };
 
@@ -193,14 +194,16 @@ export function TerminalAiAssist({
   };
 
   const handleRun = async (command: AiAgentCommand) => {
-    const ok = await confirm({
-      title: t("aiAssist.runConfirmTitle"),
-      description: `${command.command}\n\n${command.description}`,
-      confirmLabel: config.executionMode === "run" ? t("aiAssist.runCommand") : t("aiAssist.insertCommand"),
-      cancelLabel: t("confirm.cancel"),
-      confirmVariant: command.risk === "high" ? "danger" : "default",
-    });
-    if (!ok) return;
+    if (config.confirmBeforeExecute) {
+      const ok = await confirm({
+        title: t("aiAssist.runConfirmTitle"),
+        description: `${command.command}\n\n${command.description}`,
+        confirmLabel: config.executionMode === "run" ? t("aiAssist.runCommand") : t("aiAssist.insertCommand"),
+        cancelLabel: t("confirm.cancel"),
+        confirmVariant: command.risk === "high" ? "danger" : "default",
+      });
+      if (!ok) return;
+    }
     onRunCommand(command.command, config.executionMode === "run");
   };
 

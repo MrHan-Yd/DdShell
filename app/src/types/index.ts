@@ -174,6 +174,7 @@ export interface AiAgentConfig {
   enabled: boolean;
   defaultProfileId?: string | null;
   executionMode: AiAgentExecutionMode;
+  confirmBeforeExecute: boolean;
   timeoutSec?: number | null;
   profiles: AiAgentProfile[];
 }

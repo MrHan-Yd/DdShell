@@ -11,6 +11,7 @@ use crate::core::store::Database;
 const KEY_ENABLED: &str = "aiAgent.enabled";
 const KEY_DEFAULT_PROFILE: &str = "aiAgent.defaultProfileId";
 const KEY_EXECUTION_MODE: &str = "aiAgent.executionMode";
+const KEY_CONFIRM_BEFORE_EXECUTE: &str = "aiAgent.confirmBeforeExecute";
 const KEY_TIMEOUT_SEC: &str = "aiAgent.timeoutSec";
 const KEY_PROFILES: &str = "aiAgent.profiles";
 
@@ -57,6 +58,7 @@ pub struct AiAgentConfig {
     pub enabled: bool,
     pub default_profile_id: Option<String>,
     pub execution_mode: AiAgentExecutionMode,
+    pub confirm_before_execute: bool,
     pub timeout_sec: Option<u64>,
     pub profiles: Vec<AiAgentProfile>,
 }
@@ -67,8 +69,14 @@ pub struct AiAgentConfigSaveReq {
     pub enabled: bool,
     pub default_profile_id: Option<String>,
     pub execution_mode: AiAgentExecutionMode,
+    #[serde(default = "default_true")]
+    pub confirm_before_execute: bool,
     pub timeout_sec: Option<u64>,
     pub profiles: Vec<AiAgentProfile>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -167,6 +175,11 @@ pub async fn get_config(db: &Database) -> anyhow::Result<AiAgentConfig> {
         Some("insert") => AiAgentExecutionMode::Insert,
         _ => AiAgentExecutionMode::Run,
     };
+    let confirm_before_execute = db
+        .get_setting(KEY_CONFIRM_BEFORE_EXECUTE)
+        .await?
+        .map(|v| v != "false")
+        .unwrap_or(true);
     let stored_profiles: Vec<StoredProfile> = match db.get_setting(KEY_PROFILES).await? {
         Some(raw) if !raw.trim().is_empty() => serde_json::from_str(&raw).unwrap_or_default(),
         _ => Vec::new(),
@@ -193,6 +206,7 @@ pub async fn get_config(db: &Database) -> anyhow::Result<AiAgentConfig> {
         enabled,
         default_profile_id,
         execution_mode,
+        confirm_before_execute,
         timeout_sec,
         profiles,
     })
@@ -216,6 +230,11 @@ pub async fn save_config(db: &Database, req: AiAgentConfigSaveReq) -> anyhow::Re
             AiAgentExecutionMode::Run => "run",
             AiAgentExecutionMode::Insert => "insert",
         },
+    )
+    .await?;
+    db.set_setting(
+        KEY_CONFIRM_BEFORE_EXECUTE,
+        if req.confirm_before_execute { "true" } else { "false" },
     )
     .await?;
     db.set_setting(

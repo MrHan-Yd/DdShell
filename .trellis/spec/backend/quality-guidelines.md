@@ -160,6 +160,7 @@ Correct:
   - `aiAgent.enabled`: `"true"` / `"false"`
   - `aiAgent.defaultProfileId`: profile id or empty string
   - `aiAgent.executionMode`: `"run"` / `"insert"`
+  - `aiAgent.confirmBeforeExecute`: `"true"` / `"false"`, defaulting to `"true"` when missing
   - `aiAgent.timeoutSec`: shared provider request timeout in seconds
   - `aiAgent.profiles`: JSON array of non-secret profile fields
   - `aiAgent.profile.<id>.apiKey`: encrypted API key only
@@ -168,6 +169,7 @@ Correct:
 - `AiAgentSendReq` includes `profileId`, `question`, and optional terminal context (`tabTitle`, `cwd`, `selectedText`).
 - `AiAgentSendResponse` normalizes all providers to `answer`, `commands[]`, `rawText`, and `parseMode`.
 - Provider adapters must keep protocol-specific request/response handling in backend code, not in frontend components.
+- The AI command second-confirm dialog is a frontend behavior controlled by `AiAgentConfig.confirmBeforeExecute`; backend must persist and return the setting but must not couple provider calls to UI confirmation state.
 
 #### 4. Validation & Error Matrix
 - AI disabled -> return error before provider request.

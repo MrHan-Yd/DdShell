@@ -8,7 +8,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { FitAddon } from "@xterm/addon-fit";
 import { PredictiveEcho } from "./predictiveEcho";
-import { X, Plug, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star, Sparkles, Terminal as TerminalIcon } from "lucide-react";
+import { X, Plug, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star, Sparkles, Loader2, Square, Terminal as TerminalIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_DANGEROUS_COMMANDS, isCommandDangerous } from "@/lib/constants";
 import { useTerminalStore } from "@/stores/terminal";
@@ -23,7 +23,6 @@ import { DEFAULT_COMMAND_ASSIST_MODE, type AssistPosition, type CommandAssistMod
 import { useCommandAssistStore } from "@/stores/commandAssist";
 import { useWorkflowsStore } from "@/stores/workflows";
 import { useMacroRunner } from "./hooks/useMacroRunner";
-import { MacroRunButton } from "./components/MacroRunButton";
 import { MacroQuickPanel } from "./components/MacroQuickPanel";
 import { RemoteFilePicker } from "./RemoteFilePicker";
 import { TerminalFileManagerDrawer } from "./TerminalFileManagerDrawer";
@@ -2417,90 +2416,6 @@ export function TerminalPage() {
 
           <div className="mx-1 h-4 w-px bg-[var(--color-border)]" />
 
-          <div className="relative">
-            <MacroRunButton
-              open={showMacroPanel}
-              state={macroState}
-              progressText={progressText}
-              disabled={macroButtonDisabled}
-              onClick={handleToggleMacroPanel}
-              onStop={() => {
-                void stopRun();
-              }}
-            />
-            <MacroQuickPanel
-              open={showMacroPanel}
-              recipes={recipes}
-              recentRecipes={recentMacros}
-              lastRunAtMap={lastRunAtMap}
-              running={macroRunning}
-              onRun={(recipe, runtimeParams) => {
-                void handleRunMacro(recipe.id, runtimeParams);
-              }}
-              onClose={() => setShowMacroPanel(false)}
-            />
-          </div>
-
-          <div className="mx-1 h-4 w-px bg-[var(--color-border)]" />
-
-          <button
-            onClick={() => setShowAiAssist((value) => !value)}
-            disabled={!activeTab}
-            className={cn(
-              "flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-[var(--font-size-xs)] transition-colors disabled:opacity-40",
-              showAiAssist
-                ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
-                : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-secondary)]",
-            )}
-            title={t("aiAssist.title")}
-          >
-            <Sparkles size={14} />
-            <span>{t("aiAssist.shortTitle")}</span>
-          </button>
-
-          <div className="mx-1 h-4 w-px bg-[var(--color-border)]" />
-
-          {fileManagerEnabled && (
-            <>
-              <button
-                onClick={handleToggleFileManager}
-                disabled={!fileManagerTab}
-                className={cn(
-                  "flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-[var(--font-size-xs)] transition-colors disabled:opacity-40",
-                  showFileManager
-                    ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
-                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-secondary)]",
-                )}
-                title={t("terminalFileManager.title")}
-              >
-                <FolderOpen size={14} />
-                <span>{t("terminalFileManager.shortTitle")}</span>
-              </button>
-
-              <div className="mx-1 h-4 w-px bg-[var(--color-border)]" />
-            </>
-          )}
-
-          {/* Bookmark toggle */}
-          <button
-            ref={bookmarkToggleRef}
-            onClick={() => {
-              setShowHistory(false);
-              setShowBookmarks((v) => !v);
-            }}
-            className={cn(
-              "flex h-7 items-center justify-center rounded-[var(--radius-control)] px-2 text-[var(--font-size-xs)] transition-colors",
-              showBookmarks
-                ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
-                : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-secondary)]",
-            )}
-            title={t("term.bookmarks")}
-          >
-            <Bookmark size={14} />
-          </button>
-
-          <div className="mx-0.5 h-4 w-px bg-[var(--color-border)]" />
-
           {/* History toggle */}
           <button
             ref={historyToggleRef}
@@ -2546,6 +2461,114 @@ export function TerminalPage() {
               }}
             />
           )}
+          <div className="terminal-tool-rail" aria-label={t("terminalTool.label")}>
+            <div className="terminal-tool-item">
+              <button
+                className={cn(
+                  "terminal-tool-button",
+                  showBookmarks && "is-active",
+                )}
+                ref={bookmarkToggleRef}
+                type="button"
+                title={t("terminalTool.bookmarks")}
+                aria-label={t("terminalTool.bookmarks")}
+                disabled={!activeTab}
+                onClick={() => {
+                  setShowHistory(false);
+                  setShowBookmarks((v) => !v);
+                }}
+              >
+                <Bookmark size={15} />
+              </button>
+            </div>
+
+            <div className="terminal-tool-divider" />
+
+            <div className="terminal-tool-item">
+              <button
+                className={cn(
+                  "terminal-tool-button",
+                  showMacroPanel && "is-active",
+                  macroButtonDisabled && "is-disabled",
+                )}
+                type="button"
+                title={progressText ? `${t("terminalTool.macro")} · ${progressText}` : t("terminalTool.macro")}
+                aria-label={t("terminalTool.macro")}
+                disabled={macroButtonDisabled}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => {
+                  setShowHistory(false);
+                  setShowBookmarks(false);
+                  handleToggleMacroPanel();
+                }}
+              >
+                {macroState === "cancelling" ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
+              </button>
+              {macroRunning && (
+                <button
+                  className="terminal-tool-button is-danger"
+                  type="button"
+                  title={t("macro.stop")}
+                  aria-label={t("macro.stop")}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => {
+                    void stopRun();
+                  }}
+                >
+                  <Square size={13} />
+                </button>
+              )}
+              <MacroQuickPanel
+                open={showMacroPanel}
+                recipes={recipes}
+                recentRecipes={recentMacros}
+                lastRunAtMap={lastRunAtMap}
+                running={macroRunning}
+                onRun={(recipe, runtimeParams) => {
+                  void handleRunMacro(recipe.id, runtimeParams);
+                }}
+                onClose={() => setShowMacroPanel(false)}
+              />
+            </div>
+
+            <div className="terminal-tool-item">
+              <button
+                className={cn(
+                  "terminal-tool-button",
+                  showAiAssist && "is-active",
+                )}
+                type="button"
+                title={t("terminalTool.ai")}
+                aria-label={t("terminalTool.ai")}
+                disabled={!activeTab}
+                onClick={() => {
+                  setShowHistory(false);
+                  setShowBookmarks(false);
+                  setShowAiAssist((value) => !value);
+                }}
+              >
+                <Sparkles size={15} />
+              </button>
+            </div>
+
+            {fileManagerEnabled && (
+              <div className="terminal-tool-item">
+                <button
+                  className={cn(
+                    "terminal-tool-button",
+                    showFileManager && "is-active",
+                  )}
+                  type="button"
+                  title={t("terminalTool.files")}
+                  aria-label={t("terminalTool.files")}
+                  disabled={!fileManagerTab}
+                  onClick={handleToggleFileManager}
+                >
+                  <FolderOpen size={15} />
+                </button>
+              </div>
+            )}
+          </div>
           {/* Primary pane */}
           <div
             className="term-pane is-active relative z-10 overflow-hidden"

@@ -148,6 +148,7 @@ const dict = {
   "macro.run": { zh: "运行", en: "Run" },
   "macro.stop": { zh: "停止", en: "Stop" },
   "macro.advancedParams": { zh: "高级参数（本次运行）", en: "Advanced Params (this run)" },
+  "macro.advancedParamsHint": { zh: "点击上方列表切换当前宏并进入确认态，再次点击同一项才会执行。", en: "Click a macro above to select it and enter confirm mode. Click the same item again to run it." },
   "macro.overrideCount": { zh: "已覆盖 {n} 项", en: "{n} overrides" },
   "macro.noParams": { zh: "该宏无参数", en: "This macro has no params" },
   "macro.required": { zh: "必填", en: "Required" },
@@ -320,6 +321,13 @@ const dict = {
   "terminalFileManager.movedItems": { zh: "已移动 {n} 个项目", en: "Moved {n} item(s)" },
   "terminalFileManager.movePickerTitle": { zh: "选择目标目录 · {n} 项", en: "Select target directory · {n} item(s)" },
   "terminalFileManager.moveHere": { zh: "移动到这里", en: "Move here" },
+
+  // ── Terminal Tool Rail ──
+  "terminalTool.label": { zh: "终端工具栏", en: "Terminal tools" },
+  "terminalTool.bookmarks": { zh: "收藏", en: "Bookmarks" },
+  "terminalTool.macro": { zh: "命令宏", en: "Command macros" },
+  "terminalTool.ai": { zh: "AI 助手", en: "AI Assist" },
+  "terminalTool.files": { zh: "文件管理", en: "File manager" },
 
   // ── MonitorPage ──
   "monitor.title": { zh: "系统监控", en: "System Monitor" },
@@ -635,6 +643,8 @@ const dict = {
   "aiAgent.executionModeDesc": { zh: "点击执行命令并确认后，是直接执行，还是只插入终端等待手动回车。", en: "Choose whether Run command executes immediately or only inserts text for manual Enter." },
   "aiAgent.executionRun": { zh: "直接执行", en: "Run" },
   "aiAgent.executionInsert": { zh: "只插入", en: "Insert" },
+  "aiAgent.confirmBeforeExecute": { zh: "执行命令前二次确认", en: "Confirm before executing commands" },
+  "aiAgent.confirmBeforeExecuteDesc": { zh: "开启后点击执行命令会先弹窗确认；关闭后直接写入终端。危险命令仍受终端命令保护设置控制。", en: "When enabled, Run command asks for confirmation first. When disabled, commands are written to the terminal immediately. Dangerous commands still follow terminal protection settings." },
   "aiAgent.defaultProfile": { zh: "默认配置", en: "Default profile" },
   "aiAgent.defaultProfileDesc": { zh: "终端 AI 助手打开时默认使用的模型配置。", en: "Model profile used by default when Terminal AI Assist opens." },
   "aiAgent.noProfile": { zh: "未选择", en: "None" },

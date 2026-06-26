@@ -102,6 +102,7 @@ const DEFAULT_AI_AGENT_CONFIG: AiAgentConfig = {
   enabled: false,
   defaultProfileId: null,
   executionMode: "run",
+  confirmBeforeExecute: true,
   timeoutSec: 60,
   profiles: [],
 };
@@ -631,6 +632,16 @@ function AiAgentSettings({
               { value: "insert", label: t("aiAgent.executionInsert") },
             ]}
           />
+        </SettingRow>
+
+        <SettingRow label={t("aiAgent.confirmBeforeExecute")} description={t("aiAgent.confirmBeforeExecuteDesc")}>
+          <button
+            onClick={() => onChange({ ...config, confirmBeforeExecute: !config.confirmBeforeExecute })}
+            data-state={config.confirmBeforeExecute ? "on" : "off"}
+            className="toggle-switch"
+          >
+            <span className="toggle-thumb" />
+          </button>
         </SettingRow>
 
         <SettingRow label={t("aiAgent.timeout")} description={t("aiAgent.timeoutDesc")}>

@@ -3797,6 +3797,78 @@ button.terminal-reconnect-button:disabled,
 }
 
 /* Terminal toolbar popovers */
+.terminal-tool-rail {
+  position: absolute;
+  top: 44px;
+  right: 12px;
+  z-index: 14;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 40px;
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-bg-surface) 88%, transparent);
+  box-shadow: var(--shadow-floating);
+  backdrop-filter: blur(14px);
+}
+
+.terminal-tool-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.terminal-tool-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--color-text-muted);
+  background: transparent;
+  transition:
+    background var(--duration-fast) var(--ease-smooth),
+    border-color var(--duration-fast) var(--ease-smooth),
+    color var(--duration-fast) var(--ease-smooth),
+    transform var(--duration-fast) var(--ease-smooth);
+}
+
+.terminal-tool-button:hover:not(:disabled) {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-hover);
+  transform: translateY(-1px);
+}
+
+.terminal-tool-button.is-active {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.terminal-tool-button.is-danger {
+  color: var(--color-error);
+}
+
+.terminal-tool-button:disabled,
+.terminal-tool-button.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+.terminal-tool-divider {
+  width: 18px;
+  height: 1px;
+  background: var(--color-border-subtle);
+}
+
 .terminal-macro-panel {
   pointer-events: none;
   opacity: 0;
@@ -3818,6 +3890,49 @@ button.terminal-reconnect-button:disabled,
   pointer-events: none;
   opacity: 0;
   transform: translateY(-6px) scale(0.98);
+}
+
+button.terminal-macro-recipe,
+[data-ui-theme="classic"] button.terminal-macro-recipe,
+[data-ui-theme="aurora"] button.terminal-macro-recipe {
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, var(--color-accent));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-elevated) 96%, white 2%), var(--color-bg-elevated));
+  padding: 12px 18px;
+  text-align: left;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-accent) 7%, transparent);
+}
+
+button.terminal-macro-recipe:hover,
+[data-ui-theme="classic"] button.terminal-macro-recipe:hover,
+[data-ui-theme="aurora"] button.terminal-macro-recipe:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 46%, var(--color-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-hover) 96%, white 2%), var(--color-bg-hover));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+button.terminal-macro-recipe.is-selected,
+[data-ui-theme="classic"] button.terminal-macro-recipe.is-selected,
+[data-ui-theme="aurora"] button.terminal-macro-recipe.is-selected {
+  border-color: color-mix(in srgb, var(--color-accent) 82%, var(--color-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-accent-subtle) 84%, var(--color-bg-elevated)), var(--color-accent-subtle));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 9%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-accent) 22%, transparent),
+    0 10px 28px color-mix(in srgb, var(--color-accent) 13%, transparent);
+}
+
+@media (max-width: 720px) {
+  .terminal-tool-rail {
+    top: 40px;
+    right: 8px;
+  }
 }
 
 /* Classic file management mirrors the Aurora SFTP layout while using Classic colors. */
