@@ -255,7 +255,7 @@ export function RemoteDirectoryPicker({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--color-border)] py-1">
+        <div className="remote-directory-picker-list min-h-0 flex-1 overflow-y-auto border-t border-[var(--color-border)]">
           {error ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
               <span className="text-[var(--font-size-sm)] text-[var(--color-error)]">{t("terminalPicker.loadFailed")}</span>
@@ -275,7 +275,7 @@ export function RemoteDirectoryPicker({
                 key={entry.name}
                 type="button"
                 onClick={() => loadDir(joinPath(currentPath, entry.name))}
-                className="flex w-full items-center gap-2 pl-7 pr-4 py-1.5 text-left text-[var(--font-size-sm)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]"
+                className="remote-directory-picker-row"
               >
                 <Folder size={14} className="shrink-0 text-[var(--color-accent)]" />
                 <span className="flex-1 truncate font-mono">{entry.name}</span>

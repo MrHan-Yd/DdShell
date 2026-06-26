@@ -4118,6 +4118,34 @@ button.terminal-reconnect-button:disabled,
   transform: translateY(0);
 }
 
+.remote-directory-picker-list {
+  padding: 4px 16px;
+}
+
+button.remote-directory-picker-row,
+[data-ui-theme="classic"] button.remote-directory-picker-row,
+[data-ui-theme="aurora"] button.remote-directory-picker-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  padding: 6px 16px;
+  text-align: left;
+  font-size: var(--font-size-sm);
+  line-height: 1.25;
+}
+
+button.remote-directory-picker-row:hover,
+[data-ui-theme="classic"] button.remote-directory-picker-row:hover,
+[data-ui-theme="aurora"] button.remote-directory-picker-row:hover {
+  background: var(--color-bg-hover);
+}
+
 .tfm-head,
 .tfm-toolbar,
 .tfm-inline-editor,
