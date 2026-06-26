@@ -2189,7 +2189,7 @@ body {
   justify-content: space-between;
   gap: 10px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 9px 14px;
   border: 0;
   background: transparent;
   color: var(--color-text-secondary);
@@ -2208,7 +2208,7 @@ body {
   margin: 0;
   overflow: auto;
   border-top: 1px solid var(--color-border-subtle);
-  padding: 10px;
+  padding: 12px 14px;
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   line-height: 1.55;
