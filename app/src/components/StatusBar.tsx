@@ -1,4 +1,5 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
 import { useTerminalStore } from "@/stores/terminal";
 import { useSftpStore } from "@/stores/sftp";
 import { useMetricsStore } from "@/stores/metrics";
@@ -9,6 +10,7 @@ import { APP_NAME } from "@/lib/constants";
 import { useConfirmStore } from "@/stores/confirm";
 import { useUpdaterStore } from "@/stores/updater";
 import { UpdaterProgress } from "@/components/UpdaterProgress";
+import * as api from "@/lib/tauri";
 
 type HealthLevel = "GOOD" | "FAIR" | "POOR";
 
@@ -64,10 +66,25 @@ export function StatusBar() {
   const restartApp = useUpdaterStore((s) => s.restartApp);
   const openFallback = useUpdaterStore((s) => s.openFallback);
   const t = useT();
+  const [aiEnabled, setAiEnabled] = useState(false);
 
   useEffect(() => {
     void loadCurrentVersion();
   }, [loadCurrentVersion]);
+
+  useEffect(() => {
+    const loadAiState = async () => {
+      try {
+        const config = await api.aiAgentConfigGet();
+        setAiEnabled(config.enabled);
+      } catch {
+        setAiEnabled(false);
+      }
+    };
+    void loadAiState();
+    window.addEventListener("terminal:settings-changed", loadAiState);
+    return () => window.removeEventListener("terminal:settings-changed", loadAiState);
+  }, []);
 
   // Ping active session every 5 seconds
   useEffect(() => {
@@ -289,6 +306,14 @@ export function StatusBar() {
               {latency}ms
             </span>
           )}
+
+          <span className={cn(
+            "flex items-center gap-1 text-[var(--font-size-xs)]",
+            aiEnabled ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]",
+          )}>
+            <Sparkles size={11} />
+            {aiEnabled ? t("aiAssist.on") : t("aiAssist.off")}
+          </span>
 
           {connectedCount === 0 && activeTransfers === 0 && (
             <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">

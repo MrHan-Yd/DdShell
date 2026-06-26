@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check, Trash2, Plus, Github, Keyboard, Bot, Info, Palette, Search, MessageSquare, RefreshCw } from "lucide-react";
+import { Sun, Moon, Monitor, Save, RotateCcw, AlertTriangle, Globe, FolderOpen, X, Check, Trash2, Plus, Github, Keyboard, Bot, Info, Palette, Search, MessageSquare, RefreshCw, BrainCircuit } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Button } from "@/components/ui/themed/Button";
 import { Input } from "@/components/ui/themed/Input";
@@ -21,10 +21,10 @@ import type { DictKey, Locale } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
 import { confirm, useConfirmStore } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
-import type { TerminalBgSource } from "@/types";
+import type { AiAgentConfig, AiAgentExecutionMode, AiAgentProfile, AiAgentProtocol, TerminalBgSource } from "@/types";
 import { DEFAULT_COMMAND_ASSIST_MODE, type CommandAssistMode } from "@/features/terminal/CommandAssist";
 
-const TABS = ["general", "transfer", "terminal", "commandAssist", "shortcuts", "about"] as const;
+const TABS = ["general", "transfer", "terminal", "commandAssist", "aiAgent", "shortcuts", "about"] as const;
 type SettingsTab = (typeof TABS)[number];
 const IS_MAC = navigator.platform.toUpperCase().includes("MAC");
 const GITHUB_REPO_URL = "https://github.com/MrHan-Yd/DdShell";
@@ -96,6 +96,14 @@ const DEFAULT_TERMINAL: TerminalSettings = {
   dangerousCmdProtection: true,
   disabledBuiltinCmds: [],
   customDangerousCommands: [],
+};
+
+const DEFAULT_AI_AGENT_CONFIG: AiAgentConfig = {
+  enabled: false,
+  defaultProfileId: null,
+  executionMode: "run",
+  timeoutSec: 60,
+  profiles: [],
 };
 
 /** Compute relative luminance (WCAG formula) */
@@ -278,6 +286,7 @@ const SETTINGS_TAB_META: Array<{
   { value: "transfer", icon: FolderOpen, labelKey: "settings.tabTransfer", descKey: "settings.tabTransferDesc" },
   { value: "terminal", icon: Monitor, labelKey: "settings.tabTerminal", descKey: "settings.tabTerminalDesc" },
   { value: "commandAssist", icon: Bot, labelKey: "settings.tabCommandAssist", descKey: "settings.tabCommandAssistDesc" },
+  { value: "aiAgent", icon: BrainCircuit, labelKey: "settings.tabAiAgent", descKey: "settings.tabAiAgentDesc" },
   { value: "shortcuts", icon: Keyboard, labelKey: "settings.tabShortcuts", descKey: "settings.tabShortcutsDesc" },
   { value: "about", icon: Info, labelKey: "settings.tabAbout", descKey: "settings.tabAboutDesc" },
 ];
@@ -526,6 +535,245 @@ function CommandAssistSettings({
   );
 }
 
+interface AiAgentSettingsProps {
+  t: ReturnType<typeof useT>;
+  config: AiAgentConfig;
+  keyDrafts: Record<string, string>;
+  clearedKeys: Record<string, boolean>;
+  onChange: (config: AiAgentConfig) => void;
+  onChangeKeyDraft: (profileId: string, value: string) => void;
+  onClearKey: (profileId: string) => void;
+}
+
+const AI_PROTOCOL_OPTIONS: Array<{ value: AiAgentProtocol; labelKey: DictKey }> = [
+  { value: "openaiChat", labelKey: "aiAgent.protocolOpenaiChat" },
+  { value: "openaiResponses", labelKey: "aiAgent.protocolOpenaiResponses" },
+  { value: "claudeMessages", labelKey: "aiAgent.protocolClaude" },
+  { value: "geminiGenerateContent", labelKey: "aiAgent.protocolGemini" },
+];
+
+function defaultAiProfile(): AiAgentProfile {
+  return {
+    id: crypto.randomUUID(),
+    name: "OpenAI",
+    protocol: "openaiChat",
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-4.1",
+    contextWindowTokens: 128000,
+    temperature: 0.2,
+    maxTokens: 1200,
+    apiKeySet: false,
+  };
+}
+
+function AiAgentSettings({
+  t,
+  config,
+  keyDrafts,
+  clearedKeys,
+  onChange,
+  onChangeKeyDraft,
+  onClearKey,
+}: AiAgentSettingsProps) {
+  const updateProfile = (profileId: string, patch: Partial<AiAgentProfile>) => {
+    onChange({
+      ...config,
+      profiles: config.profiles.map((profile) => (
+        profile.id === profileId ? { ...profile, ...patch } : profile
+      )),
+    });
+  };
+
+  const addProfile = () => {
+    const profile = defaultAiProfile();
+    onChange({
+      ...config,
+      defaultProfileId: config.defaultProfileId || profile.id,
+      profiles: [...config.profiles, profile],
+    });
+  };
+
+  const removeProfile = (profileId: string) => {
+    const profiles = config.profiles.filter((profile) => profile.id !== profileId);
+    const defaultProfileId = config.defaultProfileId === profileId
+      ? profiles[0]?.id ?? null
+      : config.defaultProfileId ?? null;
+    onChange({ ...config, profiles, defaultProfileId });
+  };
+
+  const setDefaultProfile = (profileId: string) => {
+    onChange({ ...config, defaultProfileId: profileId });
+  };
+
+  return (
+    <>
+      <Section title={t("aiAgent.general")} description={t("aiAgent.generalDesc")}>
+        <SettingRow label={t("aiAgent.enabled")} description={t("aiAgent.enabledDesc")}>
+          <button
+            onClick={() => onChange({ ...config, enabled: !config.enabled })}
+            data-state={config.enabled ? "on" : "off"}
+            className="toggle-switch"
+          >
+            <span className="toggle-thumb" />
+          </button>
+        </SettingRow>
+
+        <SettingRow label={t("aiAgent.executionMode")} description={t("aiAgent.executionModeDesc")}>
+          <SegmentedControl
+            value={config.executionMode}
+            onChange={(value) => {
+              if (value === "run" || value === "insert") {
+                onChange({ ...config, executionMode: value as AiAgentExecutionMode });
+              }
+            }}
+            options={[
+              { value: "run", label: t("aiAgent.executionRun") },
+              { value: "insert", label: t("aiAgent.executionInsert") },
+            ]}
+          />
+        </SettingRow>
+
+        <SettingRow label={t("aiAgent.timeout")} description={t("aiAgent.timeoutDesc")}>
+          <Input
+            type="number"
+            min={5}
+            max={300}
+            value={String(config.timeoutSec ?? 60)}
+            onChange={(event) => onChange({ ...config, timeoutSec: Number(event.target.value) })}
+          />
+        </SettingRow>
+
+        <SettingRow label={t("aiAgent.defaultProfile")} description={t("aiAgent.defaultProfileDesc")}>
+          <Select
+            value={config.defaultProfileId || ""}
+            onChange={(value) => onChange({ ...config, defaultProfileId: value || null })}
+            options={[
+              { value: "", label: t("aiAgent.noProfile") },
+              ...config.profiles.map((profile) => ({ value: profile.id, label: profile.name || t("aiAgent.unnamedProfile") })),
+            ]}
+          />
+        </SettingRow>
+      </Section>
+
+      <Section title={t("aiAgent.profiles")} description={t("aiAgent.profilesDesc")}>
+        <div className="flex justify-end pb-3">
+          <Button size="sm" variant="secondary" onClick={addProfile}>
+            <Plus size={14} />
+            {t("aiAgent.addProfile")}
+          </Button>
+        </div>
+
+        {config.profiles.length === 0 ? (
+          <div className="rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-4 text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
+            {t("aiAgent.emptyProfiles")}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {config.profiles.map((profile) => {
+              const keyCleared = Boolean(clearedKeys[profile.id]);
+              const hasKey = profile.apiKeySet && !keyCleared;
+              return (
+                <div key={profile.id} className="rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-3">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Input
+                      value={profile.name}
+                      onChange={(event) => updateProfile(profile.id, { name: event.target.value })}
+                      placeholder={t("aiAgent.profileName")}
+                    />
+                    <Button
+                      size="sm"
+                      variant={config.defaultProfileId === profile.id ? "default" : "secondary"}
+                      onClick={() => setDefaultProfile(profile.id)}
+                    >
+                      <Check size={13} />
+                      {config.defaultProfileId === profile.id ? t("aiAgent.default") : t("aiAgent.setDefault")}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => removeProfile(profile.id)}>
+                      <Trash2 size={13} />
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <SettingRow label={t("aiAgent.protocol")} className="settings-row--compact">
+                      <Select
+                        value={profile.protocol}
+                        onChange={(value) => updateProfile(profile.id, { protocol: value as AiAgentProtocol })}
+                        options={AI_PROTOCOL_OPTIONS.map((option) => ({
+                          value: option.value,
+                          label: t(option.labelKey),
+                        }))}
+                      />
+                    </SettingRow>
+                    <SettingRow label={t("aiAgent.model")} className="settings-row--compact">
+                      <Input
+                        value={profile.model}
+                        onChange={(event) => updateProfile(profile.id, { model: event.target.value })}
+                        placeholder="gpt-4.1"
+                      />
+                    </SettingRow>
+                    <SettingRow label={t("aiAgent.contextWindow")} description={t("aiAgent.contextWindowDesc")} className="settings-row--compact">
+                      <Input
+                        type="number"
+                        min={1000}
+                        max={10000000}
+                        step={1000}
+                        value={String(profile.contextWindowTokens ?? 128000)}
+                        onChange={(event) => updateProfile(profile.id, { contextWindowTokens: Number(event.target.value) })}
+                      />
+                    </SettingRow>
+                    <SettingRow label={t("aiAgent.baseUrl")} className="settings-row--compact">
+                      <Input
+                        value={profile.baseUrl}
+                        onChange={(event) => updateProfile(profile.id, { baseUrl: event.target.value })}
+                        placeholder="https://api.openai.com/v1"
+                      />
+                    </SettingRow>
+                    <SettingRow label={t("aiAgent.apiKey")} description={hasKey ? t("aiAgent.apiKeySaved") : t("aiAgent.apiKeyMissing")} className="settings-row--compact">
+                      <div className="flex gap-2">
+                        <Input
+                          type="password"
+                          value={keyDrafts[profile.id] ?? ""}
+                          onChange={(event) => onChangeKeyDraft(profile.id, event.target.value)}
+                          placeholder={hasKey ? t("aiAgent.keepExistingKey") : t("aiAgent.enterApiKey")}
+                        />
+                        {hasKey && (
+                          <Button size="sm" variant="secondary" onClick={() => onClearKey(profile.id)}>
+                            {t("settings.clear")}
+                          </Button>
+                        )}
+                      </div>
+                    </SettingRow>
+                    <SettingRow label={t("aiAgent.temperature")} description={t("aiAgent.temperatureDesc")} className="settings-row--compact">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={2}
+                        step={0.1}
+                        value={String(profile.temperature ?? 0.2)}
+                        onChange={(event) => updateProfile(profile.id, { temperature: Number(event.target.value) })}
+                      />
+                    </SettingRow>
+                    <SettingRow label={t("aiAgent.maxTokens")} description={t("aiAgent.maxTokensDesc")} className="settings-row--compact">
+                      <Input
+                        type="number"
+                        min={128}
+                        max={8000}
+                        step={128}
+                        value={String(profile.maxTokens ?? 1200)}
+                        onChange={(event) => updateProfile(profile.id, { maxTokens: Number(event.target.value) })}
+                      />
+                    </SettingRow>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Section>
+    </>
+  );
+}
+
 export function SettingsPage() {
   const committedTheme = useAppStore((s) => s.theme);
   const committedUiTheme = useAppStore((s) => s.uiTheme);
@@ -572,6 +820,9 @@ export function SettingsPage() {
   const [caConfirmKey, setCaConfirmKey] = useState<"tab" | "enter">("tab");
   const [caPosition, setCaPosition] = useState("bottom-left");
   const [caEnabledCategories, setCaEnabledCategories] = useState<Record<string, boolean>>({});
+  const [aiAgentConfig, setAiAgentConfig] = useState<AiAgentConfig>(DEFAULT_AI_AGENT_CONFIG);
+  const [aiAgentKeyDrafts, setAiAgentKeyDrafts] = useState<Record<string, string>>({});
+  const [aiAgentClearedKeys, setAiAgentClearedKeys] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
   const [systemFonts, setSystemFonts] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -590,6 +841,7 @@ export function SettingsPage() {
     confirmDanger, sessionTimeout, chunkSize, maxConcurrent, transferTimeout,
     retryCount, downloadPath, transferNotify, predictiveEchoEnabled,
     caEnabled, caMode, caConfirmKey, caPosition, caEnabledCategories,
+    aiAgentConfig,
   });
 
   useEffect(() => {
@@ -777,6 +1029,15 @@ export function SettingsPage() {
           for (const id of COMMAND_ASSIST_ALL_IDS) cats[id] = parsed.includes(id);
         }
         setCaEnabledCategories(cats);
+
+        try {
+          const savedAiAgentConfig = await api.aiAgentConfigGet();
+          setAiAgentConfig(savedAiAgentConfig);
+          setAiAgentKeyDrafts({});
+          setAiAgentClearedKeys({});
+        } catch {
+          setAiAgentConfig(DEFAULT_AI_AGENT_CONFIG);
+        }
       } catch {
         // Use defaults if settings not available yet
       }
@@ -840,6 +1101,19 @@ export function SettingsPage() {
         { key: "commandAssist.position", value: caPosition },
         { key: "commandAssist.enabledAppCategories", value: JSON.stringify(enabledCats) },
       ]);
+      await api.aiAgentConfigSave(aiAgentConfig);
+      await Promise.all([
+        ...Object.entries(aiAgentKeyDrafts)
+          .filter(([, value]) => value.trim())
+          .map(([profileId, value]) => api.aiAgentProfileSetKey(profileId, value.trim())),
+        ...Object.keys(aiAgentClearedKeys)
+          .filter((profileId) => aiAgentClearedKeys[profileId] && !aiAgentKeyDrafts[profileId]?.trim())
+          .map((profileId) => api.aiAgentProfileClearKey(profileId)),
+      ]);
+      const refreshedAiAgentConfig = await api.aiAgentConfigGet();
+      setAiAgentConfig(refreshedAiAgentConfig);
+      setAiAgentKeyDrafts({});
+      setAiAgentClearedKeys({});
       // Backend write succeeded — now commit to global store / runtime so
       // theme + locale visuals flip, terminals re-read settings, etc.
       setStoreTheme(theme);
@@ -879,6 +1153,9 @@ export function SettingsPage() {
     const cats: Record<string, boolean> = {};
     for (const id of COMMAND_ASSIST_ALL_IDS) cats[id] = true;
     setCaEnabledCategories(cats);
+    setAiAgentConfig(DEFAULT_AI_AGENT_CONFIG);
+    setAiAgentKeyDrafts({});
+    setAiAgentClearedKeys({});
     setResetDone(true);
     setTimeout(() => setResetDone(false), 600);
   };
@@ -2046,6 +2323,32 @@ export function SettingsPage() {
           onChangeConfirmKey={setCaConfirmKey}
           onChangePosition={setCaPosition}
           onChangeCategories={setCaEnabledCategories}
+        />
+        </>)}
+
+        {activeTab === "aiAgent" && (<>
+        <AiAgentSettings
+          t={t}
+          config={aiAgentConfig}
+          keyDrafts={aiAgentKeyDrafts}
+          clearedKeys={aiAgentClearedKeys}
+          onChange={setAiAgentConfig}
+          onChangeKeyDraft={(profileId, value) => {
+            setAiAgentKeyDrafts((current) => ({ ...current, [profileId]: value }));
+            if (value.trim()) {
+              setAiAgentClearedKeys((current) => ({ ...current, [profileId]: false }));
+            }
+          }}
+          onClearKey={(profileId) => {
+            setAiAgentKeyDrafts((current) => ({ ...current, [profileId]: "" }));
+            setAiAgentClearedKeys((current) => ({ ...current, [profileId]: true }));
+            setAiAgentConfig((current) => ({
+              ...current,
+              profiles: current.profiles.map((profile) => (
+                profile.id === profileId ? { ...profile, apiKeySet: false } : profile
+              )),
+            }));
+          }}
         />
         </>)}
 

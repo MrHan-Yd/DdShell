@@ -8,7 +8,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { FitAddon } from "@xterm/addon-fit";
 import { PredictiveEcho } from "./predictiveEcho";
-import { X, Plug, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star, Terminal as TerminalIcon } from "lucide-react";
+import { X, Plug, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star, Sparkles, Terminal as TerminalIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_DANGEROUS_COMMANDS, isCommandDangerous } from "@/lib/constants";
 import { useTerminalStore } from "@/stores/terminal";
@@ -27,6 +27,7 @@ import { MacroRunButton } from "./components/MacroRunButton";
 import { MacroQuickPanel } from "./components/MacroQuickPanel";
 import { RemoteFilePicker } from "./RemoteFilePicker";
 import { TerminalFileManagerDrawer } from "./TerminalFileManagerDrawer";
+import { TerminalAiAssist } from "./TerminalAiAssist";
 import { cleanSelectedPath, extractAbsolutePathFromSelection, inferCwdFromBuffer } from "./cwdInfer";
 import { openQuickEditWindow } from "@/lib/quickEditWindow";
 import { getRemoteDirPath, readQuickEditPickerDir, recordQuickEditPickerDir } from "@/lib/quickEditPickerDir";
@@ -1690,6 +1691,7 @@ export function TerminalPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showMacroPanel, setShowMacroPanel] = useState(false);
+  const [showAiAssist, setShowAiAssist] = useState(false);
   const [showFileManager, setShowFileManager] = useState(false);
   const [renderFileManager, setRenderFileManager] = useState(false);
   const [fileManagerEnabled, setFileManagerEnabled] = useState(true);
@@ -1869,6 +1871,39 @@ export function TerminalPage() {
       api.sessionWrite(activeTab.sessionId, bytes).catch((err) => toast.error(String(err)));
     },
     [tabs, activeTabId],
+  );
+
+  const handleAiRunCommand = useCallback(
+    (command: string, appendEnter: boolean) => {
+      const activeTab = tabs.find((t) => t.id === activeTabId);
+      if (!activeTab) return;
+
+      const write = () => {
+        const text = appendEnter ? `${command}\r` : command;
+        const bytes = Array.from(TEXT_ENCODER.encode(text));
+        api.sessionWrite(activeTab.sessionId, bytes).catch((err) => toast.error(String(err)));
+      };
+
+      if (appendEnter && termSettings?.dangerousCmdProtection) {
+        const disabled = new Set(termSettings.disabledBuiltinCmds ?? []);
+        const patterns = [
+          ...DEFAULT_DANGEROUS_COMMANDS.filter((c) => !disabled.has(c)),
+          ...(termSettings.customDangerousCommands ?? []),
+        ];
+        if (patterns.length && isCommandDangerous(command, patterns)) {
+          confirm({
+            title: t("settings.cmdConfirmTitle"),
+            description: t("settings.cmdConfirmDesc").replace("{cmd}", command),
+          }).then((ok) => {
+            if (ok) write();
+          });
+          return;
+        }
+      }
+
+      write();
+    },
+    [tabs, activeTabId, termSettings, t],
   );
 
   const handleNavigateToDir = useCallback(
@@ -2408,6 +2443,23 @@ export function TerminalPage() {
 
           <div className="mx-1 h-4 w-px bg-[var(--color-border)]" />
 
+          <button
+            onClick={() => setShowAiAssist((value) => !value)}
+            disabled={!activeTab}
+            className={cn(
+              "flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-[var(--font-size-xs)] transition-colors disabled:opacity-40",
+              showAiAssist
+                ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
+                : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-secondary)]",
+            )}
+            title={t("aiAssist.title")}
+          >
+            <Sparkles size={14} />
+            <span>{t("aiAssist.shortTitle")}</span>
+          </button>
+
+          <div className="mx-1 h-4 w-px bg-[var(--color-border)]" />
+
           {fileManagerEnabled && (
             <>
               <button
@@ -2592,6 +2644,14 @@ export function TerminalPage() {
               onClose={() => setShowHistory(false)}
             />
           </div>
+
+          <TerminalAiAssist
+            open={showAiAssist}
+            activeTab={activeTab}
+            cwd={activeTab ? sessionCwdMap[activeTab.sessionId] ?? null : null}
+            onClose={() => setShowAiAssist(false)}
+            onRunCommand={handleAiRunCommand}
+          />
         </div>
         {shouldRenderFileManager && fileManagerTab && (
           <div

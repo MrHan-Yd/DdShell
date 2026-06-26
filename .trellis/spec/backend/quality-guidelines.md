@@ -142,6 +142,80 @@ Correct:
 }
 ```
 
+### Scenario: AI Agent Provider Configuration and Command Suggestions
+
+#### 1. Scope / Trigger
+- Trigger: terminal AI features need model provider configuration, encrypted API keys, third-party HTTP calls, and normalized command suggestions for the frontend.
+- Applies to Tauri commands and backend modules that read/write `aiAgent.*` settings or call AI provider APIs.
+
+#### 2. Signatures
+- `ai_agent_config_get() -> Result<AiAgentConfig, String>`
+- `ai_agent_config_save(req: AiAgentConfigSaveReq) -> Result<AiAgentConfig, String>`
+- `ai_agent_profile_set_key(profile_id: String, api_key: String) -> Result<SuccessResponse, String>`
+- `ai_agent_profile_clear_key(profile_id: String) -> Result<SuccessResponse, String>`
+- `ai_agent_send(req: AiAgentSendReq) -> Result<AiAgentSendResponse, String>`
+
+#### 3. Contracts
+- Settings keys:
+  - `aiAgent.enabled`: `"true"` / `"false"`
+  - `aiAgent.defaultProfileId`: profile id or empty string
+  - `aiAgent.executionMode`: `"run"` / `"insert"`
+  - `aiAgent.timeoutSec`: shared provider request timeout in seconds
+  - `aiAgent.profiles`: JSON array of non-secret profile fields
+  - `aiAgent.profile.<id>.apiKey`: encrypted API key only
+- `AiAgentProfile` response must include `apiKeySet: bool`, but must never include plaintext or encrypted API key.
+- `AiAgentProfile.contextWindowTokens` is the model capacity used for app-side prompt/context budgeting; it is not sent as a universal provider parameter and does not override real model limits.
+- `AiAgentSendReq` includes `profileId`, `question`, and optional terminal context (`tabTitle`, `cwd`, `selectedText`).
+- `AiAgentSendResponse` normalizes all providers to `answer`, `commands[]`, `rawText`, and `parseMode`.
+- Provider adapters must keep protocol-specific request/response handling in backend code, not in frontend components.
+
+#### 4. Validation & Error Matrix
+- AI disabled -> return error before provider request.
+- Profile id not found -> return profile-not-found error.
+- Empty base URL or model -> return validation error.
+- Missing/cleared API key -> return key-not-configured error.
+- Provider non-2xx -> return status plus a short bounded provider error body; never include API key.
+- Provider invalid JSON wrapper -> return invalid-response error.
+- Model output parse failure -> return `parseMode = "none"` with no commands rather than guessing commands from prose.
+
+#### 5. Good/Base/Bad Cases
+- Good: OpenAI-compatible profile stores only non-secret fields in `aiAgent.profiles`; key is encrypted under `aiAgent.profile.<id>.apiKey`; frontend receives `apiKeySet: true`.
+- Base: Claude output is JSON because system prompt enforces the shared schema; parser returns `parseMode = "json"` and one command.
+- Bad: Frontend calls provider APIs directly with a plaintext key or stores provider key inside `aiAgent.profiles`.
+
+#### 6. Tests Required
+- `cd app && pnpm build` verifies frontend/Tauri type alignment and i18n keys.
+- `cd app/src-tauri && cargo check` verifies command registration and backend type alignment.
+- When automated tests are added, assert:
+  - config read redacts keys and reports `apiKeySet`
+  - save config preserves profile fields without secrets
+  - missing key blocks `ai_agent_send`
+  - parser handles raw JSON, fenced JSON, JSON object inside text, shell fenced fallback, and no-command prose
+
+#### 7. Wrong vs Correct
+
+Wrong:
+
+```ts
+// Frontend owns provider details and sends the API key directly.
+await fetch(`${baseUrl}/chat/completions`, {
+  headers: { Authorization: `Bearer ${apiKey}` },
+  body: JSON.stringify(providerSpecificBody),
+});
+```
+
+Correct:
+
+```ts
+// Frontend sends normalized app data; backend decrypts key, calls provider,
+// and returns normalized command suggestions.
+await api.aiAgentSend({
+  profileId,
+  question,
+  context: { tabTitle, cwd, selectedText: null },
+});
+```
+
 ---
 
 ## Testing Requirements

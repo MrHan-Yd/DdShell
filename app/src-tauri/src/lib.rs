@@ -8,6 +8,7 @@ use russh::ChannelMsg;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
+use crate::core::ai_agent::{AiAgentConfig, AiAgentConfigSaveReq, AiAgentSendReq, AiAgentSendResponse};
 use crate::core::command_assist::CommandAssistEngine;
 use crate::core::event;
 use crate::core::metrics::MetricsManager;
@@ -839,6 +840,60 @@ async fn setting_set_many(
 ) -> Result<SuccessResponse, String> {
     db.set_settings(&entries).await.map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
+}
+
+// ── Commands: AI Agent ──
+
+#[tauri::command]
+async fn ai_agent_config_get(
+    db: tauri::State<'_, Database>,
+) -> Result<AiAgentConfig, String> {
+    core::ai_agent::get_config(&db)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn ai_agent_config_save(
+    db: tauri::State<'_, Database>,
+    req: AiAgentConfigSaveReq,
+) -> Result<AiAgentConfig, String> {
+    core::ai_agent::save_config(&db, req)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn ai_agent_profile_set_key(
+    db: tauri::State<'_, Database>,
+    profile_id: String,
+    api_key: String,
+) -> Result<SuccessResponse, String> {
+    core::ai_agent::set_profile_key(&db, &profile_id, &api_key)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn ai_agent_profile_clear_key(
+    db: tauri::State<'_, Database>,
+    profile_id: String,
+) -> Result<SuccessResponse, String> {
+    core::ai_agent::clear_profile_key(&db, &profile_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn ai_agent_send(
+    db: tauri::State<'_, Database>,
+    req: AiAgentSendReq,
+) -> Result<AiAgentSendResponse, String> {
+    core::ai_agent::send(&db, req)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 // ── Commands: SSH Session ──
@@ -2616,6 +2671,11 @@ pub fn run() {
             setting_get,
             setting_set,
             setting_set_many,
+            ai_agent_config_get,
+            ai_agent_config_save,
+            ai_agent_profile_set_key,
+            ai_agent_profile_clear_key,
+            ai_agent_send,
             session_connect,
             session_disconnect,
             session_write,

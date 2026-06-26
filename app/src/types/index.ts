@@ -150,6 +150,60 @@ export interface WorkflowRun {
   error?: string | null;
 }
 
+export type AiAgentProtocol =
+  | "openaiChat"
+  | "openaiResponses"
+  | "claudeMessages"
+  | "geminiGenerateContent";
+
+export type AiAgentExecutionMode = "run" | "insert";
+
+export interface AiAgentProfile {
+  id: string;
+  name: string;
+  protocol: AiAgentProtocol;
+  baseUrl: string;
+  model: string;
+  contextWindowTokens?: number | null;
+  temperature?: number | null;
+  maxTokens?: number | null;
+  apiKeySet: boolean;
+}
+
+export interface AiAgentConfig {
+  enabled: boolean;
+  defaultProfileId?: string | null;
+  executionMode: AiAgentExecutionMode;
+  timeoutSec?: number | null;
+  profiles: AiAgentProfile[];
+}
+
+export interface AiAgentTerminalContext {
+  tabTitle?: string | null;
+  cwd?: string | null;
+  selectedText?: string | null;
+}
+
+export interface AiAgentSendRequest {
+  profileId: string;
+  question: string;
+  context?: AiAgentTerminalContext | null;
+}
+
+export interface AiAgentCommand {
+  command: string;
+  description: string;
+  risk: "low" | "medium" | "high" | string;
+  confidence: "low" | "medium" | "high" | string;
+}
+
+export interface AiAgentSendResponse {
+  answer: string;
+  commands: AiAgentCommand[];
+  rawText: string;
+  parseMode: "json" | "jsonBlock" | "jsonObject" | "shellBlock" | "none" | string;
+}
+
 /** API error — API-CONTRACTS §1 */
 export interface ApiError {
   code: string;

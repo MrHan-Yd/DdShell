@@ -21,6 +21,9 @@ import type {
   SshConfigImportResult,
   RemoteTextFile,
   RemoteTextWriteResult,
+  AiAgentConfig,
+  AiAgentSendRequest,
+  AiAgentSendResponse,
 } from "@/types";
 
 // ── Connection commands ──
@@ -245,6 +248,28 @@ export async function settingSet(key: string, value: string): Promise<{ success:
 
 export async function settingSetMany(entries: Array<{ key: string; value: string }>): Promise<{ success: boolean }> {
   return invoke("setting_set_many", { entries });
+}
+
+// ── AI Agent commands ──
+
+export async function aiAgentConfigGet(): Promise<AiAgentConfig> {
+  return invoke("ai_agent_config_get");
+}
+
+export async function aiAgentConfigSave(req: AiAgentConfig): Promise<AiAgentConfig> {
+  return invoke("ai_agent_config_save", { req });
+}
+
+export async function aiAgentProfileSetKey(profileId: string, apiKey: string): Promise<{ success: boolean }> {
+  return invoke("ai_agent_profile_set_key", { profileId, apiKey });
+}
+
+export async function aiAgentProfileClearKey(profileId: string): Promise<{ success: boolean }> {
+  return invoke("ai_agent_profile_clear_key", { profileId });
+}
+
+export async function aiAgentSend(req: AiAgentSendRequest): Promise<AiAgentSendResponse> {
+  return invoke("ai_agent_send", { req });
 }
 
 // ── Health check ──
