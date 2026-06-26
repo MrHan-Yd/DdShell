@@ -1284,3 +1284,43 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 36: AI Agent terminal window
+
+**Date**: 2026-06-27
+**Task**: AI Agent terminal window
+**Branch**: `main`
+
+### Summary
+
+Implemented terminal AI Assist with provider profiles, history, command execution controls, command mode handling, reasoning/status display, and UI polish.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e724228` | (see git log) |
+| `4aaa7d6` | (see git log) |
+| `3fa0380` | (see git log) |
+| `06df13f` | (see git log) |
+| `2653b5e` | (see git log) |
+| `1564a64` | (see git log) |
+| `83f436a` | (see git log) |
+| `580ca7f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
