@@ -2198,7 +2198,21 @@ body {
   text-align: left;
 }
 
+button.ai-reasoning-toggle,
+[data-ui-theme="aurora"] button.ai-reasoning-toggle {
+  padding: 9px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
 .ai-reasoning-toggle:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+button.ai-reasoning-toggle:hover,
+[data-ui-theme="aurora"] button.ai-reasoning-toggle:hover {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
 }
