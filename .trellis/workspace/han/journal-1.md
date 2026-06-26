@@ -1218,3 +1218,36 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 34: 右键菜单 hover 过渡微调
+
+**Date**: 2026-06-26
+**Task**: 右键菜单 hover 过渡微调
+**Branch**: `main`
+
+### Summary
+
+将通用右键菜单 hover 高亮的 transform 过渡从 45ms linear 调整为 70ms ease-out 曲线，并同步组件规范示例。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d74d2a8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
