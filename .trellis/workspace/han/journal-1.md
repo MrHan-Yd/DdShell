@@ -1152,3 +1152,36 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 32: 新建文件夹确认交互优化
+
+**Date**: 2026-06-26
+**Task**: 新建文件夹确认交互优化
+**Branch**: `main`
+
+### Summary
+
+移除新建文件夹 inline 表单的创建文字按钮，改为 Enter 或失焦确认创建，并保留 Esc/X 取消；补充 inline auto-commit editor 的取消防误提交规范。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bcfdf32` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
