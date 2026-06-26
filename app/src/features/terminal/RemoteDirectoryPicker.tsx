@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, Folder, Loader2, RefreshCw, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
@@ -143,11 +144,11 @@ export function RemoteDirectoryPicker({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
       data-remote-directory-picker
       className={cn(
-        "fixed inset-0 z-[125] flex items-center justify-center transition-opacity duration-200 ease-[var(--ease-smooth)]",
+        "fixed inset-0 z-[125] flex items-center justify-center p-3 transition-opacity duration-200 ease-[var(--ease-smooth)]",
         show ? "opacity-100" : "opacity-0",
       )}
     >
@@ -157,11 +158,11 @@ export function RemoteDirectoryPicker({
       />
       <div
         className={cn(
-          "glass-card relative z-10 flex w-[560px] max-w-[92vw] flex-col rounded-[var(--radius-popover)] border border-[var(--color-border)] shadow-[var(--shadow-modal)]",
+          "glass-card relative z-10 flex min-h-0 w-[560px] max-w-[92vw] flex-col rounded-[var(--radius-popover)] border border-[var(--color-border)] shadow-[var(--shadow-modal)]",
           "transition-all duration-[280ms] ease-[var(--ease-spring)]",
           show ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-2",
         )}
-        style={{ height: "min(500px, 78vh)" }}
+        style={{ height: "min(500px, calc(100vh - 24px))" }}
       >
         <div className="flex items-center gap-2 px-4 pt-4 pb-2">
           <button
@@ -242,17 +243,19 @@ export function RemoteDirectoryPicker({
           )}
         </div>
 
-        <div className="relative px-4 pb-2">
-          <Search size={13} className="pointer-events-none absolute left-7 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("terminalFileManager.searchFolders")}
-            className="h-8 w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] pl-8 pr-3 text-[var(--font-size-sm)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-focus)] focus:outline-none"
-          />
+        <div className="px-4 pb-2">
+          <div className="relative">
+            <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t("terminalFileManager.searchFolders")}
+              className="h-8 w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] pl-8 pr-3 text-[var(--font-size-sm)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-border-focus)] focus:outline-none"
+            />
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto border-t border-[var(--color-border)] py-1">
+        <div className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--color-border)] py-1">
           {error ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
               <span className="text-[var(--font-size-sm)] text-[var(--color-error)]">{t("terminalPicker.loadFailed")}</span>
@@ -272,7 +275,7 @@ export function RemoteDirectoryPicker({
                 key={entry.name}
                 type="button"
                 onClick={() => loadDir(joinPath(currentPath, entry.name))}
-                className="flex w-full items-center gap-2 px-4 py-1.5 text-left text-[var(--font-size-sm)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]"
+                className="flex w-full items-center gap-2 pl-5 pr-4 py-1.5 text-left text-[var(--font-size-sm)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]"
               >
                 <Folder size={14} className="shrink-0 text-[var(--color-accent)]" />
                 <span className="flex-1 truncate font-mono">{entry.name}</span>
@@ -294,6 +297,7 @@ export function RemoteDirectoryPicker({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

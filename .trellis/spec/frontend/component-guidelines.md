@@ -308,6 +308,42 @@ dragGhostRef.current.style.top = `${e.clientY + 12}px`;
 
 ---
 
+## Convention: Fixed overlays inside transformed or clipped panels must use a portal
+
+**What**: Modals, pickers, and full-screen overlays that use `position: fixed` must render through `createPortal(..., document.body)` when they can be opened from inside a panel, drawer, animated shell, or any ancestor that may use `transform`, `filter`, `perspective`, `contain`, or `overflow: hidden`.
+
+**Why**: A transformed ancestor creates a containing block for `position: fixed`, and clipped ancestors can hide the overlay. The result is a picker that looks correct in normal windows but loses header/footer controls when opened from a small bottom drawer or animated panel.
+
+**Wrong**:
+
+```tsx
+// Rendered inside a drawer with transform/overflow hidden.
+return (
+  <div className="fixed inset-0">
+    <div className="modal-panel">...</div>
+  </div>
+);
+```
+
+**Correct**:
+
+```tsx
+return createPortal(
+  <div className="fixed inset-0">
+    <div className="modal-panel">...</div>
+  </div>,
+  document.body,
+);
+```
+
+**Required check**: For any fixed overlay opened from a nested component, inspect its ancestors for `transform` and clipping. If either can exist, portal the overlay to `document.body` and keep the panel `min-height: 0` so header/footer controls stay visible in small viewports.
+
+**Related**:
+- `app/src/features/terminal/RemoteDirectoryPicker.tsx`
+- `app/src/styles.css` `.terminal-file-manager-shell`
+
+---
+
 ## Convention: Tab/button elements with i18n text must use padding-driven sizing, not fixed height
 
 **What**: When styling tab buttons, chips, or similar inline controls that display translated text (especially CJK languages), size them with `padding` alone rather than a fixed `height` + `line-height` combination. Ensure vertical padding is always non-zero so text never touches the background edge on hover/active states.
