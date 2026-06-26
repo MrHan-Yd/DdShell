@@ -21,7 +21,7 @@ import type { DictKey, Locale } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
 import { confirm, useConfirmStore } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
-import type { AiAgentConfig, AiAgentExecutionMode, AiAgentProfile, AiAgentProtocol, TerminalBgSource } from "@/types";
+import type { AiAgentConfig, AiAgentExecutionMode, AiAgentProfile, AiAgentProtocol, AiAgentResponseMode, TerminalBgSource } from "@/types";
 import { DEFAULT_COMMAND_ASSIST_MODE, type CommandAssistMode } from "@/features/terminal/CommandAssist";
 
 const TABS = ["general", "transfer", "terminal", "commandAssist", "aiAgent", "shortcuts", "about"] as const;
@@ -103,6 +103,7 @@ const DEFAULT_AI_AGENT_CONFIG: AiAgentConfig = {
   defaultProfileId: null,
   executionMode: "run",
   confirmBeforeExecute: true,
+  showReasoning: false,
   timeoutSec: 60,
   profiles: [],
 };
@@ -553,6 +554,12 @@ const AI_PROTOCOL_OPTIONS: Array<{ value: AiAgentProtocol; labelKey: DictKey }> 
   { value: "geminiGenerateContent", labelKey: "aiAgent.protocolGemini" },
 ];
 
+const AI_RESPONSE_MODE_OPTIONS: Array<{ value: AiAgentResponseMode; labelKey: DictKey }> = [
+  { value: "auto", labelKey: "aiAgent.responseAuto" },
+  { value: "stream", labelKey: "aiAgent.responseStream" },
+  { value: "nonStream", labelKey: "aiAgent.responseNonStream" },
+];
+
 function defaultAiProfile(): AiAgentProfile {
   return {
     id: crypto.randomUUID(),
@@ -563,6 +570,7 @@ function defaultAiProfile(): AiAgentProfile {
     contextWindowTokens: 128000,
     temperature: 0.2,
     maxTokens: 1200,
+    responseMode: "nonStream",
     apiKeySet: false,
   };
 }
@@ -638,6 +646,16 @@ function AiAgentSettings({
           <button
             onClick={() => onChange({ ...config, confirmBeforeExecute: !config.confirmBeforeExecute })}
             data-state={config.confirmBeforeExecute ? "on" : "off"}
+            className="toggle-switch"
+          >
+            <span className="toggle-thumb" />
+          </button>
+        </SettingRow>
+
+        <SettingRow label={t("aiAgent.showReasoning")} description={t("aiAgent.showReasoningDesc")}>
+          <button
+            onClick={() => onChange({ ...config, showReasoning: !config.showReasoning })}
+            data-state={config.showReasoning ? "on" : "off"}
             className="toggle-switch"
           >
             <span className="toggle-thumb" />
@@ -730,6 +748,20 @@ function AiAgentSettings({
                         step={1000}
                         value={String(profile.contextWindowTokens ?? 128000)}
                         onChange={(event) => updateProfile(profile.id, { contextWindowTokens: Number(event.target.value) })}
+                      />
+                    </SettingRow>
+                    <SettingRow label={t("aiAgent.responseMode")} description={t("aiAgent.responseModeDesc")} className="settings-row--compact">
+                      <SegmentedControl
+                        value={profile.responseMode || "nonStream"}
+                        onChange={(value) => {
+                          if (value === "auto" || value === "stream" || value === "nonStream") {
+                            updateProfile(profile.id, { responseMode: value as AiAgentResponseMode });
+                          }
+                        }}
+                        options={AI_RESPONSE_MODE_OPTIONS.map((option) => ({
+                          value: option.value,
+                          label: t(option.labelKey),
+                        }))}
                       />
                     </SettingRow>
                     <SettingRow label={t("aiAgent.baseUrl")} className="settings-row--compact">

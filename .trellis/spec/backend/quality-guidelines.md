@@ -161,13 +161,16 @@ Correct:
   - `aiAgent.defaultProfileId`: profile id or empty string
   - `aiAgent.executionMode`: `"run"` / `"insert"`
   - `aiAgent.confirmBeforeExecute`: `"true"` / `"false"`, defaulting to `"true"` when missing
+  - `aiAgent.showReasoning`: `"true"` / `"false"`, defaulting to `"false"` when missing
   - `aiAgent.timeoutSec`: shared provider request timeout in seconds
   - `aiAgent.profiles`: JSON array of non-secret profile fields
   - `aiAgent.profile.<id>.apiKey`: encrypted API key only
 - `AiAgentProfile` response must include `apiKeySet: bool`, but must never include plaintext or encrypted API key.
 - `AiAgentProfile.contextWindowTokens` is the model capacity used for app-side prompt/context budgeting; it is not sent as a universal provider parameter and does not override real model limits.
+- `AiAgentProfile.responseMode` stores the user's preferred profile behavior: `"auto"`, `"stream"`, or `"nonStream"`. Missing legacy values must deserialize as `"nonStream"`. The current `ai_agent_send` command remains a complete-response command; do not set provider `stream: true` unless a Tauri event/SSE path exists to deliver chunks safely.
 - `AiAgentSendReq` includes `profileId`, `question`, and optional terminal context (`tabTitle`, `cwd`, `selectedText`).
-- `AiAgentSendResponse` normalizes all providers to `answer`, `commandMode`, `commands[]`, `rawText`, and `parseMode`.
+- `AiAgentSendResponse` normalizes all providers to `answer`, `commandMode`, `commands[]`, optional `reasoning`, `rawText`, and `parseMode`.
+- `reasoning` may be returned only when `aiAgent.showReasoning` is enabled and the provider/model response actually contains reasoning data. Supported extraction sources include OpenAI-compatible `reasoning_content` / `reasoning`, Claude `thinking` blocks, Gemini `thought` parts, JSON `reasoning` fields, and `<think>...</think>` text blocks.
 - `commandMode` must be `"alternatives"` when commands are equivalent choices where one is enough, and `"steps"` when commands should be run in order. Missing/unknown model output should default conservatively to `"alternatives"` unless fallback parsing clearly extracts a shell block workflow or the original user question has diagnostic/triage intent.
 - Diagnostic questions such as troubleshooting, "why", "where is space used", disk usage analysis, or broad-to-detail investigation should prefer `"steps"` for multi-command results. This local normalization may override a model's `"alternatives"` value unless the answer/command descriptions explicitly say the commands are optional choices.
 - Provider adapters must keep protocol-specific request/response handling in backend code, not in frontend components.
@@ -196,6 +199,8 @@ Correct:
   - missing key blocks `ai_agent_send`
   - parser handles raw JSON, fenced JSON, JSON object inside text, shell fenced fallback, and no-command prose
   - command mode normalization keeps simple listing commands as alternatives, but maps diagnostic multi-command answers to steps even when the model mislabels them as alternatives
+  - legacy stored profiles without `responseMode` deserialize as `nonStream`
+  - reasoning extraction handles JSON reasoning fields and `<think>...</think>` blocks, and frontend/build checks verify the optional `reasoning` response field stays typed
 
 #### 7. Wrong vs Correct
 

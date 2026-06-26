@@ -30,6 +30,7 @@ const DEFAULT_CONFIG: AiAgentConfig = {
   defaultProfileId: null,
   executionMode: "run",
   confirmBeforeExecute: true,
+  showReasoning: false,
   profiles: [],
 };
 
@@ -49,6 +50,7 @@ const isHistoryItem = (value: unknown): value is AiHistoryItem => {
 const normalizeResponse = (response: AiAgentSendResponse): AiAgentSendResponse => ({
   ...response,
   commandMode: response.commandMode === "steps" ? "steps" : "alternatives",
+  reasoning: typeof response.reasoning === "string" && response.reasoning.trim() ? response.reasoning.trim() : null,
 });
 
 const getHistoryStorageKey = (hostId: string) => `${AI_HISTORY_STORAGE_PREFIX}${hostId}`;
@@ -96,8 +98,11 @@ export function TerminalAiAssist({
   const [response, setResponse] = useState<AiAgentSendResponse | null>(null);
   const [activeCommandIndex, setActiveCommandIndex] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
+  const [showReasoning, setShowReasoning] = useState(false);
   const [historyItems, setHistoryItems] = useState<AiHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [requestStartedAt, setRequestStartedAt] = useState<number | null>(null);
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [error, setError] = useState("");
   const historyHostId = activeTab?.hostId || "";
   const historyHostIdRef = useRef(historyHostId);
@@ -133,8 +138,21 @@ export function TerminalAiAssist({
     setResponse(null);
     setActiveCommandIndex(0);
     setShowHistory(false);
+    setShowReasoning(false);
+    setRequestStartedAt(null);
+    setElapsedSec(0);
     setError("");
   }, [historyHostId]);
+
+  useEffect(() => {
+    if (!loading || requestStartedAt === null) return undefined;
+    const updateElapsed = () => {
+      setElapsedSec(Math.max(0, Math.floor((Date.now() - requestStartedAt) / 1000)));
+    };
+    updateElapsed();
+    const timer = window.setInterval(updateElapsed, 500);
+    return () => window.clearInterval(timer);
+  }, [loading, requestStartedAt]);
 
   const selectedProfile: AiAgentProfile | undefined = useMemo(
     () => config.profiles.find((profile) => profile.id === profileId),
@@ -154,11 +172,16 @@ export function TerminalAiAssist({
       return;
     }
 
+    const startedAt = Date.now();
     setLoading(true);
+    setRequestStartedAt(startedAt);
+    setElapsedSec(0);
     setError("");
     setLastQuestion(trimmed);
+    setResponse(null);
     setActiveCommandIndex(0);
     setShowHistory(false);
+    setShowReasoning(false);
     try {
       const result = await api.aiAgentSend({
         profileId: selectedProfile.id,
@@ -186,6 +209,9 @@ export function TerminalAiAssist({
         setError(String(err));
       }
     } finally {
+      if (historyHostIdRef.current === submitHostId) {
+        setElapsedSec(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+      }
       setLoading(false);
     }
   };
@@ -195,6 +221,9 @@ export function TerminalAiAssist({
     setResponse(normalizeResponse(item.response));
     setActiveCommandIndex(0);
     setShowHistory(false);
+    setShowReasoning(false);
+    setRequestStartedAt(null);
+    setElapsedSec(0);
     setError("");
   };
 
@@ -235,6 +264,15 @@ export function TerminalAiAssist({
   };
 
   const isStepMode = response?.commandMode === "steps";
+  const reasoningText = config.showReasoning ? response?.reasoning?.trim() : "";
+  const requestStatus = error ? "error" : loading ? "waiting" : response ? "ready" : "idle";
+  const requestStatusLabel = requestStatus === "waiting"
+    ? t("aiAssist.statusWaiting", { seconds: elapsedSec })
+    : requestStatus === "ready"
+      ? t("aiAssist.statusReady", { seconds: elapsedSec })
+      : requestStatus === "error"
+        ? t("aiAssist.statusError")
+        : t("aiAssist.statusIdle");
   const commandLabel = isStepMode
     ? t("aiAssist.step", { current: activeCommandIndex + 1, total: response?.commands.length ?? 1 })
     : t("aiAssist.option", { current: activeCommandIndex + 1, total: response?.commands.length ?? 1 });
@@ -286,6 +324,11 @@ export function TerminalAiAssist({
         <span className={cn("ai-state-pill", config.enabled ? "is-on" : "is-off")}>
           {config.enabled ? t("aiAssist.on") : t("aiAssist.off")}
         </span>
+      </div>
+
+      <div className="ai-request-status" data-state={requestStatus}>
+        <span className="ai-request-dot" />
+        <span>{requestStatusLabel}</span>
       </div>
 
       {showHistory ? (
@@ -346,6 +389,22 @@ export function TerminalAiAssist({
 
       {response && !loading && (
         <div className="ai-suggestion">
+          {reasoningText && (
+            <div className="ai-reasoning">
+              <button
+                type="button"
+                className="ai-reasoning-toggle"
+                aria-expanded={showReasoning}
+                onClick={() => setShowReasoning((value) => !value)}
+              >
+                <span>{t("aiAssist.reasoning")}</span>
+                <span>{showReasoning ? t("aiAssist.collapse") : t("aiAssist.expand")}</span>
+              </button>
+              {showReasoning && (
+                <pre className="ai-reasoning-body">{reasoningText}</pre>
+              )}
+            </div>
+          )}
           {activeCommand ? (
             <>
               <div className="ai-suggestion-head">

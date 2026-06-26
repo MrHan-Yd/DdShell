@@ -12,6 +12,7 @@ const KEY_ENABLED: &str = "aiAgent.enabled";
 const KEY_DEFAULT_PROFILE: &str = "aiAgent.defaultProfileId";
 const KEY_EXECUTION_MODE: &str = "aiAgent.executionMode";
 const KEY_CONFIRM_BEFORE_EXECUTE: &str = "aiAgent.confirmBeforeExecute";
+const KEY_SHOW_REASONING: &str = "aiAgent.showReasoning";
 const KEY_TIMEOUT_SEC: &str = "aiAgent.timeoutSec";
 const KEY_PROFILES: &str = "aiAgent.profiles";
 
@@ -37,6 +38,20 @@ impl Default for AiAgentExecutionMode {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum AiAgentResponseMode {
+    Auto,
+    Stream,
+    NonStream,
+}
+
+impl Default for AiAgentResponseMode {
+    fn default() -> Self {
+        Self::NonStream
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AiAgentProfile {
@@ -49,6 +64,8 @@ pub struct AiAgentProfile {
     pub temperature: Option<f32>,
     pub max_tokens: Option<u32>,
     #[serde(default)]
+    pub response_mode: AiAgentResponseMode,
+    #[serde(default)]
     pub api_key_set: bool,
 }
 
@@ -59,6 +76,7 @@ pub struct AiAgentConfig {
     pub default_profile_id: Option<String>,
     pub execution_mode: AiAgentExecutionMode,
     pub confirm_before_execute: bool,
+    pub show_reasoning: bool,
     pub timeout_sec: Option<u64>,
     pub profiles: Vec<AiAgentProfile>,
 }
@@ -71,6 +89,8 @@ pub struct AiAgentConfigSaveReq {
     pub execution_mode: AiAgentExecutionMode,
     #[serde(default = "default_true")]
     pub confirm_before_execute: bool,
+    #[serde(default)]
+    pub show_reasoning: bool,
     pub timeout_sec: Option<u64>,
     pub profiles: Vec<AiAgentProfile>,
 }
@@ -110,8 +130,15 @@ pub struct AiAgentSendResponse {
     pub answer: String,
     pub command_mode: String,
     pub commands: Vec<AiAgentCommand>,
+    pub reasoning: Option<String>,
     pub raw_text: String,
     pub parse_mode: String,
+}
+
+#[derive(Debug, Clone)]
+struct ProviderTextResponse {
+    text: String,
+    reasoning: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -127,6 +154,8 @@ struct StoredProfile {
     temperature: Option<f32>,
     max_tokens: Option<u32>,
     #[serde(default)]
+    response_mode: AiAgentResponseMode,
+    #[serde(default)]
     timeout_sec: Option<u64>,
 }
 
@@ -141,6 +170,7 @@ impl From<&AiAgentProfile> for StoredProfile {
             context_window_tokens: profile.context_window_tokens,
             temperature: profile.temperature,
             max_tokens: profile.max_tokens,
+            response_mode: profile.response_mode.clone(),
             timeout_sec: None,
         }
     }
@@ -157,6 +187,7 @@ impl StoredProfile {
             context_window_tokens: self.context_window_tokens,
             temperature: self.temperature,
             max_tokens: self.max_tokens,
+            response_mode: self.response_mode,
             api_key_set,
         }
     }
@@ -181,6 +212,11 @@ pub async fn get_config(db: &Database) -> anyhow::Result<AiAgentConfig> {
         .await?
         .map(|v| v != "false")
         .unwrap_or(true);
+    let show_reasoning = db
+        .get_setting(KEY_SHOW_REASONING)
+        .await?
+        .map(|v| v == "true")
+        .unwrap_or(false);
     let stored_profiles: Vec<StoredProfile> = match db.get_setting(KEY_PROFILES).await? {
         Some(raw) if !raw.trim().is_empty() => serde_json::from_str(&raw).unwrap_or_default(),
         _ => Vec::new(),
@@ -208,6 +244,7 @@ pub async fn get_config(db: &Database) -> anyhow::Result<AiAgentConfig> {
         default_profile_id,
         execution_mode,
         confirm_before_execute,
+        show_reasoning,
         timeout_sec,
         profiles,
     })
@@ -238,6 +275,8 @@ pub async fn save_config(db: &Database, req: AiAgentConfigSaveReq) -> anyhow::Re
         if req.confirm_before_execute { "true" } else { "false" },
     )
     .await?;
+    db.set_setting(KEY_SHOW_REASONING, if req.show_reasoning { "true" } else { "false" })
+        .await?;
     db.set_setting(
         KEY_DEFAULT_PROFILE,
         req.default_profile_id.as_deref().unwrap_or_default(),
@@ -284,8 +323,13 @@ pub async fn send(db: &Database, req: AiAgentSendReq) -> anyhow::Result<AiAgentS
         .ok_or_else(|| anyhow::anyhow!("AI profile API key is not configured"))?;
     let api_key = secret::decrypt(&encrypted)?;
     let preferred_command_mode = infer_command_mode_from_question(&req.question);
-    let raw_text = call_provider(&profile, config.timeout_sec, &api_key, &req).await?;
-    Ok(parse_agent_response(&raw_text, preferred_command_mode))
+    let provider_response = call_provider(&profile, config.timeout_sec, &api_key, &req).await?;
+    let mut response = parse_agent_response(&provider_response.text, preferred_command_mode);
+    let parsed_reasoning = response.reasoning.take();
+    if config.show_reasoning {
+        response.reasoning = provider_response.reasoning.or(parsed_reasoning);
+    }
+    Ok(response)
 }
 
 fn profile_key_setting(profile_id: &str) -> String {
@@ -297,7 +341,7 @@ async fn call_provider(
     timeout_sec: Option<u64>,
     api_key: &str,
     req: &AiAgentSendReq,
-) -> anyhow::Result<String> {
+) -> anyhow::Result<ProviderTextResponse> {
     let timeout = Duration::from_secs(timeout_sec.unwrap_or(60).clamp(5, 300));
     let client = reqwest::Client::builder().timeout(timeout).build()?;
     let system_prompt = system_prompt();
@@ -317,7 +361,7 @@ async fn call_openai_chat(
     api_key: &str,
     system_prompt: &str,
     user_prompt: &str,
-) -> anyhow::Result<String> {
+) -> anyhow::Result<ProviderTextResponse> {
     let url = join_url(&profile.base_url, "chat/completions");
     let body = json!({
         "model": profile.model,
@@ -330,11 +374,20 @@ async fn call_openai_chat(
         ]
     });
     let value = post_json(client, &url, bearer_headers(api_key)?, body).await?;
-    value
+    let text = value
         .pointer("/choices/0/message/content")
         .and_then(Value::as_str)
         .map(ToOwned::to_owned)
-        .ok_or_else(|| anyhow::anyhow!("OpenAI chat response did not include message content"))
+        .ok_or_else(|| anyhow::anyhow!("OpenAI chat response did not include message content"))?;
+    let reasoning = value
+        .pointer("/choices/0/message/reasoning_content")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .or_else(|| extract_reasoning_fields(&value))
+        .or_else(|| extract_think_blocks(&text));
+    Ok(ProviderTextResponse { text, reasoning })
 }
 
 async fn call_openai_responses(
@@ -343,7 +396,7 @@ async fn call_openai_responses(
     api_key: &str,
     system_prompt: &str,
     user_prompt: &str,
-) -> anyhow::Result<String> {
+) -> anyhow::Result<ProviderTextResponse> {
     let url = join_url(&profile.base_url, "responses");
     let body = json!({
         "model": profile.model,
@@ -360,13 +413,16 @@ async fn call_openai_responses(
         }
     });
     let value = post_json(client, &url, bearer_headers(api_key)?, body).await?;
-    if let Some(text) = value.get("output_text").and_then(Value::as_str) {
-        return Ok(text.to_string());
-    }
-    collect_text_fields(&value)
+    let text = if let Some(text) = value.get("output_text").and_then(Value::as_str) {
+        text.to_string()
+    } else {
+        collect_text_fields(&value)
         .into_iter()
         .next()
-        .ok_or_else(|| anyhow::anyhow!("OpenAI responses output did not include text"))
+        .ok_or_else(|| anyhow::anyhow!("OpenAI responses output did not include text"))?
+    };
+    let reasoning = extract_reasoning_fields(&value).or_else(|| extract_think_blocks(&text));
+    Ok(ProviderTextResponse { text, reasoning })
 }
 
 async fn call_claude_messages(
@@ -375,7 +431,7 @@ async fn call_claude_messages(
     api_key: &str,
     system_prompt: &str,
     user_prompt: &str,
-) -> anyhow::Result<String> {
+) -> anyhow::Result<ProviderTextResponse> {
     let url = join_url(&profile.base_url, "messages");
     let body = json!({
         "model": profile.model,
@@ -400,7 +456,24 @@ async fn call_claude_messages(
     if texts.is_empty() {
         anyhow::bail!("Claude response did not include text content");
     }
-    Ok(texts.join("\n"))
+    let text = texts.join("\n");
+    let reasoning = value
+        .get("content")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|part| part.get("thinking").and_then(Value::as_str))
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToOwned::to_owned)
+                .collect::<Vec<_>>()
+        })
+        .filter(|items| !items.is_empty())
+        .map(|items| items.join("\n\n"))
+        .or_else(|| extract_reasoning_fields(&value))
+        .or_else(|| extract_think_blocks(&text));
+    Ok(ProviderTextResponse { text, reasoning })
 }
 
 async fn call_gemini(
@@ -409,7 +482,7 @@ async fn call_gemini(
     api_key: &str,
     system_prompt: &str,
     user_prompt: &str,
-) -> anyhow::Result<String> {
+) -> anyhow::Result<ProviderTextResponse> {
     let path = format!("models/{}:generateContent", profile.model);
     let url = join_url(&profile.base_url, &path);
     let body = json!({
@@ -432,17 +505,34 @@ async fn call_gemini(
     let mut headers = json_headers();
     headers.insert("x-goog-api-key", HeaderValue::from_str(api_key)?);
     let value = post_json(client, &url, headers, body).await?;
-    let texts: Vec<String> = value
+    let parts = value
         .pointer("/candidates/0/content/parts")
         .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
+        .cloned()
+        .unwrap_or_default();
+    let texts: Vec<String> = parts
+        .iter()
+        .filter(|part| part.get("thought").and_then(Value::as_bool) != Some(true))
         .filter_map(|part| part.get("text").and_then(Value::as_str).map(ToOwned::to_owned))
         .collect();
     if texts.is_empty() {
         anyhow::bail!("Gemini response did not include text content");
     }
-    Ok(texts.join("\n"))
+    let text = texts.join("\n");
+    let thought_texts = parts
+        .iter()
+        .filter(|part| part.get("thought").and_then(Value::as_bool) == Some(true))
+        .filter_map(|part| part.get("text").and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    let reasoning = if thought_texts.is_empty() {
+        extract_reasoning_fields(&value).or_else(|| extract_think_blocks(&text))
+    } else {
+        Some(thought_texts.join("\n\n"))
+    };
+    Ok(ProviderTextResponse { text, reasoning })
 }
 
 async fn post_json(
@@ -612,6 +702,7 @@ fn parse_agent_response(raw_text: &str, preferred_command_mode: Option<&'static 
                     confidence: "medium".to_string(),
                 })
                 .collect(),
+            reasoning: None,
             raw_text: raw_text.to_string(),
             parse_mode: "shellBlock".to_string(),
         };
@@ -621,6 +712,7 @@ fn parse_agent_response(raw_text: &str, preferred_command_mode: Option<&'static 
         answer: raw_text.trim().to_string(),
         command_mode: "alternatives".to_string(),
         commands: Vec::new(),
+        reasoning: None,
         raw_text: raw_text.to_string(),
         parse_mode: "none".to_string(),
     }
@@ -682,6 +774,7 @@ fn parse_json_response(
         answer,
         command_mode,
         commands,
+        reasoning: extract_reasoning_fields(&value),
         raw_text: raw.to_string(),
         parse_mode: parse_mode.to_string(),
     })
@@ -972,6 +1065,93 @@ fn collect_text_fields(value: &Value) -> Vec<String> {
     texts
 }
 
+fn extract_reasoning_fields(value: &Value) -> Option<String> {
+    let mut texts = Vec::new();
+    collect_reasoning_fields_inner(value, &mut texts);
+    if texts.is_empty() {
+        None
+    } else {
+        Some(texts.join("\n\n"))
+    }
+}
+
+fn collect_reasoning_fields_inner(value: &Value, texts: &mut Vec<String>) {
+    match value {
+        Value::Object(map) => {
+            if map
+                .get("type")
+                .and_then(Value::as_str)
+                .map(|value| value.contains("reasoning") || value.contains("thinking"))
+                .unwrap_or(false)
+            {
+                texts.extend(
+                    collect_text_fields(value)
+                        .into_iter()
+                        .map(|text| text.trim().to_string())
+                        .filter(|text| !text.is_empty()),
+                );
+            }
+            for (key, child) in map {
+                let key = key.as_str();
+                if matches!(key, "reasoning" | "reasoning_content" | "thinking" | "thought") {
+                    collect_reasoning_text(child, texts);
+                } else {
+                    collect_reasoning_fields_inner(child, texts);
+                }
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                collect_reasoning_fields_inner(item, texts);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn collect_reasoning_text(value: &Value, texts: &mut Vec<String>) {
+    match value {
+        Value::String(text) => {
+            let text = text.trim();
+            if !text.is_empty() {
+                texts.push(text.to_string());
+            }
+        }
+        Value::Object(map) => {
+            for child in map.values() {
+                collect_reasoning_text(child, texts);
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                collect_reasoning_text(item, texts);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn extract_think_blocks(text: &str) -> Option<String> {
+    let mut blocks = Vec::new();
+    let mut rest = text;
+    while let Some(start) = rest.find("<think>") {
+        let after_start = &rest[start + "<think>".len()..];
+        let Some(end) = after_start.find("</think>") else {
+            break;
+        };
+        let block = after_start[..end].trim();
+        if !block.is_empty() {
+            blocks.push(block.to_string());
+        }
+        rest = &after_start[end + "</think>".len()..];
+    }
+    if blocks.is_empty() {
+        None
+    } else {
+        Some(blocks.join("\n\n"))
+    }
+}
+
 fn collect_text_fields_inner(value: &Value, texts: &mut Vec<String>) {
     match value {
         Value::Object(map) => {
@@ -1063,5 +1243,64 @@ mod tests {
         let response = parse_agent_response(&raw, infer_command_mode_from_question(question));
 
         assert_eq!(response.command_mode, "alternatives");
+    }
+
+    #[test]
+    fn json_reasoning_field_is_preserved_for_enabled_display() {
+        let raw = r#"{
+            "answer": "建议先查看当前目录。",
+            "reasoning": "用户询问目录内容，使用只读命令即可。",
+            "commandMode": "alternatives",
+            "commands": [
+                {
+                    "command": "ls",
+                    "description": "列出当前目录文件",
+                    "risk": "low",
+                    "confidence": "high"
+                }
+            ]
+        }"#;
+
+        let response = parse_agent_response(raw, None);
+
+        assert_eq!(response.reasoning.as_deref(), Some("用户询问目录内容，使用只读命令即可。"));
+    }
+
+    #[test]
+    fn think_blocks_are_extracted_as_reasoning() {
+        let text = "<think>\n先判断问题类型。\n</think>\n{\"answer\":\"ok\",\"commands\":[]}";
+
+        assert_eq!(extract_think_blocks(text).as_deref(), Some("先判断问题类型。"));
+    }
+
+    #[test]
+    fn typed_reasoning_blocks_are_extracted() {
+        let value = json!({
+            "output": [
+                {
+                    "type": "reasoning",
+                    "summary": [
+                        { "text": "先确认用户需要安全的只读命令。" }
+                    ]
+                }
+            ]
+        });
+
+        assert_eq!(extract_reasoning_fields(&value).as_deref(), Some("先确认用户需要安全的只读命令。"));
+    }
+
+    #[test]
+    fn stored_profile_defaults_to_non_stream_response_mode() {
+        let raw = r#"{
+            "id": "profile-1",
+            "name": "Legacy",
+            "protocol": "openaiChat",
+            "baseUrl": "https://api.example.com/v1",
+            "model": "model"
+        }"#;
+
+        let profile: StoredProfile = serde_json::from_str(raw).expect("legacy profile should deserialize");
+
+        assert_eq!(profile.response_mode, AiAgentResponseMode::NonStream);
     }
 }

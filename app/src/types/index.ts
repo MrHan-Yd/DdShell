@@ -157,6 +157,7 @@ export type AiAgentProtocol =
   | "geminiGenerateContent";
 
 export type AiAgentExecutionMode = "run" | "insert";
+export type AiAgentResponseMode = "auto" | "stream" | "nonStream";
 
 export interface AiAgentProfile {
   id: string;
@@ -167,6 +168,7 @@ export interface AiAgentProfile {
   contextWindowTokens?: number | null;
   temperature?: number | null;
   maxTokens?: number | null;
+  responseMode?: AiAgentResponseMode | null;
   apiKeySet: boolean;
 }
 
@@ -175,6 +177,7 @@ export interface AiAgentConfig {
   defaultProfileId?: string | null;
   executionMode: AiAgentExecutionMode;
   confirmBeforeExecute: boolean;
+  showReasoning: boolean;
   timeoutSec?: number | null;
   profiles: AiAgentProfile[];
 }
@@ -202,6 +205,7 @@ export interface AiAgentSendResponse {
   answer: string;
   commandMode: "alternatives" | "steps" | string;
   commands: AiAgentCommand[];
+  reasoning?: string | null;
   rawText: string;
   parseMode: "json" | "jsonBlock" | "jsonObject" | "shellBlock" | "none" | string;
 }
