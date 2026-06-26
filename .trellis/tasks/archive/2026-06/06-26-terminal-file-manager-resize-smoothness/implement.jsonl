@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend task entry point and linked UI guideline index."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Component interaction and animation conventions relevant to resize behavior."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Quality expectations for frontend changes and validation."}
