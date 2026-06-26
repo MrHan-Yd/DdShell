@@ -1119,3 +1119,36 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 31: 移动弹窗列表左距调整
+
+**Date**: 2026-06-26
+**Task**: 移动弹窗列表左距调整
+**Branch**: `main`
+
+### Summary
+
+调整终端文件管理移动目录弹窗列表区域左侧内边距，并用主题安全的按钮样式保证 Classic 与 Aurora 下 hover 区域和文件夹图标左距一致。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `eeb657d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
