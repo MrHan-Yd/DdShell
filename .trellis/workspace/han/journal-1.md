@@ -1086,3 +1086,36 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 30: 移动弹窗图标左距调整
+
+**Date**: 2026-06-26
+**Task**: 移动弹窗图标左距调整
+**Branch**: `main`
+
+### Summary
+
+调整终端文件管理移动目录弹窗中文件夹图标的左侧内边距。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `75e760c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
