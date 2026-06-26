@@ -283,8 +283,9 @@ pub async fn send(db: &Database, req: AiAgentSendReq) -> anyhow::Result<AiAgentS
         .filter(|v| !v.is_empty())
         .ok_or_else(|| anyhow::anyhow!("AI profile API key is not configured"))?;
     let api_key = secret::decrypt(&encrypted)?;
+    let preferred_command_mode = infer_command_mode_from_question(&req.question);
     let raw_text = call_provider(&profile, config.timeout_sec, &api_key, &req).await?;
-    Ok(parse_agent_response(&raw_text))
+    Ok(parse_agent_response(&raw_text, preferred_command_mode))
 }
 
 fn profile_key_setting(profile_id: &str) -> String {
@@ -501,8 +502,9 @@ Use this schema:
     }
   ]
 }
-Use commandMode "alternatives" when the commands are choices where running one is enough, for example ls vs ls -la.
+Use commandMode "alternatives" when the commands are equivalent choices where running one is enough, for example ls vs ls -la.
 Use commandMode "steps" when commands should be run in order as a workflow, for example inspect status, then inspect logs, then validate config.
+For troubleshooting, diagnosis, "why" questions, "where is space used" questions, or anything that narrows from broad inspection to details, prefer commandMode "steps".
 Only suggest shell commands that answer the user's request. Prefer safe diagnostic commands.
 Do not suggest destructive commands unless the user explicitly asks for them."#
 }
@@ -582,17 +584,17 @@ fn response_schema() -> Value {
     })
 }
 
-fn parse_agent_response(raw_text: &str) -> AiAgentSendResponse {
-    if let Some(response) = parse_json_response(raw_text, "json") {
+fn parse_agent_response(raw_text: &str, preferred_command_mode: Option<&'static str>) -> AiAgentSendResponse {
+    if let Some(response) = parse_json_response(raw_text, "json", preferred_command_mode) {
         return response;
     }
     if let Some(block) = fenced_block(raw_text, &["json"]) {
-        if let Some(response) = parse_json_response(&block, "jsonBlock") {
+        if let Some(response) = parse_json_response(&block, "jsonBlock", preferred_command_mode) {
             return response;
         }
     }
     if let Some(object) = first_json_object(raw_text) {
-        if let Some(response) = parse_json_response(&object, "jsonObject") {
+        if let Some(response) = parse_json_response(&object, "jsonObject", preferred_command_mode) {
             return response;
         }
     }
@@ -624,7 +626,11 @@ fn parse_agent_response(raw_text: &str) -> AiAgentSendResponse {
     }
 }
 
-fn parse_json_response(raw: &str, parse_mode: &str) -> Option<AiAgentSendResponse> {
+fn parse_json_response(
+    raw: &str,
+    parse_mode: &str,
+    preferred_command_mode: Option<&'static str>,
+) -> Option<AiAgentSendResponse> {
     let value: Value = serde_json::from_str(raw.trim()).ok()?;
     let answer = value
         .get("answer")
@@ -668,6 +674,7 @@ fn parse_json_response(raw: &str, parse_mode: &str) -> Option<AiAgentSendRespons
             .or_else(|| value.get("groupType"))
             .or_else(|| value.get("mode"))
             .and_then(Value::as_str),
+        preferred_command_mode,
         &answer,
         &commands,
     );
@@ -682,15 +689,30 @@ fn parse_json_response(raw: &str, parse_mode: &str) -> Option<AiAgentSendRespons
 
 fn normalize_command_mode(
     value: Option<&str>,
+    preferred_command_mode: Option<&'static str>,
     answer: &str,
     commands: &[AiAgentCommand],
 ) -> String {
-    match value.unwrap_or_default().trim().to_ascii_lowercase().as_str() {
-        "steps" | "step" | "sequence" | "workflow" => return "steps".to_string(),
-        "alternatives" | "alternative" | "choices" | "choice" | "options" => {
+    let explicit_mode = match value.unwrap_or_default().trim().to_ascii_lowercase().as_str() {
+        "steps" | "step" | "sequence" | "workflow" => Some("steps"),
+        "alternatives" | "alternative" | "choices" | "choice" | "options" => Some("alternatives"),
+        _ => None,
+    };
+
+    if commands.len() > 1 {
+        if preferred_command_mode == Some("steps") && !looks_like_alternatives(answer, commands) {
+            return "steps".to_string();
+        }
+        if let Some(mode) = explicit_mode {
+            return mode.to_string();
+        }
+        if preferred_command_mode == Some("alternatives") {
             return "alternatives".to_string();
         }
-        _ => {}
+    }
+
+    if let Some(mode) = explicit_mode {
+        return mode.to_string();
     }
 
     if commands.len() > 1 && looks_like_steps(answer, commands) {
@@ -700,30 +722,152 @@ fn normalize_command_mode(
     }
 }
 
-fn looks_like_steps(answer: &str, commands: &[AiAgentCommand]) -> bool {
+fn infer_command_mode_from_question(question: &str) -> Option<&'static str> {
+    let question = question.to_ascii_lowercase();
+    if contains_any(
+        &question,
+        &[
+            "可选",
+            "任选",
+            "任意",
+            "二选一",
+            "选择",
+            "方案",
+            "或者",
+            "alternative",
+            "alternatives",
+            "option",
+            "options",
+            "choose",
+            "either",
+        ],
+    ) {
+        return Some("alternatives");
+    }
+
+    if contains_any(
+        &question,
+        &[
+            "排查",
+            "诊断",
+            "检查",
+            "定位",
+            "分析",
+            "为什么",
+            "哪里",
+            "占用",
+            "空间",
+            "磁盘",
+            "大文件",
+            "找出",
+            "报错",
+            "失败",
+            "不通",
+            "启动不了",
+            "troubleshoot",
+            "diagnose",
+            "investigate",
+            "why",
+            "where",
+            "disk usage",
+            "large file",
+            "large files",
+            "find out",
+        ],
+    ) {
+        return Some("steps");
+    }
+
+    None
+}
+
+fn contains_any(text: &str, needles: &[&str]) -> bool {
+    needles.iter().any(|needle| text.contains(needle))
+}
+
+fn looks_like_alternatives(answer: &str, commands: &[AiAgentCommand]) -> bool {
     let answer = answer.to_ascii_lowercase();
-    if answer.contains("step")
-        || answer.contains("then")
-        || answer.contains("first")
-        || answer.contains("next")
-        || answer.contains("步骤")
-        || answer.contains("然后")
-        || answer.contains("先")
-        || answer.contains("接着")
-    {
+    if contains_any(
+        &answer,
+        &[
+            "alternative",
+            "option",
+            "choice",
+            "choose one",
+            "either",
+            "pick one",
+            "任选",
+            "任意一个",
+            "可选",
+            "选择一个",
+            "二选一",
+            "其中一个",
+            "或者",
+        ],
+    ) {
         return true;
     }
 
     commands.iter().any(|command| {
         let description = command.description.to_ascii_lowercase();
-        description.contains("step")
-            || description.contains("then")
-            || description.contains("first")
-            || description.contains("next")
-            || description.contains("步骤")
-            || description.contains("然后")
-            || description.contains("先")
-            || description.contains("接着")
+        contains_any(
+            &description,
+            &[
+                "alternative",
+                "option",
+                "choice",
+                "choose one",
+                "either",
+                "pick one",
+                "任选",
+                "任意一个",
+                "可选",
+                "选择一个",
+                "二选一",
+                "其中一个",
+                "或者",
+            ],
+        )
+    })
+}
+
+fn looks_like_steps(answer: &str, commands: &[AiAgentCommand]) -> bool {
+    let answer = answer.to_ascii_lowercase();
+    if contains_any(
+        &answer,
+        &[
+            "step",
+            "then",
+            "first",
+            "next",
+            "after",
+            "步骤",
+            "然后",
+            "先",
+            "接着",
+            "再",
+        ],
+    ) {
+        return true;
+    }
+
+    commands.iter().any(|command| {
+        let description = command.description.to_ascii_lowercase();
+        contains_any(
+            &description,
+            &[
+                "step",
+                "then",
+                "first",
+                "next",
+                "after",
+                "步骤",
+                "然后",
+                "先",
+                "接着",
+                "再",
+            ],
+        )
     })
 }
 
@@ -844,5 +988,80 @@ fn collect_text_fields_inner(value: &Value, texts: &mut Vec<String>) {
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn two_command_response(command_mode: &str, answer: &str) -> String {
+        format!(
+            r#"{{
+                "answer": "{answer}",
+                "commandMode": "{command_mode}",
+                "commands": [
+                    {{
+                        "command": "du -sh .",
+                        "description": "查看当前目录总占用",
+                        "risk": "low",
+                        "confidence": "high"
+                    }},
+                    {{
+                        "command": "du -sh * | sort -h",
+                        "description": "再按子目录排序定位占用来源",
+                        "risk": "low",
+                        "confidence": "high"
+                    }}
+                ]
+            }}"#
+        )
+    }
+
+    #[test]
+    fn diagnostic_question_prefers_steps_even_if_model_says_alternatives() {
+        let question = "帮我看看当前目录哪里占用空间比较大。";
+        let raw = two_command_response("alternatives", "查看目录占用并继续定位较大的子目录。");
+
+        let response = parse_agent_response(&raw, infer_command_mode_from_question(question));
+
+        assert_eq!(response.command_mode, "steps");
+    }
+
+    #[test]
+    fn list_files_question_stays_as_alternatives() {
+        let question = "当前目录有哪些文件？";
+        let raw = r#"{
+            "answer": "可以用简洁或详细方式查看。",
+            "commandMode": "alternatives",
+            "commands": [
+                {
+                    "command": "ls",
+                    "description": "简洁列出文件名",
+                    "risk": "low",
+                    "confidence": "high"
+                },
+                {
+                    "command": "ls -la",
+                    "description": "查看详细信息和隐藏文件",
+                    "risk": "low",
+                    "confidence": "high"
+                }
+            ]
+        }"#;
+
+        let response = parse_agent_response(raw, infer_command_mode_from_question(question));
+
+        assert_eq!(response.command_mode, "alternatives");
+    }
+
+    #[test]
+    fn explicit_choice_language_preserves_alternatives() {
+        let question = "帮我看看当前目录哪里占用空间比较大。";
+        let raw = two_command_response("alternatives", "下面两个命令任选一个即可。");
+
+        let response = parse_agent_response(&raw, infer_command_mode_from_question(question));
+
+        assert_eq!(response.command_mode, "alternatives");
     }
 }
