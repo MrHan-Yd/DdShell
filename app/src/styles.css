@@ -3331,6 +3331,10 @@ body.theme-light [data-ui-theme="classic"] .connections-page .detail-cta .kbd {
   transition: grid-template-rows var(--duration-panel) var(--ease-smooth);
 }
 
+.terminal-page .term-main[data-file-manager-resizing="true"] {
+  transition: none;
+}
+
 .terminal-disconnect-overlay {
   position: absolute;
   inset: 0;
@@ -4061,6 +4065,13 @@ button.terminal-reconnect-button:disabled,
 .terminal-file-manager-shell[data-state="open"] {
   opacity: 1;
   transform: translateY(0);
+}
+
+.terminal-file-manager-shell[data-resizing="true"] {
+  transition:
+    border-color var(--duration-panel) var(--ease-smooth),
+    opacity var(--duration-panel) var(--ease-smooth),
+    transform var(--duration-panel) var(--ease-smooth);
 }
 
 .terminal-file-manager-shell[data-state="closed"] {

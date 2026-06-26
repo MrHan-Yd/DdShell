@@ -116,6 +116,7 @@ function TerminalInstance({
   hostId,
   macroOutputFilter,
   termSettings,
+  suspendResize = false,
   onFocusSession,
   onCwdChange,
 }: {
@@ -144,6 +145,7 @@ function TerminalInstance({
     disabledBuiltinCmds?: string[];
     customDangerousCommands?: string[];
   };
+  suspendResize?: boolean;
   onFocusSession?: (sessionId: string, cwd: string | null) => void;
   onCwdChange?: (sessionId: string, cwd: string) => void;
 }) {
@@ -151,6 +153,10 @@ function TerminalInstance({
   const termRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const predictiveEchoRef = useRef<PredictiveEcho | null>(null);
+  const suspendResizeRef = useRef(suspendResize);
+  const pendingResizeFitRef = useRef(false);
+  const pendingResizeFrameRef = useRef<number | null>(null);
+  const updateGeoRef = useRef<() => void>(() => {});
   const updateTabState = useTerminalStore((s) => s.updateTabState);
   const reconnectSession = useTerminalStore((s) => s.reconnectSession);
   const tabState = useTerminalStore(
@@ -163,6 +169,7 @@ function TerminalInstance({
   const macroFilterBufferRef = useRef("");
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
+  suspendResizeRef.current = suspendResize;
   const onFocusSessionRef = useRef(onFocusSession);
   onFocusSessionRef.current = onFocusSession;
   const onCwdChangeRef = useRef(onCwdChange);
@@ -757,11 +764,16 @@ function TerminalInstance({
         offsetY: termRect.top - containerRect.top,
       };
     };
+    updateGeoRef.current = updateGeo;
     const resizeObserver = new ResizeObserver((entries) => {
       // Skip fit when container is hidden (width/height = 0) to avoid
       // sending bogus resize sequences that show up as visible characters
       const { width, height } = entries[0].contentRect;
       if (width === 0 || height === 0) return;
+      if (suspendResizeRef.current) {
+        pendingResizeFitRef.current = true;
+        return;
+      }
       try { fitAddon.fit(); } catch { /* ignore if disposed */ }
       setContainerSize({ w: width, h: height });
       updateGeo();
@@ -790,8 +802,37 @@ function TerminalInstance({
       termRef.current = null;
       fitAddonRef.current = null;
       predictiveEchoRef.current = null;
+      updateGeoRef.current = () => {};
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (suspendResize || !pendingResizeFitRef.current) return;
+    pendingResizeFitRef.current = false;
+    if (pendingResizeFrameRef.current !== null) {
+      window.cancelAnimationFrame(pendingResizeFrameRef.current);
+    }
+    pendingResizeFrameRef.current = window.requestAnimationFrame(() => {
+      pendingResizeFrameRef.current = null;
+      const container = containerRef.current;
+      const fitAddon = fitAddonRef.current;
+      if (!container || !fitAddon) return;
+      const { width, height } = container.getBoundingClientRect();
+      if (width === 0 || height === 0) return;
+      try { fitAddon.fit(); } catch { /* ignore if disposed */ }
+      setContainerSize({ w: width, h: height });
+      updateGeoRef.current();
+    });
+  }, [suspendResize]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingResizeFrameRef.current !== null) {
+        window.cancelAnimationFrame(pendingResizeFrameRef.current);
+        pendingResizeFrameRef.current = null;
+      }
+    };
   }, []);
 
   // Effect 2: Bind session I/O (re-runs when sessionId changes, keeps xterm alive)
@@ -1653,6 +1694,7 @@ export function TerminalPage() {
   const [renderFileManager, setRenderFileManager] = useState(false);
   const [fileManagerEnabled, setFileManagerEnabled] = useState(true);
   const [fileManagerHeight, setFileManagerHeight] = useState(320);
+  const [isFileManagerResizing, setIsFileManagerResizing] = useState(false);
   const [lastFocusedSessionId, setLastFocusedSessionId] = useState<string | null>(null);
   const [sessionCwdMap, setSessionCwdMap] = useState<Record<string, string>>({});
   const [splitRatio, setSplitRatio] = useState(0.5);
@@ -1661,6 +1703,10 @@ export function TerminalPage() {
   const [dragDeltaX, setDragDeltaX] = useState(0);
   const dragStartXRef = useRef<number | null>(null);
   const dragMovedRef = useRef(false);
+  const fileManagerResizeFrameRef = useRef<number | null>(null);
+  const fileManagerResizeEndFrameRef = useRef<number | null>(null);
+  const fileManagerResizeHeightRef = useRef(fileManagerHeight);
+  const fileManagerResizeCleanupRef = useRef<(() => void) | null>(null);
   const ignoreClickRef = useRef(false);
   const tabBarRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -1668,6 +1714,7 @@ export function TerminalPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarkDrawerRef = useRef<HTMLDivElement>(null);
   const historyDrawerRef = useRef<HTMLDivElement>(null);
+  const fileManagerShellRef = useRef<HTMLDivElement>(null);
   const bookmarkToggleRef = useRef<HTMLButtonElement>(null);
   const historyToggleRef = useRef<HTMLButtonElement>(null);
   const {
@@ -1866,6 +1913,7 @@ export function TerminalPage() {
   const fileManagerOpen = showFileManager && fileManagerEnabled && fileManagerSessionId !== null;
   const shouldRenderFileManager = renderFileManager && fileManagerEnabled && fileManagerTab !== null;
   const fileManagerLayoutHeight = fileManagerOpen ? fileManagerHeight : 0;
+  const fileManagerRenderedHeight = isFileManagerResizing ? fileManagerResizeHeightRef.current : fileManagerLayoutHeight;
 
   const handleTerminalFocus = useCallback((sessionId: string, cwd: string | null) => {
     setLastFocusedSessionId(sessionId);
@@ -1900,30 +1948,80 @@ export function TerminalPage() {
   }, [fileManagerEnabled, fileManagerTab, showFileManager, t]);
 
   const handleFileManagerResizeStart = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
     event.preventDefault();
     const startY = event.clientY;
     const startHeight = fileManagerHeight;
     const totalHeight = termMainRef.current?.getBoundingClientRect().height ?? window.innerHeight;
     const minHeight = Math.min(260, Math.max(180, Math.round(totalHeight * 0.35)));
     const maxHeight = Math.max(minHeight, Math.round(totalHeight * 0.7));
+    const abortController = new AbortController();
+
+    fileManagerResizeCleanupRef.current?.();
+    if (fileManagerResizeEndFrameRef.current !== null) {
+      window.cancelAnimationFrame(fileManagerResizeEndFrameRef.current);
+      fileManagerResizeEndFrameRef.current = null;
+    }
+    fileManagerResizeHeightRef.current = startHeight;
+    termMainRef.current?.setAttribute("data-file-manager-resizing", "true");
+    fileManagerShellRef.current?.setAttribute("data-resizing", "true");
+    setIsFileManagerResizing(true);
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const delta = startY - moveEvent.clientY;
-      setFileManagerHeight(Math.max(minHeight, Math.min(maxHeight, startHeight + delta)));
+      fileManagerResizeHeightRef.current = Math.max(minHeight, Math.min(maxHeight, startHeight + delta));
+      if (fileManagerResizeFrameRef.current !== null) return;
+      fileManagerResizeFrameRef.current = window.requestAnimationFrame(() => {
+        fileManagerResizeFrameRef.current = null;
+        const height = fileManagerResizeHeightRef.current;
+        const shell = fileManagerShellRef.current;
+        if (shell) {
+          shell.style.height = `${height}px`;
+          shell.style.flex = `0 0 ${height}px`;
+        }
+        if (termMainRef.current) {
+          termMainRef.current.style.gridTemplateRows = `var(--tabbar-h) minmax(0, 1fr) ${height}px`;
+        }
+      });
     };
 
-    const handleMouseUp = () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
+    const cleanupResize = () => {
+      abortController.abort();
+      if (fileManagerResizeFrameRef.current !== null) {
+        window.cancelAnimationFrame(fileManagerResizeFrameRef.current);
+        fileManagerResizeFrameRef.current = null;
+      }
+      fileManagerResizeCleanupRef.current = null;
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
 
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
+    const handleMouseUp = () => {
+      const finalHeight = fileManagerResizeHeightRef.current;
+      cleanupResize();
+      setFileManagerHeight(finalHeight);
+      fileManagerResizeEndFrameRef.current = window.requestAnimationFrame(() => {
+        fileManagerResizeEndFrameRef.current = null;
+        setIsFileManagerResizing(false);
+      });
+    };
+
+    fileManagerResizeCleanupRef.current = cleanupResize;
+    document.addEventListener("mousemove", handleMouseMove, { signal: abortController.signal });
+    document.addEventListener("mouseup", handleMouseUp, { signal: abortController.signal });
     document.body.style.cursor = "row-resize";
     document.body.style.userSelect = "none";
   }, [fileManagerHeight]);
+
+  useEffect(() => {
+    return () => {
+      fileManagerResizeCleanupRef.current?.();
+      if (fileManagerResizeEndFrameRef.current !== null) {
+        window.cancelAnimationFrame(fileManagerResizeEndFrameRef.current);
+        fileManagerResizeEndFrameRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (showFileManager && (!fileManagerEnabled || !fileManagerTab)) {
@@ -2068,8 +2166,9 @@ export function TerminalPage() {
       <div
         ref={termMainRef}
         className="term-main flex flex-1 flex-col overflow-hidden"
+        data-file-manager-resizing={isFileManagerResizing ? "true" : undefined}
         style={shouldRenderFileManager
-          ? { gridTemplateRows: `var(--tabbar-h) minmax(0, 1fr) ${fileManagerLayoutHeight}px` }
+          ? { gridTemplateRows: `var(--tabbar-h) minmax(0, 1fr) ${fileManagerRenderedHeight}px` }
           : undefined}
       >
         {/* Tab bar */}
@@ -2422,6 +2521,7 @@ export function TerminalPage() {
                     hostId={tab.hostId}
                     macroOutputFilter={macroOutputFilter?.sessionId === tab.sessionId ? macroOutputFilter : null}
                     termSettings={termSettings}
+                    suspendResize={isFileManagerResizing}
                     onFocusSession={handleTerminalFocus}
                     onCwdChange={handleTerminalCwdChange}
                   />
@@ -2453,6 +2553,7 @@ export function TerminalPage() {
                       hostId={splitTab.hostId}
                       macroOutputFilter={macroOutputFilter?.sessionId === splitTab.sessionId ? macroOutputFilter : null}
                       termSettings={termSettings}
+                      suspendResize={isFileManagerResizing}
                       onFocusSession={handleTerminalFocus}
                       onCwdChange={handleTerminalCwdChange}
                     />
@@ -2494,12 +2595,14 @@ export function TerminalPage() {
         </div>
         {shouldRenderFileManager && fileManagerTab && (
           <div
+            ref={fileManagerShellRef}
             className="terminal-file-manager-shell"
             data-state={fileManagerOpen ? "open" : "closed"}
+            data-resizing={isFileManagerResizing ? "true" : undefined}
             aria-hidden={!fileManagerOpen}
             style={{
-              height: fileManagerLayoutHeight,
-              flex: `0 0 ${fileManagerLayoutHeight}px`,
+              height: fileManagerRenderedHeight,
+              flex: `0 0 ${fileManagerRenderedHeight}px`,
             }}
           >
             <div

@@ -203,6 +203,66 @@ const isAurora = uiTheme === "aurora";
 
 ---
 
+## Convention: Resizable panels must disable size transitions during drag
+
+**What**: Drawers, split panes, and resizable panels may animate their open/close state, but must not transition the same `width`, `height`, `flex-basis`, or grid track value while the user is actively dragging a resize handle. Add an explicit resizing state and use `requestAnimationFrame` to commit at most one DOM/CSS size update per frame; save the final size back to React state on release.
+
+**Why**: Drag gestures generate high-frequency pointer events. If each event updates React state while CSS is also transitioning the resized dimension, the panel visually follows the animation curve instead of the pointer. In the terminal file manager drawer the real layout dimension is the parent grid row, not only the drawer height; if that grid track keeps transitioning, the terminal area still eases behind the cursor and forces xterm to refit repeatedly.
+
+**Wrong**:
+
+```tsx
+const handleResize = (event: MouseEvent) => {
+  setDrawerHeight(startHeight + startY - event.clientY);
+};
+```
+
+```css
+.drawer-shell {
+  transition:
+    height var(--duration-panel) var(--ease-smooth),
+    flex-basis var(--duration-panel) var(--ease-smooth),
+    opacity var(--duration-panel) var(--ease-smooth);
+}
+```
+
+**Correct**:
+
+```tsx
+const panelRef = useRef<HTMLDivElement>(null);
+const frameRef = useRef<number | null>(null);
+const nextHeightRef = useRef(drawerHeight);
+
+const handleResize = (event: MouseEvent) => {
+  nextHeightRef.current = clamp(startHeight + startY - event.clientY);
+  if (frameRef.current !== null) return;
+  frameRef.current = requestAnimationFrame(() => {
+    frameRef.current = null;
+    panelRef.current?.style.setProperty("--drawer-height", `${nextHeightRef.current}px`);
+  });
+};
+```
+
+```css
+.drawer-layout[data-resizing="true"] {
+  transition: none;
+}
+
+.drawer-shell[data-resizing="true"] {
+  transition:
+    opacity var(--duration-panel) var(--ease-smooth),
+    transform var(--duration-panel) var(--ease-smooth);
+}
+```
+
+**Required check**: During resize, verify the resized dimension and any parent grid/flex track change immediately with the pointer. On mouseup, commit the final dimension before removing the resizing state so the last few pixels do not animate after release. If the resize affects xterm, pause `fit()` during drag and run one final fit after release.
+
+**Related**:
+- `app/src/features/terminal/TerminalPage.tsx`
+- `app/src/styles.css` `.terminal-file-manager-shell`
+
+---
+
 ## Convention: Conditional overlays need a mounted closed state before opening
 
 **What**: Popovers, drawers, and panels that are conditionally rendered must not mount directly in their final open state when they need an entry transition. Keep a short-lived mounted state, render with `data-state="closed"` first, then switch to `data-state="open"` on the next animation frame. On close, switch back to `closed` and unmount only after the CSS transition duration.
