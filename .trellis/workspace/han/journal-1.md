@@ -1020,3 +1020,36 @@ Integrated Tauri official updater for macOS and Windows, preserved release fallb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 28: 终端文件管理抽屉
+
+**Date**: 2026-06-26
+**Task**: 终端文件管理抽屉
+**Branch**: `main`
+
+### Summary
+
+实现终端内文件管理抽屉并优化断连重连提示、文件抽屉与命令宏面板过渡；补充相关前端规范。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6967e5e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
