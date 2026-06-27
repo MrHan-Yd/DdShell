@@ -2092,12 +2092,21 @@ export function TerminalPage() {
       toast.error(t("macro.noActiveTab"));
       return;
     }
-    setShowMacroPanel((prev) => {
-      const next = !prev;
-      if (next) clearFailedBadge();
-      return next;
-    });
-  }, [activeTab, clearFailedBadge, t]);
+    const next = !showMacroPanel;
+    if (next) {
+      clearFailedBadge();
+      setShowAiAssist(false);
+    }
+    setShowMacroPanel(next);
+  }, [activeTab, clearFailedBadge, showMacroPanel, t]);
+
+  const handleToggleAiAssist = useCallback(() => {
+    const next = !showAiAssist;
+    if (next) {
+      setShowMacroPanel(false);
+    }
+    setShowAiAssist(next);
+  }, [showAiAssist]);
 
   const handleRunMacro = useCallback(async (recipeId: string, runtimeParams?: Record<string, string>) => {
     const recipe = recipes.find((item) => item.id === recipeId);
@@ -2544,7 +2553,7 @@ export function TerminalPage() {
                 onClick={() => {
                   setShowHistory(false);
                   setShowBookmarks(false);
-                  setShowAiAssist((value) => !value);
+                  handleToggleAiAssist();
                 }}
               >
                 <Sparkles size={15} />
