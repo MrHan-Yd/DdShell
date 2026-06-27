@@ -9,6 +9,7 @@ pub const TRANSFER_COMPLETED: &str = "transfer:completed";
 pub const TRANSFER_FAILED: &str = "transfer:failed";
 pub const COMMAND_HISTORY_UPDATED: &str = "command-history-updated";
 pub const WORKFLOW_RUN_UPDATED: &str = "workflow:run_updated";
+pub const AI_AGENT_STREAM_DELTA: &str = "ai-agent:stream_delta";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -50,6 +51,14 @@ pub struct TransferFailedEvent {
 #[serde(rename_all = "camelCase")]
 pub struct WorkflowRunUpdatedEvent {
     pub run: crate::core::workflow::WorkflowRun,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiAgentStreamDeltaEvent {
+    pub request_id: String,
+    pub text_delta: String,
+    pub reasoning_delta: Option<String>,
 }
 
 pub fn emit_session_state(app: &AppHandle, session_id: &str, state: &str) {
@@ -121,6 +130,22 @@ pub fn emit_command_history_updated(app: &AppHandle, host_id: &str) {
 
 pub fn emit_workflow_run_updated(app: &AppHandle, run: crate::core::workflow::WorkflowRun) {
     let _ = app.emit(WORKFLOW_RUN_UPDATED, WorkflowRunUpdatedEvent { run });
+}
+
+pub fn emit_ai_agent_stream_delta(
+    app: &AppHandle,
+    request_id: &str,
+    text_delta: &str,
+    reasoning_delta: Option<&str>,
+) {
+    let _ = app.emit(
+        AI_AGENT_STREAM_DELTA,
+        AiAgentStreamDeltaEvent {
+            request_id: request_id.to_string(),
+            text_delta: text_delta.to_string(),
+            reasoning_delta: reasoning_delta.map(ToOwned::to_owned),
+        },
+    );
 }
 
 // ── Metrics events ──

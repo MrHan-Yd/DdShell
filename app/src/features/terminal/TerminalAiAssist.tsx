@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Check, ChevronLeft, ChevronRight, Copy, History, Loader2, Send, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as api from "@/lib/tauri";
 import { Select } from "@/components/ui/themed/Select";
-import type { AiAgentCommand, AiAgentConfig, AiAgentModel, AiAgentProfile, AiAgentSendResponse, TerminalTab } from "@/types";
+import type { AiAgentCommand, AiAgentConfig, AiAgentModel, AiAgentProfile, AiAgentSendResponse, AiAgentStreamDeltaEvent, TerminalTab } from "@/types";
 import { useT } from "@/lib/i18n";
 import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
@@ -153,9 +154,13 @@ export function TerminalAiAssist({
   const [loading, setLoading] = useState(false);
   const [requestStartedAt, setRequestStartedAt] = useState<number | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
+  const [streamText, setStreamText] = useState("");
+  const [streamReasoning, setStreamReasoning] = useState("");
+  const [hasStreamDelta, setHasStreamDelta] = useState(false);
   const [error, setError] = useState("");
   const historyHostId = activeTab?.hostId || "";
   const historyHostIdRef = useRef(historyHostId);
+  const activeRequestIdRef = useRef<string | null>(null);
 
   const loadConfig = useCallback(async () => {
     try {
@@ -186,6 +191,34 @@ export function TerminalAiAssist({
   }, [loadConfig, open]);
 
   useEffect(() => {
+    let disposed = false;
+    let unlisten: UnlistenFn | undefined;
+    void listen<AiAgentStreamDeltaEvent>("ai-agent:stream_delta", (event) => {
+      if (!activeRequestIdRef.current || event.payload.requestId !== activeRequestIdRef.current) return;
+      const textDelta = event.payload.textDelta || "";
+      const reasoningDelta = event.payload.reasoningDelta || "";
+      if (!textDelta && !reasoningDelta) return;
+      setHasStreamDelta(true);
+      if (textDelta) {
+        setStreamText((value) => value + textDelta);
+      }
+      if (reasoningDelta) {
+        setStreamReasoning((value) => value + reasoningDelta);
+      }
+    }).then((nextUnlisten) => {
+      if (disposed) {
+        nextUnlisten();
+      } else {
+        unlisten = nextUnlisten;
+      }
+    });
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
     historyHostIdRef.current = historyHostId;
     setHistoryItems(readHistoryItems(historyHostId));
     setLastQuestion("");
@@ -195,7 +228,11 @@ export function TerminalAiAssist({
     setShowReasoning(false);
     setRequestStartedAt(null);
     setElapsedSec(0);
+    setStreamText("");
+    setStreamReasoning("");
+    setHasStreamDelta(false);
     setError("");
+    activeRequestIdRef.current = null;
   }, [historyHostId]);
 
   useEffect(() => {
@@ -261,8 +298,14 @@ export function TerminalAiAssist({
     setActiveCommandIndex(0);
     setShowHistory(false);
     setShowReasoning(false);
+    setStreamText("");
+    setStreamReasoning("");
+    setHasStreamDelta(false);
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    activeRequestIdRef.current = requestId;
     try {
-      const result = await api.aiAgentSend({
+      const request = {
+        requestId,
         profileId: selectedProfile.id,
         modelId: selectedModel.id,
         question: trimmed,
@@ -271,7 +314,10 @@ export function TerminalAiAssist({
           cwd,
           selectedText: null,
         },
-      });
+      };
+      const result = selectedModel.responseMode === "stream"
+        ? await api.aiAgentSendStream(request)
+        : await api.aiAgentSend(request);
       const historyItem = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         question: trimmed,
@@ -292,6 +338,7 @@ export function TerminalAiAssist({
       if (historyHostIdRef.current === submitHostId) {
         setElapsedSec(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
       }
+      activeRequestIdRef.current = null;
       setLoading(false);
     }
   };
@@ -304,7 +351,11 @@ export function TerminalAiAssist({
     setShowReasoning(false);
     setRequestStartedAt(null);
     setElapsedSec(0);
+    setStreamText("");
+    setStreamReasoning("");
+    setHasStreamDelta(false);
     setError("");
+    activeRequestIdRef.current = null;
   };
 
   const handleRun = async (command: AiAgentCommand) => {
@@ -345,14 +396,22 @@ export function TerminalAiAssist({
 
   const isStepMode = response?.commandMode === "steps";
   const reasoningText = config.showReasoning ? response?.reasoning?.trim() : "";
-  const requestStatus = error ? "error" : loading ? "waiting" : response ? "ready" : "idle";
+  const streamPreview = config.showReasoning && streamReasoning.trim()
+    ? streamReasoning.trim()
+    : streamText.trim();
+  const streamPreviewLabel = config.showReasoning && streamReasoning.trim()
+    ? t("aiAssist.reasoning")
+    : t("aiAssist.streamPreview");
+  const requestStatus = error ? "error" : loading && hasStreamDelta ? "responding" : loading ? "waiting" : response ? "ready" : "idle";
   const requestStatusLabel = requestStatus === "waiting"
     ? t("aiAssist.statusWaiting", { seconds: elapsedSec })
-    : requestStatus === "ready"
-      ? t("aiAssist.statusReady", { seconds: elapsedSec })
-      : requestStatus === "error"
-        ? t("aiAssist.statusError")
-        : t("aiAssist.statusIdle");
+    : requestStatus === "responding"
+      ? t("aiAssist.statusResponding", { seconds: elapsedSec })
+      : requestStatus === "ready"
+        ? t("aiAssist.statusReady", { seconds: elapsedSec })
+        : requestStatus === "error"
+          ? t("aiAssist.statusError")
+          : t("aiAssist.statusIdle");
   const commandLabel = isStepMode
     ? t("aiAssist.step", { current: activeCommandIndex + 1, total: response?.commands.length ?? 1 })
     : t("aiAssist.option", { current: activeCommandIndex + 1, total: response?.commands.length ?? 1 });
@@ -472,9 +531,17 @@ export function TerminalAiAssist({
       {error && <div className="ai-error">{error}</div>}
 
       {loading && (
-        <div className="ai-loading">
-          <Loader2 size={14} className="animate-spin" />
-          {t("aiAssist.thinking")}
+        <div className={cn("ai-loading", streamPreview && "ai-loading--stream")}>
+          <div className="ai-loading-line">
+            <Loader2 size={14} className="animate-spin" />
+            {t("aiAssist.thinking")}
+          </div>
+          {streamPreview && (
+            <div className="ai-stream-box">
+              <span>{streamPreviewLabel}</span>
+              <pre className="ai-stream-preview">{streamPreview}</pre>
+            </div>
+          )}
         </div>
       )}
 

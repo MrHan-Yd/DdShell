@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use futures_util::StreamExt;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -137,6 +138,8 @@ pub struct AiAgentTerminalContext {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AiAgentSendReq {
+    #[serde(default)]
+    pub request_id: Option<String>,
     pub profile_id: String,
     pub model_id: Option<String>,
     pub question: String,
@@ -166,6 +169,18 @@ pub struct AiAgentSendResponse {
 #[derive(Debug, Clone)]
 struct ProviderTextResponse {
     text: String,
+    reasoning: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AiAgentStreamDelta {
+    pub text_delta: String,
+    pub reasoning_delta: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct StreamDeltaParts {
+    text: Option<String>,
     reasoning: Option<String>,
 }
 
@@ -362,10 +377,18 @@ pub async fn save_config(
     db: &Database,
     req: AiAgentConfigSaveReq,
 ) -> anyhow::Result<AiAgentConfig> {
+    let previous_profiles: Vec<StoredProfile> = match db.get_setting(KEY_PROFILES).await? {
+        Some(raw) if !raw.trim().is_empty() => serde_json::from_str(&raw).unwrap_or_default(),
+        _ => Vec::new(),
+    };
     let mut profiles = Vec::with_capacity(req.profiles.len());
     for profile in req.profiles {
         profiles.push(normalize_profile(profile));
     }
+    let next_profile_ids = profiles
+        .iter()
+        .map(|profile| profile.id.as_str())
+        .collect::<Vec<_>>();
 
     let stored: Vec<StoredProfile> = profiles.iter().map(StoredProfile::from).collect();
     db.set_setting(KEY_ENABLED, if req.enabled { "true" } else { "false" })
@@ -401,6 +424,15 @@ pub async fn save_config(
         .await?;
     db.set_setting(KEY_PROFILES, &serde_json::to_string(&stored)?)
         .await?;
+    for previous in previous_profiles {
+        if !next_profile_ids
+            .iter()
+            .any(|id| *id == previous.id.as_str())
+        {
+            db.set_setting(&profile_key_setting(&previous.id), "")
+                .await?;
+        }
+    }
 
     get_config(db).await
 }
@@ -415,20 +447,33 @@ pub async fn clear_profile_key(db: &Database, profile_id: &str) -> anyhow::Resul
     db.set_setting(&profile_key_setting(profile_id), "").await
 }
 
-pub async fn send(db: &Database, req: AiAgentSendReq) -> anyhow::Result<AiAgentSendResponse> {
+struct PreparedAiAgentRequest {
+    config: AiAgentConfig,
+    profile: AiAgentProfile,
+    model: AiAgentModel,
+    api_key: String,
+    preferred_command_mode: Option<&'static str>,
+}
+
+async fn prepare_send(
+    db: &Database,
+    req: &AiAgentSendReq,
+) -> anyhow::Result<PreparedAiAgentRequest> {
     let config = get_config(db).await?;
     if !config.enabled {
         anyhow::bail!("AI Agent is disabled");
     }
     let profile = config
         .profiles
-        .into_iter()
+        .iter()
         .find(|p| p.id == req.profile_id)
+        .cloned()
         .ok_or_else(|| anyhow::anyhow!("AI profile not found"))?;
     if profile.base_url.trim().is_empty() {
         anyhow::bail!("AI profile base URL is empty");
     }
     let model = selected_model(&profile, req.model_id.as_deref())
+        .cloned()
         .ok_or_else(|| anyhow::anyhow!("AI profile has no configured models"))?;
     if model.model.trim().is_empty() {
         anyhow::bail!("AI profile model is empty");
@@ -441,11 +486,67 @@ pub async fn send(db: &Database, req: AiAgentSendReq) -> anyhow::Result<AiAgentS
         .ok_or_else(|| anyhow::anyhow!("AI profile API key is not configured"))?;
     let api_key = secret::decrypt(&encrypted)?;
     let preferred_command_mode = infer_command_mode_from_question(&req.question);
-    let provider_response =
-        call_provider(&profile, model, config.timeout_sec, &api_key, &req).await?;
-    let mut response = parse_agent_response(&provider_response.text, preferred_command_mode);
+    Ok(PreparedAiAgentRequest {
+        config,
+        profile,
+        model,
+        api_key,
+        preferred_command_mode,
+    })
+}
+
+pub async fn send(db: &Database, req: AiAgentSendReq) -> anyhow::Result<AiAgentSendResponse> {
+    let prepared = prepare_send(db, &req).await?;
+    let provider_response = call_provider(
+        &prepared.profile,
+        &prepared.model,
+        prepared.config.timeout_sec,
+        &prepared.api_key,
+        &req,
+    )
+    .await?;
+    let mut response =
+        parse_agent_response(&provider_response.text, prepared.preferred_command_mode);
     let parsed_reasoning = response.reasoning.take();
-    if config.show_reasoning {
+    if prepared.config.show_reasoning {
+        response.reasoning = provider_response.reasoning.or(parsed_reasoning);
+    }
+    Ok(response)
+}
+
+pub async fn send_stream<F>(
+    db: &Database,
+    req: AiAgentSendReq,
+    mut on_delta: F,
+) -> anyhow::Result<AiAgentSendResponse>
+where
+    F: FnMut(AiAgentStreamDelta) + Send,
+{
+    let prepared = prepare_send(db, &req).await?;
+    let provider_response = if prepared.model.response_mode == AiAgentResponseMode::Stream {
+        call_provider_stream(
+            &prepared.profile,
+            &prepared.model,
+            prepared.config.timeout_sec,
+            &prepared.api_key,
+            &req,
+            &mut on_delta,
+        )
+        .await?
+    } else {
+        call_provider(
+            &prepared.profile,
+            &prepared.model,
+            prepared.config.timeout_sec,
+            &prepared.api_key,
+            &req,
+        )
+        .await?
+    };
+    let mut response =
+        parse_agent_response(&provider_response.text, prepared.preferred_command_mode);
+    let parsed_reasoning = response.reasoning.take();
+    if prepared.config.show_reasoning {
         response.reasoning = provider_response.reasoning.or(parsed_reasoning);
     }
     Ok(response)
@@ -515,6 +616,74 @@ async fn call_provider(
     }
 }
 
+async fn call_provider_stream<F>(
+    profile: &AiAgentProfile,
+    model: &AiAgentModel,
+    timeout_sec: Option<u64>,
+    api_key: &str,
+    req: &AiAgentSendReq,
+    on_delta: &mut F,
+) -> anyhow::Result<ProviderTextResponse>
+where
+    F: FnMut(AiAgentStreamDelta) + Send,
+{
+    let timeout = Duration::from_secs(timeout_sec.unwrap_or(60).clamp(5, 300));
+    let client = reqwest::Client::builder().timeout(timeout).build()?;
+    let system_prompt = system_prompt();
+    let user_prompt = user_prompt(req, model.context_window_tokens);
+
+    match profile.protocol {
+        AiAgentProtocol::OpenaiChat => {
+            call_openai_chat_stream(
+                &client,
+                profile,
+                model,
+                api_key,
+                system_prompt,
+                &user_prompt,
+                on_delta,
+            )
+            .await
+        }
+        AiAgentProtocol::OpenaiResponses => {
+            call_openai_responses_stream(
+                &client,
+                profile,
+                model,
+                api_key,
+                system_prompt,
+                &user_prompt,
+                on_delta,
+            )
+            .await
+        }
+        AiAgentProtocol::ClaudeMessages => {
+            call_claude_messages_stream(
+                &client,
+                profile,
+                model,
+                api_key,
+                system_prompt,
+                &user_prompt,
+                on_delta,
+            )
+            .await
+        }
+        AiAgentProtocol::GeminiGenerateContent => {
+            call_gemini_stream(
+                &client,
+                profile,
+                model,
+                api_key,
+                system_prompt,
+                &user_prompt,
+                on_delta,
+            )
+            .await
+        }
+    }
+}
+
 async fn call_openai_chat(
     client: &reqwest::Client,
     profile: &AiAgentProfile,
@@ -551,6 +720,41 @@ async fn call_openai_chat(
     Ok(ProviderTextResponse { text, reasoning })
 }
 
+async fn call_openai_chat_stream<F>(
+    client: &reqwest::Client,
+    profile: &AiAgentProfile,
+    model: &AiAgentModel,
+    api_key: &str,
+    system_prompt: &str,
+    user_prompt: &str,
+    on_delta: &mut F,
+) -> anyhow::Result<ProviderTextResponse>
+where
+    F: FnMut(AiAgentStreamDelta) + Send,
+{
+    let url = join_url(&profile.base_url, "chat/completions");
+    let body = json!({
+        "model": model.model,
+        "temperature": model.temperature.unwrap_or(0.2),
+        "max_tokens": model.max_tokens.unwrap_or(1200),
+        "response_format": { "type": "json_object" },
+        "stream": true,
+        "messages": [
+            { "role": "system", "content": system_prompt },
+            { "role": "user", "content": user_prompt }
+        ]
+    });
+    collect_sse_text(
+        client,
+        &url,
+        bearer_headers(api_key)?,
+        body,
+        extract_openai_chat_stream_delta,
+        on_delta,
+    )
+    .await
+}
+
 async fn call_openai_responses(
     client: &reqwest::Client,
     profile: &AiAgentProfile,
@@ -585,6 +789,45 @@ async fn call_openai_responses(
     };
     let reasoning = extract_reasoning_fields(&value).or_else(|| extract_think_blocks(&text));
     Ok(ProviderTextResponse { text, reasoning })
+}
+
+async fn call_openai_responses_stream<F>(
+    client: &reqwest::Client,
+    profile: &AiAgentProfile,
+    model: &AiAgentModel,
+    api_key: &str,
+    system_prompt: &str,
+    user_prompt: &str,
+    on_delta: &mut F,
+) -> anyhow::Result<ProviderTextResponse>
+where
+    F: FnMut(AiAgentStreamDelta) + Send,
+{
+    let url = join_url(&profile.base_url, "responses");
+    let body = json!({
+        "model": model.model,
+        "temperature": model.temperature.unwrap_or(0.2),
+        "max_output_tokens": model.max_tokens.unwrap_or(1200),
+        "instructions": system_prompt,
+        "input": user_prompt,
+        "stream": true,
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": "terminal_command_assistant",
+                "schema": response_schema()
+            }
+        }
+    });
+    collect_sse_text(
+        client,
+        &url,
+        bearer_headers(api_key)?,
+        body,
+        extract_openai_responses_stream_delta,
+        on_delta,
+    )
+    .await
 }
 
 async fn call_claude_messages(
@@ -641,6 +884,43 @@ async fn call_claude_messages(
         .or_else(|| extract_reasoning_fields(&value))
         .or_else(|| extract_think_blocks(&text));
     Ok(ProviderTextResponse { text, reasoning })
+}
+
+async fn call_claude_messages_stream<F>(
+    client: &reqwest::Client,
+    profile: &AiAgentProfile,
+    model: &AiAgentModel,
+    api_key: &str,
+    system_prompt: &str,
+    user_prompt: &str,
+    on_delta: &mut F,
+) -> anyhow::Result<ProviderTextResponse>
+where
+    F: FnMut(AiAgentStreamDelta) + Send,
+{
+    let url = join_url(&profile.base_url, "messages");
+    let body = json!({
+        "model": model.model,
+        "system": system_prompt,
+        "max_tokens": model.max_tokens.unwrap_or(1200),
+        "temperature": model.temperature.unwrap_or(0.2),
+        "stream": true,
+        "messages": [
+            { "role": "user", "content": user_prompt }
+        ]
+    });
+    let mut headers = json_headers();
+    headers.insert("x-api-key", HeaderValue::from_str(api_key)?);
+    headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
+    collect_sse_text(
+        client,
+        &url,
+        headers,
+        body,
+        extract_claude_stream_delta,
+        on_delta,
+    )
+    .await
 }
 
 async fn call_gemini(
@@ -707,6 +987,50 @@ async fn call_gemini(
     Ok(ProviderTextResponse { text, reasoning })
 }
 
+async fn call_gemini_stream<F>(
+    client: &reqwest::Client,
+    profile: &AiAgentProfile,
+    model: &AiAgentModel,
+    api_key: &str,
+    system_prompt: &str,
+    user_prompt: &str,
+    on_delta: &mut F,
+) -> anyhow::Result<ProviderTextResponse>
+where
+    F: FnMut(AiAgentStreamDelta) + Send,
+{
+    let path = format!("models/{}:streamGenerateContent?alt=sse", model.model);
+    let url = join_url(&profile.base_url, &path);
+    let body = json!({
+        "systemInstruction": {
+            "parts": [{ "text": system_prompt }]
+        },
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{ "text": user_prompt }]
+            }
+        ],
+        "generationConfig": {
+            "temperature": model.temperature.unwrap_or(0.2),
+            "maxOutputTokens": model.max_tokens.unwrap_or(1200),
+            "responseMimeType": "application/json",
+            "responseSchema": response_schema()
+        }
+    });
+    let mut headers = json_headers();
+    headers.insert("x-goog-api-key", HeaderValue::from_str(api_key)?);
+    collect_sse_text(
+        client,
+        &url,
+        headers,
+        body,
+        extract_gemini_stream_delta,
+        on_delta,
+    )
+    .await
+}
+
 async fn post_json(
     client: &reqwest::Client,
     url: &str,
@@ -722,6 +1046,233 @@ async fn post_json(
     }
     serde_json::from_str(&text)
         .map_err(|e| anyhow::anyhow!("AI provider returned invalid JSON: {}", e))
+}
+
+async fn collect_sse_text<F, E>(
+    client: &reqwest::Client,
+    url: &str,
+    headers: HeaderMap,
+    body: Value,
+    extract_delta: E,
+    on_delta: &mut F,
+) -> anyhow::Result<ProviderTextResponse>
+where
+    F: FnMut(AiAgentStreamDelta) + Send,
+    E: Fn(&Value) -> StreamDeltaParts,
+{
+    let mut text = String::new();
+    let mut reasoning = String::new();
+    post_sse(client, url, headers, body, |event_data| {
+        if event_data.trim() == "[DONE]" {
+            return Ok(false);
+        }
+        let value: Value = serde_json::from_str(event_data)
+            .map_err(|e| anyhow::anyhow!("AI provider returned invalid stream JSON: {}", e))?;
+        let delta = extract_delta(&value);
+        let text_delta = delta.text.unwrap_or_default();
+        let reasoning_delta = delta.reasoning;
+        if text_delta.is_empty() && reasoning_delta.as_deref().unwrap_or_default().is_empty() {
+            return Ok(true);
+        }
+        if !text_delta.is_empty() {
+            text.push_str(&text_delta);
+        }
+        if let Some(reasoning_delta) = reasoning_delta {
+            if !reasoning_delta.is_empty() {
+                reasoning.push_str(&reasoning_delta);
+                on_delta(AiAgentStreamDelta {
+                    text_delta,
+                    reasoning_delta: Some(reasoning_delta),
+                });
+                return Ok(true);
+            }
+        }
+        on_delta(AiAgentStreamDelta {
+            text_delta,
+            reasoning_delta: None,
+        });
+        Ok(true)
+    })
+    .await?;
+
+    if text.trim().is_empty() {
+        anyhow::bail!("AI provider stream did not include text content");
+    }
+    let reasoning = reasoning
+        .trim()
+        .is_empty()
+        .then(|| extract_think_blocks(&text))
+        .flatten()
+        .or_else(|| {
+            let trimmed = reasoning.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        });
+    Ok(ProviderTextResponse { text, reasoning })
+}
+
+async fn post_sse<F>(
+    client: &reqwest::Client,
+    url: &str,
+    headers: HeaderMap,
+    body: Value,
+    mut on_event: F,
+) -> anyhow::Result<()>
+where
+    F: FnMut(&str) -> anyhow::Result<bool>,
+{
+    let response = client.post(url).headers(headers).json(&body).send().await?;
+    let status = response.status();
+    if !status.is_success() {
+        let text = response.text().await?;
+        let safe = text.chars().take(500).collect::<String>();
+        anyhow::bail!("AI provider request failed ({}): {}", status.as_u16(), safe);
+    }
+
+    let mut stream = response.bytes_stream();
+    let mut line = Vec::new();
+    let mut event_data = String::new();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        for byte in chunk {
+            if byte == b'\n' {
+                if !process_sse_line(&line, &mut event_data, &mut on_event)? {
+                    return Ok(());
+                }
+                line.clear();
+            } else {
+                line.push(byte);
+            }
+        }
+    }
+    if !line.is_empty() {
+        process_sse_line(&line, &mut event_data, &mut on_event)?;
+    }
+    if !event_data.trim().is_empty() {
+        on_event(event_data.trim())?;
+    }
+    Ok(())
+}
+
+fn process_sse_line<F>(
+    line: &[u8],
+    event_data: &mut String,
+    on_event: &mut F,
+) -> anyhow::Result<bool>
+where
+    F: FnMut(&str) -> anyhow::Result<bool>,
+{
+    let line = String::from_utf8_lossy(line);
+    let line = line.trim_end_matches('\r');
+    if line.is_empty() {
+        if event_data.trim().is_empty() {
+            return Ok(true);
+        }
+        let should_continue = on_event(event_data.trim())?;
+        event_data.clear();
+        return Ok(should_continue);
+    }
+    let Some(data) = line.strip_prefix("data:") else {
+        return Ok(true);
+    };
+    if !event_data.is_empty() {
+        event_data.push('\n');
+    }
+    event_data.push_str(data.trim_start());
+    Ok(true)
+}
+
+fn extract_openai_chat_stream_delta(value: &Value) -> StreamDeltaParts {
+    let Some(delta) = value.pointer("/choices/0/delta") else {
+        return StreamDeltaParts::default();
+    };
+    StreamDeltaParts {
+        text: stream_string_field(delta, &["content"]),
+        reasoning: stream_string_field(delta, &["reasoning_content", "reasoning"]),
+    }
+}
+
+fn extract_openai_responses_stream_delta(value: &Value) -> StreamDeltaParts {
+    let event_type = value
+        .get("type")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if event_type.contains("output_text.delta") {
+        return StreamDeltaParts {
+            text: stream_string_field(value, &["delta", "text"]),
+            reasoning: None,
+        };
+    }
+    if event_type.contains("reasoning") || event_type.contains("thinking") {
+        return StreamDeltaParts {
+            text: None,
+            reasoning: stream_string_field(value, &["delta", "text", "summary"]),
+        };
+    }
+    StreamDeltaParts::default()
+}
+
+fn extract_claude_stream_delta(value: &Value) -> StreamDeltaParts {
+    if value.get("type").and_then(Value::as_str) != Some("content_block_delta") {
+        return StreamDeltaParts::default();
+    }
+    let Some(delta) = value.get("delta") else {
+        return StreamDeltaParts::default();
+    };
+    let delta_type = delta
+        .get("type")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if delta_type == "thinking_delta" {
+        return StreamDeltaParts {
+            text: None,
+            reasoning: stream_string_field(delta, &["thinking", "text"]),
+        };
+    }
+    StreamDeltaParts {
+        text: stream_string_field(delta, &["text"]),
+        reasoning: None,
+    }
+}
+
+fn extract_gemini_stream_delta(value: &Value) -> StreamDeltaParts {
+    let parts = value
+        .pointer("/candidates/0/content/parts")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let mut text = String::new();
+    let mut reasoning = String::new();
+    for part in parts {
+        let Some(part_text) = part.get("text").and_then(Value::as_str) else {
+            continue;
+        };
+        if part.get("thought").and_then(Value::as_bool) == Some(true) {
+            reasoning.push_str(part_text);
+        } else {
+            text.push_str(part_text);
+        }
+    }
+    StreamDeltaParts {
+        text: if text.is_empty() { None } else { Some(text) },
+        reasoning: if reasoning.is_empty() {
+            None
+        } else {
+            Some(reasoning)
+        },
+    }
+}
+
+fn stream_string_field(value: &Value, keys: &[&str]) -> Option<String> {
+    for key in keys {
+        if let Some(text) = value.get(*key).and_then(Value::as_str) {
+            return Some(text.to_string());
+        }
+    }
+    None
 }
 
 fn bearer_headers(api_key: &str) -> anyhow::Result<HeaderMap> {
@@ -1475,6 +2026,94 @@ mod tests {
     }
 
     #[test]
+    fn openai_chat_stream_delta_extracts_text_and_reasoning() {
+        let value = json!({
+            "choices": [
+                {
+                    "delta": {
+                        "content": "{\"answer\"",
+                        "reasoning_content": "先组织 JSON。"
+                    }
+                }
+            ]
+        });
+
+        let delta = extract_openai_chat_stream_delta(&value);
+
+        assert_eq!(delta.text.as_deref(), Some("{\"answer\""));
+        assert_eq!(delta.reasoning.as_deref(), Some("先组织 JSON。"));
+    }
+
+    #[test]
+    fn openai_responses_stream_delta_extracts_output_text() {
+        let value = json!({
+            "type": "response.output_text.delta",
+            "delta": ":\"ok\""
+        });
+
+        let delta = extract_openai_responses_stream_delta(&value);
+
+        assert_eq!(delta.text.as_deref(), Some(":\"ok\""));
+        assert!(delta.reasoning.is_none());
+    }
+
+    #[test]
+    fn claude_stream_delta_extracts_thinking() {
+        let value = json!({
+            "type": "content_block_delta",
+            "delta": {
+                "type": "thinking_delta",
+                "thinking": "判断命令风险。"
+            }
+        });
+
+        let delta = extract_claude_stream_delta(&value);
+
+        assert!(delta.text.is_none());
+        assert_eq!(delta.reasoning.as_deref(), Some("判断命令风险。"));
+    }
+
+    #[test]
+    fn gemini_stream_delta_splits_thought_parts() {
+        let value = json!({
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            { "text": "思考", "thought": true },
+                            { "text": "{\"answer\":\"ok\"}" }
+                        ]
+                    }
+                }
+            ]
+        });
+
+        let delta = extract_gemini_stream_delta(&value);
+
+        assert_eq!(delta.text.as_deref(), Some("{\"answer\":\"ok\"}"));
+        assert_eq!(delta.reasoning.as_deref(), Some("思考"));
+    }
+
+    #[test]
+    fn sse_line_parser_flushes_data_events() {
+        let mut event_data = String::new();
+        let mut events = Vec::new();
+        {
+            let mut on_event = |data: &str| {
+                events.push(data.to_string());
+                Ok(true)
+            };
+
+            process_sse_line(b"data: {\"delta\":\"a\"}\r", &mut event_data, &mut on_event)
+                .expect("data line should parse");
+            process_sse_line(b"", &mut event_data, &mut on_event).expect("blank line should flush");
+        }
+
+        assert_eq!(events, vec!["{\"delta\":\"a\"}".to_string()]);
+        assert!(event_data.is_empty());
+    }
+
+    #[test]
     fn stored_profile_defaults_to_non_stream_response_mode() {
         let raw = r#"{
             "id": "profile-1",
@@ -1588,7 +2227,8 @@ mod tests {
             api_key_set: false,
         });
 
-        let value = serde_json::to_value(StoredProfile::from(&profile)).expect("profile should serialize");
+        let value =
+            serde_json::to_value(StoredProfile::from(&profile)).expect("profile should serialize");
 
         assert!(value.get("models").is_some());
         assert!(value.get("model").is_none());

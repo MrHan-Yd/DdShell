@@ -144,6 +144,7 @@ function TransferRow({
   task: TransferTask;
   onCancel: (id: string) => void;
 }) {
+  const t = useT();
   const progress = task.totalBytes > 0
     ? Math.round((task.transferredBytes / task.totalBytes) * 100)
     : 0;
@@ -172,15 +173,15 @@ function TransferRow({
           : task.state === "completed"
             ? `${formatBytes(task.totalBytes)}`
             : task.state === "failed"
-              ? task.error ?? "failed"
-              : task.state}
+              ? task.error ?? t("terminalFileManager.transferFailed")
+              : t("terminalFileManager.transferQueued")}
       </span>
       {(task.state === "running" || task.state === "queued") && (
         <button
           type="button"
           onClick={() => onCancel(task.id)}
           className="btn btn-icon btn-ghost"
-          title="Cancel"
+          title={t("terminalFileManager.cancelTransfer")}
         >
           <X size={11} />
         </button>

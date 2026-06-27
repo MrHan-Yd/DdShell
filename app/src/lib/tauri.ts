@@ -272,6 +272,10 @@ export async function aiAgentSend(req: AiAgentSendRequest): Promise<AiAgentSendR
   return invoke("ai_agent_send", { req });
 }
 
+export async function aiAgentSendStream(req: AiAgentSendRequest): Promise<AiAgentSendResponse> {
+  return invoke("ai_agent_send_stream", { req });
+}
+
 // ── Health check ──
 
 export async function appHealth(): Promise<{ status: string; message: string }> {

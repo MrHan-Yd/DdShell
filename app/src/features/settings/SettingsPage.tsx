@@ -1026,13 +1026,14 @@ export function SettingsPage() {
   // full draft is good enough at this volume (~19 fields, low render frequency)
   // and side-steps deep-equal helpers.
   const lastSavedRef = useRef<string | null>(null);
-  const draftSnapshot = JSON.stringify({
+  const snapshotValue = {
     theme, uiTheme, locale, terminal, uiFontFamily, uiFontSize,
     confirmDanger, sessionTimeout, chunkSize, maxConcurrent, transferTimeout,
     retryCount, downloadPath, transferNotify, predictiveEchoEnabled,
     caEnabled, caMode, caConfirmKey, caPosition, caEnabledCategories,
-    aiAgentConfig,
-  });
+    aiAgentConfig, aiAgentKeyDrafts, aiAgentClearedKeys,
+  };
+  const draftSnapshot = JSON.stringify(snapshotValue);
 
   useEffect(() => {
     if (!loaded) return;
@@ -1291,13 +1292,14 @@ export function SettingsPage() {
         { key: "commandAssist.position", value: caPosition },
         { key: "commandAssist.enabledAppCategories", value: JSON.stringify(enabledCats) },
       ]);
-      await api.aiAgentConfigSave(aiAgentConfig);
+      const savedAiAgentConfig = await api.aiAgentConfigSave(aiAgentConfig);
+      const savedProfileIds = new Set(savedAiAgentConfig.profiles.map((profile) => profile.id));
       await Promise.all([
         ...Object.entries(aiAgentKeyDrafts)
-          .filter(([, value]) => value.trim())
+          .filter(([profileId, value]) => savedProfileIds.has(profileId) && value.trim())
           .map(([profileId, value]) => api.aiAgentProfileSetKey(profileId, value.trim())),
         ...Object.keys(aiAgentClearedKeys)
-          .filter((profileId) => aiAgentClearedKeys[profileId] && !aiAgentKeyDrafts[profileId]?.trim())
+          .filter((profileId) => savedProfileIds.has(profileId) && aiAgentClearedKeys[profileId] && !aiAgentKeyDrafts[profileId]?.trim())
           .map((profileId) => api.aiAgentProfileClearKey(profileId)),
       ]);
       const refreshedAiAgentConfig = await api.aiAgentConfigGet();
@@ -1311,7 +1313,12 @@ export function SettingsPage() {
       setStoreLocale(locale);
       useCommandAssistStore.getState().load();
       window.dispatchEvent(new CustomEvent("terminal:settings-changed"));
-      lastSavedRef.current = draftSnapshot;
+      lastSavedRef.current = JSON.stringify({
+        ...snapshotValue,
+        aiAgentConfig: refreshedAiAgentConfig,
+        aiAgentKeyDrafts: {},
+        aiAgentClearedKeys: {},
+      });
       setSettingsDirty(false);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);

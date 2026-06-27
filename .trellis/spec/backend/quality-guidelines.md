@@ -154,6 +154,8 @@ Correct:
 - `ai_agent_profile_set_key(profile_id: String, api_key: String) -> Result<SuccessResponse, String>`
 - `ai_agent_profile_clear_key(profile_id: String) -> Result<SuccessResponse, String>`
 - `ai_agent_send(req: AiAgentSendReq) -> Result<AiAgentSendResponse, String>`
+- `ai_agent_send_stream(app: AppHandle, req: AiAgentSendReq) -> Result<AiAgentSendResponse, String>`
+- Tauri event `ai-agent:stream_delta` payload: `{ requestId: string, textDelta: string, reasoningDelta?: string | null }`
 
 #### 3. Contracts
 - Settings keys:
@@ -170,10 +172,13 @@ Correct:
 - `AiAgentModel` fields are `id`, `name`, provider `model`, `contextWindowTokens`, `temperature`, `maxTokens`, and `responseMode`.
 - Legacy single-model fields on `AiAgentProfile` (`model`, `contextWindowTokens`, `temperature`, `maxTokens`, `responseMode`) may still appear in persisted JSON. Read paths must normalize them into one `models[]` entry and set a valid `defaultModelId`.
 - `AiAgentModel.contextWindowTokens` is the model capacity used for app-side prompt/context budgeting; it is not sent as a universal provider parameter and does not override real model limits.
-- `AiAgentModel.responseMode` stores the user's preferred model behavior: `"auto"`, `"stream"`, or `"nonStream"`. Missing legacy values must deserialize as `"nonStream"`. The current `ai_agent_send` command remains a complete-response command; do not set provider `stream: true` unless a Tauri event/SSE path exists to deliver chunks safely.
-- `AiAgentSendReq` includes `profileId`, optional `modelId`, `question`, and optional terminal context (`tabTitle`, `cwd`, `selectedText`).
+- `AiAgentModel.responseMode` stores the user's preferred model behavior: `"auto"`, `"stream"`, or `"nonStream"`. Missing legacy values must deserialize as `"nonStream"`. `ai_agent_send` remains a complete-response command. `ai_agent_send_stream` may set provider `stream: true` only when it emits chunks through `ai-agent:stream_delta` and still returns the final normalized `AiAgentSendResponse`.
+- `AiAgentSendReq` includes optional `requestId`, `profileId`, optional `modelId`, `question`, and optional terminal context (`tabTitle`, `cwd`, `selectedText`).
 - `AiAgentSendReq.modelId` selects a model within the chosen profile. Missing or invalid `modelId` must fall back to the profile default model, then the first model. If the profile has no models, return a validation error before any provider request.
 - `AiAgentSendResponse` normalizes all providers to `answer`, `commandMode`, `commands[]`, optional `reasoning`, `rawText`, and `parseMode`.
+- Stream mode is per-model. `"stream"` uses provider SSE/streaming endpoints for OpenAI Chat Completions, OpenAI Responses, Claude Messages, and Gemini Generate Content; `"auto"` and `"nonStream"` keep the complete-response path unless a future spec changes auto behavior.
+- Stream deltas are display-only progress data. The backend must accumulate the complete streamed text and parse the final command response with the same parser used by `ai_agent_send`; the frontend must not parse commands from partial deltas.
+- Removing a profile from `aiAgent.profiles` must clear its encrypted `aiAgent.profile.<id>.apiKey` value during config save, so deleted profiles do not leave orphan secrets.
 - `reasoning` may be returned only when `aiAgent.showReasoning` is enabled and the provider/model response actually contains reasoning data. Supported extraction sources include OpenAI-compatible `reasoning_content` / `reasoning`, Claude `thinking` blocks, Gemini `thought` parts, JSON `reasoning` fields, and `<think>...</think>` text blocks.
 - `commandMode` must be `"alternatives"` when commands are equivalent choices where one is enough, and `"steps"` when commands should be run in order. Missing/unknown model output should default conservatively to `"alternatives"` unless fallback parsing clearly extracts a shell block workflow or the original user question has diagnostic/triage intent.
 - Diagnostic questions such as troubleshooting, "why", "where is space used", disk usage analysis, or broad-to-detail investigation should prefer `"steps"` for multi-command results. This local normalization may override a model's `"alternatives"` value unless the answer/command descriptions explicitly say the commands are optional choices.
@@ -187,12 +192,16 @@ Correct:
 - Missing/cleared API key -> return key-not-configured error.
 - Provider non-2xx -> return status plus a short bounded provider error body; never include API key.
 - Provider invalid JSON wrapper -> return invalid-response error.
+- Provider stream returns invalid JSON event -> return invalid-stream-response error and do not guess commands from partial text.
+- Provider stream finishes without any text content -> return stream-missing-content error.
 - Model output parse failure -> return `parseMode = "none"` with no commands rather than guessing commands from prose.
 
 #### 5. Good/Base/Bad Cases
 - Good: OpenAI-compatible profile stores only non-secret fields in `aiAgent.profiles`; key is encrypted under `aiAgent.profile.<id>.apiKey`; frontend receives `apiKeySet: true`.
 - Base: Claude output is JSON because system prompt enforces the shared schema; parser returns `parseMode = "json"` and one command.
+- Base: A stream-mode OpenAI-compatible model emits `ai-agent:stream_delta` events for UI progress, then the command returns the same normalized response shape as non-stream mode.
 - Bad: Frontend calls provider APIs directly with a plaintext key or stores provider key inside `aiAgent.profiles`.
+- Bad: Frontend treats a partial stream delta as executable command output before the backend returns the final normalized response.
 
 #### 6. Tests Required
 - `cd app && pnpm build` verifies frontend/Tauri type alignment and i18n keys.
@@ -207,6 +216,8 @@ Correct:
   - command mode normalization keeps simple listing commands as alternatives, but maps diagnostic multi-command answers to steps even when the model mislabels them as alternatives
   - legacy stored profiles without `responseMode` deserialize as `nonStream`
   - reasoning extraction handles JSON reasoning fields and `<think>...</think>` blocks, and frontend/build checks verify the optional `reasoning` response field stays typed
+  - stream delta extraction handles OpenAI Chat, OpenAI Responses, Claude Messages, Gemini parts, and SSE data-line flushing
+  - deleting a profile clears any encrypted key stored under `aiAgent.profile.<id>.apiKey`
 
 #### 7. Wrong vs Correct
 
@@ -231,6 +242,21 @@ await api.aiAgentSend({
   question,
   context: { tabTitle, cwd, selectedText: null },
 });
+```
+
+Wrong:
+
+```ts
+// Partial stream text is not a stable command contract.
+listen("ai-agent:stream_delta", (event) => runCommand(event.payload.textDelta));
+```
+
+Correct:
+
+```ts
+// Stream deltas update progress UI; executable commands come from final response.
+const response = await api.aiAgentSendStream({ requestId, profileId, modelId, question });
+runCommand(response.commands[0].command);
 ```
 
 ---

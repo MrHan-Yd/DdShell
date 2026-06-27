@@ -202,6 +202,7 @@ export interface AiAgentTerminalContext {
 }
 
 export interface AiAgentSendRequest {
+  requestId?: string | null;
   profileId: string;
   modelId?: string | null;
   question: string;
@@ -222,6 +223,12 @@ export interface AiAgentSendResponse {
   reasoning?: string | null;
   rawText: string;
   parseMode: "json" | "jsonBlock" | "jsonObject" | "shellBlock" | "none" | string;
+}
+
+export interface AiAgentStreamDeltaEvent {
+  requestId: string;
+  textDelta: string;
+  reasoningDelta?: string | null;
 }
 
 /** API error — API-CONTRACTS §1 */
