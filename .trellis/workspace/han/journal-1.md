@@ -1324,3 +1324,37 @@ Implemented terminal AI Assist with provider profiles, history, command executio
 ### Next Steps
 
 - None - task complete
+
+
+## Session 37: Release v0.2.5
+
+**Date**: 2026-06-27
+**Task**: Release v0.2.5
+**Branch**: `main`
+
+### Summary
+
+Fixed SFTP multi-select download confirmation and AI model numeric normalization, updated v0.2.5 release metadata, tagged and pushed v0.2.5.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `09a850d` | (see git log) |
+| `95f2b6a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
