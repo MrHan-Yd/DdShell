@@ -22,11 +22,11 @@ jobs:
           body: |
             ## DdShell ${{ github.ref_name }}
 
-            v0.2.5 重点增强终端内的智能辅助与文件管理能力：终端页新增可配置 AI 助手，支持 OpenAI Chat Completions、OpenAI Responses、Claude Messages、Gemini Generate Content 和兼容接口；同一站点配置可以维护多个模型，并可在终端 AI 助手中切换配置与模型。
+            v0.2.6 是一次稳定性补丁发布，重点修复 macOS 应用内更新下载完成后打开安装包不可靠的问题。下载流程现在会在提示完成前 flush、关闭并校验安装包文件，避免文件尚未完全落盘时 UI 已进入下一步。
 
-            本次版本还支持 AI 流式响应状态、响应内容预览、可选推理信息展示、按服务器隔离的最近 20 条历史问答，以及“方案/步骤”命令建议。终端文件管理抽屉支持浏览、上传、下载、删除、重命名、新建目录和远程移动；右侧终端工具栏整合收藏、命令宏、AI 助手和文件管理入口。
+            macOS 手动安装包打开改为调用系统 `/usr/bin/open`，并在启动失败时返回明确错误信息，方便回退到 GitHub Releases 下载页。Windows 官方 updater 链路和发布资产也已复核，确认 NSIS `.exe`、签名和 `latest.json` manifest 配置完整。
 
-            稳定性方面，修复了终端文件管理多选下载时多个覆盖确认互相取消的问题，并修复 AI 模型数值配置可保存为 0 导致 provider 请求失败的问题。发布链路继续产出 updater 所需的 `latest.json`、macOS `.app.tar.gz` 及 Windows NSIS `.exe` 签名更新包，并保留原有安装包下载方式。
+            文档方面补充 README 项目入口和发布记录，帮助新用户快速了解 DdShell 的 SSH/SFTP、终端智能辅助、文件管理和应用内更新能力。
 
             开源跨平台 SSH/SFTP 桌面客户端。
 
