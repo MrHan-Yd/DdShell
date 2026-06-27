@@ -2471,6 +2471,15 @@ export function TerminalPage() {
             />
           )}
           <div className="terminal-tool-rail" aria-label={t("terminalTool.label")}>
+            <svg
+              className="terminal-tool-rail-path"
+              viewBox="0 0 56 240"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M55 1 C55 16 43 18 28 21 C17 24 10 28 10 33 L10 207 C10 212 17 216 28 219 C43 222 55 224 55 239" />
+            </svg>
             <div className="terminal-tool-item">
               <button
                 className={cn(

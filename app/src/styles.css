@@ -3986,6 +3986,7 @@ button.terminal-reconnect-button:disabled,
 
 /* Terminal toolbar popovers */
 .terminal-tool-rail {
+  --terminal-tool-rail-border: color-mix(in srgb, var(--color-border) 76%, white 5%);
   position: absolute;
   top: 64px;
   right: -1px;
@@ -3996,18 +3997,45 @@ button.terminal-reconnect-button:disabled,
   gap: 5px;
   width: 48px;
   padding: 8px 6px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 76%, white 5%);
-  border-radius: 22px 10px 10px 22px;
+  overflow: visible;
+  isolation: isolate;
+  border: 0;
+  border-radius: 18px 0 0 18px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface) 94%, white 3%), var(--color-bg-surface));
   box-shadow:
     -14px 18px 46px color-mix(in srgb, black 34%, transparent),
-    inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
+    inset 1px 0 0 var(--terminal-tool-rail-border),
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 18%, transparent);
   backdrop-filter: blur(18px);
+}
+
+.terminal-tool-rail-path {
+  position: absolute;
+  top: -34px;
+  right: -1px;
+  z-index: 0;
+  width: 56px;
+  height: calc(100% + 68px);
+  overflow: visible;
+  pointer-events: none;
+  color: var(--terminal-tool-rail-border);
+  filter: drop-shadow(0 0 9px color-mix(in srgb, var(--color-accent) 18%, transparent));
+}
+
+.terminal-tool-rail-path path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.15;
+  vector-effect: non-scaling-stroke;
 }
 
 .terminal-tool-item {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4059,6 +4087,8 @@ button.terminal-reconnect-button:disabled,
 }
 
 .terminal-tool-divider {
+  position: relative;
+  z-index: 1;
   width: 24px;
   height: 1px;
   background: color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
@@ -4158,6 +4188,12 @@ button.terminal-macro-recipe.is-selected,
     right: -1px;
     width: 44px;
     padding: 7px 5px;
+  }
+
+  .terminal-tool-rail-path {
+    top: -30px;
+    width: 52px;
+    height: calc(100% + 60px);
   }
 
   .terminal-tool-button {
