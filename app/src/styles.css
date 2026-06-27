@@ -3987,20 +3987,24 @@ button.terminal-reconnect-button:disabled,
 /* Terminal toolbar popovers */
 .terminal-tool-rail {
   position: absolute;
-  top: 44px;
-  right: 12px;
-  z-index: 14;
+  top: 50%;
+  right: 16px;
+  z-index: 24;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  width: 40px;
-  padding: 6px;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--color-bg-surface) 88%, transparent);
-  box-shadow: var(--shadow-floating);
-  backdrop-filter: blur(14px);
+  gap: 5px;
+  width: 48px;
+  padding: 8px 6px;
+  transform: translateY(-50%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 76%, white 5%);
+  border-radius: 17px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface) 94%, white 3%), var(--color-bg-surface));
+  box-shadow:
+    0 18px 46px color-mix(in srgb, black 34%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
+  backdrop-filter: blur(18px);
 }
 
 .terminal-tool-item {
@@ -4013,12 +4017,12 @@ button.terminal-reconnect-button:disabled,
 
 .terminal-tool-button {
   display: inline-flex;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
-  border-radius: var(--radius-control);
+  border-radius: 10px;
   color: var(--color-text-muted);
   background: transparent;
   transition:
@@ -4029,15 +4033,19 @@ button.terminal-reconnect-button:disabled,
 }
 
 .terminal-tool-button:hover:not(:disabled) {
-  color: var(--color-text-secondary);
-  background: var(--color-bg-hover);
-  transform: translateY(-1px);
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-bg-hover) 86%, var(--color-accent-subtle));
+  transform: translateX(-1px);
 }
 
 .terminal-tool-button.is-active {
   border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
   color: var(--color-accent);
-  background: var(--color-accent-subtle);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-accent-subtle) 90%, white 4%), var(--color-accent-subtle));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+    0 8px 22px color-mix(in srgb, var(--color-accent) 18%, transparent);
 }
 
 .terminal-tool-button.is-danger {
@@ -4052,9 +4060,9 @@ button.terminal-reconnect-button:disabled,
 }
 
 .terminal-tool-divider {
-  width: 18px;
+  width: 24px;
   height: 1px;
-  background: var(--color-border-subtle);
+  background: color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
 }
 
 .terminal-macro-panel {
@@ -4147,8 +4155,14 @@ button.terminal-macro-recipe.is-selected,
 
 @media (max-width: 720px) {
   .terminal-tool-rail {
-    top: 40px;
-    right: 8px;
+    right: 10px;
+    width: 44px;
+    padding: 7px 5px;
+  }
+
+  .terminal-tool-button {
+    width: 32px;
+    height: 32px;
   }
 }
 
