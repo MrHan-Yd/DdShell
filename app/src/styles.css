@@ -3986,7 +3986,7 @@ button.terminal-reconnect-button:disabled,
 
 /* Terminal toolbar popovers */
 .terminal-tool-rail {
-  --terminal-tool-rail-border: color-mix(in srgb, var(--color-border) 76%, white 5%);
+  --terminal-tool-rail-border: color-mix(in srgb, var(--color-border) 72%, white 4%);
   position: absolute;
   top: 64px;
   right: -1px;
@@ -4000,12 +4000,11 @@ button.terminal-reconnect-button:disabled,
   overflow: visible;
   isolation: isolate;
   border: 0;
-  border-radius: 18px 0 0 18px;
+  border-radius: 20px 0 0 20px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface) 94%, white 3%), var(--color-bg-surface));
   box-shadow:
-    -14px 18px 46px color-mix(in srgb, black 34%, transparent),
-    inset 1px 0 0 var(--terminal-tool-rail-border),
+    -12px 18px 40px color-mix(in srgb, black 30%, transparent),
     inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
     inset 0 -1px 0 color-mix(in srgb, black 18%, transparent);
   backdrop-filter: blur(18px);
@@ -4013,15 +4012,16 @@ button.terminal-reconnect-button:disabled,
 
 .terminal-tool-rail-path {
   position: absolute;
-  top: -34px;
+  top: -24px;
   right: -1px;
   z-index: 0;
-  width: 56px;
-  height: calc(100% + 68px);
+  width: 50px;
+  height: calc(100% + 48px);
   overflow: visible;
   pointer-events: none;
   color: var(--terminal-tool-rail-border);
-  filter: drop-shadow(0 0 9px color-mix(in srgb, var(--color-accent) 18%, transparent));
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--color-accent) 14%, transparent));
+  opacity: 0.9;
 }
 
 .terminal-tool-rail-path path {
@@ -4029,7 +4029,7 @@ button.terminal-reconnect-button:disabled,
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.15;
+  stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
@@ -4191,9 +4191,9 @@ button.terminal-macro-recipe.is-selected,
   }
 
   .terminal-tool-rail-path {
-    top: -30px;
-    width: 52px;
-    height: calc(100% + 60px);
+    top: -21px;
+    width: 46px;
+    height: calc(100% + 42px);
   }
 
   .terminal-tool-button {

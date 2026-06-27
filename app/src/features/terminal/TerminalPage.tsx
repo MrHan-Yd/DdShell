@@ -2473,12 +2473,12 @@ export function TerminalPage() {
           <div className="terminal-tool-rail" aria-label={t("terminalTool.label")}>
             <svg
               className="terminal-tool-rail-path"
-              viewBox="0 0 56 240"
+              viewBox="0 0 50 220"
               preserveAspectRatio="none"
               aria-hidden="true"
               focusable="false"
             >
-              <path d="M55 1 C55 16 43 18 28 21 C17 24 10 28 10 33 L10 207 C10 212 17 216 28 219 C43 222 55 224 55 239" />
+              <path d="M49 1 C49 12 42 16 31 18 C14 22 2 28 2 36 L2 184 C2 192 14 198 31 202 C42 204 49 208 49 219" />
             </svg>
             <div className="terminal-tool-item">
               <button
