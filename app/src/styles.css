@@ -3988,7 +3988,7 @@ button.terminal-reconnect-button:disabled,
 .terminal-tool-rail {
   position: absolute;
   top: 64px;
-  right: 16px;
+  right: 0;
   z-index: 24;
   display: flex;
   flex-direction: column;
@@ -3997,11 +3997,12 @@ button.terminal-reconnect-button:disabled,
   width: 48px;
   padding: 8px 6px;
   border: 1px solid color-mix(in srgb, var(--color-border) 76%, white 5%);
-  border-radius: 17px;
+  border-right: 0;
+  border-radius: 17px 0 0 17px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface) 94%, white 3%), var(--color-bg-surface));
   box-shadow:
-    0 18px 46px color-mix(in srgb, black 34%, transparent),
+    -14px 18px 46px color-mix(in srgb, black 34%, transparent),
     inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
   backdrop-filter: blur(18px);
 }
@@ -4155,7 +4156,7 @@ button.terminal-macro-recipe.is-selected,
 @media (max-width: 720px) {
   .terminal-tool-rail {
     top: 54px;
-    right: 10px;
+    right: 0;
     width: 44px;
     padding: 7px 5px;
   }
