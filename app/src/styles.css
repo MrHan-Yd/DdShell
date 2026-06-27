@@ -3991,7 +3991,7 @@ button.terminal-reconnect-button:disabled,
   --terminal-tool-rail-fill-bottom: var(--color-bg-surface);
   position: absolute;
   top: 64px;
-  right: -1px;
+  right: 4px;
   z-index: 24;
   display: flex;
   flex-direction: column;
@@ -4045,6 +4045,7 @@ button.terminal-reconnect-button:disabled,
 }
 
 .terminal-tool-button {
+  position: relative;
   display: inline-flex;
   width: 34px;
   height: 34px;
@@ -4061,20 +4062,49 @@ button.terminal-reconnect-button:disabled,
     transform var(--duration-fast) var(--ease-smooth);
 }
 
+.terminal-tool-button::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  z-index: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  transition:
+    background var(--duration-fast) var(--ease-smooth),
+    border-color var(--duration-fast) var(--ease-smooth),
+    box-shadow var(--duration-fast) var(--ease-smooth);
+}
+
+.terminal-tool-button > svg {
+  position: relative;
+  z-index: 1;
+}
+
 .terminal-tool-button:hover:not(:disabled) {
   color: var(--color-text-primary);
+  background: transparent;
+  transform: none;
+}
+
+.terminal-tool-button:hover:not(:disabled)::before {
   background: color-mix(in srgb, var(--color-bg-hover) 86%, var(--color-accent-subtle));
-  transform: translateX(-1px);
 }
 
 .terminal-tool-button.is-active {
-  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  border-color: transparent;
   color: var(--color-accent);
+  background: transparent;
+  box-shadow: none;
+}
+
+.terminal-tool-button.is-active::before {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-accent-subtle) 90%, white 4%), var(--color-accent-subtle));
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
-    0 8px 22px color-mix(in srgb, var(--color-accent) 18%, transparent);
+    0 6px 14px color-mix(in srgb, var(--color-accent) 16%, transparent);
 }
 
 .terminal-tool-button.is-danger {
@@ -4187,7 +4217,7 @@ button.terminal-macro-recipe.is-selected,
 @media (max-width: 720px) {
   .terminal-tool-rail {
     top: 54px;
-    right: -1px;
+    right: 4px;
     width: 44px;
     padding: 7px 5px;
   }
