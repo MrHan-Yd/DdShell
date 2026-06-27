@@ -560,6 +560,12 @@ const AI_RESPONSE_MODE_OPTIONS: Array<{ value: AiAgentResponseMode; labelKey: Di
   { value: "nonStream", labelKey: "aiAgent.responseNonStream" },
 ];
 
+function boundedNumber(value: string, fallback: number, min: number, max: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
 function defaultAiModel(): AiAgentModel {
   return {
     id: crypto.randomUUID(),
@@ -755,7 +761,7 @@ function AiAgentSettings({
             min={5}
             max={300}
             value={String(config.timeoutSec ?? 60)}
-            onChange={(event) => onChange({ ...config, timeoutSec: Number(event.target.value) })}
+            onChange={(event) => onChange({ ...config, timeoutSec: boundedNumber(event.target.value, 60, 5, 300) })}
           />
         </SettingRow>
 
@@ -911,7 +917,7 @@ function AiAgentSettings({
                                   max={10000000}
                                   step={1000}
                                   value={String(model.contextWindowTokens ?? 128000)}
-                                  onChange={(event) => updateModel(profile.id, model.id, { contextWindowTokens: Number(event.target.value) })}
+                                  onChange={(event) => updateModel(profile.id, model.id, { contextWindowTokens: boundedNumber(event.target.value, 128000, 1000, 10000000) })}
                                 />
                               </SettingRow>
                               <SettingRow label={t("aiAgent.responseMode")} description={t("aiAgent.responseModeDesc")} className="settings-row--compact">
@@ -935,7 +941,7 @@ function AiAgentSettings({
                                   max={2}
                                   step={0.1}
                                   value={String(model.temperature ?? 0.2)}
-                                  onChange={(event) => updateModel(profile.id, model.id, { temperature: Number(event.target.value) })}
+                                  onChange={(event) => updateModel(profile.id, model.id, { temperature: boundedNumber(event.target.value, 0.2, 0, 2) })}
                                 />
                               </SettingRow>
                               <SettingRow label={t("aiAgent.maxTokens")} description={t("aiAgent.maxTokensDesc")} className="settings-row--compact">
@@ -945,7 +951,7 @@ function AiAgentSettings({
                                   max={8000}
                                   step={128}
                                   value={String(model.maxTokens ?? 1200)}
-                                  onChange={(event) => updateModel(profile.id, model.id, { maxTokens: Number(event.target.value) })}
+                                  onChange={(event) => updateModel(profile.id, model.id, { maxTokens: boundedNumber(event.target.value, 1200, 128, 8000) })}
                                 />
                               </SettingRow>
                             </div>

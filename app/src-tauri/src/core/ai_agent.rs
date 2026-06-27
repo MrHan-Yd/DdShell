@@ -16,6 +16,18 @@ const KEY_CONFIRM_BEFORE_EXECUTE: &str = "aiAgent.confirmBeforeExecute";
 const KEY_SHOW_REASONING: &str = "aiAgent.showReasoning";
 const KEY_TIMEOUT_SEC: &str = "aiAgent.timeoutSec";
 const KEY_PROFILES: &str = "aiAgent.profiles";
+const DEFAULT_TIMEOUT_SEC: u64 = 60;
+const MIN_TIMEOUT_SEC: u64 = 5;
+const MAX_TIMEOUT_SEC: u64 = 300;
+const DEFAULT_CONTEXT_WINDOW_TOKENS: u32 = 128_000;
+const MIN_CONTEXT_WINDOW_TOKENS: u32 = 1_000;
+const MAX_CONTEXT_WINDOW_TOKENS: u32 = 10_000_000;
+const DEFAULT_TEMPERATURE: f32 = 0.2;
+const MIN_TEMPERATURE: f32 = 0.0;
+const MAX_TEMPERATURE: f32 = 2.0;
+const DEFAULT_OUTPUT_TOKENS: u32 = 1_200;
+const MIN_OUTPUT_TOKENS: u32 = 128;
+const MAX_OUTPUT_TOKENS: u32 = 200_000;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -282,6 +294,7 @@ fn normalize_profile(mut profile: AiAgentProfile) -> AiAgentProfile {
         if model.name.trim().is_empty() {
             model.name = model.model.clone();
         }
+        normalize_model_config(model);
     }
 
     let default_is_valid = profile
@@ -294,6 +307,38 @@ fn normalize_profile(mut profile: AiAgentProfile) -> AiAgentProfile {
     }
 
     profile
+}
+
+fn normalize_model_config(model: &mut AiAgentModel) {
+    model.context_window_tokens = model
+        .context_window_tokens
+        .map(|value| value.clamp(MIN_CONTEXT_WINDOW_TOKENS, MAX_CONTEXT_WINDOW_TOKENS));
+    model.temperature = model.temperature.and_then(|value| {
+        value
+            .is_finite()
+            .then(|| value.clamp(MIN_TEMPERATURE, MAX_TEMPERATURE))
+    });
+    model.max_tokens = model
+        .max_tokens
+        .map(|value| value.clamp(MIN_OUTPUT_TOKENS, MAX_OUTPUT_TOKENS));
+}
+
+fn normalize_timeout_sec(value: u64) -> u64 {
+    value.clamp(MIN_TIMEOUT_SEC, MAX_TIMEOUT_SEC)
+}
+
+fn provider_temperature(model: &AiAgentModel) -> f32 {
+    model
+        .temperature
+        .unwrap_or(DEFAULT_TEMPERATURE)
+        .clamp(MIN_TEMPERATURE, MAX_TEMPERATURE)
+}
+
+fn provider_max_tokens(model: &AiAgentModel) -> u32 {
+    model
+        .max_tokens
+        .unwrap_or(DEFAULT_OUTPUT_TOKENS)
+        .clamp(MIN_OUTPUT_TOKENS, MAX_OUTPUT_TOKENS)
 }
 
 fn selected_model<'a>(
@@ -350,7 +395,8 @@ pub async fn get_config(db: &Database) -> anyhow::Result<AiAgentConfig> {
         .await?
         .and_then(|value| value.parse::<u64>().ok())
         .or(legacy_timeout_sec)
-        .or(Some(60));
+        .map(normalize_timeout_sec)
+        .or(Some(DEFAULT_TIMEOUT_SEC));
 
     let mut profiles = Vec::with_capacity(stored_profiles.len());
     for stored in stored_profiles {
@@ -420,7 +466,11 @@ pub async fn save_config(
         req.default_profile_id.as_deref().unwrap_or_default(),
     )
     .await?;
-    db.set_setting(KEY_TIMEOUT_SEC, &req.timeout_sec.unwrap_or(60).to_string())
+    let timeout_sec = req
+        .timeout_sec
+        .map(normalize_timeout_sec)
+        .unwrap_or(DEFAULT_TIMEOUT_SEC);
+    db.set_setting(KEY_TIMEOUT_SEC, &timeout_sec.to_string())
         .await?;
     db.set_setting(KEY_PROFILES, &serde_json::to_string(&stored)?)
         .await?;
@@ -563,7 +613,11 @@ async fn call_provider(
     api_key: &str,
     req: &AiAgentSendReq,
 ) -> anyhow::Result<ProviderTextResponse> {
-    let timeout = Duration::from_secs(timeout_sec.unwrap_or(60).clamp(5, 300));
+    let timeout = Duration::from_secs(
+        timeout_sec
+            .map(normalize_timeout_sec)
+            .unwrap_or(DEFAULT_TIMEOUT_SEC),
+    );
     let client = reqwest::Client::builder().timeout(timeout).build()?;
     let system_prompt = system_prompt();
     let user_prompt = user_prompt(req, model.context_window_tokens);
@@ -627,7 +681,11 @@ async fn call_provider_stream<F>(
 where
     F: FnMut(AiAgentStreamDelta) + Send,
 {
-    let timeout = Duration::from_secs(timeout_sec.unwrap_or(60).clamp(5, 300));
+    let timeout = Duration::from_secs(
+        timeout_sec
+            .map(normalize_timeout_sec)
+            .unwrap_or(DEFAULT_TIMEOUT_SEC),
+    );
     let client = reqwest::Client::builder().timeout(timeout).build()?;
     let system_prompt = system_prompt();
     let user_prompt = user_prompt(req, model.context_window_tokens);
@@ -695,8 +753,8 @@ async fn call_openai_chat(
     let url = join_url(&profile.base_url, "chat/completions");
     let body = json!({
         "model": model.model,
-        "temperature": model.temperature.unwrap_or(0.2),
-        "max_tokens": model.max_tokens.unwrap_or(1200),
+        "temperature": provider_temperature(model),
+        "max_tokens": provider_max_tokens(model),
         "response_format": { "type": "json_object" },
         "messages": [
             { "role": "system", "content": system_prompt },
@@ -735,8 +793,8 @@ where
     let url = join_url(&profile.base_url, "chat/completions");
     let body = json!({
         "model": model.model,
-        "temperature": model.temperature.unwrap_or(0.2),
-        "max_tokens": model.max_tokens.unwrap_or(1200),
+        "temperature": provider_temperature(model),
+        "max_tokens": provider_max_tokens(model),
         "response_format": { "type": "json_object" },
         "stream": true,
         "messages": [
@@ -766,8 +824,8 @@ async fn call_openai_responses(
     let url = join_url(&profile.base_url, "responses");
     let body = json!({
         "model": model.model,
-        "temperature": model.temperature.unwrap_or(0.2),
-        "max_output_tokens": model.max_tokens.unwrap_or(1200),
+        "temperature": provider_temperature(model),
+        "max_output_tokens": provider_max_tokens(model),
         "instructions": system_prompt,
         "input": user_prompt,
         "text": {
@@ -806,8 +864,8 @@ where
     let url = join_url(&profile.base_url, "responses");
     let body = json!({
         "model": model.model,
-        "temperature": model.temperature.unwrap_or(0.2),
-        "max_output_tokens": model.max_tokens.unwrap_or(1200),
+        "temperature": provider_temperature(model),
+        "max_output_tokens": provider_max_tokens(model),
         "instructions": system_prompt,
         "input": user_prompt,
         "stream": true,
@@ -842,8 +900,8 @@ async fn call_claude_messages(
     let body = json!({
         "model": model.model,
         "system": system_prompt,
-        "max_tokens": model.max_tokens.unwrap_or(1200),
-        "temperature": model.temperature.unwrap_or(0.2),
+        "max_tokens": provider_max_tokens(model),
+        "temperature": provider_temperature(model),
         "messages": [
             { "role": "user", "content": user_prompt }
         ]
@@ -902,8 +960,8 @@ where
     let body = json!({
         "model": model.model,
         "system": system_prompt,
-        "max_tokens": model.max_tokens.unwrap_or(1200),
-        "temperature": model.temperature.unwrap_or(0.2),
+        "max_tokens": provider_max_tokens(model),
+        "temperature": provider_temperature(model),
         "stream": true,
         "messages": [
             { "role": "user", "content": user_prompt }
@@ -944,8 +1002,8 @@ async fn call_gemini(
             }
         ],
         "generationConfig": {
-            "temperature": model.temperature.unwrap_or(0.2),
-            "maxOutputTokens": model.max_tokens.unwrap_or(1200),
+            "temperature": provider_temperature(model),
+            "maxOutputTokens": provider_max_tokens(model),
             "responseMimeType": "application/json",
             "responseSchema": response_schema()
         }
@@ -1012,8 +1070,8 @@ where
             }
         ],
         "generationConfig": {
-            "temperature": model.temperature.unwrap_or(0.2),
-            "maxOutputTokens": model.max_tokens.unwrap_or(1200),
+            "temperature": provider_temperature(model),
+            "maxOutputTokens": provider_max_tokens(model),
             "responseMimeType": "application/json",
             "responseSchema": response_schema()
         }
@@ -1356,8 +1414,8 @@ fn user_prompt(req: &AiAgentSendReq, context_window_tokens: Option<u32>) -> Stri
 
 fn trim_context_text(text: &str, context_window_tokens: Option<u32>) -> String {
     let budget_tokens = context_window_tokens
-        .unwrap_or(8_000)
-        .clamp(1_000, 1_000_000);
+        .unwrap_or(DEFAULT_CONTEXT_WINDOW_TOKENS)
+        .clamp(MIN_CONTEXT_WINDOW_TOKENS, MAX_CONTEXT_WINDOW_TOKENS);
     let max_chars = (budget_tokens as usize).saturating_mul(3);
     if text.len() <= max_chars {
         return text.to_string();
@@ -2200,6 +2258,42 @@ mod tests {
             selected_model(&profile, Some("missing")).map(|model| model.model.as_str()),
             Some("fast-model")
         );
+    }
+
+    #[test]
+    fn model_numeric_values_are_normalized() {
+        let profile = normalize_profile(AiAgentProfile {
+            id: "profile-1".to_string(),
+            name: "Provider".to_string(),
+            protocol: AiAgentProtocol::OpenaiChat,
+            base_url: "https://api.example.com/v1".to_string(),
+            default_model_id: Some("bad-values".to_string()),
+            models: vec![AiAgentModel {
+                id: "bad-values".to_string(),
+                name: "Bad Values".to_string(),
+                model: "bad-model".to_string(),
+                context_window_tokens: Some(0),
+                temperature: Some(9.0),
+                max_tokens: Some(0),
+                response_mode: AiAgentResponseMode::NonStream,
+            }],
+            model: None,
+            context_window_tokens: None,
+            temperature: None,
+            max_tokens: None,
+            response_mode: AiAgentResponseMode::NonStream,
+            api_key_set: false,
+        });
+
+        let model = &profile.models[0];
+        assert_eq!(
+            model.context_window_tokens,
+            Some(MIN_CONTEXT_WINDOW_TOKENS)
+        );
+        assert_eq!(model.temperature, Some(MAX_TEMPERATURE));
+        assert_eq!(model.max_tokens, Some(MIN_OUTPUT_TOKENS));
+        assert_eq!(provider_temperature(model), MAX_TEMPERATURE);
+        assert_eq!(provider_max_tokens(model), MIN_OUTPUT_TOKENS);
     }
 
     #[test]

@@ -85,6 +85,24 @@ const storageKey = `terminal.aiAssist.history.${activeTab.sessionId}`;
 
 Use this for local-only, server-scoped records such as AI assistant history. Keep bounded collections explicitly capped at their product limit, for example `slice(0, 20)` for recent AI questions.
 
+### Batch operations with global confirmation aggregate before prompting
+
+UI flows that use the global confirmation dialog store must not start one confirmation per selected item. The confirm store is singleton state; concurrent prompts overwrite or cancel each other, so multi-select actions can silently skip items.
+
+```tsx
+// Wrong: each item starts its own overwrite confirmation.
+await Promise.all(selectedEntries.map((entry) => startDownload(entry)));
+
+// Correct: collect the concrete work first, show one confirmation, then run the batch.
+const tasks = (await Promise.all(selectedEntries.map((entry) => collectDownloadTasks(entry)))).flat();
+const shouldContinue = await confirmOverwritePaths(t, "download", () => collectExistingTargets(tasks));
+if (shouldContinue) {
+  await Promise.all(tasks.map((task) => api.sftpTransferStart(task)));
+}
+```
+
+Use this pattern for multi-select file operations such as download, upload, delete, move, or any flow where one user action may affect multiple paths and the confirmation UI is globally shared.
+
 ---
 
 ## Testing Requirements

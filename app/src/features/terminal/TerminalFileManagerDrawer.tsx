@@ -59,6 +59,11 @@ type TerminalFileManagerDrawerProps = {
   onPathResolved?: (path: string) => void;
 };
 
+type DownloadTask = {
+  remotePath: string;
+  subPath?: string;
+};
+
 const QUICK_EDIT_MAX_BYTES = 1024 * 1024;
 const QUICK_EDIT_TEXT_EXTENSIONS = new Set([
   ".conf",
@@ -522,37 +527,46 @@ export function TerminalFileManagerDrawer({
     [navigateRemoteWithRecent, openQuickEdit, remotePath],
   );
 
-  const startDownload = useCallback(
-    async (entry: FileEntry) => {
+  const collectDirectoryDownloadTasks = useCallback(
+    async function collectDirectoryDownloadTasksInner(
+      dirPath: string,
+      rootName: string,
+      relativeBase: string,
+    ): Promise<DownloadTask[]> {
+      const tasks: DownloadTask[] = [];
+      const entries = await api.sftpListDir(sessionId, dirPath);
+      for (const item of entries) {
+        const itemPath = joinRemotePath(dirPath, item.name);
+        const relative = relativeBase ? `${relativeBase}/${item.name}` : item.name;
+        if (item.fileType === "file") {
+          tasks.push({ remotePath: itemPath, subPath: `${rootName}/${relative}` });
+        } else if (item.fileType === "dir") {
+          tasks.push(...await collectDirectoryDownloadTasksInner(itemPath, rootName, relative));
+        }
+      }
+      return tasks;
+    },
+    [sessionId],
+  );
+
+  const collectDownloadTasks = useCallback(
+    async (entry: FileEntry): Promise<DownloadTask[]> => {
       const fullPath = joinRemotePath(remotePath, entry.name);
-      if (entry.fileType === "file") {
-        const shouldContinue = await confirmOverwritePaths(t, "download", async () => {
-          const downloadBaseDir = await resolveDownloadBaseDir();
-          const localTargetPath = await resolveDownloadTargetPath(downloadBaseDir, fullPath);
-          return collectExistingLocalTargets([localTargetPath]);
-        });
-        if (!shouldContinue) return;
-        await api.sftpTransferStart(sessionId, "download", "", fullPath);
-        await refreshTransfers();
-        toast.success(t("sftp.downloadStarted"));
-        return;
+      if (entry.fileType === "file") return [{ remotePath: fullPath }];
+      return collectDirectoryDownloadTasks(fullPath, entry.name, "");
+    },
+    [collectDirectoryDownloadTasks, remotePath],
+  );
+
+  const startDownloadEntries = useCallback(
+    async (entries: FileEntry[]) => {
+      if (entries.length === 0) return;
+      if (entries.some((entry) => entry.fileType === "dir")) {
+        toast.info(t("sftp.scanningDir"));
       }
 
-      toast.info(t("sftp.scanningDir"));
-      const collectFiles = async (dir: string, base: string): Promise<{ remote: string; relative: string }[]> => {
-        const files: { remote: string; relative: string }[] = [];
-        const entries = await api.sftpListDir(sessionId, dir);
-        for (const item of entries) {
-          const remote = joinRemotePath(dir, item.name);
-          const relative = base ? `${base}/${item.name}` : item.name;
-          if (item.fileType === "file") files.push({ remote, relative });
-          else if (item.fileType === "dir") files.push(...await collectFiles(remote, relative));
-        }
-        return files;
-      };
-
-      const files = await collectFiles(fullPath, "");
-      if (files.length === 0) {
+      const tasks = (await Promise.all(entries.map((entry) => collectDownloadTasks(entry)))).flat();
+      if (tasks.length === 0) {
         toast.info(t("sftp.emptyDir"));
         return;
       }
@@ -560,25 +574,32 @@ export function TerminalFileManagerDrawer({
       const shouldContinue = await confirmOverwritePaths(t, "download", async () => {
         const downloadBaseDir = await resolveDownloadBaseDir();
         const localTargets = await Promise.all(
-          files.map((file) => resolveDownloadTargetPath(downloadBaseDir, file.remote, `${entry.name}/${file.relative}`)),
+          tasks.map((task) => resolveDownloadTargetPath(downloadBaseDir, task.remotePath, task.subPath)),
         );
         return collectExistingLocalTargets(localTargets);
       });
       if (!shouldContinue) return;
 
       const results = await Promise.all(
-        files.map((file) =>
-          api.sftpTransferStart(sessionId, "download", "", file.remote, `${entry.name}/${file.relative}`)
+        tasks.map((task) =>
+          api.sftpTransferStart(sessionId, "download", "", task.remotePath, task.subPath)
             .catch((error) => ({ error })),
         ),
       );
       const taskIds = results
         .filter((result): result is { id: string } => "id" in result)
         .map((result) => result.id);
-      registerBatch(taskIds, "download");
-      await refreshTransfers();
+      const failedCount = results.length - taskIds.length;
+      if (taskIds.length > 0) {
+        registerBatch(taskIds, "download");
+        await refreshTransfers();
+        toast.success(t("sftp.downloadStarted"));
+      }
+      if (failedCount > 0) {
+        toast.error(t("sftp.downloadStartFailed", { n: failedCount }));
+      }
     },
-    [refreshTransfers, registerBatch, remotePath, sessionId, t],
+    [collectDownloadTasks, refreshTransfers, registerBatch, sessionId, t],
   );
 
   const uploadPaths = useCallback(
@@ -730,7 +751,7 @@ export function TerminalFileManagerDrawer({
           icon: <Download size={14} />,
           label: t("sftp.download"),
           onClick: () => {
-            void Promise.all(activeSelection.map((item) => startDownload(item)));
+            void startDownloadEntries(activeSelection);
           },
         },
         {
@@ -759,7 +780,7 @@ export function TerminalFileManagerDrawer({
       );
       return items;
     },
-    [handleDeleteEntries, navigateRemoteWithRecent, openQuickEdit, remotePath, selectedEntries, selectedRemoteEntries, startDownload, startMove, t],
+    [handleDeleteEntries, navigateRemoteWithRecent, openQuickEdit, remotePath, selectedEntries, selectedRemoteEntries, startDownloadEntries, startMove, t],
   );
 
   useEffect(() => {

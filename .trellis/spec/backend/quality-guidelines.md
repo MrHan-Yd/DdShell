@@ -170,6 +170,11 @@ Correct:
 - `AiAgentProfile` response must include `apiKeySet: bool`, but must never include plaintext or encrypted API key.
 - Provider profile/site fields are `id`, `name`, `protocol`, `baseUrl`, `defaultModelId`, `models[]`, and `apiKeySet`. API keys remain profile-scoped under `aiAgent.profile.<id>.apiKey`; never copy secrets into a model row.
 - `AiAgentModel` fields are `id`, `name`, provider `model`, `contextWindowTokens`, `temperature`, `maxTokens`, and `responseMode`.
+- Provider numeric settings must be normalized before storage response and again before provider calls. Current accepted bounds are:
+  - `timeoutSec`: 5-300 seconds, default `60`
+  - `contextWindowTokens`: 1,000-10,000,000 tokens, default `128000`
+  - `temperature`: 0.0-2.0, default `0.2`
+  - `maxTokens`: 128-200,000 output tokens, default `1200`
 - Legacy single-model fields on `AiAgentProfile` (`model`, `contextWindowTokens`, `temperature`, `maxTokens`, `responseMode`) may still appear in persisted JSON. Read paths must normalize them into one `models[]` entry and set a valid `defaultModelId`.
 - `AiAgentModel.contextWindowTokens` is the model capacity used for app-side prompt/context budgeting; it is not sent as a universal provider parameter and does not override real model limits.
 - `AiAgentModel.responseMode` stores the user's preferred model behavior: `"auto"`, `"stream"`, or `"nonStream"`. Missing legacy values must deserialize as `"nonStream"`. `ai_agent_send` remains a complete-response command. `ai_agent_send_stream` may set provider `stream: true` only when it emits chunks through `ai-agent:stream_delta` and still returns the final normalized `AiAgentSendResponse`.
@@ -190,6 +195,7 @@ Correct:
 - Profile id not found -> return profile-not-found error.
 - Empty base URL, missing model list, or empty selected model id -> return validation error.
 - Missing/cleared API key -> return key-not-configured error.
+- Out-of-range provider numeric values -> clamp to the documented bounds before any HTTP request; never send zero `max_tokens` / `max_output_tokens`.
 - Provider non-2xx -> return status plus a short bounded provider error body; never include API key.
 - Provider invalid JSON wrapper -> return invalid-response error.
 - Provider stream returns invalid JSON event -> return invalid-stream-response error and do not guess commands from partial text.
@@ -215,6 +221,7 @@ Correct:
   - parser handles raw JSON, fenced JSON, JSON object inside text, shell fenced fallback, and no-command prose
   - command mode normalization keeps simple listing commands as alternatives, but maps diagnostic multi-command answers to steps even when the model mislabels them as alternatives
   - legacy stored profiles without `responseMode` deserialize as `nonStream`
+  - out-of-range model numeric settings are normalized and provider request helpers cannot emit invalid zero output-token values
   - reasoning extraction handles JSON reasoning fields and `<think>...</think>` blocks, and frontend/build checks verify the optional `reasoning` response field stays typed
   - stream delta extraction handles OpenAI Chat, OpenAI Responses, Claude Messages, Gemini parts, and SSE data-line flushing
   - deleting a profile clears any encrypted key stored under `aiAgent.profile.<id>.apiKey`

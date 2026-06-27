@@ -184,6 +184,7 @@ const dict = {
   "sftp.open": { zh: "打开", en: "Open" },
   "sftp.download": { zh: "下载", en: "Download" },
   "sftp.downloadStarted": { zh: "下载已添加", en: "Download added" },
+  "sftp.downloadStartFailed": { zh: "{n} 个下载任务添加失败", en: "Failed to add {n} download task(s)" },
   "sftp.scanningDir": { zh: "正在扫描目录...", en: "Scanning directory..." },
   "sftp.scanningDirCount": { zh: "已找到 {n} 个文件", en: "{n} files found" },
   "sftp.file": { zh: "个文件", en: "file" },
