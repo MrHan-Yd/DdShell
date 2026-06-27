@@ -2487,11 +2487,11 @@ export function TerminalPage() {
               <path
                 className="terminal-tool-rail-surface"
                 fill="url(#terminal-tool-rail-fill)"
-                d="M49 1 C49 12 42 16 31 18 C14 22 2 28 2 36 L2 184 C2 192 14 198 31 202 C42 204 49 208 49 219 L49 1 Z"
+                d="M49 1 C49 12 47 18 38 21 C22 25 8 30 5 43 C3 50 2 56 2 63 L2 157 C2 164 3 171 5 177 C8 190 22 195 38 199 C47 202 49 208 49 219 L49 1 Z"
               />
               <path
                 className="terminal-tool-rail-outline"
-                d="M49 1 C49 12 42 16 31 18 C14 22 2 28 2 36 L2 184 C2 192 14 198 31 202 C42 204 49 208 49 219"
+                d="M49 1 C49 12 47 18 38 21 C22 25 8 30 5 43 C3 50 2 56 2 63 L2 157 C2 164 3 171 5 177 C8 190 22 195 38 199 C47 202 49 208 49 219"
               />
             </svg>
             <div className="terminal-tool-item">
