@@ -2478,7 +2478,21 @@ export function TerminalPage() {
               aria-hidden="true"
               focusable="false"
             >
-              <path d="M49 1 C49 12 42 16 31 18 C14 22 2 28 2 36 L2 184 C2 192 14 198 31 202 C42 204 49 208 49 219" />
+              <defs>
+                <linearGradient id="terminal-tool-rail-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--terminal-tool-rail-fill-top)" />
+                  <stop offset="100%" stopColor="var(--terminal-tool-rail-fill-bottom)" />
+                </linearGradient>
+              </defs>
+              <path
+                className="terminal-tool-rail-surface"
+                fill="url(#terminal-tool-rail-fill)"
+                d="M49 1 C49 12 42 16 31 18 C14 22 2 28 2 36 L2 184 C2 192 14 198 31 202 C42 204 49 208 49 219 L49 1 Z"
+              />
+              <path
+                className="terminal-tool-rail-outline"
+                d="M49 1 C49 12 42 16 31 18 C14 22 2 28 2 36 L2 184 C2 192 14 198 31 202 C42 204 49 208 49 219"
+              />
             </svg>
             <div className="terminal-tool-item">
               <button

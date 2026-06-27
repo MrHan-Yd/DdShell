@@ -3987,6 +3987,8 @@ button.terminal-reconnect-button:disabled,
 /* Terminal toolbar popovers */
 .terminal-tool-rail {
   --terminal-tool-rail-border: color-mix(in srgb, var(--color-border) 72%, white 4%);
+  --terminal-tool-rail-fill-top: color-mix(in srgb, var(--color-bg-surface) 94%, white 3%);
+  --terminal-tool-rail-fill-bottom: var(--color-bg-surface);
   position: absolute;
   top: 64px;
   right: -1px;
@@ -4001,12 +4003,7 @@ button.terminal-reconnect-button:disabled,
   isolation: isolate;
   border: 0;
   border-radius: 20px 0 0 20px;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface) 94%, white 3%), var(--color-bg-surface));
-  box-shadow:
-    -12px 18px 40px color-mix(in srgb, black 30%, transparent),
-    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, black 18%, transparent);
+  background: transparent;
   backdrop-filter: blur(18px);
 }
 
@@ -4020,11 +4017,16 @@ button.terminal-reconnect-button:disabled,
   overflow: visible;
   pointer-events: none;
   color: var(--terminal-tool-rail-border);
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--color-accent) 14%, transparent));
-  opacity: 0.9;
+  filter:
+    drop-shadow(-12px 18px 40px color-mix(in srgb, black 30%, transparent))
+    drop-shadow(0 0 5px color-mix(in srgb, var(--color-accent) 14%, transparent));
 }
 
-.terminal-tool-rail-path path {
+.terminal-tool-rail-surface {
+  stroke: none;
+}
+
+.terminal-tool-rail-outline {
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
