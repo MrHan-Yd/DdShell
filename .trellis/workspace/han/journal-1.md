@@ -1391,3 +1391,36 @@ Updated root README to reflect v0.2.5 AI assistant, terminal file manager, toolb
 ### Next Steps
 
 - None - task complete
+
+
+## Session 39: Fix macOS update installer open
+
+**Date**: 2026-06-27
+**Task**: Fix macOS update installer open
+**Branch**: `main`
+
+### Summary
+
+Made manual update downloads flush and close before completion, added file validation, and switched macOS installer opening to /usr/bin/open with explicit errors.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `29c8807` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
