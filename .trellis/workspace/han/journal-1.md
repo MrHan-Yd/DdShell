@@ -1455,3 +1455,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 41: 发布 v0.2.6
+
+**Date**: 2026-06-27
+**Task**: 发布 v0.2.6
+**Branch**: `main`
+
+### Summary
+
+发布 DdShell v0.2.6：更新版本号与发布文案，推送 v0.2.6 tag，GitHub Actions Release 成功完成，并验证安装包、updater 签名和 latest.json manifest。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `02fc25d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
