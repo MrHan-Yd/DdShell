@@ -1957,6 +1957,22 @@ body {
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
+.ai-select {
+  min-width: 0;
+  flex: 1;
+}
+
+.ai-select > button,
+[data-ui-theme="aurora"] .ai-select > button {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: var(--font-size-xs);
+  line-height: 1;
+}
+
 .ai-profile-select {
   min-width: 0;
   flex: 1;

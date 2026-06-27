@@ -54,16 +54,43 @@ impl Default for AiAgentResponseMode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct AiAgentModel {
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub model: String,
+    #[serde(default)]
+    pub context_window_tokens: Option<u32>,
+    #[serde(default)]
+    pub temperature: Option<f32>,
+    #[serde(default)]
+    pub max_tokens: Option<u32>,
+    #[serde(default)]
+    pub response_mode: AiAgentResponseMode,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AiAgentProfile {
     pub id: String,
     pub name: String,
     pub protocol: AiAgentProtocol,
     pub base_url: String,
-    pub model: String,
-    pub context_window_tokens: Option<u32>,
-    pub temperature: Option<f32>,
-    pub max_tokens: Option<u32>,
     #[serde(default)]
+    pub default_model_id: Option<String>,
+    #[serde(default)]
+    pub models: Vec<AiAgentModel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context_window_tokens: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<u32>,
+    #[serde(default, skip_serializing_if = "is_default_response_mode")]
     pub response_mode: AiAgentResponseMode,
     #[serde(default)]
     pub api_key_set: bool,
@@ -111,6 +138,7 @@ pub struct AiAgentTerminalContext {
 #[serde(rename_all = "camelCase")]
 pub struct AiAgentSendReq {
     pub profile_id: String,
+    pub model_id: Option<String>,
     pub question: String,
     pub context: Option<AiAgentTerminalContext>,
 }
@@ -141,6 +169,10 @@ struct ProviderTextResponse {
     reasoning: Option<String>,
 }
 
+fn is_default_response_mode(value: &AiAgentResponseMode) -> bool {
+    *value == AiAgentResponseMode::NonStream
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct StoredProfile {
@@ -148,14 +180,21 @@ struct StoredProfile {
     name: String,
     protocol: AiAgentProtocol,
     base_url: String,
-    model: String,
     #[serde(default)]
+    default_model_id: Option<String>,
+    #[serde(default)]
+    models: Vec<AiAgentModel>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     context_window_tokens: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     temperature: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     max_tokens: Option<u32>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_default_response_mode")]
     response_mode: AiAgentResponseMode,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     timeout_sec: Option<u64>,
 }
 
@@ -166,11 +205,13 @@ impl From<&AiAgentProfile> for StoredProfile {
             name: profile.name.clone(),
             protocol: profile.protocol.clone(),
             base_url: profile.base_url.clone(),
-            model: profile.model.clone(),
-            context_window_tokens: profile.context_window_tokens,
-            temperature: profile.temperature,
-            max_tokens: profile.max_tokens,
-            response_mode: profile.response_mode.clone(),
+            default_model_id: profile.default_model_id.clone(),
+            models: profile.models.clone(),
+            model: None,
+            context_window_tokens: None,
+            temperature: None,
+            max_tokens: None,
+            response_mode: AiAgentResponseMode::NonStream,
             timeout_sec: None,
         }
     }
@@ -183,6 +224,8 @@ impl StoredProfile {
             name: self.name,
             protocol: self.protocol,
             base_url: self.base_url,
+            default_model_id: self.default_model_id,
+            models: self.models,
             model: self.model,
             context_window_tokens: self.context_window_tokens,
             temperature: self.temperature,
@@ -193,16 +236,79 @@ impl StoredProfile {
     }
 }
 
+fn normalize_profile(mut profile: AiAgentProfile) -> AiAgentProfile {
+    if profile.id.trim().is_empty() {
+        profile.id = Uuid::new_v4().to_string();
+    }
+
+    if profile.models.is_empty() {
+        if let Some(model) = profile
+            .model
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            profile.models.push(AiAgentModel {
+                id: "default".to_string(),
+                name: model.to_string(),
+                model: model.to_string(),
+                context_window_tokens: profile.context_window_tokens,
+                temperature: profile.temperature,
+                max_tokens: profile.max_tokens,
+                response_mode: profile.response_mode.clone(),
+            });
+        }
+    }
+
+    for model in &mut profile.models {
+        if model.id.trim().is_empty() {
+            model.id = Uuid::new_v4().to_string();
+        }
+        if model.name.trim().is_empty() {
+            model.name = model.model.clone();
+        }
+    }
+
+    let default_is_valid = profile
+        .default_model_id
+        .as_ref()
+        .map(|id| profile.models.iter().any(|model| model.id == *id))
+        .unwrap_or(false);
+    if !default_is_valid {
+        profile.default_model_id = profile.models.first().map(|model| model.id.clone());
+    }
+
+    profile
+}
+
+fn selected_model<'a>(
+    profile: &'a AiAgentProfile,
+    model_id: Option<&str>,
+) -> Option<&'a AiAgentModel> {
+    model_id
+        .and_then(|id| profile.models.iter().find(|model| model.id == id))
+        .or_else(|| {
+            profile
+                .default_model_id
+                .as_deref()
+                .and_then(|id| profile.models.iter().find(|model| model.id == id))
+        })
+        .or_else(|| profile.models.first())
+}
+
 pub async fn get_config(db: &Database) -> anyhow::Result<AiAgentConfig> {
     let enabled = db
         .get_setting(KEY_ENABLED)
         .await?
         .map(|v| v == "true")
         .unwrap_or(false);
-    let default_profile_id = db
-        .get_setting(KEY_DEFAULT_PROFILE)
-        .await?
-        .and_then(|v| if v.trim().is_empty() { None } else { Some(v) });
+    let default_profile_id = db.get_setting(KEY_DEFAULT_PROFILE).await?.and_then(|v| {
+        if v.trim().is_empty() {
+            None
+        } else {
+            Some(v)
+        }
+    });
     let execution_mode = match db.get_setting(KEY_EXECUTION_MODE).await?.as_deref() {
         Some("insert") => AiAgentExecutionMode::Insert,
         _ => AiAgentExecutionMode::Run,
@@ -221,7 +327,9 @@ pub async fn get_config(db: &Database) -> anyhow::Result<AiAgentConfig> {
         Some(raw) if !raw.trim().is_empty() => serde_json::from_str(&raw).unwrap_or_default(),
         _ => Vec::new(),
     };
-    let legacy_timeout_sec = stored_profiles.iter().find_map(|profile| profile.timeout_sec);
+    let legacy_timeout_sec = stored_profiles
+        .iter()
+        .find_map(|profile| profile.timeout_sec);
     let timeout_sec = db
         .get_setting(KEY_TIMEOUT_SEC)
         .await?
@@ -236,7 +344,7 @@ pub async fn get_config(db: &Database) -> anyhow::Result<AiAgentConfig> {
             .await?
             .map(|v| !v.is_empty())
             .unwrap_or(false);
-        profiles.push(stored.into_profile(key_set));
+        profiles.push(normalize_profile(stored.into_profile(key_set)));
     }
 
     Ok(AiAgentConfig {
@@ -250,13 +358,13 @@ pub async fn get_config(db: &Database) -> anyhow::Result<AiAgentConfig> {
     })
 }
 
-pub async fn save_config(db: &Database, req: AiAgentConfigSaveReq) -> anyhow::Result<AiAgentConfig> {
+pub async fn save_config(
+    db: &Database,
+    req: AiAgentConfigSaveReq,
+) -> anyhow::Result<AiAgentConfig> {
     let mut profiles = Vec::with_capacity(req.profiles.len());
-    for mut profile in req.profiles {
-        if profile.id.trim().is_empty() {
-            profile.id = Uuid::new_v4().to_string();
-        }
-        profiles.push(profile);
+    for profile in req.profiles {
+        profiles.push(normalize_profile(profile));
     }
 
     let stored: Vec<StoredProfile> = profiles.iter().map(StoredProfile::from).collect();
@@ -272,11 +380,18 @@ pub async fn save_config(db: &Database, req: AiAgentConfigSaveReq) -> anyhow::Re
     .await?;
     db.set_setting(
         KEY_CONFIRM_BEFORE_EXECUTE,
-        if req.confirm_before_execute { "true" } else { "false" },
+        if req.confirm_before_execute {
+            "true"
+        } else {
+            "false"
+        },
     )
     .await?;
-    db.set_setting(KEY_SHOW_REASONING, if req.show_reasoning { "true" } else { "false" })
-        .await?;
+    db.set_setting(
+        KEY_SHOW_REASONING,
+        if req.show_reasoning { "true" } else { "false" },
+    )
+    .await?;
     db.set_setting(
         KEY_DEFAULT_PROFILE,
         req.default_profile_id.as_deref().unwrap_or_default(),
@@ -292,7 +407,8 @@ pub async fn save_config(db: &Database, req: AiAgentConfigSaveReq) -> anyhow::Re
 
 pub async fn set_profile_key(db: &Database, profile_id: &str, api_key: &str) -> anyhow::Result<()> {
     let encrypted = secret::encrypt(api_key)?;
-    db.set_setting(&profile_key_setting(profile_id), &encrypted).await
+    db.set_setting(&profile_key_setting(profile_id), &encrypted)
+        .await
 }
 
 pub async fn clear_profile_key(db: &Database, profile_id: &str) -> anyhow::Result<()> {
@@ -312,7 +428,9 @@ pub async fn send(db: &Database, req: AiAgentSendReq) -> anyhow::Result<AiAgentS
     if profile.base_url.trim().is_empty() {
         anyhow::bail!("AI profile base URL is empty");
     }
-    if profile.model.trim().is_empty() {
+    let model = selected_model(&profile, req.model_id.as_deref())
+        .ok_or_else(|| anyhow::anyhow!("AI profile has no configured models"))?;
+    if model.model.trim().is_empty() {
         anyhow::bail!("AI profile model is empty");
     }
 
@@ -323,7 +441,8 @@ pub async fn send(db: &Database, req: AiAgentSendReq) -> anyhow::Result<AiAgentS
         .ok_or_else(|| anyhow::anyhow!("AI profile API key is not configured"))?;
     let api_key = secret::decrypt(&encrypted)?;
     let preferred_command_mode = infer_command_mode_from_question(&req.question);
-    let provider_response = call_provider(&profile, config.timeout_sec, &api_key, &req).await?;
+    let provider_response =
+        call_provider(&profile, model, config.timeout_sec, &api_key, &req).await?;
     let mut response = parse_agent_response(&provider_response.text, preferred_command_mode);
     let parsed_reasoning = response.reasoning.take();
     if config.show_reasoning {
@@ -338,6 +457,7 @@ fn profile_key_setting(profile_id: &str) -> String {
 
 async fn call_provider(
     profile: &AiAgentProfile,
+    model: &AiAgentModel,
     timeout_sec: Option<u64>,
     api_key: &str,
     req: &AiAgentSendReq,
@@ -345,28 +465,69 @@ async fn call_provider(
     let timeout = Duration::from_secs(timeout_sec.unwrap_or(60).clamp(5, 300));
     let client = reqwest::Client::builder().timeout(timeout).build()?;
     let system_prompt = system_prompt();
-    let user_prompt = user_prompt(req, profile.context_window_tokens);
+    let user_prompt = user_prompt(req, model.context_window_tokens);
 
     match profile.protocol {
-        AiAgentProtocol::OpenaiChat => call_openai_chat(&client, profile, api_key, system_prompt, &user_prompt).await,
-        AiAgentProtocol::OpenaiResponses => call_openai_responses(&client, profile, api_key, system_prompt, &user_prompt).await,
-        AiAgentProtocol::ClaudeMessages => call_claude_messages(&client, profile, api_key, system_prompt, &user_prompt).await,
-        AiAgentProtocol::GeminiGenerateContent => call_gemini(&client, profile, api_key, system_prompt, &user_prompt).await,
+        AiAgentProtocol::OpenaiChat => {
+            call_openai_chat(
+                &client,
+                profile,
+                model,
+                api_key,
+                system_prompt,
+                &user_prompt,
+            )
+            .await
+        }
+        AiAgentProtocol::OpenaiResponses => {
+            call_openai_responses(
+                &client,
+                profile,
+                model,
+                api_key,
+                system_prompt,
+                &user_prompt,
+            )
+            .await
+        }
+        AiAgentProtocol::ClaudeMessages => {
+            call_claude_messages(
+                &client,
+                profile,
+                model,
+                api_key,
+                system_prompt,
+                &user_prompt,
+            )
+            .await
+        }
+        AiAgentProtocol::GeminiGenerateContent => {
+            call_gemini(
+                &client,
+                profile,
+                model,
+                api_key,
+                system_prompt,
+                &user_prompt,
+            )
+            .await
+        }
     }
 }
 
 async fn call_openai_chat(
     client: &reqwest::Client,
     profile: &AiAgentProfile,
+    model: &AiAgentModel,
     api_key: &str,
     system_prompt: &str,
     user_prompt: &str,
 ) -> anyhow::Result<ProviderTextResponse> {
     let url = join_url(&profile.base_url, "chat/completions");
     let body = json!({
-        "model": profile.model,
-        "temperature": profile.temperature.unwrap_or(0.2),
-        "max_tokens": profile.max_tokens.unwrap_or(1200),
+        "model": model.model,
+        "temperature": model.temperature.unwrap_or(0.2),
+        "max_tokens": model.max_tokens.unwrap_or(1200),
         "response_format": { "type": "json_object" },
         "messages": [
             { "role": "system", "content": system_prompt },
@@ -393,15 +554,16 @@ async fn call_openai_chat(
 async fn call_openai_responses(
     client: &reqwest::Client,
     profile: &AiAgentProfile,
+    model: &AiAgentModel,
     api_key: &str,
     system_prompt: &str,
     user_prompt: &str,
 ) -> anyhow::Result<ProviderTextResponse> {
     let url = join_url(&profile.base_url, "responses");
     let body = json!({
-        "model": profile.model,
-        "temperature": profile.temperature.unwrap_or(0.2),
-        "max_output_tokens": profile.max_tokens.unwrap_or(1200),
+        "model": model.model,
+        "temperature": model.temperature.unwrap_or(0.2),
+        "max_output_tokens": model.max_tokens.unwrap_or(1200),
         "instructions": system_prompt,
         "input": user_prompt,
         "text": {
@@ -417,9 +579,9 @@ async fn call_openai_responses(
         text.to_string()
     } else {
         collect_text_fields(&value)
-        .into_iter()
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("OpenAI responses output did not include text"))?
+            .into_iter()
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("OpenAI responses output did not include text"))?
     };
     let reasoning = extract_reasoning_fields(&value).or_else(|| extract_think_blocks(&text));
     Ok(ProviderTextResponse { text, reasoning })
@@ -428,16 +590,17 @@ async fn call_openai_responses(
 async fn call_claude_messages(
     client: &reqwest::Client,
     profile: &AiAgentProfile,
+    model: &AiAgentModel,
     api_key: &str,
     system_prompt: &str,
     user_prompt: &str,
 ) -> anyhow::Result<ProviderTextResponse> {
     let url = join_url(&profile.base_url, "messages");
     let body = json!({
-        "model": profile.model,
+        "model": model.model,
         "system": system_prompt,
-        "max_tokens": profile.max_tokens.unwrap_or(1200),
-        "temperature": profile.temperature.unwrap_or(0.2),
+        "max_tokens": model.max_tokens.unwrap_or(1200),
+        "temperature": model.temperature.unwrap_or(0.2),
         "messages": [
             { "role": "user", "content": user_prompt }
         ]
@@ -451,7 +614,11 @@ async fn call_claude_messages(
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
-        .filter_map(|part| part.get("text").and_then(Value::as_str).map(ToOwned::to_owned))
+        .filter_map(|part| {
+            part.get("text")
+                .and_then(Value::as_str)
+                .map(ToOwned::to_owned)
+        })
         .collect();
     if texts.is_empty() {
         anyhow::bail!("Claude response did not include text content");
@@ -479,11 +646,12 @@ async fn call_claude_messages(
 async fn call_gemini(
     client: &reqwest::Client,
     profile: &AiAgentProfile,
+    model: &AiAgentModel,
     api_key: &str,
     system_prompt: &str,
     user_prompt: &str,
 ) -> anyhow::Result<ProviderTextResponse> {
-    let path = format!("models/{}:generateContent", profile.model);
+    let path = format!("models/{}:generateContent", model.model);
     let url = join_url(&profile.base_url, &path);
     let body = json!({
         "systemInstruction": {
@@ -496,8 +664,8 @@ async fn call_gemini(
             }
         ],
         "generationConfig": {
-            "temperature": profile.temperature.unwrap_or(0.2),
-            "maxOutputTokens": profile.max_tokens.unwrap_or(1200),
+            "temperature": model.temperature.unwrap_or(0.2),
+            "maxOutputTokens": model.max_tokens.unwrap_or(1200),
             "responseMimeType": "application/json",
             "responseSchema": response_schema()
         }
@@ -513,7 +681,11 @@ async fn call_gemini(
     let texts: Vec<String> = parts
         .iter()
         .filter(|part| part.get("thought").and_then(Value::as_bool) != Some(true))
-        .filter_map(|part| part.get("text").and_then(Value::as_str).map(ToOwned::to_owned))
+        .filter_map(|part| {
+            part.get("text")
+                .and_then(Value::as_str)
+                .map(ToOwned::to_owned)
+        })
         .collect();
     if texts.is_empty() {
         anyhow::bail!("Gemini response did not include text content");
@@ -548,7 +720,8 @@ async fn post_json(
         let safe = text.chars().take(500).collect::<String>();
         anyhow::bail!("AI provider request failed ({}): {}", status.as_u16(), safe);
     }
-    serde_json::from_str(&text).map_err(|e| anyhow::anyhow!("AI provider returned invalid JSON: {}", e))
+    serde_json::from_str(&text)
+        .map_err(|e| anyhow::anyhow!("AI provider returned invalid JSON: {}", e))
 }
 
 fn bearer_headers(api_key: &str) -> anyhow::Result<HeaderMap> {
@@ -620,7 +793,10 @@ fn user_prompt(req: &AiAgentSendReq, context_window_tokens: Option<u32>) -> Stri
         if let Some(selected_text) = &context.selected_text {
             if !selected_text.trim().is_empty() {
                 prompt.push_str("\n- Selected terminal text:\n");
-                prompt.push_str(&trim_context_text(selected_text.trim(), context_window_tokens));
+                prompt.push_str(&trim_context_text(
+                    selected_text.trim(),
+                    context_window_tokens,
+                ));
             }
         }
     }
@@ -628,7 +804,9 @@ fn user_prompt(req: &AiAgentSendReq, context_window_tokens: Option<u32>) -> Stri
 }
 
 fn trim_context_text(text: &str, context_window_tokens: Option<u32>) -> String {
-    let budget_tokens = context_window_tokens.unwrap_or(8_000).clamp(1_000, 1_000_000);
+    let budget_tokens = context_window_tokens
+        .unwrap_or(8_000)
+        .clamp(1_000, 1_000_000);
     let max_chars = (budget_tokens as usize).saturating_mul(3);
     if text.len() <= max_chars {
         return text.to_string();
@@ -674,7 +852,10 @@ fn response_schema() -> Value {
     })
 }
 
-fn parse_agent_response(raw_text: &str, preferred_command_mode: Option<&'static str>) -> AiAgentSendResponse {
+fn parse_agent_response(
+    raw_text: &str,
+    preferred_command_mode: Option<&'static str>,
+) -> AiAgentSendResponse {
     if let Some(response) = parse_json_response(raw_text, "json", preferred_command_mode) {
         return response;
     }
@@ -786,7 +967,12 @@ fn normalize_command_mode(
     answer: &str,
     commands: &[AiAgentCommand],
 ) -> String {
-    let explicit_mode = match value.unwrap_or_default().trim().to_ascii_lowercase().as_str() {
+    let explicit_mode = match value
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase()
+        .as_str()
+    {
         "steps" | "step" | "sequence" | "workflow" => Some("steps"),
         "alternatives" | "alternative" | "choices" | "choice" | "options" => Some("alternatives"),
         _ => None,
@@ -929,16 +1115,7 @@ fn looks_like_steps(answer: &str, commands: &[AiAgentCommand]) -> bool {
     if contains_any(
         &answer,
         &[
-            "step",
-            "then",
-            "first",
-            "next",
-            "after",
-            "步骤",
-            "然后",
-            "先",
-            "接着",
-            "再",
+            "step", "then", "first", "next", "after", "步骤", "然后", "先", "接着", "再",
         ],
     ) {
         return true;
@@ -949,23 +1126,19 @@ fn looks_like_steps(answer: &str, commands: &[AiAgentCommand]) -> bool {
         contains_any(
             &description,
             &[
-                "step",
-                "then",
-                "first",
-                "next",
-                "after",
-                "步骤",
-                "然后",
-                "先",
-                "接着",
-                "再",
+                "step", "then", "first", "next", "after", "步骤", "然后", "先", "接着", "再",
             ],
         )
     })
 }
 
 fn normalize_level(value: Option<&str>, fallback: &str) -> String {
-    match value.unwrap_or(fallback).trim().to_ascii_lowercase().as_str() {
+    match value
+        .unwrap_or(fallback)
+        .trim()
+        .to_ascii_lowercase()
+        .as_str()
+    {
         "low" => "low".to_string(),
         "high" => "high".to_string(),
         _ => "medium".to_string(),
@@ -1093,7 +1266,10 @@ fn collect_reasoning_fields_inner(value: &Value, texts: &mut Vec<String>) {
             }
             for (key, child) in map {
                 let key = key.as_str();
-                if matches!(key, "reasoning" | "reasoning_content" | "thinking" | "thought") {
+                if matches!(
+                    key,
+                    "reasoning" | "reasoning_content" | "thinking" | "thought"
+                ) {
                     collect_reasoning_text(child, texts);
                 } else {
                     collect_reasoning_fields_inner(child, texts);
@@ -1263,14 +1439,20 @@ mod tests {
 
         let response = parse_agent_response(raw, None);
 
-        assert_eq!(response.reasoning.as_deref(), Some("用户询问目录内容，使用只读命令即可。"));
+        assert_eq!(
+            response.reasoning.as_deref(),
+            Some("用户询问目录内容，使用只读命令即可。")
+        );
     }
 
     #[test]
     fn think_blocks_are_extracted_as_reasoning() {
         let text = "<think>\n先判断问题类型。\n</think>\n{\"answer\":\"ok\",\"commands\":[]}";
 
-        assert_eq!(extract_think_blocks(text).as_deref(), Some("先判断问题类型。"));
+        assert_eq!(
+            extract_think_blocks(text).as_deref(),
+            Some("先判断问题类型。")
+        );
     }
 
     #[test]
@@ -1286,7 +1468,10 @@ mod tests {
             ]
         });
 
-        assert_eq!(extract_reasoning_fields(&value).as_deref(), Some("先确认用户需要安全的只读命令。"));
+        assert_eq!(
+            extract_reasoning_fields(&value).as_deref(),
+            Some("先确认用户需要安全的只读命令。")
+        );
     }
 
     #[test]
@@ -1299,8 +1484,117 @@ mod tests {
             "model": "model"
         }"#;
 
-        let profile: StoredProfile = serde_json::from_str(raw).expect("legacy profile should deserialize");
+        let profile: StoredProfile =
+            serde_json::from_str(raw).expect("legacy profile should deserialize");
 
         assert_eq!(profile.response_mode, AiAgentResponseMode::NonStream);
+    }
+
+    #[test]
+    fn legacy_stored_profile_normalizes_to_default_model() {
+        let raw = r#"{
+            "id": "profile-1",
+            "name": "Legacy",
+            "protocol": "openaiChat",
+            "baseUrl": "https://api.example.com/v1",
+            "model": "legacy-model",
+            "contextWindowTokens": 32000,
+            "temperature": 0.4,
+            "maxTokens": 900
+        }"#;
+
+        let stored: StoredProfile =
+            serde_json::from_str(raw).expect("legacy profile should deserialize");
+        let profile = normalize_profile(stored.into_profile(true));
+
+        assert_eq!(profile.default_model_id.as_deref(), Some("default"));
+        assert_eq!(profile.models.len(), 1);
+        assert_eq!(profile.models[0].model, "legacy-model");
+        assert_eq!(profile.models[0].context_window_tokens, Some(32000));
+        assert_eq!(profile.models[0].temperature, Some(0.4));
+        assert_eq!(profile.models[0].max_tokens, Some(900));
+        assert!(profile.api_key_set);
+    }
+
+    #[test]
+    fn selected_model_falls_back_to_first_when_default_is_invalid() {
+        let profile = normalize_profile(AiAgentProfile {
+            id: "profile-1".to_string(),
+            name: "Provider".to_string(),
+            protocol: AiAgentProtocol::OpenaiChat,
+            base_url: "https://api.example.com/v1".to_string(),
+            default_model_id: Some("missing".to_string()),
+            models: vec![
+                AiAgentModel {
+                    id: "fast".to_string(),
+                    name: "Fast".to_string(),
+                    model: "fast-model".to_string(),
+                    context_window_tokens: None,
+                    temperature: None,
+                    max_tokens: None,
+                    response_mode: AiAgentResponseMode::NonStream,
+                },
+                AiAgentModel {
+                    id: "smart".to_string(),
+                    name: "Smart".to_string(),
+                    model: "smart-model".to_string(),
+                    context_window_tokens: None,
+                    temperature: None,
+                    max_tokens: None,
+                    response_mode: AiAgentResponseMode::NonStream,
+                },
+            ],
+            model: None,
+            context_window_tokens: None,
+            temperature: None,
+            max_tokens: None,
+            response_mode: AiAgentResponseMode::NonStream,
+            api_key_set: false,
+        });
+
+        assert_eq!(profile.default_model_id.as_deref(), Some("fast"));
+        assert_eq!(
+            selected_model(&profile, Some("smart")).map(|model| model.model.as_str()),
+            Some("smart-model")
+        );
+        assert_eq!(
+            selected_model(&profile, Some("missing")).map(|model| model.model.as_str()),
+            Some("fast-model")
+        );
+    }
+
+    #[test]
+    fn stored_profile_serializes_new_model_shape_without_legacy_model_fields() {
+        let profile = normalize_profile(AiAgentProfile {
+            id: "profile-1".to_string(),
+            name: "Provider".to_string(),
+            protocol: AiAgentProtocol::OpenaiChat,
+            base_url: "https://api.example.com/v1".to_string(),
+            default_model_id: Some("fast".to_string()),
+            models: vec![AiAgentModel {
+                id: "fast".to_string(),
+                name: "Fast".to_string(),
+                model: "fast-model".to_string(),
+                context_window_tokens: Some(128000),
+                temperature: Some(0.2),
+                max_tokens: Some(1200),
+                response_mode: AiAgentResponseMode::NonStream,
+            }],
+            model: Some("legacy-model".to_string()),
+            context_window_tokens: Some(32000),
+            temperature: Some(0.4),
+            max_tokens: Some(900),
+            response_mode: AiAgentResponseMode::Stream,
+            api_key_set: false,
+        });
+
+        let value = serde_json::to_value(StoredProfile::from(&profile)).expect("profile should serialize");
+
+        assert!(value.get("models").is_some());
+        assert!(value.get("model").is_none());
+        assert!(value.get("contextWindowTokens").is_none());
+        assert!(value.get("temperature").is_none());
+        assert!(value.get("maxTokens").is_none());
+        assert!(value.get("responseMode").is_none());
     }
 }

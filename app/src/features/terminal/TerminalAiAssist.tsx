@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { Check, ChevronLeft, ChevronRight, Copy, History, Loader2, Send, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as api from "@/lib/tauri";
-import type { AiAgentCommand, AiAgentConfig, AiAgentProfile, AiAgentSendResponse, TerminalTab } from "@/types";
+import { Select } from "@/components/ui/themed/Select";
+import type { AiAgentCommand, AiAgentConfig, AiAgentModel, AiAgentProfile, AiAgentSendResponse, TerminalTab } from "@/types";
 import { useT } from "@/lib/i18n";
 import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
@@ -24,6 +25,7 @@ type AiHistoryItem = {
 
 const AI_HISTORY_LIMIT = 20;
 const AI_HISTORY_STORAGE_PREFIX = "terminal.aiAssist.history.";
+const AI_SELECTED_MODEL_STORAGE_PREFIX = "terminal.aiAssist.selectedModel.";
 
 const DEFAULT_CONFIG: AiAgentConfig = {
   enabled: false,
@@ -54,6 +56,53 @@ const normalizeResponse = (response: AiAgentSendResponse): AiAgentSendResponse =
 });
 
 const getHistoryStorageKey = (hostId: string) => `${AI_HISTORY_STORAGE_PREFIX}${hostId}`;
+const getSelectedModelStorageKey = (profileId: string) => `${AI_SELECTED_MODEL_STORAGE_PREFIX}${profileId}`;
+
+const getProfileModels = (profile: AiAgentProfile | undefined): AiAgentModel[] => {
+  if (!profile) return [];
+  if (profile.models?.length) return profile.models;
+  const legacyModel = profile.model?.trim();
+  if (!legacyModel) return [];
+  return [{
+    id: "default",
+    name: legacyModel,
+    model: legacyModel,
+    contextWindowTokens: profile.contextWindowTokens,
+    temperature: profile.temperature,
+    maxTokens: profile.maxTokens,
+    responseMode: profile.responseMode || "nonStream",
+  }];
+};
+
+const resolveModelId = (profile: AiAgentProfile | undefined, preferred?: string | null): string => {
+  const models = getProfileModels(profile);
+  if (!profile || models.length === 0) return "";
+  if (preferred && models.some((model) => model.id === preferred)) return preferred;
+  const remembered = readSelectedModelId(profile.id);
+  if (remembered && models.some((model) => model.id === remembered)) return remembered;
+  if (profile.defaultModelId && models.some((model) => model.id === profile.defaultModelId)) {
+    return profile.defaultModelId;
+  }
+  return models[0]?.id || "";
+};
+
+const readSelectedModelId = (profileId: string): string => {
+  if (!profileId) return "";
+  try {
+    return window.localStorage.getItem(getSelectedModelStorageKey(profileId)) || "";
+  } catch {
+    return "";
+  }
+};
+
+const writeSelectedModelId = (profileId: string, modelId: string) => {
+  if (!profileId || !modelId) return;
+  try {
+    window.localStorage.setItem(getSelectedModelStorageKey(profileId), modelId);
+  } catch {
+    // Ignore storage failures; model selection still works for this session.
+  }
+};
 
 const readHistoryItems = (hostId: string): AiHistoryItem[] => {
   if (!hostId) return [];
@@ -93,6 +142,7 @@ export function TerminalAiAssist({
   const t = useT();
   const [config, setConfig] = useState<AiAgentConfig>(DEFAULT_CONFIG);
   const [profileId, setProfileId] = useState("");
+  const [modelId, setModelId] = useState("");
   const [question, setQuestion] = useState("");
   const [lastQuestion, setLastQuestion] = useState("");
   const [response, setResponse] = useState<AiAgentSendResponse | null>(null);
@@ -111,9 +161,13 @@ export function TerminalAiAssist({
     try {
       const next = await api.aiAgentConfigGet();
       setConfig(next);
-      setProfileId((current) => {
-        if (current && next.profiles.some((profile) => profile.id === current)) return current;
-        return next.defaultProfileId || next.profiles[0]?.id || "";
+      setProfileId((currentProfileId) => {
+        const nextProfileId = currentProfileId && next.profiles.some((profile) => profile.id === currentProfileId)
+          ? currentProfileId
+          : next.defaultProfileId || next.profiles[0]?.id || "";
+        const nextProfile = next.profiles.find((profile) => profile.id === nextProfileId);
+        setModelId((currentModelId) => resolveModelId(nextProfile, currentModelId));
+        return nextProfileId;
       });
     } catch (err) {
       setError(String(err));
@@ -158,9 +212,30 @@ export function TerminalAiAssist({
     () => config.profiles.find((profile) => profile.id === profileId),
     [config.profiles, profileId],
   );
+  const selectedModels = useMemo(() => getProfileModels(selectedProfile), [selectedProfile]);
+  const selectedModel = useMemo(
+    () => selectedModels.find((model) => model.id === modelId),
+    [modelId, selectedModels],
+  );
+
+  useEffect(() => {
+    const nextModelId = resolveModelId(selectedProfile, modelId);
+    if (nextModelId !== modelId) setModelId(nextModelId);
+  }, [modelId, selectedProfile]);
+
+  const handleProfileChange = (nextProfileId: string) => {
+    setProfileId(nextProfileId);
+    const nextProfile = config.profiles.find((profile) => profile.id === nextProfileId);
+    setModelId(resolveModelId(nextProfile));
+  };
+
+  const handleModelChange = (nextModelId: string) => {
+    setModelId(nextModelId);
+    if (profileId && nextModelId) writeSelectedModelId(profileId, nextModelId);
+  };
 
   const activeCommand: AiAgentCommand | undefined = response?.commands[activeCommandIndex];
-  const canSend = Boolean(config.enabled && selectedProfile && selectedProfile.apiKeySet && question.trim() && activeTab);
+  const canSend = Boolean(config.enabled && selectedProfile && selectedProfile.apiKeySet && selectedModel && question.trim() && activeTab);
 
   const handleSubmit = async (event?: FormEvent) => {
     event?.preventDefault();
@@ -169,6 +244,10 @@ export function TerminalAiAssist({
     const submitHostId = activeTab.hostId;
     if (!selectedProfile.apiKeySet) {
       setError(t("aiAssist.missingKey"));
+      return;
+    }
+    if (!selectedModel) {
+      setError(t("aiAssist.noModelConfigured"));
       return;
     }
 
@@ -185,6 +264,7 @@ export function TerminalAiAssist({
     try {
       const result = await api.aiAgentSend({
         profileId: selectedProfile.id,
+        modelId: selectedModel.id,
         question: trimmed,
         context: {
           tabTitle: activeTab.title,
@@ -305,25 +385,33 @@ export function TerminalAiAssist({
       </header>
 
       <div className="ai-profile-row">
-        <select
+        <Select
           value={profileId}
-          onChange={(event) => setProfileId(event.target.value)}
-          className="ai-profile-select"
-          disabled={config.profiles.length === 0}
-        >
-          {config.profiles.length === 0 ? (
-            <option value="">{t("aiAssist.noProfile")}</option>
-          ) : (
-            config.profiles.map((profile) => (
-              <option key={profile.id} value={profile.id}>
-                {profile.name || t("aiAgent.unnamedProfile")}
-              </option>
-            ))
-          )}
-        </select>
+          onChange={handleProfileChange}
+          className="ai-select"
+          options={config.profiles.length === 0
+            ? [{ value: "", label: t("aiAssist.noProfile") }]
+            : config.profiles.map((profile) => ({
+              value: profile.id,
+              label: profile.name || t("aiAgent.unnamedProfile"),
+            }))}
+        />
         <span className={cn("ai-state-pill", config.enabled ? "is-on" : "is-off")}>
           {config.enabled ? t("aiAssist.on") : t("aiAssist.off")}
         </span>
+      </div>
+      <div className="ai-profile-row ai-model-row">
+        <Select
+          value={modelId}
+          onChange={handleModelChange}
+          className="ai-select"
+          options={selectedModels.length === 0
+            ? [{ value: "", label: t("aiAssist.noModel") }]
+            : selectedModels.map((model) => ({
+              value: model.id,
+              label: model.name || model.model || t("aiAgent.unnamedModel"),
+            }))}
+        />
       </div>
 
       <div className="ai-request-status" data-state={requestStatus}>
@@ -377,6 +465,9 @@ export function TerminalAiAssist({
       )}
       {selectedProfile && !selectedProfile.apiKeySet && (
         <div className="ai-empty-state">{t("aiAssist.missingKey")}</div>
+      )}
+      {selectedProfile && selectedModels.length === 0 && (
+        <div className="ai-empty-state">{t("aiAssist.noModelConfigured")}</div>
       )}
       {error && <div className="ai-error">{error}</div>}
 
@@ -471,7 +562,7 @@ export function TerminalAiAssist({
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
           placeholder={t("aiAssist.placeholder")}
-          disabled={loading || !config.enabled}
+          disabled={loading || !config.enabled || !selectedModel}
         />
         <button className="btn btn-icon btn-ghost" disabled={!canSend || loading} title={t("aiAssist.send")}>
           {loading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}

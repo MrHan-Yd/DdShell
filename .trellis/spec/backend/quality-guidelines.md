@@ -166,9 +166,13 @@ Correct:
   - `aiAgent.profiles`: JSON array of non-secret profile fields
   - `aiAgent.profile.<id>.apiKey`: encrypted API key only
 - `AiAgentProfile` response must include `apiKeySet: bool`, but must never include plaintext or encrypted API key.
-- `AiAgentProfile.contextWindowTokens` is the model capacity used for app-side prompt/context budgeting; it is not sent as a universal provider parameter and does not override real model limits.
-- `AiAgentProfile.responseMode` stores the user's preferred profile behavior: `"auto"`, `"stream"`, or `"nonStream"`. Missing legacy values must deserialize as `"nonStream"`. The current `ai_agent_send` command remains a complete-response command; do not set provider `stream: true` unless a Tauri event/SSE path exists to deliver chunks safely.
-- `AiAgentSendReq` includes `profileId`, `question`, and optional terminal context (`tabTitle`, `cwd`, `selectedText`).
+- Provider profile/site fields are `id`, `name`, `protocol`, `baseUrl`, `defaultModelId`, `models[]`, and `apiKeySet`. API keys remain profile-scoped under `aiAgent.profile.<id>.apiKey`; never copy secrets into a model row.
+- `AiAgentModel` fields are `id`, `name`, provider `model`, `contextWindowTokens`, `temperature`, `maxTokens`, and `responseMode`.
+- Legacy single-model fields on `AiAgentProfile` (`model`, `contextWindowTokens`, `temperature`, `maxTokens`, `responseMode`) may still appear in persisted JSON. Read paths must normalize them into one `models[]` entry and set a valid `defaultModelId`.
+- `AiAgentModel.contextWindowTokens` is the model capacity used for app-side prompt/context budgeting; it is not sent as a universal provider parameter and does not override real model limits.
+- `AiAgentModel.responseMode` stores the user's preferred model behavior: `"auto"`, `"stream"`, or `"nonStream"`. Missing legacy values must deserialize as `"nonStream"`. The current `ai_agent_send` command remains a complete-response command; do not set provider `stream: true` unless a Tauri event/SSE path exists to deliver chunks safely.
+- `AiAgentSendReq` includes `profileId`, optional `modelId`, `question`, and optional terminal context (`tabTitle`, `cwd`, `selectedText`).
+- `AiAgentSendReq.modelId` selects a model within the chosen profile. Missing or invalid `modelId` must fall back to the profile default model, then the first model. If the profile has no models, return a validation error before any provider request.
 - `AiAgentSendResponse` normalizes all providers to `answer`, `commandMode`, `commands[]`, optional `reasoning`, `rawText`, and `parseMode`.
 - `reasoning` may be returned only when `aiAgent.showReasoning` is enabled and the provider/model response actually contains reasoning data. Supported extraction sources include OpenAI-compatible `reasoning_content` / `reasoning`, Claude `thinking` blocks, Gemini `thought` parts, JSON `reasoning` fields, and `<think>...</think>` text blocks.
 - `commandMode` must be `"alternatives"` when commands are equivalent choices where one is enough, and `"steps"` when commands should be run in order. Missing/unknown model output should default conservatively to `"alternatives"` unless fallback parsing clearly extracts a shell block workflow or the original user question has diagnostic/triage intent.
@@ -179,7 +183,7 @@ Correct:
 #### 4. Validation & Error Matrix
 - AI disabled -> return error before provider request.
 - Profile id not found -> return profile-not-found error.
-- Empty base URL or model -> return validation error.
+- Empty base URL, missing model list, or empty selected model id -> return validation error.
 - Missing/cleared API key -> return key-not-configured error.
 - Provider non-2xx -> return status plus a short bounded provider error body; never include API key.
 - Provider invalid JSON wrapper -> return invalid-response error.
@@ -195,7 +199,9 @@ Correct:
 - `cd app/src-tauri && cargo check` verifies command registration and backend type alignment.
 - When automated tests are added, assert:
   - config read redacts keys and reports `apiKeySet`
-  - save config preserves profile fields without secrets
+  - save config preserves profile/site fields and nested model fields without secrets
+  - legacy single-model stored profiles normalize to one model and a valid default model id
+  - requested model id selects that model's provider id and parameters; invalid model id falls back to default/first
   - missing key blocks `ai_agent_send`
   - parser handles raw JSON, fenced JSON, JSON object inside text, shell fenced fallback, and no-command prose
   - command mode normalization keeps simple listing commands as alternatives, but maps diagnostic multi-command answers to steps even when the model mislabels them as alternatives
@@ -221,6 +227,7 @@ Correct:
 // and returns normalized command suggestions.
 await api.aiAgentSend({
   profileId,
+  modelId,
   question,
   context: { tabTitle, cwd, selectedText: null },
 });

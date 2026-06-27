@@ -21,7 +21,7 @@ import type { DictKey, Locale } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
 import { confirm, useConfirmStore } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
-import type { AiAgentConfig, AiAgentExecutionMode, AiAgentProfile, AiAgentProtocol, AiAgentResponseMode, TerminalBgSource } from "@/types";
+import type { AiAgentConfig, AiAgentExecutionMode, AiAgentModel, AiAgentProfile, AiAgentProtocol, AiAgentResponseMode, TerminalBgSource } from "@/types";
 import { DEFAULT_COMMAND_ASSIST_MODE, type CommandAssistMode } from "@/features/terminal/CommandAssist";
 
 const TABS = ["general", "transfer", "terminal", "commandAssist", "aiAgent", "shortcuts", "about"] as const;
@@ -560,18 +560,53 @@ const AI_RESPONSE_MODE_OPTIONS: Array<{ value: AiAgentResponseMode; labelKey: Di
   { value: "nonStream", labelKey: "aiAgent.responseNonStream" },
 ];
 
-function defaultAiProfile(): AiAgentProfile {
+function defaultAiModel(): AiAgentModel {
   return {
     id: crypto.randomUUID(),
-    name: "OpenAI",
-    protocol: "openaiChat",
-    baseUrl: "https://api.openai.com/v1",
+    name: "GPT 4.1",
     model: "gpt-4.1",
     contextWindowTokens: 128000,
     temperature: 0.2,
     maxTokens: 1200,
     responseMode: "nonStream",
+  };
+}
+
+function defaultAiProfile(): AiAgentProfile {
+  const model = defaultAiModel();
+  return {
+    id: crypto.randomUUID(),
+    name: "OpenAI",
+    protocol: "openaiChat",
+    baseUrl: "https://api.openai.com/v1",
+    defaultModelId: model.id,
+    models: [model],
     apiKeySet: false,
+  };
+}
+
+function normalizeAiProfileDraft(profile: AiAgentProfile): AiAgentProfile {
+  const legacyModel = profile.model?.trim();
+  const models = profile.models?.length
+    ? profile.models
+    : legacyModel
+      ? [{
+        id: "default",
+        name: legacyModel,
+        model: legacyModel,
+        contextWindowTokens: profile.contextWindowTokens,
+        temperature: profile.temperature,
+        maxTokens: profile.maxTokens,
+        responseMode: profile.responseMode || "nonStream",
+      }]
+      : [];
+  const defaultModelId = models.some((model) => model.id === profile.defaultModelId)
+    ? profile.defaultModelId
+    : models[0]?.id ?? null;
+  return {
+    ...profile,
+    defaultModelId,
+    models,
   };
 }
 
@@ -584,13 +619,65 @@ function AiAgentSettings({
   onChangeKeyDraft,
   onClearKey,
 }: AiAgentSettingsProps) {
+  const profiles = config.profiles.map(normalizeAiProfileDraft);
+
   const updateProfile = (profileId: string, patch: Partial<AiAgentProfile>) => {
     onChange({
       ...config,
-      profiles: config.profiles.map((profile) => (
-        profile.id === profileId ? { ...profile, ...patch } : profile
+      profiles: profiles.map((profile) => (
+        profile.id === profileId ? normalizeAiProfileDraft({ ...profile, ...patch }) : profile
       )),
     });
+  };
+
+  const updateModel = (profileId: string, modelId: string, patch: Partial<AiAgentModel>) => {
+    onChange({
+      ...config,
+      profiles: profiles.map((profile) => (
+        profile.id === profileId
+          ? {
+            ...profile,
+            models: profile.models.map((model) => (
+              model.id === modelId ? { ...model, ...patch } : model
+            )),
+          }
+          : profile
+      )),
+    });
+  };
+
+  const addModel = (profileId: string) => {
+    const model = defaultAiModel();
+    onChange({
+      ...config,
+      profiles: profiles.map((profile) => (
+        profile.id === profileId
+          ? {
+            ...profile,
+            defaultModelId: profile.defaultModelId || model.id,
+            models: [...profile.models, model],
+          }
+          : profile
+      )),
+    });
+  };
+
+  const removeModel = (profileId: string, modelId: string) => {
+    onChange({
+      ...config,
+      profiles: profiles.map((profile) => {
+        if (profile.id !== profileId) return profile;
+        const models = profile.models.filter((model) => model.id !== modelId);
+        const defaultModelId = profile.defaultModelId === modelId
+          ? models[0]?.id ?? null
+          : profile.defaultModelId ?? null;
+        return { ...profile, models, defaultModelId };
+      }),
+    });
+  };
+
+  const setDefaultModel = (profileId: string, modelId: string) => {
+    updateProfile(profileId, { defaultModelId: modelId });
   };
 
   const addProfile = () => {
@@ -598,16 +685,16 @@ function AiAgentSettings({
     onChange({
       ...config,
       defaultProfileId: config.defaultProfileId || profile.id,
-      profiles: [...config.profiles, profile],
+      profiles: [...profiles, profile],
     });
   };
 
   const removeProfile = (profileId: string) => {
-    const profiles = config.profiles.filter((profile) => profile.id !== profileId);
+    const nextProfiles = profiles.filter((profile) => profile.id !== profileId);
     const defaultProfileId = config.defaultProfileId === profileId
-      ? profiles[0]?.id ?? null
+      ? nextProfiles[0]?.id ?? null
       : config.defaultProfileId ?? null;
-    onChange({ ...config, profiles, defaultProfileId });
+    onChange({ ...config, profiles: nextProfiles, defaultProfileId });
   };
 
   const setDefaultProfile = (profileId: string) => {
@@ -678,7 +765,7 @@ function AiAgentSettings({
             onChange={(value) => onChange({ ...config, defaultProfileId: value || null })}
             options={[
               { value: "", label: t("aiAgent.noProfile") },
-              ...config.profiles.map((profile) => ({ value: profile.id, label: profile.name || t("aiAgent.unnamedProfile") })),
+              ...profiles.map((profile) => ({ value: profile.id, label: profile.name || t("aiAgent.unnamedProfile") })),
             ]}
           />
         </SettingRow>
@@ -692,13 +779,13 @@ function AiAgentSettings({
           </Button>
         </div>
 
-        {config.profiles.length === 0 ? (
+        {profiles.length === 0 ? (
           <div className="rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-4 text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
             {t("aiAgent.emptyProfiles")}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {config.profiles.map((profile) => {
+            {profiles.map((profile) => {
               const keyCleared = Boolean(clearedKeys[profile.id]);
               const hasKey = profile.apiKeySet && !keyCleared;
               return (
@@ -733,37 +820,6 @@ function AiAgentSettings({
                         }))}
                       />
                     </SettingRow>
-                    <SettingRow label={t("aiAgent.model")} className="settings-row--compact">
-                      <Input
-                        value={profile.model}
-                        onChange={(event) => updateProfile(profile.id, { model: event.target.value })}
-                        placeholder="gpt-4.1"
-                      />
-                    </SettingRow>
-                    <SettingRow label={t("aiAgent.contextWindow")} description={t("aiAgent.contextWindowDesc")} className="settings-row--compact">
-                      <Input
-                        type="number"
-                        min={1000}
-                        max={10000000}
-                        step={1000}
-                        value={String(profile.contextWindowTokens ?? 128000)}
-                        onChange={(event) => updateProfile(profile.id, { contextWindowTokens: Number(event.target.value) })}
-                      />
-                    </SettingRow>
-                    <SettingRow label={t("aiAgent.responseMode")} description={t("aiAgent.responseModeDesc")} className="settings-row--compact">
-                      <SegmentedControl
-                        value={profile.responseMode || "nonStream"}
-                        onChange={(value) => {
-                          if (value === "auto" || value === "stream" || value === "nonStream") {
-                            updateProfile(profile.id, { responseMode: value as AiAgentResponseMode });
-                          }
-                        }}
-                        options={AI_RESPONSE_MODE_OPTIONS.map((option) => ({
-                          value: option.value,
-                          label: t(option.labelKey),
-                        }))}
-                      />
-                    </SettingRow>
                     <SettingRow label={t("aiAgent.baseUrl")} className="settings-row--compact">
                       <Input
                         value={profile.baseUrl}
@@ -786,26 +842,117 @@ function AiAgentSettings({
                         )}
                       </div>
                     </SettingRow>
-                    <SettingRow label={t("aiAgent.temperature")} description={t("aiAgent.temperatureDesc")} className="settings-row--compact">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={2}
-                        step={0.1}
-                        value={String(profile.temperature ?? 0.2)}
-                        onChange={(event) => updateProfile(profile.id, { temperature: Number(event.target.value) })}
+                    <SettingRow label={t("aiAgent.defaultModel")} description={t("aiAgent.defaultModelDesc")} className="settings-row--compact">
+                      <Select
+                        value={profile.defaultModelId || ""}
+                        onChange={(value) => updateProfile(profile.id, { defaultModelId: value || null })}
+                        options={[
+                          { value: "", label: t("aiAgent.noModel") },
+                          ...profile.models.map((model) => ({
+                            value: model.id,
+                            label: model.name || model.model || t("aiAgent.unnamedModel"),
+                          })),
+                        ]}
                       />
                     </SettingRow>
-                    <SettingRow label={t("aiAgent.maxTokens")} description={t("aiAgent.maxTokensDesc")} className="settings-row--compact">
-                      <Input
-                        type="number"
-                        min={128}
-                        max={8000}
-                        step={128}
-                        value={String(profile.maxTokens ?? 1200)}
-                        onChange={(event) => updateProfile(profile.id, { maxTokens: Number(event.target.value) })}
-                      />
-                    </SettingRow>
+                  </div>
+
+                  <div className="mt-3 border-t border-[var(--color-border-subtle)] pt-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div>
+                        <div className="text-[var(--font-size-sm)] font-medium text-[var(--color-text-primary)]">{t("aiAgent.models")}</div>
+                        <div className="text-[var(--font-size-xs)] text-[var(--color-text-muted)]">{t("aiAgent.modelsDesc")}</div>
+                      </div>
+                      <Button size="sm" variant="secondary" onClick={() => addModel(profile.id)}>
+                        <Plus size={14} />
+                        {t("aiAgent.addModel")}
+                      </Button>
+                    </div>
+
+                    {profile.models.length === 0 ? (
+                      <div className="rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] px-3 py-3 text-[var(--font-size-sm)] text-[var(--color-text-muted)]">
+                        {t("aiAgent.emptyModels")}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {profile.models.map((model) => (
+                          <div key={model.id} className="rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-3">
+                            <div className="mb-3 flex items-center gap-2">
+                              <Input
+                                value={model.name}
+                                onChange={(event) => updateModel(profile.id, model.id, { name: event.target.value })}
+                                placeholder={t("aiAgent.modelName")}
+                              />
+                              <Button
+                                size="sm"
+                                variant={profile.defaultModelId === model.id ? "default" : "secondary"}
+                                onClick={() => setDefaultModel(profile.id, model.id)}
+                              >
+                                <Check size={13} />
+                                {profile.defaultModelId === model.id ? t("aiAgent.default") : t("aiAgent.setDefaultModel")}
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => removeModel(profile.id, model.id)}>
+                                <Trash2 size={13} />
+                              </Button>
+                            </div>
+
+                            <div className="grid gap-3 md:grid-cols-2">
+                              <SettingRow label={t("aiAgent.modelId")} className="settings-row--compact">
+                                <Input
+                                  value={model.model}
+                                  onChange={(event) => updateModel(profile.id, model.id, { model: event.target.value })}
+                                  placeholder="gpt-4.1"
+                                />
+                              </SettingRow>
+                              <SettingRow label={t("aiAgent.contextWindow")} description={t("aiAgent.contextWindowDesc")} className="settings-row--compact">
+                                <Input
+                                  type="number"
+                                  min={1000}
+                                  max={10000000}
+                                  step={1000}
+                                  value={String(model.contextWindowTokens ?? 128000)}
+                                  onChange={(event) => updateModel(profile.id, model.id, { contextWindowTokens: Number(event.target.value) })}
+                                />
+                              </SettingRow>
+                              <SettingRow label={t("aiAgent.responseMode")} description={t("aiAgent.responseModeDesc")} className="settings-row--compact">
+                                <SegmentedControl
+                                  value={model.responseMode || "nonStream"}
+                                  onChange={(value) => {
+                                    if (value === "auto" || value === "stream" || value === "nonStream") {
+                                      updateModel(profile.id, model.id, { responseMode: value as AiAgentResponseMode });
+                                    }
+                                  }}
+                                  options={AI_RESPONSE_MODE_OPTIONS.map((option) => ({
+                                    value: option.value,
+                                    label: t(option.labelKey),
+                                  }))}
+                                />
+                              </SettingRow>
+                              <SettingRow label={t("aiAgent.temperature")} description={t("aiAgent.temperatureDesc")} className="settings-row--compact">
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={2}
+                                  step={0.1}
+                                  value={String(model.temperature ?? 0.2)}
+                                  onChange={(event) => updateModel(profile.id, model.id, { temperature: Number(event.target.value) })}
+                                />
+                              </SettingRow>
+                              <SettingRow label={t("aiAgent.maxTokens")} description={t("aiAgent.maxTokensDesc")} className="settings-row--compact">
+                                <Input
+                                  type="number"
+                                  min={128}
+                                  max={8000}
+                                  step={128}
+                                  value={String(model.maxTokens ?? 1200)}
+                                  onChange={(event) => updateModel(profile.id, model.id, { maxTokens: Number(event.target.value) })}
+                                />
+                              </SettingRow>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

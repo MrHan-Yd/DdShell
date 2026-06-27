@@ -159,12 +159,25 @@ export type AiAgentProtocol =
 export type AiAgentExecutionMode = "run" | "insert";
 export type AiAgentResponseMode = "auto" | "stream" | "nonStream";
 
+export interface AiAgentModel {
+  id: string;
+  name: string;
+  model: string;
+  contextWindowTokens?: number | null;
+  temperature?: number | null;
+  maxTokens?: number | null;
+  responseMode?: AiAgentResponseMode | null;
+}
+
 export interface AiAgentProfile {
   id: string;
   name: string;
   protocol: AiAgentProtocol;
   baseUrl: string;
-  model: string;
+  defaultModelId?: string | null;
+  models: AiAgentModel[];
+  /** Legacy single-model fields kept for reading older persisted configs. */
+  model?: string | null;
   contextWindowTokens?: number | null;
   temperature?: number | null;
   maxTokens?: number | null;
@@ -190,6 +203,7 @@ export interface AiAgentTerminalContext {
 
 export interface AiAgentSendRequest {
   profileId: string;
+  modelId?: string | null;
   question: string;
   context?: AiAgentTerminalContext | null;
 }
