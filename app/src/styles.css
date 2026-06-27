@@ -3991,7 +3991,7 @@ button.terminal-reconnect-button:disabled,
   --terminal-tool-rail-fill-bottom: var(--color-bg-surface);
   position: absolute;
   top: 64px;
-  right: 4px;
+  right: 2px;
   z-index: 24;
   display: flex;
   flex-direction: column;
@@ -4217,7 +4217,7 @@ button.terminal-macro-recipe.is-selected,
 @media (max-width: 720px) {
   .terminal-tool-rail {
     top: 54px;
-    right: 4px;
+    right: 2px;
     width: 44px;
     padding: 7px 5px;
   }
