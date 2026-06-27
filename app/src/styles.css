@@ -1901,6 +1901,8 @@ body {
   background-origin: border-box;
   background-clip: padding-box, border-box;
   box-shadow: var(--shadow-floating);
+  transform-origin: bottom right;
+  animation: terminal-ai-popover-in 220ms var(--ease-spring) both;
 }
 
 .ai-head,
@@ -2064,6 +2066,23 @@ body {
   }
   50% {
     box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-accent) 4%, transparent);
+  }
+}
+
+@keyframes terminal-ai-popover-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(10px, 12px, 0) scale(0.97);
+  }
+
+  65% {
+    opacity: 1;
+    transform: translate3d(0, -2px, 0) scale(1.005);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
@@ -4053,12 +4072,41 @@ button.terminal-reconnect-button:disabled,
   pointer-events: auto;
   opacity: 1;
   transform: translateY(0) scale(1);
+  animation: terminal-macro-panel-in 220ms var(--ease-spring) both;
 }
 
 .terminal-macro-panel[data-state="closed"] {
   pointer-events: none;
   opacity: 0;
   transform: translateY(-6px) scale(0.98);
+}
+
+@keyframes terminal-macro-panel-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(8px, -10px, 0) scale(0.97);
+  }
+
+  65% {
+    opacity: 1;
+    transform: translate3d(0, 2px, 0) scale(1.005);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .term-ai-popover,
+  .terminal-macro-panel[data-state="open"] {
+    animation: none;
+  }
+
+  .terminal-macro-panel {
+    transition-duration: 1ms;
+  }
 }
 
 button.terminal-macro-recipe,
