@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 37
+- **Total Sessions**: 38
 - **Last Active**: 2026-06-27
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1360 | Active |
+| `journal-1.md` | ~1393 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 38 | 2026-06-27 | Update README for v0.2.5 | `a9341cc` | `main` |
 | 37 | 2026-06-27 | Release v0.2.5 | `09a850d`, `95f2b6a` | `main` |
 | 36 | 2026-06-27 | AI Agent terminal window | `e724228`, `4aaa7d6`, `3fa0380`, `06df13f`, `2653b5e`, `1564a64`, `83f436a`, `580ca7f` | `main` |
 | 35 | 2026-06-26 | 优化终端文件管理拖拽手感 | `cfeb0fa` | `main` |

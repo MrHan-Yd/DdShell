@@ -1358,3 +1358,36 @@ Fixed SFTP multi-select download confirmation and AI model numeric normalization
 ### Next Steps
 
 - None - task complete
+
+
+## Session 38: Update README for v0.2.5
+
+**Date**: 2026-06-27
+**Task**: Update README for v0.2.5
+**Branch**: `main`
+
+### Summary
+
+Updated root README to reflect v0.2.5 AI assistant, terminal file manager, toolbar, updater, and current documentation links.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a9341cc` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
