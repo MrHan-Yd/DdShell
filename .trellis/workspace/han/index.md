@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 39
+- **Total Sessions**: 40
 - **Last Active**: 2026-06-27
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1426 | Active |
+| `journal-1.md` | ~1457 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 40 | 2026-06-27 | 检查 Windows 更新安装链路 | - | `main` |
 | 39 | 2026-06-27 | Fix macOS update installer open | `29c8807` | `main` |
 | 38 | 2026-06-27 | Update README for v0.2.5 | `a9341cc` | `main` |
 | 37 | 2026-06-27 | Release v0.2.5 | `09a850d`, `95f2b6a` | `main` |

@@ -1424,3 +1424,34 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 40: 检查 Windows 更新安装链路
+
+**Date**: 2026-06-27
+**Task**: 检查 Windows 更新安装链路
+**Branch**: `main`
+
+### Summary
+
+核对 v0.2.5 Windows 官方 updater、手动安装包打开逻辑、release 资产和 latest.json manifest；未发现需要应用代码修复的问题。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
