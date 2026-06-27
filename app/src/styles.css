@@ -4044,6 +4044,10 @@ button.terminal-reconnect-button:disabled,
   gap: 5px;
 }
 
+.terminal-tool-item.is-popover-host {
+  z-index: 4;
+}
+
 .terminal-tool-button {
   position: relative;
   display: inline-flex;

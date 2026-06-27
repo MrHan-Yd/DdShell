@@ -2516,7 +2516,7 @@ export function TerminalPage() {
 
             <div className="terminal-tool-divider" />
 
-            <div className="terminal-tool-item">
+            <div className={cn("terminal-tool-item", showMacroPanel && "is-popover-host")}>
               <button
                 className={cn(
                   "terminal-tool-button",
@@ -2673,7 +2673,7 @@ export function TerminalPage() {
           {/* Bookmark drawer */}
           <div
             ref={bookmarkDrawerRef}
-            className="absolute right-0 top-0 bottom-0 z-[15] flex transition-transform duration-[var(--duration-panel)] ease-[var(--ease-smooth)]"
+            className="absolute right-0 top-0 bottom-0 z-[32] flex transition-transform duration-[var(--duration-panel)] ease-[var(--ease-smooth)]"
             style={{ transform: showBookmarks ? 'translateX(0)' : 'translateX(280px)' }}
           >
             <div className="w-[280px] border-l border-[var(--color-border)]">
@@ -2691,7 +2691,7 @@ export function TerminalPage() {
           {/* Command History drawer */}
           <div
             ref={historyDrawerRef}
-            className="absolute right-0 top-0 bottom-0 z-[16] flex transition-transform duration-[var(--duration-panel)] ease-[var(--ease-smooth)]"
+            className="absolute right-0 top-0 bottom-0 z-[32] flex transition-transform duration-[var(--duration-panel)] ease-[var(--ease-smooth)]"
             style={{ transform: showHistory ? 'translateX(0)' : 'translateX(280px)' }}
           >
             <CommandHistoryPanel
