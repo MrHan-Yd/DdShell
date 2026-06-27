@@ -3987,7 +3987,7 @@ button.terminal-reconnect-button:disabled,
 /* Terminal toolbar popovers */
 .terminal-tool-rail {
   position: absolute;
-  top: 50%;
+  top: 64px;
   right: 16px;
   z-index: 24;
   display: flex;
@@ -3996,7 +3996,6 @@ button.terminal-reconnect-button:disabled,
   gap: 5px;
   width: 48px;
   padding: 8px 6px;
-  transform: translateY(-50%);
   border: 1px solid color-mix(in srgb, var(--color-border) 76%, white 5%);
   border-radius: 17px;
   background:
@@ -4155,6 +4154,7 @@ button.terminal-macro-recipe.is-selected,
 
 @media (max-width: 720px) {
   .terminal-tool-rail {
+    top: 54px;
     right: 10px;
     width: 44px;
     padding: 7px 5px;
