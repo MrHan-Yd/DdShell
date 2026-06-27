@@ -2,16 +2,18 @@
 
 DdShell 是一个基于 Tauri 2 + React 19 + TypeScript + Rust 的桌面 SSH / SFTP 客户端，目标是做一个可持续演进、可替代 FinalShell 一类工具的开源远程运维工作台。
 
-它不是只做“远程登录”的壳，而是把终端、文件传输、系统监控、命令助手、命令片段和自动化工作流放进一个桌面应用里，尽量把日常运维里来回切工具、重复敲命令的动作收敛到一个地方。
+它不是只做“远程登录”的壳，而是把终端、文件传输、系统监控、命令助手、AI 助手、命令片段和自动化工作流放进一个桌面应用里，尽量把日常运维里来回切工具、重复敲命令的动作收敛到一个地方。
 
 ## 项目亮点
 
-- 不只是 SSH 终端。应用里已经把连接管理、SFTP 双栏、系统监控、命令片段、工作流执行整合到同一套桌面交互里
+- 不只是 SSH 终端。应用里已经把连接管理、SFTP 双栏、终端内文件管理、系统监控、命令片段、工作流执行整合到同一套桌面交互里
+- 终端内置可配置 AI 助手。支持 OpenAI Chat Completions、OpenAI Responses、Claude Messages、Gemini Generate Content 和兼容接口，可按配置切换多个模型
 - 命令助手不是简单弹个建议框。它支持在终端里用 `//` 触发，内置常用 Linux / SSH / Git / Docker / Web 服务 / 多语言工具命令词库，还会结合当前系统类型、命令分类和使用权重排序
 - 命令片段和命令助手是打通的。你维护的常用命令片段可以直接进入助手检索，不是两套割裂的数据
 - 自动化不是独立页面摆设。工作流支持步骤编排、参数注入、最近执行记录，并且可以直接在终端里快速唤起和执行
-- 文件传输做了实际使用场景优化，不只是“能传文件”：有双栏浏览、拖拽上传、传输队列、进度速度、覆盖预检查、路径收藏和最近访问
+- 文件传输做了实际使用场景优化，不只是“能传文件”：有双栏浏览、终端底部文件抽屉、拖拽上传、传输队列、进度速度、覆盖预检查、路径收藏和最近访问
 - 终端侧已经补了很多效率和安全能力：多标签、分屏、命令历史、路径书签、危险命令确认、连接延迟和状态反馈
+- 应用内更新链路已经接入 Tauri 官方 updater，macOS 和 Windows 支持签名更新包、下载进度和安装后确认重启
 - 前端用 React，后端能力由 Rust 承担，SSH、SFTP、指标采集、命令索引和本地持久化都通过 Tauri 原生命令落地
 
 ## 已实现功能
@@ -36,6 +38,7 @@ DdShell 是一个基于 Tauri 2 + React 19 + TypeScript + Rust 的桌面 SSH / S
 - 可以把当前终端路径保存成书签，后续一键回跳常用目录
 - 对高风险命令做执行前确认，并支持配置禁用项和自定义危险命令
 - 工作流可以直接从终端里快速执行，不需要跳出当前操作上下文
+- 右侧工具栏整合收藏、命令宏、AI 助手和文件管理入口，常用能力可以从当前终端快速打开
 - 状态栏会持续反馈连接数、延迟、活动传输数和版本更新状态
 - 支持预测回显（实验性，默认开启），在高延迟 SSH 链路下对字符输入和退格做即时显示，远程实际回显在后台校验，vim、tmux 等场景自动关闭；如遇异常可在设置中关闭
 - SSH 连接默认开启 TCP_NODELAY，避免 Nagle 算法把单个按键攒包发送，弱网链路下单字符延迟更低
@@ -50,7 +53,19 @@ DdShell 是一个基于 Tauri 2 + React 19 + TypeScript + Rust 的桌面 SSH / S
 - 支持按 Git、Docker、Web Server、Python、Node、Java、Go、Rust 等分类启停词库
 - 支持配置确认键和浮层位置，可以固定在底部，也可以跟随光标
 
-### 4. SFTP 文件管理
+### 4. 终端 AI 助手
+
+- 可在设置中维护多个模型站点配置，Base URL、API Key、协议和模型列表都由用户自行配置
+- 支持 OpenAI Chat Completions、OpenAI Responses、Claude Messages、Gemini Generate Content，以及兼容这些格式的第三方接口
+- 一个站点配置可以包含多个模型，终端 AI 助手里可以先切换配置，再切换该配置下的模型
+- 支持流式和非流式响应；流式模型响应时，窗口会展示模型已经开始响应和增量预览，避免长时间等待时像是卡住
+- 支持可选推理信息展示；未开启或模型不返回推理内容时保持简洁回答
+- AI 返回的命令建议会区分“方案”和“步骤”：方案类命令择一执行，多步骤命令可以按顺序逐条执行
+- 支持执行前二次确认，也可以在设置中关闭确认后直接执行；同时支持只插入命令等待用户手动回车
+- 历史问答按服务器隔离保存最近 20 条，切换服务器时互不混杂
+- 不自动拉取模型列表，模型 ID 需要用户在设置中手动填写，避免不同兼容站点返回格式差异影响配置
+
+### 5. SFTP 与终端内文件管理
 
 - 提供本地 / 远端双栏文件浏览，不用频繁在终端里手敲路径
 - 支持远端目录浏览、面包屑导航、刷新、新建目录、重命名和删除
@@ -59,32 +74,35 @@ DdShell 是一个基于 Tauri 2 + React 19 + TypeScript + Rust 的桌面 SSH / S
 - 上传和下载前会先检查潜在覆盖目标，避免误覆盖已有文件
 - 远端目录支持收藏和最近访问记录，常用路径切换更快
 - 对非空目录删除会先扫描内容再确认，不是直接粗暴删除
+- 终端页内置底部文件管理抽屉，可以基于当前 SSH 会话浏览远端目录、上传、下载、删除、重命名、新建目录和移动文件
+- 终端内文件管理抽屉支持拖拽调整高度，并会尽量减少调整过程中对终端布局的干扰
+- 多选下载会先聚合覆盖检查，只弹出一次确认，避免多个确认框互相覆盖
 
-### 5. 系统监控
+### 6. 系统监控
 
 - 基于现有 SSH 会话启动远端指标采集，不需要额外部署 Agent
 - 可以实时看 CPU、内存、网络吞吐、系统负载、磁盘和进程信息
 - 支持 5 / 15 / 60 分钟时间窗口，方便看即时波动和短时趋势
 - 页面里带趋势图、会话健康状态和远端系统信息，不只是纯数字罗列
 
-### 6. Snippets 命令片段
+### 7. Snippets 命令片段
 
 - 可以维护自己的常用命令片段库，支持分组管理
 - 每条片段可保存标题、命令正文、描述和标签
 - 支持新增、编辑、删除、批量删除、搜索、复制和详情查看
 - 这些片段不只是单独保存，还能被命令助手索引，用作终端内的快速补全来源
 
-### 7. 工作流 / 宏
+### 8. 工作流 / 宏
 
 - 支持把一组操作整理成工作流配方，按分组管理
 - 每个工作流可以定义多个步骤、运行参数和变量插值规则
 - 步骤支持拖拽排序，编辑器本身已经是可用的交互界面，不是静态表单
 - 执行时可以看到逐步状态、输出内容和最近执行记录
 - 参数支持运行时覆盖，适合把固定流程复用到不同主机或不同环境
-- 终端页内置快速唤起面板，可以直接搜索、选择最近工作流并执行
+- 终端页内置命令宏面板，可以直接搜索、选择最近工作流并执行，并和 AI 助手保持互斥打开，减少浮层互相遮挡
 - 对标记为敏感的参数会做掩码处理，避免把明文直接暴露在执行记录里
 
-### 8. 远程文件快速编辑 Quick Edit
+### 9. 远程文件快速编辑 Quick Edit
 
 - SFTP 文件双击或右键「快速编辑」可直接打开远程文件，免去先下载、再编辑、再上传的循环
 - 编辑器以独立窗口承载，不阻塞主窗口的终端和 SFTP 操作，并且支持多 tab 同时编辑多个文件
@@ -97,15 +115,16 @@ DdShell 是一个基于 Tauri 2 + React 19 + TypeScript + Rust 的桌面 SSH / S
 - 终端页可用 `Cmd/Ctrl + Shift + E` 唤起远程文件选择器，会从当前屏幕缓冲推断起点目录，选区是绝对路径时直接打开 Quick Edit
 - 维护「最近编辑」列表，按当前 host 过滤展示，方便快速回到最近修改的文件
 
-### 9. 设置与桌面体验
+### 10. 设置与桌面体验
 
 - 支持明暗主题和跟随系统主题切换
 - 支持中英文界面切换
 - 可以配置 UI 字体和字号，也能单独调整终端字体、字重、行高、光标样式和 ANSI 配色
 - 支持终端背景色、背景图、透明度和模糊等视觉设置
 - 可以配置下载目录、危险命令保护策略和自定义危险命令列表
+- 可以配置 AI 助手模型站点、协议、模型参数、响应方式、上下文窗口、执行模式和二次确认策略
 - 支持读取系统字体列表，减少手填字体名的成本
-- 内置 GitHub 版本检查入口，方便查看是否有新版本
+- 内置应用内更新入口，macOS 和 Windows 走 Tauri 官方 updater，Linux 暂时回退到 GitHub Releases 下载页
 
 ## 技术栈
 
@@ -114,13 +133,14 @@ DdShell 是一个基于 Tauri 2 + React 19 + TypeScript + Rust 的桌面 SSH / S
 - 状态管理: Zustand
 - 终端: xterm.js
 - 后端: Rust
-- SSH / SFTP / 指标采集 / 本地存储: Rust + Tauri commands
+- SSH / SFTP / 指标采集 / 本地存储 / AI provider 调用: Rust + Tauri commands
 
 ## 仓库结构
 
 - `app/`: 实际应用代码，包含 React 前端与 Tauri Rust 后端
-- `shell/`: 产品、架构、UX、工程、发布文档
-- 根目录中文文档: 补充说明、规划和发布资料
+- `docs/shell/`: 产品、架构、UX、工程、发布文档
+- `docs/app/`: 应用工程补充说明
+- `docs/发布/`: 版本介绍、发布流程和质量验收资料
 
 ## 快速开始
 
@@ -141,26 +161,27 @@ pnpm tauri build
 - Rust toolchain
 - Tauri 2 所需系统依赖
 
-更多说明见 [app/README.md](app/README.md)
+更多说明见 [docs/app/README.md](docs/app/README.md)
 
 ## 从哪里开始看
 
-- 项目入口文档: [shell/docs/START-HERE.md](shell/docs/START-HERE.md)
-- 产品需求: [shell/docs/01-PRODUCT/PRD.md](shell/docs/01-PRODUCT/PRD.md)
-- 功能状态: [shell/docs/01-PRODUCT/FEATURE-STATUS.md](shell/docs/01-PRODUCT/FEATURE-STATUS.md)
-- FR 索引: [shell/docs/01-PRODUCT/FR-INDEX.md](shell/docs/01-PRODUCT/FR-INDEX.md)
-- 应用开发说明: [app/README.md](app/README.md)
+- 项目入口文档: [docs/shell/START-HERE.md](docs/shell/START-HERE.md)
+- 产品需求: [docs/shell/01-PRODUCT/PRD.md](docs/shell/01-PRODUCT/PRD.md)
+- 功能状态: [docs/shell/01-PRODUCT/FEATURE-STATUS.md](docs/shell/01-PRODUCT/FEATURE-STATUS.md)
+- FR 索引: [docs/shell/01-PRODUCT/FR-INDEX.md](docs/shell/01-PRODUCT/FR-INDEX.md)
+- 应用开发说明: [docs/app/README.md](docs/app/README.md)
+- 最新版本介绍: [docs/发布/v0.2.5-版本介绍.md](docs/发布/v0.2.5-版本介绍.md)
 
 ## 开发约定
 
 - 包管理器只使用 `pnpm`
-- 文档主入口在 `shell/docs/`
+- 文档主入口在 `docs/shell/`
 - 代码状态与 FR 状态变更时，需要同步更新状态文档
 
 ## License
 
 This project is licensed under the MIT License.
-See the [LICENSE](shell/LICENSE) file for details.
+See the [LICENSE](LICENSE) file for details.
 
 ## Disclaimer
 
@@ -173,4 +194,4 @@ arising from the software or the use of the software.
 
 ## Anti-Plagiarism & Evidence
 
-See [docs/07-LEGAL/ANTI-PLAGIARISM-FORENSICS.md](shell/docs/07-LEGAL/ANTI-PLAGIARISM-FORENSICS.md).
+See [docs/shell/07-LEGAL/ANTI-PLAGIARISM-FORENSICS.md](docs/shell/07-LEGAL/ANTI-PLAGIARISM-FORENSICS.md).
