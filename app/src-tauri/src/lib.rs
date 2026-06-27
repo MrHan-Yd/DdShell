@@ -1,6 +1,6 @@
 mod core;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use futures_util::StreamExt;
@@ -2375,6 +2375,27 @@ async fn download_update(
                 }
             }
 
+            tokio::io::AsyncWriteExt::flush(&mut file)
+                .await
+                .map_err(|e| e.to_string())?;
+            drop(file);
+            let metadata = tokio::fs::metadata(&dest_clone)
+                .await
+                .map_err(|e| e.to_string())?;
+            if !metadata.is_file() {
+                return Err(format!(
+                    "Downloaded installer is not a file: {}",
+                    dest_str_clone
+                ));
+            }
+            if total > 0 && metadata.len() != total {
+                return Err(format!(
+                    "Downloaded installer size mismatch: expected {} bytes, got {} bytes",
+                    total,
+                    metadata.len()
+                ));
+            }
+
             event::emit_update_download_progress(&app_handle, downloaded, total);
             event::emit_update_download_completed(&app_handle, &dest_str_clone);
             Ok(())
@@ -2391,8 +2412,42 @@ async fn download_update(
 
 #[tauri::command]
 async fn open_installer(path: String) -> Result<(), String> {
-    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    #[cfg(target_os = "macos")]
     {
+        let installer_path = Path::new(&path);
+        if !installer_path.exists() {
+            return Err(format!("Installer not found: {}", path));
+        }
+        if !installer_path.is_file() {
+            return Err(format!("Installer path is not a file: {}", path));
+        }
+
+        let output = std::process::Command::new("/usr/bin/open")
+            .arg(installer_path)
+            .output()
+            .map_err(|e| format!("Failed to launch macOS installer opener: {}", e))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            let detail = if stderr.is_empty() {
+                format!("exit status {}", output.status)
+            } else {
+                stderr
+            };
+            return Err(format!("Failed to open installer on macOS: {}", detail));
+        }
+        return Ok(());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let installer_path = Path::new(&path);
+        if !installer_path.exists() {
+            return Err(format!("Installer not found: {}", path));
+        }
+        if !installer_path.is_file() {
+            return Err(format!("Installer path is not a file: {}", path));
+        }
+
         tauri_plugin_opener::open_path(&path, None::<&str>).map_err(|e| e.to_string())?;
         return Ok(());
     }

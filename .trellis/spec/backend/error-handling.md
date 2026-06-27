@@ -77,16 +77,22 @@ Questions to answer:
   - `error: String | null`
 - `targetAsset` must only be set for platforms where the app can deterministically choose a local download target in the current MVP.
 - `shouldFallbackToBrowser` is the frontend contract flag for "skip in-app download and open GitHub releases instead".
+- `download_update` must flush and close the downloaded file, then verify it exists as a file before emitting `update:download_completed`.
+- `open_installer` must validate that the path exists and is a file on supported platforms before attempting to launch it.
+- On macOS, `open_installer` must use the system opener (`/usr/bin/open <path>`) and return status/stderr details when launch fails; do not report success if the `open` command fails.
 
 ### 4. Validation & Error Matrix
 - Unsupported OS for MVP -> `targetAsset = null`, `shouldFallbackToBrowser = true`
 - Missing/unknown package type on Windows after all detection paths -> `targetAsset = null`, `shouldFallbackToBrowser = true`
 - Asset list fetched but no suffix match for current target -> `targetAsset = null`, `shouldFallbackToBrowser = true`
 - Download failure -> return `Err(...)` from `download_update`, frontend falls back to browser
-- Installer open failure -> return `Err(...)` from `open_installer`, frontend falls back to browser
+- Downloaded file missing, non-file, or size mismatch -> return `Err(...)` from `download_update`; do not emit completed
+- Installer path missing or non-file -> return `Err(...)` from `open_installer`, frontend falls back to browser
+- macOS `/usr/bin/open` non-zero status -> return `Err(...)` with status/stderr, frontend falls back to browser
 
 ### 5. Good / Base / Bad Cases
 - Good: macOS arm64 app finds `*-macos-aarch64.dmg` and opens it after download.
+- Good: macOS manual installer path is opened through `/usr/bin/open` only after the file handle has been flushed and closed.
 - Base: Windows app with injected `DDSHELL_PACKAGE_TYPE=msi` finds `*-windows-x64.msi` and opens it after download.
 - Bad: Linux build receives release assets but does not attempt local package selection in MVP; UI must go straight to browser fallback.
 
@@ -98,6 +104,7 @@ Questions to answer:
   - Windows preference order: injected env -> bundle type -> path heuristic
   - browser fallback when `targetAsset` is null
   - browser fallback when `open_installer` returns an error
+  - `download_update` does not emit completed before a flushed, closed, size-checked file exists
 
 ### 7. Wrong vs Correct
 #### Wrong
