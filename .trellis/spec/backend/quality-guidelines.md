@@ -393,6 +393,73 @@ const response = await api.aiAgentSendStream({ requestId, profileId, modelId, qu
 runCommand(response.commands[0].command);
 ```
 
+### Scenario: Tauri Capability Scope
+
+#### 1. Scope / Trigger
+- Trigger: `app/src-tauri/capabilities/*.json`, Tauri plugin usage, or frontend imports from `@tauri-apps/plugin-*` / `@tauri-apps/api/*` change.
+- Applies when granting native WebView permissions for `main`, `quick-edit`, or future windows.
+
+#### 2. Signatures
+- Capability files:
+  - `app/src-tauri/capabilities/default.json` -> `windows: ["main"]`
+  - `app/src-tauri/capabilities/quick-edit.json` -> `windows: ["quick-edit"]`
+- Validation command:
+  - `pnpm -C app tauri build --no-bundle`
+
+#### 3. Contracts
+- Grant permissions per window, not globally.
+- Prefer specific plugin permissions over `*:default` when the frontend only uses one command.
+- Main window currently needs:
+  - `dialog:allow-open` for settings and terminal file-picker flows.
+  - `clipboard-manager:allow-read-text` and `clipboard-manager:allow-write-text` for terminal/editor clipboard flows.
+  - `process:allow-restart`, `updater:allow-check`, and `updater:allow-download-and-install` for official updater flow.
+- Quick Edit currently needs clipboard read/write because it reuses `QuickEditor`.
+- Quick Edit must not receive dialog permission unless `@tauri-apps/plugin-dialog` is imported by the Quick Edit window path.
+- Do not grant `opener:default` merely because backend Rust calls `tauri_plugin_opener`; frontend plugin permissions are only needed for WebView plugin API calls.
+- Do not grant `notification:default` unless frontend imports and calls `@tauri-apps/plugin-notification`.
+- Do not split `core:default` without a dedicated audit of all `@tauri-apps/api/app`, `path`, `window`, `webview`, and `event` usage.
+
+#### 4. Validation & Error Matrix
+- Missing permission for a frontend plugin command -> runtime WebView permission denial; restore the narrow permission for that exact command.
+- Invalid permission identifier -> `pnpm -C app tauri build --no-bundle` fails during Tauri config/capability parsing.
+- Removing `dialog:allow-open` from main -> settings image/download path selection and terminal upload pickers fail.
+- Removing clipboard read/write from Quick Edit -> editor copy/paste command paths fail.
+- Removing updater/process permissions from main -> official updater check/install/relaunch flow fails.
+
+#### 5. Good/Base/Bad Cases
+- Good: main uses `dialog:allow-open` instead of `dialog:default` when only `open()` is used.
+- Good: Quick Edit keeps clipboard permissions because the reused editor calls clipboard-manager APIs.
+- Base: backend custom `open_browser` can use Rust opener internally without granting WebView `opener:default`.
+- Bad: add `notification:default` because a settings toggle says "notify" even though no frontend notification plugin call exists.
+- Bad: remove permissions based only on one page search without checking shared components used by multiple windows.
+
+#### 6. Tests Required
+- Search frontend imports before changing capability permissions:
+  - `rg "@tauri-apps/(api|plugin)" app/src`
+- `pnpm -C app build` must pass.
+- `cargo check` and `cargo test` under `app/src-tauri` must pass.
+- `pnpm -C app tauri build --no-bundle` must pass after any capability change.
+- Manual smoke test recommended for:
+  - Settings file/folder pickers.
+  - Terminal clipboard paste and file upload picker.
+  - Quick Edit copy/paste/save.
+  - Updater check/download/relaunch UI path when an update is available.
+
+#### 7. Wrong vs Correct
+##### Wrong
+```json
+"dialog:default",
+"opener:default",
+"notification:default"
+```
+
+##### Correct
+```json
+"dialog:allow-open",
+"clipboard-manager:allow-read-text",
+"clipboard-manager:allow-write-text"
+```
+
 ---
 
 ## Testing Requirements
