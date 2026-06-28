@@ -1686,6 +1686,7 @@ export function TerminalPage() {
   const [fileManagerEnabled, setFileManagerEnabled] = useState(true);
   const [fileManagerHeight, setFileManagerHeight] = useState(320);
   const [isFileManagerResizing, setIsFileManagerResizing] = useState(false);
+  const [isFileManagerTransitioning, setIsFileManagerTransitioning] = useState(false);
   const [lastFocusedSessionId, setLastFocusedSessionId] = useState<string | null>(null);
   const [sessionCwdMap, setSessionCwdMap] = useState<Record<string, string>>({});
   const [splitRatio, setSplitRatio] = useState(0.5);
@@ -1696,6 +1697,7 @@ export function TerminalPage() {
   const dragMovedRef = useRef(false);
   const fileManagerResizeFrameRef = useRef<number | null>(null);
   const fileManagerResizeEndFrameRef = useRef<number | null>(null);
+  const fileManagerTransitionTimerRef = useRef<number | null>(null);
   const fileManagerResizeHeightRef = useRef(fileManagerHeight);
   const fileManagerResizeCleanupRef = useRef<(() => void) | null>(null);
   const ignoreClickRef = useRef(false);
@@ -1939,6 +1941,7 @@ export function TerminalPage() {
   const shouldRenderFileManager = renderFileManager && fileManagerEnabled && fileManagerTab !== null;
   const fileManagerLayoutHeight = fileManagerOpen ? fileManagerHeight : 0;
   const fileManagerRenderedHeight = isFileManagerResizing ? fileManagerResizeHeightRef.current : fileManagerLayoutHeight;
+  const shouldSuspendTerminalResize = isFileManagerResizing || isFileManagerTransitioning;
 
   const handleTerminalFocus = useCallback((sessionId: string, cwd: string | null) => {
     setLastFocusedSessionId(sessionId);
@@ -1951,6 +1954,17 @@ export function TerminalPage() {
     setSessionCwdMap((prev) => ({ ...prev, [sessionId]: cwd }));
   }, []);
 
+  const beginFileManagerLayoutTransition = useCallback(() => {
+    if (fileManagerTransitionTimerRef.current !== null) {
+      window.clearTimeout(fileManagerTransitionTimerRef.current);
+    }
+    setIsFileManagerTransitioning(true);
+    fileManagerTransitionTimerRef.current = window.setTimeout(() => {
+      fileManagerTransitionTimerRef.current = null;
+      setIsFileManagerTransitioning(false);
+    }, FILE_MANAGER_DRAWER_TRANSITION_MS);
+  }, []);
+
   const handleToggleFileManager = useCallback(() => {
     if (!fileManagerEnabled) return;
     if (!fileManagerTab) {
@@ -1960,6 +1974,7 @@ export function TerminalPage() {
     setShowHistory(false);
     setShowBookmarks(false);
     if (showFileManager) {
+      beginFileManagerLayoutTransition();
       setShowFileManager(false);
       return;
     }
@@ -1968,9 +1983,10 @@ export function TerminalPage() {
       const defaultHeight = Math.round(rect.height * 0.4);
       setFileManagerHeight(Math.max(260, Math.min(defaultHeight, Math.round(rect.height * 0.7))));
     }
+    beginFileManagerLayoutTransition();
     setRenderFileManager(true);
     window.requestAnimationFrame(() => setShowFileManager(true));
-  }, [fileManagerEnabled, fileManagerTab, showFileManager, t]);
+  }, [beginFileManagerLayoutTransition, fileManagerEnabled, fileManagerTab, showFileManager, t]);
 
   const handleFileManagerResizeStart = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
@@ -2045,14 +2061,19 @@ export function TerminalPage() {
         window.cancelAnimationFrame(fileManagerResizeEndFrameRef.current);
         fileManagerResizeEndFrameRef.current = null;
       }
+      if (fileManagerTransitionTimerRef.current !== null) {
+        window.clearTimeout(fileManagerTransitionTimerRef.current);
+        fileManagerTransitionTimerRef.current = null;
+      }
     };
   }, []);
 
   useEffect(() => {
     if (showFileManager && (!fileManagerEnabled || !fileManagerTab)) {
+      beginFileManagerLayoutTransition();
       setShowFileManager(false);
     }
-  }, [fileManagerEnabled, fileManagerTab, showFileManager]);
+  }, [beginFileManagerLayoutTransition, fileManagerEnabled, fileManagerTab, showFileManager]);
 
   useEffect(() => {
     if (showFileManager && fileManagerEnabled && fileManagerSessionId) {
@@ -2619,7 +2640,7 @@ export function TerminalPage() {
                     hostId={tab.hostId}
                     macroOutputFilter={macroOutputFilter?.sessionId === tab.sessionId ? macroOutputFilter : null}
                     termSettings={termSettings}
-                    suspendResize={isFileManagerResizing}
+                    suspendResize={shouldSuspendTerminalResize}
                     onFocusSession={handleTerminalFocus}
                     onCwdChange={handleTerminalCwdChange}
                   />
@@ -2651,7 +2672,7 @@ export function TerminalPage() {
                       hostId={splitTab.hostId}
                       macroOutputFilter={macroOutputFilter?.sessionId === splitTab.sessionId ? macroOutputFilter : null}
                       termSettings={termSettings}
-                      suspendResize={isFileManagerResizing}
+                      suspendResize={shouldSuspendTerminalResize}
                       onFocusSession={handleTerminalFocus}
                       onCwdChange={handleTerminalCwdChange}
                     />

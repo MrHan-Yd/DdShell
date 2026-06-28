@@ -113,24 +113,31 @@ const storageKey = `terminal.aiAssist.history.${activeTab.sessionId}`;
 
 Use this for local-only, server-scoped records such as AI assistant history. Keep bounded collections explicitly capped at their product limit, for example `slice(0, 20)` for recent AI questions.
 
-### Terminal startup must suppress remote resize side effects
+### Terminal transient layout must suppress remote resize side effects
 
-Terminal startup code must not send an eager `sessionResize` / PTY `window_change` while SSH login output is still settling. xterm local layout can fit immediately, but remote resize notifications during login can make bash/readline repaint the prompt over MOTD or `Last login` text, leaving duplicated prompts or visible fragments such as `0 ~]# 05430`.
+Terminal startup code and animated terminal-adjacent panels must not send eager or repeated `sessionResize` / PTY `window_change` events while the terminal layout is still settling. xterm local layout can fit immediately during ordinary stable resizes, but remote resize notifications during login or panel transitions can make bash/readline repaint the prompt over MOTD or the current line, leaving duplicated prompts or visible fragments such as `0 ~]# 05430`.
 
 ```tsx
-// Correct: local fit is allowed, remote resize is gated during startup.
+// Correct: remote resize is gated during startup or transient panel layout.
+const resizeObserver = new ResizeObserver(() => {
+  if (suspendResizeRef.current) {
+    pendingResizeFitRef.current = true;
+    return;
+  }
+  fitAddon.fit();
+});
+
 const onResize = term.onResize(({ cols, rows }) => {
-  if (Date.now() < remoteResizeSuppressUntilRef.current) return;
   void api.sessionResize(sessionIdRef.current, cols, rows);
 });
 
-// Wrong: unconditional delayed startup resize can corrupt login display.
+// Wrong: unconditional startup or panel-transition resize can corrupt display.
 setTimeout(() => {
   void api.sessionResize(sessionId, term.cols, term.rows);
 }, 800);
 ```
 
-Manual or real container resizes after startup must still call `sessionResize`; the rule is only about automatic startup fit/ResizeObserver effects. Backend SSH PTY creation already receives initial `cols` / `rows`, so frontend startup resize is not required for the session to become usable.
+Manual or real container resizes after the layout is stable must still call `sessionResize`; the rule is only about automatic startup fit/ResizeObserver effects and animated panel transitions such as the terminal file manager opening or closing. Backend SSH PTY creation already receives initial `cols` / `rows`, so frontend startup resize is not required for the session to become usable. For panels, pause remote resize through the transition, then let one final fit/resize synchronize the settled terminal dimensions.
 
 ### Batch operations with global confirmation aggregate before prompting
 
