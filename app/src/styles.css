@@ -4305,7 +4305,7 @@ button.terminal-macro-recipe.is-selected,
   grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
-  padding: var(--space-3);
+  padding: var(--space-4);
 }
 
 [data-ui-theme="classic"] .sftp-gutter {
@@ -4356,6 +4356,10 @@ button.terminal-macro-recipe.is-selected,
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-default);
   cursor: default;
+}
+
+[data-ui-theme="classic"] .sftp-main .file-pane.has-mkdir-editor {
+  grid-template-rows: 36px 38px 42px minmax(0, 1fr) 28px;
 }
 
 [data-ui-theme="classic"] .sftp-main .file-pane.is-active-pane::after {
@@ -4455,6 +4459,40 @@ button.terminal-macro-recipe.is-selected,
   min-width: 24px;
   height: 24px;
   min-height: 24px;
+}
+
+[data-ui-theme="classic"] .sftp-main .mkdir-editor {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 28px 28px;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 42px;
+  padding: 5px var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+[data-ui-theme="classic"] .sftp-main .mkdir-editor-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+
+[data-ui-theme="classic"] .sftp-main .mkdir-editor .mkdir-editor-input {
+  height: 30px;
+  min-height: 30px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+}
+
+[data-ui-theme="classic"] .sftp-main .mkdir-editor .mkdir-editor-action {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
 }
 
 [data-ui-theme="classic"] .sftp-main .file-list {

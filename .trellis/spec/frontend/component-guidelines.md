@@ -58,6 +58,39 @@ Questions to answer:
 
 (To be filled by the team)
 
+### Fixed-row grids need an explicit state for inserted rows
+
+**What**: If a component uses `display: grid` with a fixed `grid-template-rows`, adding a conditional child row must also add a state class that changes the row template.
+
+**Why**: Without a matching template, the browser places later children into the wrong explicit/implicit rows. In dense tool surfaces such as SFTP file panes, an inline editor can steal the `1fr` list row and squeeze the file list or footer.
+
+**Example**:
+
+```tsx
+<section className={cn("file-pane", showEditor && "has-inline-editor")}>
+  <div className="pane-head" />
+  <div className="pane-toolbar" />
+  {showEditor && <div className="inline-editor" />}
+  <div className="pane-list" />
+  <div className="pane-foot" />
+</section>
+```
+
+```css
+.file-pane {
+  grid-template-rows: 36px 38px minmax(0, 1fr) 28px;
+}
+
+.file-pane.has-inline-editor {
+  grid-template-rows: 36px 38px 42px minmax(0, 1fr) 28px;
+}
+```
+
+**Related**:
+- `app/src/features/sftp/SftpPage.tsx`
+- `app/src/styles/aurora/pages/sftp.css`
+- `app/src/styles.css`
+
 ---
 
 ## Convention: Static UI drafts are visual references, not feature contracts

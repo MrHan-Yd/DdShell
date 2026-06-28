@@ -7,6 +7,7 @@ import {
   FileSymlink,
   ArrowUp,
   ArrowDown,
+  Check,
   RefreshCw,
   FolderPlus,
   Trash2,
@@ -1459,7 +1460,11 @@ function RemoteFileList() {
   return (
     <section
       ref={dropRef}
-      className={cn("file-pane is-active-pane", isDragOver ? "is-drop-target" : "")}
+      className={cn(
+        "file-pane is-active-pane",
+        showMkdir && "has-mkdir-editor",
+        isDragOver ? "is-drop-target" : "",
+      )}
       data-context-menu-container
     >
       {/* Drag overlay */}
@@ -1526,18 +1531,21 @@ function RemoteFileList() {
       {/* Mkdir inline input */}
       {showMkdir && (
         <div
-          className="flex items-center gap-2 border-b border-[var(--border-default)] px-3 py-1.5 bg-[var(--bg-elevated)]"
+          className="mkdir-editor"
           onBlur={(event) => {
             const nextTarget = event.relatedTarget as Node | null;
             if (nextTarget && event.currentTarget.contains(nextTarget)) return;
             void commitMkdirEditor();
           }}
         >
+          <span className="mkdir-editor-icon" aria-hidden="true">
+            <FolderPlus size={14} />
+          </span>
           <Input
             value={newDirName}
             onChange={(e) => setNewDirName(e.target.value)}
             placeholder={t("sftp.newFolderName")}
-            className="flex-1"
+            className="mkdir-editor-input"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -1553,8 +1561,22 @@ function RemoteFileList() {
           />
           <Button
             type="button"
-            size="sm"
+            size="icon"
             variant="ghost"
+            className="mkdir-editor-action"
+            aria-label={t("sftp.newFolder")}
+            onMouseDown={(event) => {
+              event.preventDefault();
+            }}
+            onClick={() => void commitMkdirEditor()}
+          >
+            <Check size={14} />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="mkdir-editor-action"
             aria-label={t("terminalPicker.hintClose")}
             onMouseDown={(event) => {
               event.preventDefault();

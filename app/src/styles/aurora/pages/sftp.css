@@ -14,6 +14,7 @@
   grid-template-columns: 1fr 32px 1fr;
   min-height: 0;
   overflow: hidden;
+  padding: var(--space-4);
 }
 
 [data-ui-theme="aurora"] .sftp-gutter {
@@ -63,6 +64,10 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-default);
   cursor: default;
+}
+
+[data-ui-theme="aurora"] .file-pane.has-mkdir-editor {
+  grid-template-rows: 36px 38px 42px minmax(0, 1fr) 28px;
 }
 
 [data-ui-theme="aurora"] .file-pane.is-active-pane::after {
@@ -135,6 +140,40 @@
 [data-ui-theme="aurora"] .file-toolbar .path-up {
   width: 24px;
   height: 24px;
+}
+
+[data-ui-theme="aurora"] .mkdir-editor {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 28px 28px;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 42px;
+  padding: 5px var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+[data-ui-theme="aurora"] .mkdir-editor-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+
+[data-ui-theme="aurora"] .mkdir-editor .mkdir-editor-input {
+  height: 30px;
+  min-height: 30px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+}
+
+[data-ui-theme="aurora"] .mkdir-editor .mkdir-editor-action {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
 }
 
 /* File list */
