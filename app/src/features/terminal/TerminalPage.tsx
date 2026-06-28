@@ -42,6 +42,7 @@ const FILE_MANAGER_DRAWER_TRANSITION_MS = 320;
 // Startup fit/ResizeObserver events can deliver SIGWINCH while the login
 // banner is still settling, causing bash/readline to repaint prompt fragments.
 const REMOTE_RESIZE_STARTUP_SUPPRESS_MS = 1500;
+const REMOTE_RESIZE_LOCAL_ONLY_SUPPRESS_MS = 250;
 
 /** Strip ANSI escape sequences and trim whitespace */
 function cleanSelection(text: string): string {
@@ -121,6 +122,7 @@ function TerminalInstance({
   macroOutputFilter,
   termSettings,
   suspendResize = false,
+  syncResizeAfterSuspend = true,
   onFocusSession,
   onCwdChange,
 }: {
@@ -150,6 +152,7 @@ function TerminalInstance({
     customDangerousCommands?: string[];
   };
   suspendResize?: boolean;
+  syncResizeAfterSuspend?: boolean;
   onFocusSession?: (sessionId: string, cwd: string | null) => void;
   onCwdChange?: (sessionId: string, cwd: string) => void;
 }) {
@@ -160,6 +163,7 @@ function TerminalInstance({
   const suspendResizeRef = useRef(suspendResize);
   const pendingResizeFitRef = useRef(false);
   const pendingResizeFrameRef = useRef<number | null>(null);
+  const pendingResizeRemoteSyncRef = useRef(true);
   const remoteResizeSuppressUntilRef = useRef(0);
   const lastSentRemoteSizeRef = useRef<{ cols: number; rows: number } | null>(null);
   const updateGeoRef = useRef<() => void>(() => {});
@@ -176,6 +180,8 @@ function TerminalInstance({
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
   suspendResizeRef.current = suspendResize;
+  const syncResizeAfterSuspendRef = useRef(syncResizeAfterSuspend);
+  syncResizeAfterSuspendRef.current = syncResizeAfterSuspend;
   const onFocusSessionRef = useRef(onFocusSession);
   onFocusSessionRef.current = onFocusSession;
   const onCwdChangeRef = useRef(onCwdChange);
@@ -775,6 +781,9 @@ function TerminalInstance({
       if (width === 0 || height === 0) return;
       if (suspendResizeRef.current) {
         pendingResizeFitRef.current = true;
+        if (!syncResizeAfterSuspendRef.current) {
+          pendingResizeRemoteSyncRef.current = false;
+        }
         return;
       }
       try { fitAddon.fit(); } catch { /* ignore if disposed */ }
@@ -813,6 +822,8 @@ function TerminalInstance({
   useEffect(() => {
     if (suspendResize || !pendingResizeFitRef.current) return;
     pendingResizeFitRef.current = false;
+    const syncRemoteResize = pendingResizeRemoteSyncRef.current;
+    pendingResizeRemoteSyncRef.current = true;
     if (pendingResizeFrameRef.current !== null) {
       window.cancelAnimationFrame(pendingResizeFrameRef.current);
     }
@@ -823,6 +834,12 @@ function TerminalInstance({
       if (!container || !fitAddon) return;
       const { width, height } = container.getBoundingClientRect();
       if (width === 0 || height === 0) return;
+      if (!syncRemoteResize) {
+        remoteResizeSuppressUntilRef.current = Math.max(
+          remoteResizeSuppressUntilRef.current,
+          Date.now() + REMOTE_RESIZE_LOCAL_ONLY_SUPPRESS_MS,
+        );
+      }
       try { fitAddon.fit(); } catch { /* ignore if disposed */ }
       setContainerSize({ w: width, h: height });
       updateGeoRef.current();
@@ -1942,6 +1959,7 @@ export function TerminalPage() {
   const fileManagerLayoutHeight = fileManagerOpen ? fileManagerHeight : 0;
   const fileManagerRenderedHeight = isFileManagerResizing ? fileManagerResizeHeightRef.current : fileManagerLayoutHeight;
   const shouldSuspendTerminalResize = isFileManagerResizing || isFileManagerTransitioning;
+  const shouldSyncTerminalResizeAfterSuspend = !isFileManagerTransitioning;
 
   const handleTerminalFocus = useCallback((sessionId: string, cwd: string | null) => {
     setLastFocusedSessionId(sessionId);
@@ -2641,6 +2659,7 @@ export function TerminalPage() {
                     macroOutputFilter={macroOutputFilter?.sessionId === tab.sessionId ? macroOutputFilter : null}
                     termSettings={termSettings}
                     suspendResize={shouldSuspendTerminalResize}
+                    syncResizeAfterSuspend={shouldSyncTerminalResizeAfterSuspend}
                     onFocusSession={handleTerminalFocus}
                     onCwdChange={handleTerminalCwdChange}
                   />
@@ -2673,6 +2692,7 @@ export function TerminalPage() {
                       macroOutputFilter={macroOutputFilter?.sessionId === splitTab.sessionId ? macroOutputFilter : null}
                       termSettings={termSettings}
                       suspendResize={shouldSuspendTerminalResize}
+                      syncResizeAfterSuspend={shouldSyncTerminalResizeAfterSuspend}
                       onFocusSession={handleTerminalFocus}
                       onCwdChange={handleTerminalCwdChange}
                     />
