@@ -1818,3 +1818,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 52: 文件管理覆盖显示避免终端闪烁
+
+**Date**: 2026-06-28
+**Task**: 文件管理覆盖显示避免终端闪烁
+**Branch**: `main`
+
+### Summary
+
+优化终端文件管理打开、关闭和拖拽高度时当前命令行闪烁的问题；将文件管理抽屉改为 term-main 底部绝对定位覆盖层，不再挤压 xterm 容器高度，从源头避免本地 fit/repaint。验证 pnpm -C app build、cargo check、cargo test、git diff --check 均通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0bc9028` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
