@@ -1785,3 +1785,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 51: 文件管理拖拽本地适配
+
+**Date**: 2026-06-28
+**Task**: 文件管理拖拽本地适配
+**Branch**: `main`
+
+### Summary
+
+修复拖拽终端文件管理高度后新增 prompt 的问题；将文件管理高度拖拽造成的 suspended fit 也改为本地-only，不再向远端 PTY 发送 window_change，同时保留窗口 resize 和分屏 resize 的远端同步。验证 pnpm -C app build、cargo check、cargo test、git diff --check 均通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `857e9e2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
