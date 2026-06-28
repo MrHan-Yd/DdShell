@@ -1620,3 +1620,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 46: 修复终端启动 prompt 重复残片
+
+**Date**: 2026-06-28
+**Task**: 修复终端启动 prompt 重复残片
+**Branch**: `main`
+
+### Summary
+
+修复终端连接启动期自动 resize 触发远端 prompt 重绘的问题；去掉固定延迟 sessionResize，加入启动期远端 resize 抑制，并补充前端规范和任务复盘。验证 pnpm -C app build、cargo check、cargo test、git diff --check 均通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `83cb8d8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
