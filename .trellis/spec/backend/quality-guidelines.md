@@ -235,8 +235,9 @@ emit_session_output_bytes(&app, &session_id, &mut decoder, &normalized);
   - terminal resize commands
   - SFTP directory/file operations
   - SFTP transfer start and transfer chunk progress
-  - SSH ping/env/system-detect commands
+  - SSH env/system-detect commands
   - explicit monitor start actions
+- Automatic status/latency ping must not call `touch_activity`; it is a heartbeat for display, not user activity.
 - `session.keepAlive = "0"` disables the application idle watchdog for new terminal sessions.
 - Automatic idle disconnect must remove the session through `SessionManager::disconnect` and emit the same `disconnected` session-state event as other backend disconnect paths.
 - Changing settings affects newly created terminal sessions. Existing sessions keep the timeout captured at connection time unless a future feature explicitly adds live reconfiguration.
@@ -247,6 +248,7 @@ emit_session_output_bytes(&app, &session_id, &mut decoder, &normalized);
 - Session removed manually before watchdog fires -> watchdog exits without emitting a second forced disconnect.
 - Session active command runs just before timeout -> activity timestamp is refreshed and the watchdog must re-check elapsed time after sleep before disconnecting.
 - Long SFTP transfer exceeds timeout but continues making chunk progress -> transfer progress touches activity and should not be disconnected as idle.
+- Status bar latency ping fires every few seconds -> latency may update, but idle elapsed time must continue increasing.
 - Remote output only, with no user/application active command -> session may be disconnected after the configured idle timeout.
 
 #### 5. Good/Base/Bad Cases
@@ -255,6 +257,7 @@ emit_session_output_bytes(&app, &session_id, &mut decoder, &normalized);
 - Base: A user opens the file manager and lists a directory; that SFTP command refreshes activity.
 - Bad: Relying on `russh::client::Config.inactivity_timeout` to represent user inactivity while also enabling keepalive.
 - Bad: Treating remote output or SSH keepalive as user activity.
+- Bad: Treating automatic status bar `ssh_ping` as user activity; it can keep a 30-second idle timeout alive forever.
 
 #### 6. Tests Required
 - Unit tests must cover the activity tracker for disabled timeout and touch/reset behavior.

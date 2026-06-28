@@ -1978,7 +1978,6 @@ async fn ssh_ping(
     ssh_mgr: tauri::State<'_, SessionManager>,
     session_id: String,
 ) -> Result<u64, String> {
-    ssh_mgr.touch_activity(&session_id);
     ssh_mgr
         .ping_session(&session_id)
         .await
