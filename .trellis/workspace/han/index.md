@@ -7,8 +7,8 @@
 ## Current Status
 
 <!-- @@@auto:current-status -->
-- **Active File**: `journal-1.md`
-- **Total Sessions**: 56
+- **Active File**: `journal-2.md`
+- **Total Sessions**: 57
 - **Last Active**: 2026-06-28
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,8 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1985 | Active |
+| `journal-2.md` | ~40 | Active |
+| `journal-1.md` | ~1985 | Archived |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 57 | 2026-06-28 | 修复路径收藏下拉贴边 | `ba2b030` | `main` |
 | 56 | 2026-06-28 | 优化文件管理新建文件夹动画 | `61f95ac` | `main` |
 | 55 | 2026-06-28 | 优化文件管理页面视觉 | `c060059` | `main` |
 | 54 | 2026-06-28 | 修复重连遮罩边框裁切 | `efd0614` | `main` |
