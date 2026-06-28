@@ -32,8 +32,7 @@ pub fn encrypt(plain: &str) -> anyhow::Result<String> {
     let key = derive_key();
     let cipher = Aes256Gcm::new_from_slice(&key)?;
 
-    // 96-bit random nonce
-    let nonce_bytes: [u8; 12] = rand_nonce();
+    let nonce_bytes = random_nonce()?;
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     let ciphertext = cipher
@@ -71,24 +70,22 @@ pub fn decrypt(encoded: &str) -> anyhow::Result<String> {
     String::from_utf8(plaintext).map_err(|e| anyhow::anyhow!("utf8 failed: {}", e))
 }
 
-/// Generate a random 12-byte nonce using a simple approach.
-fn rand_nonce() -> [u8; 12] {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let t = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-
-    let mut hasher = Sha256::new();
-    hasher.update(t.to_le_bytes());
-    hasher.update(std::process::id().to_le_bytes());
-    // Mix in a counter for uniqueness within same nanosecond
-    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let c = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    hasher.update(c.to_le_bytes());
-    let hash = hasher.finalize();
-
+fn random_nonce() -> anyhow::Result<[u8; 12]> {
     let mut nonce = [0u8; 12];
-    nonce.copy_from_slice(&hash[..12]);
-    nonce
+    getrandom::getrandom(&mut nonce)
+        .map_err(|e| anyhow::anyhow!("secure nonce generation failed: {}", e))?;
+    Ok(nonce)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{decrypt, encrypt};
+
+    #[test]
+    fn encrypted_secret_round_trips() {
+        let encrypted = encrypt("s3cret").expect("encrypt should succeed");
+        assert_ne!(encrypted, "s3cret");
+        let decrypted = decrypt(&encrypted).expect("decrypt should succeed");
+        assert_eq!(decrypted, "s3cret");
+    }
 }

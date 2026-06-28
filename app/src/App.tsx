@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Titlebar } from "@/components/Titlebar";
 import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
@@ -6,17 +6,18 @@ import { ToastContainer } from "@/components/Toast";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useAppStore } from "@/stores/app";
 import { useShortcuts } from "@/hooks/useShortcuts";
-import { ConnectionsPage } from "@/features/connections/ConnectionsPage";
 import { TerminalPage } from "@/features/terminal/TerminalPage";
-import { SftpPage } from "@/features/sftp/SftpPage";
-import { SnippetsPage } from "@/features/snippets/SnippetsPage";
-import { WorkflowsPage } from "@/features/workflows/WorkflowsPage";
-import { SettingsPage } from "@/features/settings/SettingsPage";
-import { MonitorPage } from "@/features/monitor/MonitorPage";
 import { useCommandAssistStore } from "@/stores/commandAssist";
 import * as api from "@/lib/tauri";
 import type { Locale } from "@/lib/i18n";
 import type { Page } from "@/types";
+
+const ConnectionsPage = lazy(() => import("@/features/connections/ConnectionsPage").then((m) => ({ default: m.ConnectionsPage })));
+const SftpPage = lazy(() => import("@/features/sftp/SftpPage").then((m) => ({ default: m.SftpPage })));
+const SnippetsPage = lazy(() => import("@/features/snippets/SnippetsPage").then((m) => ({ default: m.SnippetsPage })));
+const WorkflowsPage = lazy(() => import("@/features/workflows/WorkflowsPage").then((m) => ({ default: m.WorkflowsPage })));
+const SettingsPage = lazy(() => import("@/features/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const MonitorPage = lazy(() => import("@/features/monitor/MonitorPage").then((m) => ({ default: m.MonitorPage })));
 
 const PAGE_ORDER: Page[] = ["connections", "terminal", "sftp", "monitor", "snippets", "macros", "settings"];
 
@@ -39,12 +40,14 @@ function PageRenderer() {
       </div>
       {currentPage !== "terminal" && (
         <div key={currentPage} className={`flex flex-1 overflow-hidden ${animClass}`}>
-          {currentPage === "connections" && <ConnectionsPage />}
-          {currentPage === "sftp" && <SftpPage />}
-          {currentPage === "monitor" && <MonitorPage />}
-          {currentPage === "snippets" && <SnippetsPage />}
-          {currentPage === "macros" && <WorkflowsPage />}
-          {currentPage === "settings" && <SettingsPage />}
+          <Suspense fallback={<div className="flex flex-1 bg-[var(--color-bg-base)]" />}>
+            {currentPage === "connections" && <ConnectionsPage />}
+            {currentPage === "sftp" && <SftpPage />}
+            {currentPage === "monitor" && <MonitorPage />}
+            {currentPage === "snippets" && <SnippetsPage />}
+            {currentPage === "macros" && <WorkflowsPage />}
+            {currentPage === "settings" && <SettingsPage />}
+          </Suspense>
         </div>
       )}
     </>

@@ -34,6 +34,54 @@ Questions to answer:
 
 (To be filled by the team)
 
+### Scenario: Local Secret Encryption Compatibility
+
+#### 1. Scope / Trigger
+- Trigger: backend code changes local storage for SSH passwords, AI provider API keys, or any value encrypted through `core::secret`.
+- Applies to `app/src-tauri/src/core/secret.rs` and all callers that persist or read encrypted secret strings.
+
+#### 2. Signatures
+- `core::secret::encrypt(plain: &str) -> anyhow::Result<String>`
+- `core::secret::decrypt(encoded: &str) -> anyhow::Result<String>`
+
+#### 3. Contracts
+- Ciphertext format is base64 of `nonce || aes_gcm_ciphertext`, where `nonce` is exactly 12 bytes.
+- New encrypted values must use an OS cryptographic random source for the nonce.
+- `decrypt` must remain backward compatible with existing stored ciphertexts that use the same `nonce || ciphertext` format.
+- Do not change the key derivation, ciphertext format, or storage keys in a low-risk maintenance pass unless a migration plan and rollback path are documented.
+- Do not expose plaintext secrets through frontend responses. Frontend-visible profile/config responses should use booleans such as `apiKeySet` when possible.
+
+#### 4. Validation & Error Matrix
+- Base64 decode failure -> return an error and do not guess plaintext.
+- Combined decoded payload shorter than nonce + tag requirements -> return an error.
+- AES-GCM decrypt failure -> return an error without logging plaintext or derived key material.
+- OS random nonce generation failure -> fail encryption rather than falling back to timestamp/pid/counter-derived bytes.
+
+#### 5. Good/Base/Bad Cases
+- Good: encrypting the same password twice produces different ciphertexts because the nonce is random.
+- Base: old stored ciphertext decrypts after the nonce generator implementation changes.
+- Bad: nonce bytes are derived from time, process id, counters, usernames, hostnames, or other predictable local values.
+
+#### 6. Tests Required
+- Unit test that `encrypt` + `decrypt` round-trips a representative secret.
+- When adding migration support later, include tests that old-format ciphertexts still decrypt and new-format ciphertexts are written only after successful migration.
+- `cargo test` must pass after any secret storage change.
+
+#### 7. Wrong vs Correct
+
+Wrong:
+
+```rust
+let nonce = derive_nonce_from_time_and_process_id();
+```
+
+Correct:
+
+```rust
+let mut nonce = [0u8; 12];
+getrandom::getrandom(&mut nonce)?;
+```
+
 ### Scenario: Platform Information for Frontend Display
 
 #### 1. Scope / Trigger
