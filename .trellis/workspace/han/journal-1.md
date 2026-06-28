@@ -1488,3 +1488,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 42: 收敛前端平台判断
+
+**Date**: 2026-06-28
+**Task**: 收敛前端平台判断
+**Branch**: `main`
+
+### Summary
+
+新增前端平台 helper，收敛 macOS 判断调用点，补充平台判断规范并完成构建与 Rust 检查测试。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `056d774` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
