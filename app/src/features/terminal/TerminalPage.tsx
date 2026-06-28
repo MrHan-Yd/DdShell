@@ -2056,10 +2056,6 @@ export function TerminalPage() {
         const shell = fileManagerShellRef.current;
         if (shell) {
           shell.style.height = `${height}px`;
-          shell.style.flex = `0 0 ${height}px`;
-        }
-        if (termMainRef.current) {
-          termMainRef.current.style.gridTemplateRows = `var(--tabbar-h) minmax(0, 1fr) ${height}px`;
         }
       });
     };
@@ -2261,11 +2257,8 @@ export function TerminalPage() {
     <div className="terminal-page flex flex-1 overflow-hidden" style={{ userSelect: "text" }}>
       <div
         ref={termMainRef}
-        className="term-main flex flex-1 flex-col overflow-hidden"
+        className="term-main relative flex flex-1 flex-col overflow-hidden"
         data-file-manager-resizing={isFileManagerResizing ? "true" : undefined}
-        style={shouldRenderFileManager
-          ? { gridTemplateRows: `var(--tabbar-h) minmax(0, 1fr) ${fileManagerRenderedHeight}px` }
-          : undefined}
       >
         {/* Tab bar */}
         {/* [AI-FEATURE]
@@ -2774,7 +2767,6 @@ export function TerminalPage() {
             aria-hidden={!fileManagerOpen}
             style={{
               height: fileManagerRenderedHeight,
-              flex: `0 0 ${fileManagerRenderedHeight}px`,
             }}
           >
             <div
