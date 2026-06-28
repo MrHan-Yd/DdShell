@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use russh::client;
@@ -389,8 +390,46 @@ impl SshSession {
 
 /// Manages all active SSH sessions
 #[derive(Clone)]
+struct SessionActivity {
+    last_activity: Arc<parking_lot::Mutex<Instant>>,
+    idle_timeout: Option<Duration>,
+}
+
+impl SessionActivity {
+    fn new(idle_timeout: Option<Duration>) -> Self {
+        Self {
+            last_activity: Arc::new(parking_lot::Mutex::new(Instant::now())),
+            idle_timeout,
+        }
+    }
+
+    fn touch(&self) {
+        *self.last_activity.lock() = Instant::now();
+    }
+
+    fn elapsed(&self) -> Duration {
+        self.last_activity.lock().elapsed()
+    }
+}
+
+#[derive(Clone)]
+struct ManagedSession {
+    session: Arc<TokioMutex<SshSession>>,
+    activity: SessionActivity,
+}
+
+impl ManagedSession {
+    fn new(session: SshSession, idle_timeout: Option<Duration>) -> Self {
+        Self {
+            session: Arc::new(TokioMutex::new(session)),
+            activity: SessionActivity::new(idle_timeout),
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct SessionManager {
-    sessions: Arc<parking_lot::Mutex<HashMap<String, Arc<TokioMutex<SshSession>>>>>,
+    sessions: Arc<parking_lot::Mutex<HashMap<String, ManagedSession>>>,
 }
 
 impl SessionManager {
@@ -454,15 +493,25 @@ impl SessionManager {
         let (channel, cmd_rx) = session.open_pty(cols, rows, set_locale).await?;
 
         let session_id = session.id.clone();
-        let session = Arc::new(TokioMutex::new(session));
-        self.sessions.lock().insert(session_id.clone(), session);
+        let idle_timeout = if timeout_secs == 0 {
+            None
+        } else {
+            Some(Duration::from_secs(timeout_secs))
+        };
+        self.sessions.lock().insert(
+            session_id.clone(),
+            ManagedSession::new(session, idle_timeout),
+        );
 
         Ok((session_id, channel, cmd_rx))
     }
 
     /// Get a session by ID
     pub fn get(&self, session_id: &str) -> Option<Arc<TokioMutex<SshSession>>> {
-        self.sessions.lock().get(session_id).cloned()
+        self.sessions
+            .lock()
+            .get(session_id)
+            .map(|entry| entry.session.clone())
     }
 
     /// Check if a session exists in the manager (not disconnected)
@@ -478,8 +527,35 @@ impl SessionManager {
             .remove(session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
-        session.lock().await.disconnect().await;
+        session.session.lock().await.disconnect().await;
         Ok(())
+    }
+
+    /// Mark user/application activity for an active session.
+    pub fn touch_activity(&self, session_id: &str) -> bool {
+        let entry = self.sessions.lock().get(session_id).cloned();
+        if let Some(entry) = entry {
+            entry.activity.touch();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Return the configured application-level idle timeout for a session.
+    pub fn idle_timeout(&self, session_id: &str) -> Option<Duration> {
+        self.sessions
+            .lock()
+            .get(session_id)
+            .and_then(|entry| entry.activity.idle_timeout)
+    }
+
+    /// Return elapsed user/application idle time for a session.
+    pub fn idle_elapsed(&self, session_id: &str) -> Option<Duration> {
+        self.sessions
+            .lock()
+            .get(session_id)
+            .map(|entry| entry.activity.elapsed())
     }
 
     /// Ping an active session and return RTT in ms
@@ -488,9 +564,30 @@ impl SessionManager {
             .sessions
             .lock()
             .get(session_id)
-            .cloned()
+            .map(|entry| entry.session.clone())
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
         let result = session.lock().await.ping().await;
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn session_activity_keeps_disabled_timeout() {
+        let activity = SessionActivity::new(None);
+        assert_eq!(activity.idle_timeout, None);
+    }
+
+    #[test]
+    fn session_activity_touch_resets_elapsed_idle_time() {
+        let activity = SessionActivity::new(Some(Duration::from_secs(30)));
+        *activity.last_activity.lock() = Instant::now() - Duration::from_secs(10);
+        assert!(activity.elapsed() >= Duration::from_secs(10));
+
+        activity.touch();
+        assert!(activity.elapsed() < Duration::from_secs(1));
     }
 }

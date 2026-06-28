@@ -884,6 +884,7 @@ impl SftpManager {
         };
 
         tracing::info!("execute_upload: session_id={}, is_connected={}", session_id, session_mgr.is_connected(&session_id));
+        session_mgr.touch_activity(&session_id);
 
         let session = session_mgr
             .get(&session_id)
@@ -973,6 +974,7 @@ impl SftpManager {
             }
 
             transferred += n as u64;
+            session_mgr.touch_activity(&session_id);
 
             // Emit progress every ~200ms for smooth UI, plus first and last chunk
             if transferred >= total || last_emit_time.elapsed() >= Duration::from_millis(200) {
@@ -1040,6 +1042,7 @@ impl SftpManager {
         let session = session_mgr
             .get(&session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
+        session_mgr.touch_activity(&session_id);
 
         // Init SFTP session (short lock)
         let sftp = {
@@ -1131,6 +1134,7 @@ impl SftpManager {
             // Write directly to file (streaming) - no additional timeout per write
             local_file.write_all(&buf[..n]).await?;
             transferred += n as u64;
+            session_mgr.touch_activity(&session_id);
 
             // Emit progress every ~200ms for smooth UI, plus last chunk
             if transferred >= total || last_emit_time.elapsed() >= Duration::from_millis(200) {

@@ -107,6 +107,52 @@ struct SuccessResponse {
     success: bool,
 }
 
+fn spawn_session_idle_watchdog(
+    app: tauri::AppHandle,
+    session_mgr: SessionManager,
+    session_id: String,
+) {
+    if session_mgr.idle_timeout(&session_id).is_none() {
+        return;
+    }
+
+    tokio::spawn(async move {
+        loop {
+            let Some(timeout) = session_mgr.idle_timeout(&session_id) else {
+                break;
+            };
+            let Some(elapsed) = session_mgr.idle_elapsed(&session_id) else {
+                break;
+            };
+
+            if elapsed >= timeout {
+                tracing::info!(
+                    "session {} idle timeout reached after {}s",
+                    session_id,
+                    timeout.as_secs()
+                );
+                match session_mgr.disconnect(&session_id).await {
+                    Ok(()) => event::emit_session_state(&app, &session_id, "disconnected"),
+                    Err(e) => tracing::debug!(
+                        "idle timeout disconnect skipped for session {}: {}",
+                        session_id,
+                        e
+                    ),
+                }
+                break;
+            }
+
+            let remaining = timeout.saturating_sub(elapsed);
+            tokio::time::sleep(if remaining.is_zero() {
+                Duration::from_millis(100)
+            } else {
+                remaining
+            })
+            .await;
+        }
+    });
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct TerminalImportBackgroundImageReq {
@@ -1156,6 +1202,8 @@ async fn session_connect(
         output_reader_loop(app_handle, session_mgr, channel, cmd_rx, sid, encoding).await;
     });
 
+    spawn_session_idle_watchdog(app.clone(), mgr.inner().clone(), session_id.clone());
+
     Ok(IdResponse { id: session_id })
 }
 
@@ -1181,6 +1229,7 @@ async fn session_write(
     let session = mgr
         .get(&session_id)
         .ok_or_else(|| "Session not found".to_string())?;
+    mgr.touch_activity(&session_id);
     let session_guard = session.lock().await;
     let encoding_name = session_guard.encoding.clone();
 
@@ -1213,6 +1262,7 @@ async fn session_resize(
     let session = mgr
         .get(&session_id)
         .ok_or_else(|| "Session not found".to_string())?;
+    mgr.touch_activity(&session_id);
     session
         .lock()
         .await
@@ -1233,6 +1283,7 @@ async fn sftp_list_dir(
     if !mgr.is_connected(&session_id) {
         return Err("Session disconnected".to_string());
     }
+    mgr.touch_activity(&session_id);
     SftpManager::list_dir(&mgr, &session_id, &remote_path)
         .await
         .map_err(|e| e.to_string())
@@ -1247,6 +1298,7 @@ async fn sftp_canonicalize(
     if !mgr.is_connected(&session_id) {
         return Err("Session disconnected".to_string());
     }
+    mgr.touch_activity(&session_id);
     SftpManager::canonicalize(&mgr, &session_id, &remote_path)
         .await
         .map_err(|e| e.to_string())
@@ -1262,6 +1314,7 @@ async fn sftp_mkdir(
     if !mgr.is_connected(&session_id) {
         return Err("Session disconnected".to_string());
     }
+    mgr.touch_activity(&session_id);
     SftpManager::mkdir(&mgr, &session_id, &remote_path)
         .await
         .map_err(|e| e.to_string())?;
@@ -1279,6 +1332,7 @@ async fn sftp_remove(
     if !mgr.is_connected(&session_id) {
         return Err("Session disconnected".to_string());
     }
+    mgr.touch_activity(&session_id);
 
     if is_dir {
         SftpManager::remove_dir(&mgr, &session_id, &remote_path)
@@ -1303,6 +1357,7 @@ async fn sftp_rename(
     if !mgr.is_connected(&session_id) {
         return Err("Session disconnected".to_string());
     }
+    mgr.touch_activity(&session_id);
     SftpManager::rename(&mgr, &session_id, &old_path, &new_path)
         .await
         .map_err(|e| e.to_string())?;
@@ -1319,6 +1374,7 @@ async fn sftp_read_text(
     if !mgr.is_connected(&session_id) {
         return Err("SESSION_DISCONNECTED".to_string());
     }
+    mgr.touch_activity(&session_id);
 
     SftpManager::read_text(&mgr, &session_id, &remote_path, max_bytes)
         .await
@@ -1337,6 +1393,7 @@ async fn sftp_write_text(
     if !mgr.is_connected(&session_id) {
         return Err("SESSION_DISCONNECTED".to_string());
     }
+    mgr.touch_activity(&session_id);
 
     SftpManager::write_text(
         &mgr,
@@ -1366,6 +1423,7 @@ async fn sftp_write_text_privileged(
     if !mgr.is_connected(&session_id) {
         return Err("SESSION_DISCONNECTED".to_string());
     }
+    mgr.touch_activity(&session_id);
 
     SftpManager::write_text_privileged(
         &db,
@@ -1398,6 +1456,10 @@ async fn sftp_transfer_start(
     if remote_path.is_empty() {
         return Err("Remote path is empty — please navigate to a directory first".to_string());
     }
+    if !session_mgr.is_connected(&session_id) {
+        return Err("SESSION_DISCONNECTED".to_string());
+    }
+    session_mgr.touch_activity(&session_id);
 
     let is_upload = direction == "upload";
 
@@ -1684,6 +1746,7 @@ async fn system_detect(
     mgr: tauri::State<'_, SessionManager>,
     session_id: String,
 ) -> Result<SystemInfo, String> {
+    mgr.touch_activity(&session_id);
     let session = mgr
         .get(&session_id)
         .ok_or_else(|| "Session not found".to_string())?;
@@ -1760,6 +1823,11 @@ async fn sftp_upload_files(
     local_paths: Vec<String>,
     remote_dir: String,
 ) -> Result<Vec<String>, String> {
+    if !session_mgr.is_connected(&session_id) {
+        return Err("SESSION_DISCONNECTED".to_string());
+    }
+    session_mgr.touch_activity(&session_id);
+
     tracing::info!(
         "sftp_upload_files: session_id={}, files={}",
         session_id,
@@ -1910,6 +1978,7 @@ async fn ssh_ping(
     ssh_mgr: tauri::State<'_, SessionManager>,
     session_id: String,
 ) -> Result<u64, String> {
+    ssh_mgr.touch_activity(&session_id);
     ssh_mgr
         .ping_session(&session_id)
         .await
@@ -1931,6 +2000,7 @@ async fn ssh_env_get(
     let session = ssh_mgr
         .get(&session_id)
         .ok_or_else(|| "Session not found".to_string())?;
+    ssh_mgr.touch_activity(&session_id);
     let output = session
         .lock()
         .await
@@ -1994,6 +2064,7 @@ async fn metrics_start(
     session_id: String,
     interval_secs: Option<u64>,
 ) -> Result<IdResponse, String> {
+    session_mgr.touch_activity(&session_id);
     // Check if there's already a running collector for this session
     if let Some(existing) = metrics_mgr.find_by_session(&session_id) {
         return Ok(IdResponse { id: existing });

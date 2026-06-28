@@ -209,6 +209,82 @@ let normalized = crlf_normalizer.normalize(data);
 emit_session_output_bytes(&app, &session_id, &mut decoder, &normalized);
 ```
 
+### Scenario: Terminal Session Idle Timeout
+
+#### 1. Scope / Trigger
+- Trigger: terminal session timeout, SSH keepalive, `SessionManager`, SFTP command execution, or any Tauri command that uses an existing SSH session.
+- Applies to `session.keepAlive`, `core::ssh::SessionManager`, `session_connect`, and active-session commands in `app/src-tauri/src/lib.rs`.
+
+#### 2. Signatures
+- Setting key: `session.keepAlive`
+  - `"30"`: disconnect after 30 seconds of application-level inactivity
+  - `"300"`: disconnect after 5 minutes
+  - `"1800"`: disconnect after 30 minutes
+  - `"0"`: never disconnect because of application idle timeout
+- Session manager helpers:
+  - `SessionManager::touch_activity(session_id: &str) -> bool`
+  - `SessionManager::idle_timeout(session_id: &str) -> Option<Duration>`
+  - `SessionManager::idle_elapsed(session_id: &str) -> Option<Duration>`
+
+#### 3. Contracts
+- `session.keepAlive` means application-level user/application inactivity, not SSH protocol inactivity.
+- SSH keepalive packets must not refresh application activity and must not be the mechanism that enforces user idle timeout.
+- Remote output must not refresh application activity; a server printing logs should not keep an idle interactive session alive forever.
+- User/application commands that actively use the session must call `touch_activity` before or during work:
+  - terminal input writes
+  - terminal resize commands
+  - SFTP directory/file operations
+  - SFTP transfer start and transfer chunk progress
+  - SSH ping/env/system-detect commands
+  - explicit monitor start actions
+- `session.keepAlive = "0"` disables the application idle watchdog for new terminal sessions.
+- Automatic idle disconnect must remove the session through `SessionManager::disconnect` and emit the same `disconnected` session-state event as other backend disconnect paths.
+- Changing settings affects newly created terminal sessions. Existing sessions keep the timeout captured at connection time unless a future feature explicitly adds live reconfiguration.
+
+#### 4. Validation & Error Matrix
+- Missing `session.keepAlive` -> use the existing default timeout from the connection path.
+- `session.keepAlive = "0"` -> no idle watchdog for that session.
+- Session removed manually before watchdog fires -> watchdog exits without emitting a second forced disconnect.
+- Session active command runs just before timeout -> activity timestamp is refreshed and the watchdog must re-check elapsed time after sleep before disconnecting.
+- Long SFTP transfer exceeds timeout but continues making chunk progress -> transfer progress touches activity and should not be disconnected as idle.
+- Remote output only, with no user/application active command -> session may be disconnected after the configured idle timeout.
+
+#### 5. Good/Base/Bad Cases
+- Good: A terminal session configured with `"30"` and no user/application operation for 30 seconds is disconnected by the backend watchdog.
+- Good: A large upload running for several minutes keeps touching activity as chunks are transferred.
+- Base: A user opens the file manager and lists a directory; that SFTP command refreshes activity.
+- Bad: Relying on `russh::client::Config.inactivity_timeout` to represent user inactivity while also enabling keepalive.
+- Bad: Treating remote output or SSH keepalive as user activity.
+
+#### 6. Tests Required
+- Unit tests must cover the activity tracker for disabled timeout and touch/reset behavior.
+- `cargo check --manifest-path app/src-tauri/Cargo.toml` must pass after lifecycle changes.
+- `cargo test --manifest-path app/src-tauri/Cargo.toml` must pass after lifecycle changes.
+- `pnpm -C app build` must pass if command wiring or frontend-visible state behavior changes.
+
+#### 7. Wrong vs Correct
+
+Wrong:
+
+```rust
+let config = client::Config {
+    inactivity_timeout: Some(Duration::from_secs(timeout_secs)),
+    keepalive_interval: Some(Duration::from_secs(30)),
+    ..Default::default()
+};
+```
+
+Correct:
+
+```rust
+mgr.touch_activity(&session_id);
+
+if elapsed >= idle_timeout {
+    mgr.disconnect(&session_id).await?;
+    event::emit_session_state(&app, &session_id, "disconnected");
+}
+```
+
 ### Scenario: Tauri Official Updater Release Contract
 
 #### 1. Scope / Trigger
