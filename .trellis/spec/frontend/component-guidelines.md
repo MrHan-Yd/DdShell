@@ -150,6 +150,36 @@ const terminalBg = hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F11
 - `app/src/features/terminal/TerminalPage.tsx`
 - `app/src/styles/aurora/pages/terminal.css`
 
+### Terminal internal overlays must not cover the active pane outline
+
+**What**: Overlays rendered inside a terminal pane, such as disconnect/reconnect UI, must not visually cover the active pane outline. Give the active outline pseudo element an explicit layer above pane-internal overlays and keep it `pointer-events: none`.
+
+**Why**: The terminal disconnect overlay is rendered inside the xterm window with its own `z-index`. If `.term-pane.is-active::after` has no explicit layer, the overlay can cover the bottom and side borders while the pane bar remains visible, making the active border look like it only has a top half.
+
+**Example**:
+
+```css
+.term-pane.is-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  border: 1px solid var(--accent);
+}
+
+.terminal-disconnect-overlay {
+  z-index: 20;
+}
+```
+
+**Required check**: When adding or changing terminal pane overlays, verify the active outline is still complete in both Classic and Aurora themes, and verify overlay buttons remain clickable.
+
+**Related**:
+- `app/src/styles.css`
+- `app/src/styles/aurora/pages/terminal.css`
+- `app/src/features/terminal/TerminalPage.tsx`
+
 ---
 
 ## Convention: Static UI drafts are visual references, not feature contracts

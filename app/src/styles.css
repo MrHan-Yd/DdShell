@@ -3780,6 +3780,7 @@ body.theme-light [data-ui-theme="classic"] .connections-page .detail-cta .kbd {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 30;
   pointer-events: none;
   border: 1px solid var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent-glow);
