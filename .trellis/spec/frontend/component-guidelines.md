@@ -126,6 +126,30 @@ Questions to answer:
 - `app/src/styles/aurora/base.css`
 - `app/src/styles/aurora/pages/sftp.css`
 
+### Xterm parent backgrounds must match the terminal theme background
+
+**What**: When embedding xterm, set the same terminal background on the xterm surface and any parent pane/window backgrounds that can show through.
+
+**Why**: xterm lays out rows by character cell height. If the container height is not an exact multiple of the row height, a few pixels at the bottom can expose the parent background. If the parent uses a theme token such as `--term-bg` while xterm uses `terminal.bgColor`, the exposed strip looks like a black edge.
+
+**Example**:
+
+```tsx
+const terminalBg = hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F1115");
+
+<div
+  className="term-panes"
+  style={{
+    backgroundColor: terminalBg,
+    ["--term-bg" as string]: terminalBg,
+  }}
+/>
+```
+
+**Related**:
+- `app/src/features/terminal/TerminalPage.tsx`
+- `app/src/styles/aurora/pages/terminal.css`
+
 ---
 
 ## Convention: Static UI drafts are visual references, not feature contracts

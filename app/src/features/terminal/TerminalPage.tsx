@@ -1141,6 +1141,7 @@ function TerminalInstance({
   }, [sessionId, hostId, tabId, updateTabState, closeAssist]);
 
   const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
+  const terminalSurfaceBg = hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F1115");
   const isDisconnected = tabState === "disconnected" || tabState === "failed";
 
   const handleReconnect = async () => {
@@ -1158,6 +1159,7 @@ function TerminalInstance({
         ref={containerRef}
         className={cn("terminal-xterm-surface h-full w-full", hasBgImage && "xterm-bg-transparent")}
         style={{
+          backgroundColor: terminalSurfaceBg,
           padding: "2px 4px 0",
         }}
       />
@@ -2131,6 +2133,7 @@ export function TerminalPage() {
   }, [fileManagerEnabled, fileManagerSessionId, renderFileManager, showFileManager]);
 
   const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
+  const terminalPaneBg = hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F1115");
   const bgOpacity = (termSettings?.bgOpacity ?? 100) / 100;
   const bgBlur = termSettings?.bgBlur ?? 0;
   const recentMacros = useMemo(() => {
@@ -2505,7 +2508,8 @@ export function TerminalPage() {
             splitDirection && `is-split is-split-${splitDirection}`,
           )}
           style={{
-            backgroundColor: hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F1115"),
+            backgroundColor: terminalPaneBg,
+            ["--term-bg" as string]: terminalPaneBg,
             ["--terminal-file-manager-offset" as string]: `${terminalFileManagerOffset}px`,
             ...(splitDirection === "horizontal" ? { gridTemplateRows: `${splitRatio * 100}% 1px ${(1 - splitRatio) * 100}%` } : splitDirection === "vertical" ? { gridTemplateColumns: `${splitRatio * 100}% 1px ${(1 - splitRatio) * 100}%` } : {}),
           }}
