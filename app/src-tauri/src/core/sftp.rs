@@ -647,13 +647,23 @@ impl SftpManager {
         let resolved_sudo_password = if let Some(password) = sudo_password.filter(|password| !password.is_empty()) {
             password.to_string()
         } else {
-            db.get_host(&host_id)
-                .await
-                .ok()
-                .flatten()
-                .and_then(|host| host.secret_ref)
-                .and_then(|encrypted| secret::decrypt(&encrypted).ok())
-                .unwrap_or_default()
+            match db.get_host(&host_id).await.ok().flatten() {
+                Some(host) => match host.secret_ref {
+                    Some(reference) => match secret::decrypt(&reference) {
+                        Ok(password) => {
+                            if let Some(next_ref) = secret::try_migrate_to_keyring(&reference, &password) {
+                                if let Err(err) = db.update_host_secret_ref(&host_id, Some(&next_ref)).await {
+                                    tracing::warn!("failed to update migrated SFTP host secret ref: {}", err);
+                                }
+                            }
+                            password
+                        }
+                        Err(_) => String::new(),
+                    },
+                    None => String::new(),
+                },
+                None => String::new(),
+            }
         };
 
         let sftp = {

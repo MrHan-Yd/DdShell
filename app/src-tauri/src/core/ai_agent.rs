@@ -479,8 +479,7 @@ pub async fn save_config(
             .iter()
             .any(|id| *id == previous.id.as_str())
         {
-            db.set_setting(&profile_key_setting(&previous.id), "")
-                .await?;
+            clear_profile_key(db, &previous.id).await?;
         }
     }
 
@@ -488,13 +487,30 @@ pub async fn save_config(
 }
 
 pub async fn set_profile_key(db: &Database, profile_id: &str, api_key: &str) -> anyhow::Result<()> {
+    let key = profile_key_setting(profile_id);
+    let previous = db.get_setting(&key).await?.filter(|v| !v.is_empty());
     let encrypted = secret::encrypt(api_key)?;
-    db.set_setting(&profile_key_setting(profile_id), &encrypted)
-        .await
+    db.set_setting(&key, &encrypted).await?;
+    if let Some(previous_ref) = previous {
+        if previous_ref != encrypted {
+            if let Err(err) = secret::delete(&previous_ref) {
+                tracing::warn!("failed to delete replaced AI profile keyring credential: {}", err);
+            }
+        }
+    }
+    Ok(())
 }
 
 pub async fn clear_profile_key(db: &Database, profile_id: &str) -> anyhow::Result<()> {
-    db.set_setting(&profile_key_setting(profile_id), "").await
+    let key = profile_key_setting(profile_id);
+    let previous = db.get_setting(&key).await?.filter(|v| !v.is_empty());
+    db.set_setting(&key, "").await?;
+    if let Some(previous_ref) = previous {
+        if let Err(err) = secret::delete(&previous_ref) {
+            tracing::warn!("failed to delete AI profile keyring credential: {}", err);
+        }
+    }
+    Ok(())
 }
 
 struct PreparedAiAgentRequest {
@@ -535,6 +551,11 @@ async fn prepare_send(
         .filter(|v| !v.is_empty())
         .ok_or_else(|| anyhow::anyhow!("AI profile API key is not configured"))?;
     let api_key = secret::decrypt(&encrypted)?;
+    if let Some(next_ref) = secret::try_migrate_to_keyring(&encrypted, &api_key) {
+        if let Err(err) = db.set_setting(&profile_key_setting(&profile.id), &next_ref).await {
+            tracing::warn!("failed to update migrated AI profile key ref: {}", err);
+        }
+    }
     let preferred_command_mode = infer_command_mode_from_question(&req.question);
     Ok(PreparedAiAgentRequest {
         config,

@@ -568,6 +568,17 @@ impl Database {
         Ok(())
     }
 
+    pub async fn update_host_secret_ref(&self, id: &str, secret_ref: Option<&str>) -> anyhow::Result<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        sqlx::query("UPDATE hosts SET secret_ref=?, updated_at=? WHERE id=?")
+            .bind(secret_ref)
+            .bind(&now)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     pub async fn delete_host(&self, id: &str) -> anyhow::Result<()> {
         sqlx::query("DELETE FROM hosts WHERE id = ?")
             .bind(id)

@@ -34,52 +34,70 @@ Questions to answer:
 
 (To be filled by the team)
 
-### Scenario: Local Secret Encryption Compatibility
+### Scenario: Keyring Credential Reference Compatibility
 
 #### 1. Scope / Trigger
-- Trigger: backend code changes local storage for SSH passwords, AI provider API keys, or any value encrypted through `core::secret`.
-- Applies to `app/src-tauri/src/core/secret.rs` and all callers that persist or read encrypted secret strings.
+- Trigger: backend code changes local storage for SSH passwords, AI provider API keys, or any value stored through `core::secret`.
+- Applies to `app/src-tauri/src/core/secret.rs` and all callers that persist, read, migrate, or clear secret reference strings.
 
 #### 2. Signatures
 - `core::secret::encrypt(plain: &str) -> anyhow::Result<String>`
 - `core::secret::decrypt(encoded: &str) -> anyhow::Result<String>`
+- `core::secret::try_migrate_to_keyring(reference: &str, plain: &str) -> Option<String>`
+- `core::secret::delete(reference: &str) -> anyhow::Result<()>`
 
 #### 3. Contracts
-- Ciphertext format is base64 of `nonce || aes_gcm_ciphertext`, where `nonce` is exactly 12 bytes.
-- New encrypted values must use an OS cryptographic random source for the nonce.
-- `decrypt` must remain backward compatible with existing stored ciphertexts that use the same `nonce || ciphertext` format.
-- Do not change the key derivation, ciphertext format, or storage keys in a low-risk maintenance pass unless a migration plan and rollback path are documented.
-- Do not expose plaintext secrets through frontend responses. Frontend-visible profile/config responses should use booleans such as `apiKeySet` when possible.
+- Secret columns/settings store references, not plaintext. Supported reference formats:
+  - `keyring:v1:<account>`: preferred OS credential-store reference.
+  - `local:v1:<ciphertext>`: marked local AES-GCM fallback.
+  - `<ciphertext>` with no prefix: legacy AES-GCM value from existing installations.
+- `encrypt` must prefer the OS credential store and return a `keyring:v1:` reference when keyring write succeeds.
+- If keyring write fails because the OS store is unavailable or denied, `encrypt` may return a marked `local:v1:` fallback reference.
+- Local ciphertext format remains base64 of `nonce || aes_gcm_ciphertext`, where `nonce` is exactly 12 bytes and generated from an OS cryptographic random source.
+- `decrypt` must resolve all supported reference formats.
+- Backend read paths with DB/settings access should lazily migrate non-keyring references by calling `try_migrate_to_keyring` after successful decrypt and then updating the stored reference only if migration succeeds.
+- Do not delete legacy/local references after a failed keyring migration attempt.
+- Clearing or replacing a known keyring reference should call `delete`; deletion failures may be logged, but DB/settings references should still be cleared after the user requested removal.
+- Do not expose plaintext secrets through frontend responses. Frontend-visible profile/config responses should use booleans such as `apiKeySet` when possible. Existing password-edit prefilling is a compatibility exception and should not expand.
 
 #### 4. Validation & Error Matrix
-- Base64 decode failure -> return an error and do not guess plaintext.
-- Combined decoded payload shorter than nonce + tag requirements -> return an error.
+- Unknown/no prefix -> treat as legacy local ciphertext.
+- Keyring reference read failure -> return an error; do not try to guess or synthesize a secret.
+- Local/legacy base64 decode failure -> return an error and do not guess plaintext.
+- Local/legacy decoded payload shorter than nonce + tag requirements -> return an error.
 - AES-GCM decrypt failure -> return an error without logging plaintext or derived key material.
-- OS random nonce generation failure -> fail encryption rather than falling back to timestamp/pid/counter-derived bytes.
+- OS random nonce generation failure -> fail local fallback encryption rather than falling back to timestamp/pid/counter-derived bytes.
+- Keyring migration failure -> log and keep the existing reference unchanged.
 
 #### 5. Good/Base/Bad Cases
-- Good: encrypting the same password twice produces different ciphertexts because the nonce is random.
-- Base: old stored ciphertext decrypts after the nonce generator implementation changes.
-- Bad: nonce bytes are derived from time, process id, counters, usernames, hostnames, or other predictable local values.
+- Good: newly saved SSH password stores `keyring:v1:secret:<uuid>` in `hosts.secret_ref` and the plaintext in the OS credential store.
+- Base: Linux without accessible Secret Service stores `local:v1:<ciphertext>` and remains usable.
+- Base: old raw ciphertext decrypts and is lazily migrated when a backend path uses it.
+- Bad: caller stores a raw keyring password/API key directly in SQLite settings.
+- Bad: caller assumes every `secret_ref` is AES-GCM ciphertext and calls local decrypt logic directly.
 
 #### 6. Tests Required
-- Unit test that `encrypt` + `decrypt` round-trips a representative secret.
-- When adding migration support later, include tests that old-format ciphertexts still decrypt and new-format ciphertexts are written only after successful migration.
+- Unit tests for reference parsing, local fallback round-trip, and legacy ciphertext decrypt compatibility.
+- Tests must not require a real OS keyring in CI unless explicitly marked/integration-gated.
 - `cargo test` must pass after any secret storage change.
+- `cargo check` must verify all credential callers still compile against stable Tauri command names.
 
 #### 7. Wrong vs Correct
 
 Wrong:
 
 ```rust
-let nonce = derive_nonce_from_time_and_process_id();
+let password = decrypt_local_ciphertext(&host.secret_ref.unwrap())?;
 ```
 
 Correct:
 
 ```rust
-let mut nonce = [0u8; 12];
-getrandom::getrandom(&mut nonce)?;
+let reference = host.secret_ref.ok_or_else(|| anyhow::anyhow!("No saved password"))?;
+let password = crate::core::secret::decrypt(&reference)?;
+if let Some(next_ref) = crate::core::secret::try_migrate_to_keyring(&reference, &password) {
+    db.update_host_secret_ref(&host.id, Some(&next_ref)).await?;
+}
 ```
 
 ### Scenario: Platform Information for Frontend Display

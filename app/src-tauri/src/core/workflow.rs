@@ -103,6 +103,11 @@ pub async fn resolve_host_and_password(
         .clone()
         .ok_or_else(|| anyhow::anyhow!("No saved password"))?;
     let password = crate::core::secret::decrypt(&encrypted)?;
+    if let Some(next_ref) = crate::core::secret::try_migrate_to_keyring(&encrypted, &password) {
+        if let Err(err) = db.update_host_secret_ref(host_id, Some(&next_ref)).await {
+            tracing::warn!("failed to update migrated workflow host secret ref: {}", err);
+        }
+    }
     Ok((host.id, host.host, host.username, host.port as u16, password))
 }
 

@@ -157,6 +157,21 @@ fn app_platform_info() -> PlatformInfo {
     }
 }
 
+async fn decrypt_host_secret_with_lazy_migration(
+    db: &Database,
+    host_id: &str,
+    secret_ref: &str,
+) -> Result<String, String> {
+    let password = core::secret::decrypt(secret_ref)
+        .map_err(|e| format!("Failed to decrypt password: {}", e))?;
+    if let Some(next_ref) = core::secret::try_migrate_to_keyring(secret_ref, &password) {
+        if let Err(err) = db.update_host_secret_ref(host_id, Some(&next_ref)).await {
+            tracing::warn!("failed to update migrated host secret ref: {}", err);
+        }
+    }
+    Ok(password)
+}
+
 // ── Commands: Connection CRUD ──
 
 #[tauri::command]
@@ -194,6 +209,15 @@ async fn connection_update(
     db: tauri::State<'_, Database>,
     req: UpdateHostReq,
 ) -> Result<SuccessResponse, String> {
+    let old_secret_ref = if req.password.is_some() {
+        db.get_host(&req.id)
+            .await
+            .map_err(|e| e.to_string())?
+            .and_then(|host| host.secret_ref)
+    } else {
+        None
+    };
+
     // If password provided, encrypt and store in secret_ref column
     let secret_ref = if let Some(ref pw) = req.password {
         if pw.is_empty() {
@@ -220,6 +244,19 @@ async fn connection_update(
     )
     .await
     .map_err(|e| e.to_string())?;
+
+    if let Some(old_ref) = old_secret_ref {
+        let new_ref = secret_ref
+            .as_ref()
+            .and_then(|value| value.as_ref())
+            .map(String::as_str);
+        if Some(old_ref.as_str()) != new_ref {
+            if let Err(err) = core::secret::delete(&old_ref) {
+                tracing::warn!("failed to delete replaced host keyring credential: {}", err);
+            }
+        }
+    }
+
     Ok(SuccessResponse { success: true })
 }
 
@@ -228,7 +265,17 @@ async fn connection_delete(
     db: tauri::State<'_, Database>,
     id: String,
 ) -> Result<SuccessResponse, String> {
+    let old_secret_ref = db
+        .get_host(&id)
+        .await
+        .map_err(|e| e.to_string())?
+        .and_then(|host| host.secret_ref);
     db.delete_host(&id).await.map_err(|e| e.to_string())?;
+    if let Some(old_ref) = old_secret_ref {
+        if let Err(err) = core::secret::delete(&old_ref) {
+            tracing::warn!("failed to delete removed host keyring credential: {}", err);
+        }
+    }
     Ok(SuccessResponse { success: true })
 }
 
@@ -939,8 +986,7 @@ async fn session_connect(
             let encrypted = host
                 .secret_ref
                 .ok_or_else(|| "No saved password".to_string())?;
-            core::secret::decrypt(&encrypted)
-                .map_err(|e| format!("Failed to decrypt password: {}", e))?
+            decrypt_host_secret_with_lazy_migration(&db, &req.host_id, &encrypted).await?
         }
     };
 
@@ -1785,8 +1831,7 @@ async fn connection_test(
         .secret_ref
         .clone()
         .ok_or_else(|| "No saved password".to_string())?;
-    let password = core::secret::decrypt(&encrypted)
-        .map_err(|e| format!("Failed to decrypt password: {}", e))?;
+    let password = decrypt_host_secret_with_lazy_migration(&db, &host_id, &encrypted).await?;
 
     let start = std::time::Instant::now();
 
