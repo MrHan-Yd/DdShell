@@ -1999,6 +1999,11 @@ export function TerminalPage() {
     }, FILE_MANAGER_REMOTE_RESIZE_SUPPRESS_MS);
   }, []);
 
+  const closeFileManager = useCallback(() => {
+    beginFileManagerLayoutTransition();
+    setShowFileManager(false);
+  }, [beginFileManagerLayoutTransition]);
+
   const handleToggleFileManager = useCallback(() => {
     if (!fileManagerEnabled) return;
     if (!fileManagerTab) {
@@ -2008,8 +2013,7 @@ export function TerminalPage() {
     setShowHistory(false);
     setShowBookmarks(false);
     if (showFileManager) {
-      beginFileManagerLayoutTransition();
-      setShowFileManager(false);
+      closeFileManager();
       return;
     }
     if (termMainRef.current) {
@@ -2020,7 +2024,7 @@ export function TerminalPage() {
     beginFileManagerLayoutTransition();
     setRenderFileManager(true);
     window.requestAnimationFrame(() => setShowFileManager(true));
-  }, [beginFileManagerLayoutTransition, fileManagerEnabled, fileManagerTab, showFileManager, t]);
+  }, [beginFileManagerLayoutTransition, closeFileManager, fileManagerEnabled, fileManagerTab, showFileManager, t]);
 
   const handleFileManagerResizeStart = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
@@ -2108,10 +2112,9 @@ export function TerminalPage() {
 
   useEffect(() => {
     if (showFileManager && (!fileManagerEnabled || !fileManagerTab)) {
-      beginFileManagerLayoutTransition();
-      setShowFileManager(false);
+      closeFileManager();
     }
-  }, [beginFileManagerLayoutTransition, fileManagerEnabled, fileManagerTab, showFileManager]);
+  }, [closeFileManager, fileManagerEnabled, fileManagerTab, showFileManager]);
 
   useEffect(() => {
     if (showFileManager && fileManagerEnabled && fileManagerSessionId) {
@@ -2785,7 +2788,7 @@ export function TerminalPage() {
               hostId={fileManagerTab.hostId}
               hostName={fileManagerTab.title}
               initialPath={fileManagerInitialPath}
-              onClose={() => setShowFileManager(false)}
+              onClose={closeFileManager}
               onPathResolved={(path) => {
                 setSessionCwdMap((prev) => ({ ...prev, [fileManagerTab.sessionId]: path }));
               }}
