@@ -104,3 +104,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 60: 实现会话无操作超时
+
+**Date**: 2026-06-28
+**Task**: 实现会话无操作超时
+**Branch**: `main`
+
+### Summary
+
+为终端 SSH session 增加后端应用层 idle watchdog，按 session.keepAlive 主动断开无操作会话；用户输入、resize、SFTP 操作和传输进度刷新活动时间，远端输出和 SSH keepalive 不算用户活动。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f81da38` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
