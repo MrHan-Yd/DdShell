@@ -1950,3 +1950,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 56: 优化文件管理新建文件夹动画
+
+**Date**: 2026-06-28
+**Task**: 优化文件管理新建文件夹动画
+**Branch**: `main`
+
+### Summary
+
+复查 SFTP 新建文件夹输入行的主题级样式覆盖，并为 Classic/Aurora 增加轻量进入动画和尺寸兜底。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `61f95ac` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
