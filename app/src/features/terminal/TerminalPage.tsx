@@ -676,11 +676,8 @@ function TerminalInstance({
       },
     );
 
-    // CSI <row>;<col>R — Cursor Position Report 应答（响应 \x1b[6n 查询）。
-    // 切片 5：远程连接建立时注入一次 \x1b[6n，远端 PTY 把应答 \x1b[<row>;<col>R
-    // 经 SSH 通道回传到这里。我们消费（return true）避免应答字面写到屏幕；
-    // 解析出的 row/col 转给 PredictiveEcho.onCursorPosition，在 Cold 状态下
-    // 推到 Active。
+    // CSI <row>;<col>R — Cursor Position Report 应答。我们消费（return true）
+    // 避免应答字面写到屏幕；解析出的 row/col 转给 PredictiveEcho。
     const csiCprDisposable = term.parser.registerCsiHandler(
       { final: "R" },
       (params) => {
@@ -1094,18 +1091,6 @@ function TerminalInstance({
     setTimeout(() => {
       api.sessionResize(sessionId, term.cols, term.rows).catch(() => {});
     }, 800);
-
-    // CPR probe (切片 5): 连接建立稳定后注入一次 \x1b[6n。远端 PTY 应答经 SSH
-    // 回传，由 csiCprDisposable 拦截 → predictiveEchoRef.current.onCursorPosition
-    // → PredictiveEcho 在 Cold 状态下推到 Active（启发式扩展之外的兜底通道）。
-    // 不维护超时 timer——sessionWrite 失败被 .catch 吞掉；超时无应答的语义就是
-    // "PredictiveEcho 仍在 Cold，等启发式或 OSC 133 触发"，不需要主动清理。
-    setTimeout(() => {
-      api.sessionWrite(
-        sessionId,
-        Array.from(TEXT_ENCODER.encode("\x1b[6n")),
-      ).catch(() => {});
-    }, 300);
 
     term.focus();
 

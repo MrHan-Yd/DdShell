@@ -145,6 +145,60 @@ const info = await api.appPlatformInfo();
 const platform = info.label;
 ```
 
+### Scenario: SSH Terminal Login Banner Rendering
+
+#### 1. Scope / Trigger
+- Trigger: SSH PTY output normalization, terminal startup probes, predictive echo initialization, or login banner/MOTD rendering changes.
+- Applies to backend `output_reader_loop` byte handling and frontend terminal startup writes that can affect the remote PTY input stream.
+
+#### 2. Signatures
+- Backend normalizer: `CrLfNormalizer::normalize(&mut self, data: &[u8]) -> Vec<u8>`
+- Backend flush: `CrLfNormalizer::flush(&mut self) -> Vec<u8>`
+- Frontend terminal output sink: `term.write(remaining)`
+- Frontend remote input sink: `api.sessionWrite(sessionId, bytes)`
+
+#### 3. Contracts
+- Raw SSH output must preserve remote text while normalizing PAM/login-banner `\r\r\n` to `\r\n`.
+- CRLF normalization must be stream-based, not per chunk only. SSH may split `\r\r\n` as `"\r"` + `"\r\n"` or `"\r\r"` + `"\n"`.
+- A pending trailing `\r` may be held until the next output chunk decides whether it belongs to `\r\r\n`; it must be flushed on channel EOF/close.
+- Frontend startup must not write terminal capability probes such as `\x1b[6n` to the remote shell stdin during the login banner/MOTD window.
+- User input, paste, macro writes, and normal resize synchronization may still use `api.sessionWrite` / `sessionResize`; this rule only forbids synthetic startup probes that can be echoed or interpreted by the shell.
+
+#### 4. Validation & Error Matrix
+- `\r\r\n` in one chunk -> emit exactly `\r\n`.
+- `\r\r\n` split across chunks -> emit exactly `\r\n` once all bytes arrive.
+- chunk ends with bare `\r` -> hold it until next chunk; if no next chunk arrives, flush it unchanged on close.
+- startup CPR/probe requirement arises -> implement a local xterm-side query that does not forward probe bytes to the remote shell, or rely on OSC 133 / prompt heuristics.
+
+#### 5. Good/Base/Bad Cases
+- Good: `Last failed login...\r\r\n[root@host ~]# ` renders the prompt on a fresh line after the banner.
+- Base: progress output using bare `\r` is preserved once the next byte or channel close arrives.
+- Bad: `[root@host ~]# ttempt since the last successful login.` where the prompt overwrites the login-attempt banner.
+- Bad: frontend sends `api.sessionWrite(sessionId, encode("\x1b[6n"))` immediately after connecting.
+
+#### 6. Tests Required
+- Unit tests must cover in-chunk and cross-chunk `\r\r\n` normalization.
+- Unit tests must assert a trailing bare `\r` is not lost on flush.
+- Frontend build must pass after terminal startup write changes.
+- `cargo check` and `cargo test` must pass after output-reader changes.
+
+#### 7. Wrong vs Correct
+
+Wrong:
+
+```ts
+setTimeout(() => {
+  api.sessionWrite(sessionId, Array.from(encoder.encode("\x1b[6n")));
+}, 300);
+```
+
+Correct:
+
+```rust
+let normalized = crlf_normalizer.normalize(data);
+emit_session_output_bytes(&app, &session_id, &mut decoder, &normalized);
+```
+
 ### Scenario: Tauri Official Updater Release Contract
 
 #### 1. Scope / Trigger

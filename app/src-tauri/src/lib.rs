@@ -2634,24 +2634,70 @@ async fn open_installer(path: String) -> Result<(), String> {
     }
 }
 
-/// Normalize \r\r\n -> \r\n in raw SSH output.
-/// Some servers/PAM modules send double CR which causes xterm to render
-/// the cursor mid-line over MOTD text.
-fn normalize_crlf(data: &[u8]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(data.len());
-    let mut i = 0;
-    while i < data.len() {
-        // \r\r\n -> \r\n
-        if data[i] == b'\r' && i + 2 < data.len() && data[i + 1] == b'\r' && data[i + 2] == b'\n' {
-            out.push(b'\r');
-            out.push(b'\n');
-            i += 3;
-        } else {
-            out.push(data[i]);
-            i += 1;
+/// Stream-normalize CRLF in raw SSH output.
+/// Some servers/PAM modules send double CR (`\r\r\n`) around login banners,
+/// which can make xterm return to the start of the current line and render the
+/// shell prompt over MOTD text. SSH may split that sequence across output
+/// chunks, so normalization has to keep small cross-chunk state.
+#[derive(Default)]
+struct CrLfNormalizer {
+    pending_crs: usize,
+}
+
+impl CrLfNormalizer {
+    fn normalize(&mut self, data: &[u8]) -> Vec<u8> {
+        let mut out = Vec::with_capacity(data.len());
+        for &byte in data {
+            match byte {
+                b'\r' => {
+                    self.pending_crs += 1;
+                    if self.pending_crs > 2 {
+                        out.push(b'\r');
+                        self.pending_crs = 2;
+                    }
+                }
+                b'\n' => {
+                    if self.pending_crs > 0 {
+                        out.push(b'\r');
+                        out.push(b'\n');
+                        self.pending_crs = 0;
+                    } else {
+                        out.push(b'\n');
+                    }
+                }
+                _ => {
+                    out.extend(std::iter::repeat_n(b'\r', self.pending_crs));
+                    self.pending_crs = 0;
+                    out.push(byte);
+                }
+            }
         }
+        out
     }
-    out
+
+    fn flush(&mut self) -> Vec<u8> {
+        let out = vec![b'\r'; self.pending_crs];
+        self.pending_crs = 0;
+        out
+    }
+}
+
+fn emit_session_output_bytes(
+    app: &tauri::AppHandle,
+    session_id: &str,
+    decoder: &mut Option<encoding_rs::Decoder>,
+    output_data: &[u8],
+) {
+    if output_data.is_empty() {
+        return;
+    }
+    if let Some(dec) = decoder {
+        let mut output = String::with_capacity(output_data.len() * 2);
+        let (_result, _read, _had_errors) = dec.decode_to_string(output_data, &mut output, false);
+        event::emit_session_output(app, session_id, output.into_bytes());
+    } else {
+        event::emit_session_output(app, session_id, output_data.to_vec());
+    }
 }
 
 /// Background async loop that reads SSH output and emits events.
@@ -2676,6 +2722,7 @@ async fn output_reader_loop(
     } else {
         None
     };
+    let mut crlf_normalizer = CrLfNormalizer::default();
 
     // Brief delay so the frontend React component can mount and register its
     // Tauri event listener before we start emitting output data.
@@ -2686,26 +2733,21 @@ async fn output_reader_loop(
                 match msg {
                     Some(ChannelMsg::Data { ref data }) => {
                         tracing::debug!("[output_reader_loop] received {} bytes for session {}", data.len(), session_id);
-                        // Normalize \r\r\n -> \r\n: some servers/PAM send double CR
-                        // which causes the cursor to sit mid-line over MOTD text.
-                        let normalized: Vec<u8> = normalize_crlf(data);
-                        let output_data: &[u8] = &normalized;
-                        if let Some(ref mut dec) = decoder {
-                            let mut output = String::with_capacity(output_data.len() * 2);
-                            let (_result, _read, _had_errors) = dec.decode_to_string(output_data, &mut output, false);
-                            event::emit_session_output(&app, &session_id, output.into_bytes());
-                        } else {
-                            event::emit_session_output(&app, &session_id, output_data.to_vec());
-                        }
+                        let normalized = crlf_normalizer.normalize(data);
+                        emit_session_output_bytes(&app, &session_id, &mut decoder, &normalized);
                     }
                     Some(ChannelMsg::Eof) => {
                         tracing::info!("[output_reader_loop] EOF for session {}", session_id);
+                        let trailing = crlf_normalizer.flush();
+                        emit_session_output_bytes(&app, &session_id, &mut decoder, &trailing);
                         let _ = session_mgr.disconnect(&session_id).await;
                         event::emit_session_state(&app, &session_id, "disconnected");
                         break;
                     }
                     None => {
                         tracing::info!("[output_reader_loop] channel closed for session {}", session_id);
+                        let trailing = crlf_normalizer.flush();
+                        emit_session_output_bytes(&app, &session_id, &mut decoder, &trailing);
                         let _ = session_mgr.disconnect(&session_id).await;
                         event::emit_session_state(&app, &session_id, "disconnected");
                         break;
@@ -2725,6 +2767,8 @@ async fn output_reader_loop(
                     }
                     None => {
                         tracing::info!("[output_reader_loop] cmd_rx closed for session {}", session_id);
+                        let trailing = crlf_normalizer.flush();
+                        emit_session_output_bytes(&app, &session_id, &mut decoder, &trailing);
                         break;
                     }
                 }
@@ -3020,5 +3064,39 @@ mod tests {
             ),
             "0123456789abcdef0123456789abcdef.png"
         );
+    }
+
+    #[test]
+    fn crlf_normalizer_collapses_double_cr_in_one_chunk() {
+        let mut normalizer = CrLfNormalizer::default();
+
+        let output = normalizer.normalize(b"Last login\r\r\n[root]# ");
+
+        assert_eq!(output, b"Last login\r\n[root]# ");
+        assert!(normalizer.flush().is_empty());
+    }
+
+    #[test]
+    fn crlf_normalizer_collapses_double_cr_across_chunks() {
+        let mut normalizer = CrLfNormalizer::default();
+
+        let first = normalizer.normalize(b"failed login attempt\r");
+        let second = normalizer.normalize(b"\r");
+        let third = normalizer.normalize(b"\n[root]# ");
+
+        assert_eq!(first, b"failed login attempt");
+        assert!(second.is_empty());
+        assert_eq!(third, b"\r\n[root]# ");
+        assert!(normalizer.flush().is_empty());
+    }
+
+    #[test]
+    fn crlf_normalizer_preserves_bare_trailing_cr_on_flush() {
+        let mut normalizer = CrLfNormalizer::default();
+
+        let output = normalizer.normalize(b"progress\r");
+
+        assert_eq!(output, b"progress");
+        assert_eq!(normalizer.flush(), b"\r");
     }
 }
