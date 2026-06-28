@@ -71,3 +71,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 59: 修复重连遮罩终端边框
+
+**Date**: 2026-06-28
+**Task**: 修复重连遮罩终端边框
+**Branch**: `main`
+
+### Summary
+
+提高活动终端边框层级，避免断连/重新连接遮罩盖住下方和侧边边框；补充终端内部 overlay 不应盖住 active outline 的前端规范。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2615bb2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
