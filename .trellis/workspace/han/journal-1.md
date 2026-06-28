@@ -1752,3 +1752,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 50: 统一文件管理关闭入口
+
+**Date**: 2026-06-28
+**Task**: 统一文件管理关闭入口
+**Branch**: `main`
+
+### Summary
+
+修复终端文件管理抽屉内部 X 按钮绕过统一关闭逻辑的问题；新增 closeFileManager 并让工具栏关闭、失效关闭、抽屉 X 均走同一路径，从而启用本地-only远端 resize 屏蔽窗口。验证 pnpm -C app build、cargo check、cargo test、git diff --check 均通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `889d3ae` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
