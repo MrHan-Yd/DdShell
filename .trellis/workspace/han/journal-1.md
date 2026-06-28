@@ -1719,3 +1719,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 49: 屏蔽文件管理收尾远端 resize
+
+**Date**: 2026-06-28
+**Task**: 屏蔽文件管理收尾远端 resize
+**Branch**: `main`
+
+### Summary
+
+修复文件管理关闭后仍新增 prompt 的收尾路径；为 TerminalInstance 增加独立 suppressRemoteResize gate，文件管理开关启用覆盖动画、卸载和布局回弹的本地-only窗口，拖拽路径不启用，保留真实 resize 同步。验证 pnpm -C app build、cargo check、cargo test、git diff --check 均通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2178405` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
