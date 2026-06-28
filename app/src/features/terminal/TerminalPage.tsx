@@ -1967,7 +1967,7 @@ export function TerminalPage() {
   const fileManagerLayoutHeight = fileManagerOpen ? fileManagerHeight : 0;
   const fileManagerRenderedHeight = isFileManagerResizing ? fileManagerResizeHeightRef.current : fileManagerLayoutHeight;
   const shouldSuspendTerminalResize = isFileManagerResizing || isFileManagerTransitioning;
-  const shouldSyncTerminalResizeAfterSuspend = !isFileManagerTransitioning;
+  const shouldSyncTerminalResizeAfterSuspend = !shouldSuspendTerminalResize;
 
   const handleTerminalFocus = useCallback((sessionId: string, cwd: string | null) => {
     setLastFocusedSessionId(sessionId);
