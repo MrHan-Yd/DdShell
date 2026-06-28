@@ -4470,6 +4470,9 @@ button.terminal-macro-recipe.is-selected,
   padding: 5px var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
+  overflow: hidden;
+  transform-origin: top center;
+  animation: sftp-mkdir-editor-enter var(--d-base) var(--ease-smooth) both;
 }
 
 [data-ui-theme="classic"] .sftp-main .mkdir-editor-icon {
@@ -4480,6 +4483,7 @@ button.terminal-macro-recipe.is-selected,
 }
 
 [data-ui-theme="classic"] .sftp-main .mkdir-editor .mkdir-editor-input {
+  box-sizing: border-box;
   height: 30px;
   min-height: 30px;
   border-radius: var(--radius-md);
@@ -4487,12 +4491,26 @@ button.terminal-macro-recipe.is-selected,
 }
 
 [data-ui-theme="classic"] .sftp-main .mkdir-editor .mkdir-editor-action {
+  box-sizing: border-box;
   width: 28px;
   min-width: 28px;
   height: 28px;
   min-height: 28px;
+  flex: 0 0 28px;
   padding: 0;
   border-radius: var(--radius-sm);
+}
+
+@keyframes sftp-mkdir-editor-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 [data-ui-theme="classic"] .sftp-main .file-list {
