@@ -1851,3 +1851,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 53: 文件管理覆盖安全区
+
+**Date**: 2026-06-28
+**Task**: 文件管理覆盖安全区
+**Branch**: `main`
+
+### Summary
+
+实现文件管理覆盖层的终端底部安全区；保持 xterm 容器尺寸不变，通过 CSS transform 将终端 panes 视觉上移，避免文件管理遮住当前命令行，同时不触发本地 fit 或远端 PTY resize。验证 pnpm -C app build、cargo check、cargo test、git diff --check 均通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f6ef4b2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
