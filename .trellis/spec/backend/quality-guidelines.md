@@ -162,6 +162,7 @@ const platform = info.label;
 - CRLF normalization must be stream-based, not per chunk only. SSH may split `\r\r\n` as `"\r"` + `"\r\n"` or `"\r\r"` + `"\n"`.
 - A pending trailing `\r` may be held until the next output chunk decides whether it belongs to `\r\r\n`; it must be flushed on channel EOF/close.
 - If a login banner text line is followed by a bare `\r` and then a bracket-style shell prompt such as `[root@host ~]# `, normalize that CR to `\r\n` so the prompt starts on a fresh line instead of overwriting the banner.
+- The bracket prompt may be preceded by ANSI/CSI control sequences such as `\x1b[0m`; keep those bytes but still normalize the preceding bare CR to `\r\n`.
 - Do not globally convert every bare `\r` to a newline. Command output may use bare CR for progress/status rewrites, so non-prompt rewrites such as `progress 10%\rprogress 20%` must remain unchanged.
 - Frontend startup must not write terminal capability probes such as `\x1b[6n` to the remote shell stdin during the login banner/MOTD window.
 - User input, paste, macro writes, and normal resize synchronization may still use `api.sessionWrite` / `sessionResize`; this rule only forbids synthetic startup probes that can be echoed or interpreted by the shell.
@@ -171,6 +172,7 @@ const platform = info.label;
 - `\r\r\n` split across chunks -> emit exactly `\r\n` once all bytes arrive.
 - chunk ends with bare `\r` -> hold it until next chunk; if no next chunk arrives, flush it unchanged on close.
 - `There were 1 failed login attempts...\r[root@host ~]# ` -> emit `There were 1 failed login attempts...\r\n[root@host ~]# `.
+- `Last login...\r\x1b[0m[root@host ~]# ` -> emit `Last login...\r\n\x1b[0m[root@host ~]# `.
 - `progress 10%\rprogress 20%` -> preserve the bare CR rewrite.
 - startup CPR/probe requirement arises -> implement a local xterm-side query that does not forward probe bytes to the remote shell, or rely on OSC 133 / prompt heuristics.
 
@@ -184,6 +186,7 @@ const platform = info.label;
 #### 6. Tests Required
 - Unit tests must cover in-chunk and cross-chunk `\r\r\n` normalization.
 - Unit tests must cover bare-CR bracket prompt overwrite prevention, including a cross-chunk split.
+- Unit tests must cover bare-CR ANSI/CSI plus bracket prompt overwrite prevention, including a cross-chunk split.
 - Unit tests must cover non-prompt bare CR rewrites staying unchanged.
 - Unit tests must assert a trailing bare `\r` is not lost on flush.
 - Frontend build must pass after terminal startup write changes.

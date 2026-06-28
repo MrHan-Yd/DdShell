@@ -2643,12 +2643,17 @@ async fn open_installer(path: String) -> Result<(), String> {
 struct CrLfNormalizer {
     pending_crs: usize,
     current_line_has_text: bool,
+    post_cr_buffer: Vec<u8>,
 }
 
 impl CrLfNormalizer {
     fn normalize(&mut self, data: &[u8]) -> Vec<u8> {
         let mut out = Vec::with_capacity(data.len());
         for &byte in data {
+            if self.handle_post_cr_byte(&mut out, byte) {
+                continue;
+            }
+
             match byte {
                 b'\r' => {
                     self.pending_crs += 1;
@@ -2669,17 +2674,19 @@ impl CrLfNormalizer {
                     }
                 }
                 _ => {
-                    if self.pending_crs == 1 && self.current_line_has_text && byte == b'[' {
+                    if self.pending_crs == 1 && self.current_line_has_text && byte == b'\x1b' {
+                        self.pending_crs = 0;
+                        self.post_cr_buffer.push(byte);
+                    } else if self.pending_crs == 1 && self.current_line_has_text && byte == b'[' {
                         out.push(b'\r');
                         out.push(b'\n');
                         self.current_line_has_text = false;
+                        self.pending_crs = 0;
+                        self.push_output_byte(&mut out, byte);
                     } else {
                         out.extend(std::iter::repeat_n(b'\r', self.pending_crs));
-                    }
-                    self.pending_crs = 0;
-                    out.push(byte);
-                    if byte >= 0x20 && byte != 0x7f {
-                        self.current_line_has_text = true;
+                        self.pending_crs = 0;
+                        self.push_output_byte(&mut out, byte);
                     }
                 }
             }
@@ -2688,9 +2695,78 @@ impl CrLfNormalizer {
     }
 
     fn flush(&mut self) -> Vec<u8> {
-        let out = vec![b'\r'; self.pending_crs];
+        let mut out = Vec::with_capacity(self.post_cr_buffer.len() + self.pending_crs + 1);
+        if !self.post_cr_buffer.is_empty() {
+            out.push(b'\r');
+            out.append(&mut self.post_cr_buffer);
+        }
+        out.extend(std::iter::repeat_n(b'\r', self.pending_crs));
         self.pending_crs = 0;
         out
+    }
+
+    fn push_output_byte(&mut self, out: &mut Vec<u8>, byte: u8) {
+        out.push(byte);
+        if byte >= 0x20 && byte != 0x7f {
+            self.current_line_has_text = true;
+        }
+    }
+
+    fn handle_post_cr_byte(&mut self, out: &mut Vec<u8>, byte: u8) -> bool {
+        if self.post_cr_buffer.is_empty() {
+            return false;
+        }
+
+        if !Self::ansi_chain_complete(&self.post_cr_buffer) {
+            self.post_cr_buffer.push(byte);
+            return true;
+        }
+
+        if byte == b'\x1b' {
+            self.post_cr_buffer.push(byte);
+            return true;
+        }
+
+        out.push(b'\r');
+        if byte == b'[' {
+            out.push(b'\n');
+            self.current_line_has_text = false;
+        }
+        out.append(&mut self.post_cr_buffer);
+        self.push_output_byte(out, byte);
+        true
+    }
+
+    fn ansi_chain_complete(bytes: &[u8]) -> bool {
+        let mut i = 0;
+        while i < bytes.len() {
+            if bytes[i] != b'\x1b' {
+                return false;
+            }
+            i += 1;
+            if i >= bytes.len() {
+                return false;
+            }
+
+            if bytes[i] == b'[' {
+                i += 1;
+                let mut found_final = false;
+                while i < bytes.len() {
+                    let byte = bytes[i];
+                    i += 1;
+                    if (0x40..=0x7e).contains(&byte) {
+                        found_final = true;
+                        break;
+                    }
+                }
+                if !found_final {
+                    return false;
+                }
+            } else {
+                i += 1;
+            }
+        }
+        true
     }
 }
 
@@ -3148,5 +3224,43 @@ mod tests {
         let output = normalizer.normalize(b"progress 10%\rprogress 20%");
 
         assert_eq!(output, b"progress 10%\rprogress 20%");
+    }
+
+    #[test]
+    fn crlf_normalizer_moves_ansi_bracket_prompt_after_banner_bare_cr() {
+        let mut normalizer = CrLfNormalizer::default();
+
+        let output =
+            normalizer.normalize(b"Last login: Sun Jun 28 06:21:04\r\x1b[0m[root@host ~]# ");
+
+        assert_eq!(
+            output,
+            b"Last login: Sun Jun 28 06:21:04\r\n\x1b[0m[root@host ~]# "
+        );
+    }
+
+    #[test]
+    fn crlf_normalizer_moves_split_ansi_bracket_prompt_after_banner_bare_cr() {
+        let mut normalizer = CrLfNormalizer::default();
+
+        let first = normalizer.normalize(b"Last login: Sun Jun 28 06:21:04\r");
+        let second = normalizer.normalize(b"\x1b[");
+        let third = normalizer.normalize(b"0m");
+        let fourth = normalizer.normalize(b"[root@host ~]# ");
+
+        assert_eq!(first, b"Last login: Sun Jun 28 06:21:04");
+        assert!(second.is_empty());
+        assert!(third.is_empty());
+        assert_eq!(fourth, b"\r\n\x1b[0m[root@host ~]# ");
+    }
+
+    #[test]
+    fn crlf_normalizer_flushes_incomplete_post_cr_ansi() {
+        let mut normalizer = CrLfNormalizer::default();
+
+        let output = normalizer.normalize(b"Last login\r\x1b[");
+
+        assert_eq!(output, b"Last login");
+        assert_eq!(normalizer.flush(), b"\r\x1b[");
     }
 }
