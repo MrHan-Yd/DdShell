@@ -91,6 +91,41 @@ Questions to answer:
 - `app/src/styles/aurora/pages/sftp.css`
 - `app/src/styles.css`
 
+### Theme button resets can override Tailwind padding on popover rows
+
+**What**: Button-like rows inside themed popovers must use a semantic class and a theme-scoped compound selector when their spacing matters.
+
+**Why**: Aurora has a global `[data-ui-theme="aurora"] button { padding: 0; ... }` reset. That selector is more specific than a Tailwind utility such as `px-3`, so a row rendered as `<button className="px-3 py-2">` can lose its padding and make popover content touch the border.
+
+**Wrong**:
+
+```tsx
+<button className="flex w-full items-center px-3 py-2">
+  ...
+</button>
+```
+
+**Correct**:
+
+```tsx
+<button className="path-tools-recent-row">
+  ...
+</button>
+```
+
+```css
+[data-ui-theme="aurora"] button.path-tools-recent-row {
+  display: grid;
+  width: 100%;
+  padding: 7px var(--space-4);
+}
+```
+
+**Related**:
+- `app/src/features/sftp/SftpPage.tsx`
+- `app/src/styles/aurora/base.css`
+- `app/src/styles/aurora/pages/sftp.css`
+
 ---
 
 ## Convention: Static UI drafts are visual references, not feature contracts

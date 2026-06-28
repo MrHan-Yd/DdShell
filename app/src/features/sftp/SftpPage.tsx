@@ -278,8 +278,8 @@ function PathToolsDropdown({
       <button
         onClick={toggleOpen}
         className={cn(
-          "p-1 rounded hover:bg-[var(--color-bg-hover)] transition-colors",
-          open && "bg-[var(--color-bg-hover)]",
+          "path-tools-trigger",
+          open && "is-open",
         )}
         title="Path tools (favorites & recent)"
       >
@@ -294,31 +294,31 @@ function PathToolsDropdown({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-popover)] overflow-hidden">
+        <div className="path-tools-popover absolute right-0 top-full mt-1 z-50">
           {/* Favorites section */}
-          <div className="border-b border-[var(--color-border)]">
-            <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-text-secondary)] flex items-center gap-1.5">
+          <div className="path-tools-section">
+            <div className="path-tools-section-head">
+              <span className="path-tools-section-title">
                 <Star size={12} className="text-[var(--color-warning)]" />
                 {t("sftp.favorites")}
               </span>
               {!isCurrentFavorite && (
                 <button
                   onClick={handleAddFavorite}
-                  className="text-[var(--font-size-xs)] text-[var(--color-accent)] hover:underline"
+                  className="path-tools-add-button"
                 >
                   {t("sftp.addCurrentPath")}
                 </button>
               )}
             </div>
-            <div className="max-h-[120px] overflow-y-auto">
+            <div className="path-tools-list path-tools-list--favorites">
               {loadingFavorites && (
                 <div className="flex items-center justify-center py-3">
                   <Loader2 size={14} className="animate-spin text-[var(--color-text-muted)]" />
                 </div>
               )}
               {!loadingFavorites && favorites.length === 0 && (
-                <div className="px-3 py-2 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                <div className="path-tools-empty">
                   {t("sftp.noFavorites")}
                 </div>
               )}
@@ -326,11 +326,11 @@ function PathToolsDropdown({
                 favorites.map((fav) => (
                   <div
                     key={fav.id}
-                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--color-bg-hover)] cursor-pointer group"
+                    className="path-tools-favorite-row group"
                   >
                     <Star size={12} className="text-[var(--color-warning)] fill-[var(--color-warning)] shrink-0" />
                     <button
-                      className="flex-1 text-left text-[var(--font-size-xs)] truncate text-[var(--color-text-primary)]"
+                      className="path-tools-favorite-path"
                       onClick={() => handleNavigate(fav.path)}
                       title={fav.path}
                     >
@@ -341,7 +341,7 @@ function PathToolsDropdown({
                         e.stopPropagation();
                         handleRemoveFavorite(fav.id);
                       }}
-                      className="p-0.5 rounded hover:bg-[var(--color-bg-hover)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      className="path-tools-remove-button opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Remove from favorites"
                     >
                       <StarOff size={12} className="text-[var(--color-text-muted)]" />
@@ -353,20 +353,20 @@ function PathToolsDropdown({
 
           {/* Recent section */}
           <div>
-            <div className="flex items-center px-3 py-2">
-              <span className="text-[var(--font-size-xs)] font-medium text-[var(--color-text-secondary)] flex items-center gap-1.5">
+            <div className="path-tools-section-head">
+              <span className="path-tools-section-title">
                 <Clock size={12} className="text-[var(--color-text-muted)]" />
                 {t("sftp.recent")}
               </span>
             </div>
-            <div className="max-h-[140px] overflow-y-auto">
+            <div className="path-tools-list path-tools-list--recent">
               {loadingRecents && (
                 <div className="flex items-center justify-center py-3">
                   <Loader2 size={14} className="animate-spin text-[var(--color-text-muted)]" />
                 </div>
               )}
               {!loadingRecents && recents.length === 0 && (
-                <div className="px-3 py-2 text-[var(--font-size-xs)] text-[var(--color-text-muted)]">
+                <div className="path-tools-empty">
                   {t("sftp.noRecent")}
                 </div>
               )}
@@ -374,15 +374,15 @@ function PathToolsDropdown({
                 recents.map((rec) => (
                   <button
                     key={rec.id}
-                    className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-[var(--color-bg-hover)] cursor-pointer text-left"
+                    className="path-tools-recent-row"
                     onClick={() => handleNavigate(rec.path)}
                     title={rec.path}
                   >
                     <Clock size={12} className="text-[var(--color-text-muted)] shrink-0" />
-                    <span className="flex-1 text-[var(--font-size-xs)] truncate text-[var(--color-text-primary)]">
+                    <span className="path-tools-recent-path">
                       {rec.path}
                     </span>
-                    <span className="text-[var(--font-size-xs)] text-[var(--color-text-muted)] shrink-0">
+                    <span className="path-tools-recent-date">
                       {new Date(rec.accessedAt).toLocaleDateString()}
                     </span>
                   </button>

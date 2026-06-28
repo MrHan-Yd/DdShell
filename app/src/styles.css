@@ -4461,6 +4461,181 @@ button.terminal-macro-recipe.is-selected,
   min-height: 24px;
 }
 
+[data-ui-theme="classic"] .sftp-main .path-tools-trigger,
+[data-ui-theme="classic"] .sftp-main button.path-tools-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-trigger:hover,
+[data-ui-theme="classic"] .sftp-main .path-tools-trigger.is-open,
+[data-ui-theme="classic"] .sftp-main button.path-tools-trigger:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-popover {
+  width: 320px;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-popover);
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-section {
+  border-bottom: 1px solid var(--border-default);
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--fg-secondary);
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-add-button,
+[data-ui-theme="classic"] .sftp-main button.path-tools-add-button {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  line-height: 1.2;
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-add-button:hover,
+[data-ui-theme="classic"] .sftp-main button.path-tools-add-button:hover {
+  text-decoration: underline;
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-list {
+  overflow-y: auto;
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-list--favorites {
+  max-height: 120px;
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-list--recent {
+  max-height: 140px;
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-empty {
+  padding: 8px var(--space-4);
+  font-size: var(--fs-sm);
+  color: var(--fg-muted);
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-favorite-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 7px var(--space-4);
+  cursor: pointer;
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-favorite-row:hover {
+  background: var(--bg-hover);
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-favorite-path,
+[data-ui-theme="classic"] .sftp-main button.path-tools-favorite-path {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg-primary);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-remove-button,
+[data-ui-theme="classic"] .sftp-main button.path-tools-remove-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-remove-button:hover,
+[data-ui-theme="classic"] .sftp-main button.path-tools-remove-button:hover {
+  background: var(--bg-hover);
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-recent-row,
+[data-ui-theme="classic"] .sftp-main button.path-tools-recent-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 7px var(--space-4);
+  border: 0;
+  background: transparent;
+  color: var(--fg-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-recent-row:hover,
+[data-ui-theme="classic"] .sftp-main button.path-tools-recent-row:hover {
+  background: var(--bg-hover);
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-recent-path {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg-primary);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-ui-theme="classic"] .sftp-main .path-tools-recent-date {
+  justify-self: end;
+  color: var(--fg-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
 [data-ui-theme="classic"] .sftp-main .mkdir-editor {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr) 28px 28px;
