@@ -3,6 +3,7 @@ import { useAppStore } from "@/stores/app";
 import { useTerminalStore } from "@/stores/terminal";
 import { confirm } from "@/stores/confirm";
 import { t } from "@/lib/i18n";
+import { isMacPlatform } from "@/lib/platform";
 import type { Page } from "@/types";
 
 type ShortcutHandler = (e: KeyboardEvent) => void;
@@ -19,7 +20,7 @@ interface ShortcutDef {
   allowInInput?: boolean;
 }
 
-const isMac = navigator.platform.toUpperCase().includes("MAC");
+const isMac = isMacPlatform();
 
 function matchesModifier(e: KeyboardEvent, def: ShortcutDef): boolean {
   const wantCmd = def.meta || def.ctrl;

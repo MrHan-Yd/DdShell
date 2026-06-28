@@ -19,6 +19,7 @@ import { t as translate, useT } from "@/lib/i18n";
 import { getAppVersion } from "@/lib/constants";
 import type { DictKey, Locale } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
+import { isMacPlatform } from "@/lib/platform";
 import { importTerminalBackgroundImagePath, migrateTerminalBackgroundImageSetting } from "@/lib/terminalBackground";
 import { confirm, useConfirmStore } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
@@ -27,7 +28,7 @@ import { DEFAULT_COMMAND_ASSIST_MODE, type CommandAssistMode } from "@/features/
 
 const TABS = ["general", "transfer", "terminal", "commandAssist", "aiAgent", "shortcuts", "about"] as const;
 type SettingsTab = (typeof TABS)[number];
-const IS_MAC = navigator.platform.toUpperCase().includes("MAC");
+const IS_MAC = isMacPlatform();
 const GITHUB_REPO_URL = "https://github.com/MrHan-Yd/DdShell";
 const GITHUB_ISSUES_URL = "https://github.com/MrHan-Yd/DdShell/issues";
 const APP_RUNTIME = "Tauri 2 · React 19 · Rust";

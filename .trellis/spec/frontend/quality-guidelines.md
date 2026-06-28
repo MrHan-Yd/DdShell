@@ -71,6 +71,34 @@ This contract makes "missing i18n key" a build-time error, the way the type syst
 
 ## Required Patterns
 
+### Platform-specific UI branches use the shared platform helper
+
+Feature and component code must not read browser compatibility strings such as `navigator.platform` or `navigator.userAgent` directly. Use the shared synchronous helper for UI branches that need immediate macOS/non-macOS behavior:
+
+```ts
+import { isMacPlatform } from "@/lib/platform";
+
+const isMac = isMacPlatform();
+```
+
+This applies to shortcut modifier handling, shortcut labels, and window-control visibility. Keep the helper synchronous so keyboard handlers and module-level UI constants are available during startup.
+
+Do not use this helper for display-safe OS/architecture labels. User-facing runtime platform labels must continue to come from the Tauri-backed `appPlatformInfo()` wrapper because browser compatibility strings can report Apple Silicon as `MacIntel`.
+
+```ts
+// Correct for display labels.
+const info = await api.appPlatformInfo();
+const label = info.label;
+```
+
+Before committing platform-related frontend changes, verify:
+
+```bash
+rg "navigator\\.platform|navigator\\.userAgent" app/src
+```
+
+The only allowed frontend hit should be inside `app/src/lib/platform.ts`.
+
 ### Terminal server-scoped local state uses `hostId`
 
 Terminal UI state that users expect to follow a server across reconnects must be keyed by `TerminalTab.hostId`, not by `tab.id` or `sessionId`.

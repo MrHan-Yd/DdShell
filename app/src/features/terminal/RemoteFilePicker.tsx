@@ -3,6 +3,7 @@ import { ChevronLeft, Clock, FileText, Folder, FolderOpen, Loader2, RefreshCw, S
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
+import { isMacPlatform } from "@/lib/platform";
 import { getRemoteDirPath, recordQuickEditPickerDir } from "@/lib/quickEditPickerDir";
 import { readQuickEditRecents } from "@/lib/quickEditRecent";
 import type { FileEntry, QuickEditRecentItem } from "@/types";
@@ -23,7 +24,7 @@ export interface RemoteFilePickerProps {
 }
 
 const ROOT = "/";
-const isMac = navigator.platform.toUpperCase().includes("MAC");
+const isMac = isMacPlatform();
 
 function normalizeDir(input: string): string {
   if (!input) return ROOT;

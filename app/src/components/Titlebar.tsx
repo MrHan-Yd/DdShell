@@ -2,10 +2,11 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, X } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { useT } from "@/lib/i18n";
+import { isMacPlatform } from "@/lib/platform";
 import { confirm } from "@/stores/confirm";
 
 const appWindow = getCurrentWindow();
-const isMac = navigator.platform.toUpperCase().includes("MAC");
+const isMac = isMacPlatform();
 
 function WinControls() {
   const t = useT();
