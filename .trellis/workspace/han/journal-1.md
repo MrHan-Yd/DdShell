@@ -1884,3 +1884,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 54: 修复重连遮罩边框裁切
+
+**Date**: 2026-06-28
+**Task**: 修复重连遮罩边框裁切
+**Branch**: `main`
+
+### Summary
+
+修复文件管理安全区 transform 作用范围过大导致断开连接重连卡片边框被裁切的问题；将安全区 transform 从终端 panes 外层移到 xterm surface，仅移动终端文本内容，overlay 兄弟节点保持正常居中。验证 pnpm -C app build、cargo check、cargo test、git diff --check 均通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `efd0614` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
