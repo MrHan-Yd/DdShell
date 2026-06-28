@@ -3867,6 +3867,16 @@ body.theme-light [data-ui-theme="classic"] .connections-page .detail-cta .kbd {
   transition: none;
 }
 
+.terminal-page .terminal-xterm-surface {
+  transform: translateY(calc(-1 * var(--terminal-file-manager-offset, 0px)));
+  transition: transform var(--duration-panel) var(--ease-smooth);
+  will-change: transform;
+}
+
+.terminal-page .term-main[data-file-manager-resizing="true"] .terminal-xterm-surface {
+  transition: none;
+}
+
 .terminal-disconnect-overlay {
   position: absolute;
   inset: 0;

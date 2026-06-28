@@ -1156,8 +1156,10 @@ function TerminalInstance({
     <div className="relative h-full w-full">
       <div
         ref={containerRef}
-        className={cn("h-full w-full", hasBgImage && "xterm-bg-transparent")}
-        style={{ padding: "2px 4px 0" }}
+        className={cn("terminal-xterm-surface h-full w-full", hasBgImage && "xterm-bg-transparent")}
+        style={{
+          padding: "2px 4px 0",
+        }}
       />
       {/* Command Assist floating panel */}
       <CommandAssist
@@ -2059,7 +2061,7 @@ export function TerminalPage() {
           shell.style.height = `${height}px`;
         }
         if (containerRef.current) {
-          containerRef.current.style.transform = `translateY(-${height}px)`;
+          containerRef.current.style.setProperty("--terminal-file-manager-offset", `${height}px`);
         }
       });
     };
@@ -2498,15 +2500,13 @@ export function TerminalPage() {
 {/* Terminal area */}
         <div
           ref={containerRef}
-                  className={cn(
-                    "term-panes relative flex-1 overflow-hidden",
-                    splitDirection && `is-split is-split-${splitDirection}`,
+          className={cn(
+            "term-panes relative flex-1 overflow-hidden",
+            splitDirection && `is-split is-split-${splitDirection}`,
           )}
           style={{
             backgroundColor: hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F1115"),
-            transform: terminalFileManagerOffset > 0 ? `translateY(-${terminalFileManagerOffset}px)` : undefined,
-            transition: isFileManagerResizing ? "none" : "transform var(--duration-panel) var(--ease-smooth)",
-            willChange: shouldRenderFileManager ? "transform" : undefined,
+            ["--terminal-file-manager-offset" as string]: `${terminalFileManagerOffset}px`,
             ...(splitDirection === "horizontal" ? { gridTemplateRows: `${splitRatio * 100}% 1px ${(1 - splitRatio) * 100}%` } : splitDirection === "vertical" ? { gridTemplateColumns: `${splitRatio * 100}% 1px ${(1 - splitRatio) * 100}%` } : {}),
           }}
         >
