@@ -1966,6 +1966,7 @@ export function TerminalPage() {
   const shouldRenderFileManager = renderFileManager && fileManagerEnabled && fileManagerTab !== null;
   const fileManagerLayoutHeight = fileManagerOpen ? fileManagerHeight : 0;
   const fileManagerRenderedHeight = isFileManagerResizing ? fileManagerResizeHeightRef.current : fileManagerLayoutHeight;
+  const terminalFileManagerOffset = shouldRenderFileManager ? fileManagerRenderedHeight : 0;
   const shouldSuspendTerminalResize = isFileManagerResizing || isFileManagerTransitioning;
   const shouldSyncTerminalResizeAfterSuspend = !shouldSuspendTerminalResize;
 
@@ -2056,6 +2057,9 @@ export function TerminalPage() {
         const shell = fileManagerShellRef.current;
         if (shell) {
           shell.style.height = `${height}px`;
+        }
+        if (containerRef.current) {
+          containerRef.current.style.transform = `translateY(-${height}px)`;
         }
       });
     };
@@ -2500,6 +2504,9 @@ export function TerminalPage() {
           )}
           style={{
             backgroundColor: hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F1115"),
+            transform: terminalFileManagerOffset > 0 ? `translateY(-${terminalFileManagerOffset}px)` : undefined,
+            transition: isFileManagerResizing ? "none" : "transform var(--duration-panel) var(--ease-smooth)",
+            willChange: shouldRenderFileManager ? "transform" : undefined,
             ...(splitDirection === "horizontal" ? { gridTemplateRows: `${splitRatio * 100}% 1px ${(1 - splitRatio) * 100}%` } : splitDirection === "vertical" ? { gridTemplateColumns: `${splitRatio * 100}% 1px ${(1 - splitRatio) * 100}%` } : {}),
           }}
         >
