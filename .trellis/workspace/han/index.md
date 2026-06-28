@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 47
+- **Total Sessions**: 48
 - **Last Active**: 2026-06-28
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1688 | Active |
+| `journal-1.md` | ~1721 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 48 | 2026-06-28 | 修复文件管理开关 prompt 重绘 | `195900d` | `main` |
 | 47 | 2026-06-28 | 修复文件管理打开重复 prompt | `1f31257` | `main` |
 | 46 | 2026-06-28 | 修复终端启动 prompt 重复残片 | `83cb8d8` | `main` |
 | 45 | 2026-06-28 | 兼容登录提示后 ANSI prompt 覆盖 | `16a538a` | `main` |

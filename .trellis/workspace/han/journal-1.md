@@ -1686,3 +1686,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 48: 修复文件管理开关 prompt 重绘
+
+**Date**: 2026-06-28
+**Task**: 修复文件管理开关 prompt 重绘
+**Branch**: `main`
+
+### Summary
+
+修复终端文件管理打开/关闭后仍追加 prompt 的问题；将文件管理开关产生的 pending fit 标记为本地-only，避免最终 fit 触发远端 PTY window_change，同时保留手动拖拽等真实 resize 的远端同步。验证 pnpm -C app build、cargo check、cargo test、git diff --check 均通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `195900d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
