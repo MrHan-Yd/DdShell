@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 42
+- **Total Sessions**: 43
 - **Last Active**: 2026-06-28
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1523 | Active |
+| `journal-1.md` | ~1556 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 43 | 2026-06-28 | 修复终端首次登录 prompt 混排 | `c90b161` | `main` |
 | 42 | 2026-06-28 | 收敛前端平台判断 | `056d774` | `main` |
 | 41 | 2026-06-27 | 发布 v0.2.6 | `02fc25d` | `main` |
 | 40 | 2026-06-27 | 检查 Windows 更新安装链路 | - | `main` |

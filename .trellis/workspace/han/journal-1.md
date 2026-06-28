@@ -1521,3 +1521,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 43: 修复终端首次登录 prompt 混排
+
+**Date**: 2026-06-28
+**Task**: 修复终端首次登录 prompt 混排
+**Branch**: `main`
+
+### Summary
+
+修复 SSH 登录 banner 中 CRLF 跨 chunk 归一化，并移除启动期远端 CPR 探测，避免 prompt 混入登录提示。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c90b161` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
