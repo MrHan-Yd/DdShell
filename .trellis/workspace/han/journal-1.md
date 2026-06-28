@@ -1653,3 +1653,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 47: 修复文件管理打开重复 prompt
+
+**Date**: 2026-06-28
+**Task**: 修复文件管理打开重复 prompt
+**Branch**: `main`
+
+### Summary
+
+修复终端内文件管理抽屉打开/关闭过渡期间连续触发远端 resize，导致 bash/readline 重绘多行 prompt 的问题；复用 suspendResize/pending fit 路径，在过渡稳定后只同步最终终端尺寸，并更新前端终端 resize 规范。验证 pnpm -C app build、cargo check、cargo test、git diff --check 均通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1f31257` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
