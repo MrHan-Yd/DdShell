@@ -39,6 +39,9 @@ import "@xterm/xterm/css/xterm.css";
 // hot input path.
 const TEXT_ENCODER = new TextEncoder();
 const FILE_MANAGER_DRAWER_TRANSITION_MS = 320;
+// Startup fit/ResizeObserver events can deliver SIGWINCH while the login
+// banner is still settling, causing bash/readline to repaint prompt fragments.
+const REMOTE_RESIZE_STARTUP_SUPPRESS_MS = 1500;
 
 /** Strip ANSI escape sequences and trim whitespace */
 function cleanSelection(text: string): string {
@@ -157,6 +160,8 @@ function TerminalInstance({
   const suspendResizeRef = useRef(suspendResize);
   const pendingResizeFitRef = useRef(false);
   const pendingResizeFrameRef = useRef<number | null>(null);
+  const remoteResizeSuppressUntilRef = useRef(0);
+  const lastSentRemoteSizeRef = useRef<{ cols: number; rows: number } | null>(null);
   const updateGeoRef = useRef<() => void>(() => {});
   const updateTabState = useTerminalStore((s) => s.updateTabState);
   const reconnectSession = useTerminalStore((s) => s.reconnectSession);
@@ -959,8 +964,14 @@ function TerminalInstance({
     });
 
     // Handle resize -> SSH (skip when container is hidden)
+    remoteResizeSuppressUntilRef.current = Date.now() + REMOTE_RESIZE_STARTUP_SUPPRESS_MS;
+    lastSentRemoteSizeRef.current = null;
     const onResize = term.onResize(({ cols, rows }) => {
       if (cols <= 1 || rows <= 1) return;
+      if (Date.now() < remoteResizeSuppressUntilRef.current) return;
+      const lastSent = lastSentRemoteSizeRef.current;
+      if (lastSent?.cols === cols && lastSent.rows === rows) return;
+      lastSentRemoteSizeRef.current = { cols, rows };
       api.sessionResize(sessionIdRef.current, cols, rows).catch(() => {});
     });
 
@@ -1084,13 +1095,6 @@ function TerminalInstance({
     };
     const termElForMouse = term.element;
     termElForMouse?.addEventListener("mousedown", handleMiddleClick);
-
-    // Initial resize notification — delay slightly so the server has time
-    // to finish sending MOTD/login banner before we trigger a redraw that
-    // causes some shells to re-emit the prompt and corrupt the display.
-    setTimeout(() => {
-      api.sessionResize(sessionId, term.cols, term.rows).catch(() => {});
-    }, 800);
 
     term.focus();
 
