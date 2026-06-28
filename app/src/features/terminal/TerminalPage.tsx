@@ -39,6 +39,7 @@ import "@xterm/xterm/css/xterm.css";
 // hot input path.
 const TEXT_ENCODER = new TextEncoder();
 const FILE_MANAGER_DRAWER_TRANSITION_MS = 320;
+const FILE_MANAGER_REMOTE_RESIZE_SUPPRESS_MS = FILE_MANAGER_DRAWER_TRANSITION_MS * 2 + 300;
 // Startup fit/ResizeObserver events can deliver SIGWINCH while the login
 // banner is still settling, causing bash/readline to repaint prompt fragments.
 const REMOTE_RESIZE_STARTUP_SUPPRESS_MS = 1500;
@@ -123,6 +124,7 @@ function TerminalInstance({
   termSettings,
   suspendResize = false,
   syncResizeAfterSuspend = true,
+  suppressRemoteResize = false,
   onFocusSession,
   onCwdChange,
 }: {
@@ -153,6 +155,7 @@ function TerminalInstance({
   };
   suspendResize?: boolean;
   syncResizeAfterSuspend?: boolean;
+  suppressRemoteResize?: boolean;
   onFocusSession?: (sessionId: string, cwd: string | null) => void;
   onCwdChange?: (sessionId: string, cwd: string) => void;
 }) {
@@ -182,6 +185,8 @@ function TerminalInstance({
   suspendResizeRef.current = suspendResize;
   const syncResizeAfterSuspendRef = useRef(syncResizeAfterSuspend);
   syncResizeAfterSuspendRef.current = syncResizeAfterSuspend;
+  const suppressRemoteResizeRef = useRef(suppressRemoteResize);
+  suppressRemoteResizeRef.current = suppressRemoteResize;
   const onFocusSessionRef = useRef(onFocusSession);
   onFocusSessionRef.current = onFocusSession;
   const onCwdChangeRef = useRef(onCwdChange);
@@ -985,6 +990,7 @@ function TerminalInstance({
     lastSentRemoteSizeRef.current = null;
     const onResize = term.onResize(({ cols, rows }) => {
       if (cols <= 1 || rows <= 1) return;
+      if (suppressRemoteResizeRef.current) return;
       if (Date.now() < remoteResizeSuppressUntilRef.current) return;
       const lastSent = lastSentRemoteSizeRef.current;
       if (lastSent?.cols === cols && lastSent.rows === rows) return;
@@ -1704,6 +1710,7 @@ export function TerminalPage() {
   const [fileManagerHeight, setFileManagerHeight] = useState(320);
   const [isFileManagerResizing, setIsFileManagerResizing] = useState(false);
   const [isFileManagerTransitioning, setIsFileManagerTransitioning] = useState(false);
+  const [suppressFileManagerRemoteResize, setSuppressFileManagerRemoteResize] = useState(false);
   const [lastFocusedSessionId, setLastFocusedSessionId] = useState<string | null>(null);
   const [sessionCwdMap, setSessionCwdMap] = useState<Record<string, string>>({});
   const [splitRatio, setSplitRatio] = useState(0.5);
@@ -1715,6 +1722,7 @@ export function TerminalPage() {
   const fileManagerResizeFrameRef = useRef<number | null>(null);
   const fileManagerResizeEndFrameRef = useRef<number | null>(null);
   const fileManagerTransitionTimerRef = useRef<number | null>(null);
+  const fileManagerRemoteResizeSuppressTimerRef = useRef<number | null>(null);
   const fileManagerResizeHeightRef = useRef(fileManagerHeight);
   const fileManagerResizeCleanupRef = useRef<(() => void) | null>(null);
   const ignoreClickRef = useRef(false);
@@ -1981,6 +1989,14 @@ export function TerminalPage() {
       fileManagerTransitionTimerRef.current = null;
       setIsFileManagerTransitioning(false);
     }, FILE_MANAGER_DRAWER_TRANSITION_MS);
+    if (fileManagerRemoteResizeSuppressTimerRef.current !== null) {
+      window.clearTimeout(fileManagerRemoteResizeSuppressTimerRef.current);
+    }
+    setSuppressFileManagerRemoteResize(true);
+    fileManagerRemoteResizeSuppressTimerRef.current = window.setTimeout(() => {
+      fileManagerRemoteResizeSuppressTimerRef.current = null;
+      setSuppressFileManagerRemoteResize(false);
+    }, FILE_MANAGER_REMOTE_RESIZE_SUPPRESS_MS);
   }, []);
 
   const handleToggleFileManager = useCallback(() => {
@@ -2082,6 +2098,10 @@ export function TerminalPage() {
       if (fileManagerTransitionTimerRef.current !== null) {
         window.clearTimeout(fileManagerTransitionTimerRef.current);
         fileManagerTransitionTimerRef.current = null;
+      }
+      if (fileManagerRemoteResizeSuppressTimerRef.current !== null) {
+        window.clearTimeout(fileManagerRemoteResizeSuppressTimerRef.current);
+        fileManagerRemoteResizeSuppressTimerRef.current = null;
       }
     };
   }, []);
@@ -2660,6 +2680,7 @@ export function TerminalPage() {
                     termSettings={termSettings}
                     suspendResize={shouldSuspendTerminalResize}
                     syncResizeAfterSuspend={shouldSyncTerminalResizeAfterSuspend}
+                    suppressRemoteResize={suppressFileManagerRemoteResize}
                     onFocusSession={handleTerminalFocus}
                     onCwdChange={handleTerminalCwdChange}
                   />
@@ -2693,6 +2714,7 @@ export function TerminalPage() {
                       termSettings={termSettings}
                       suspendResize={shouldSuspendTerminalResize}
                       syncResizeAfterSuspend={shouldSyncTerminalResizeAfterSuspend}
+                      suppressRemoteResize={suppressFileManagerRemoteResize}
                       onFocusSession={handleTerminalFocus}
                       onCwdChange={handleTerminalCwdChange}
                     />

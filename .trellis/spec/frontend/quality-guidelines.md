@@ -137,7 +137,7 @@ setTimeout(() => {
 }, 800);
 ```
 
-Manual or real container resizes after the layout is stable must still call `sessionResize`; the rule is only about automatic startup fit/ResizeObserver effects and animated panel transitions such as the terminal file manager opening or closing. Backend SSH PTY creation already receives initial `cols` / `rows`, so frontend startup resize is not required for the session to become usable. For internal panels, pause remote resize through the transition and perform the final fit as local-only unless the user explicitly resized the terminal surface, such as dragging a splitter or resize handle.
+Manual or real container resizes after the layout is stable must still call `sessionResize`; the rule is only about automatic startup fit/ResizeObserver effects and animated panel transitions such as the terminal file manager opening or closing. Backend SSH PTY creation already receives initial `cols` / `rows`, so frontend startup resize is not required for the session to become usable. For internal panels, pause remote resize through the transition and perform the final fit as local-only unless the user explicitly resized the terminal surface, such as dragging a splitter or resize handle. The local-only remote suppression window must also cover panel unmount and layout rebound after the visible animation ends.
 
 ### Batch operations with global confirmation aggregate before prompting
 
