@@ -2642,6 +2642,7 @@ async fn open_installer(path: String) -> Result<(), String> {
 #[derive(Default)]
 struct CrLfNormalizer {
     pending_crs: usize,
+    current_line_has_text: bool,
 }
 
 impl CrLfNormalizer {
@@ -2661,14 +2662,25 @@ impl CrLfNormalizer {
                         out.push(b'\r');
                         out.push(b'\n');
                         self.pending_crs = 0;
+                        self.current_line_has_text = false;
                     } else {
                         out.push(b'\n');
+                        self.current_line_has_text = false;
                     }
                 }
                 _ => {
-                    out.extend(std::iter::repeat_n(b'\r', self.pending_crs));
+                    if self.pending_crs == 1 && self.current_line_has_text && byte == b'[' {
+                        out.push(b'\r');
+                        out.push(b'\n');
+                        self.current_line_has_text = false;
+                    } else {
+                        out.extend(std::iter::repeat_n(b'\r', self.pending_crs));
+                    }
                     self.pending_crs = 0;
                     out.push(byte);
+                    if byte >= 0x20 && byte != 0x7f {
+                        self.current_line_has_text = true;
+                    }
                 }
             }
         }
@@ -3098,5 +3110,43 @@ mod tests {
 
         assert_eq!(output, b"progress");
         assert_eq!(normalizer.flush(), b"\r");
+    }
+
+    #[test]
+    fn crlf_normalizer_moves_bracket_prompt_after_banner_bare_cr() {
+        let mut normalizer = CrLfNormalizer::default();
+
+        let output = normalizer.normalize(
+            b"There were 1 failed login attempts since the last successful login.\r[root@host ~]# ",
+        );
+
+        assert_eq!(
+            output,
+            b"There were 1 failed login attempts since the last successful login.\r\n[root@host ~]# "
+        );
+    }
+
+    #[test]
+    fn crlf_normalizer_moves_split_bracket_prompt_after_banner_bare_cr() {
+        let mut normalizer = CrLfNormalizer::default();
+
+        let first = normalizer
+            .normalize(b"There were 1 failed login attempts since the last successful login.\r");
+        let second = normalizer.normalize(b"[root@host ~]# ");
+
+        assert_eq!(
+            first,
+            b"There were 1 failed login attempts since the last successful login."
+        );
+        assert_eq!(second, b"\r\n[root@host ~]# ");
+    }
+
+    #[test]
+    fn crlf_normalizer_preserves_bare_cr_for_non_prompt_rewrite() {
+        let mut normalizer = CrLfNormalizer::default();
+
+        let output = normalizer.normalize(b"progress 10%\rprogress 20%");
+
+        assert_eq!(output, b"progress 10%\rprogress 20%");
     }
 }
