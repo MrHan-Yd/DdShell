@@ -1554,3 +1554,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 44: 修复终端登录提示被 prompt 覆盖
+
+**Date**: 2026-06-28
+**Task**: 修复终端登录提示被 prompt 覆盖
+**Branch**: `main`
+
+### Summary
+
+扩展 SSH 输出归一化，处理登录 banner 文本行后 bare CR 接 bracket prompt 的覆盖场景，并补充回归测试与规范。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2d34cc5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
