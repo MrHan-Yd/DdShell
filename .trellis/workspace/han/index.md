@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 44
+- **Total Sessions**: 45
 - **Last Active**: 2026-06-28
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1589 | Active |
+| `journal-1.md` | ~1622 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 45 | 2026-06-28 | 兼容登录提示后 ANSI prompt 覆盖 | `16a538a` | `main` |
 | 44 | 2026-06-28 | 修复终端登录提示被 prompt 覆盖 | `2d34cc5` | `main` |
 | 43 | 2026-06-28 | 修复终端首次登录 prompt 混排 | `c90b161` | `main` |
 | 42 | 2026-06-28 | 收敛前端平台判断 | `056d774` | `main` |

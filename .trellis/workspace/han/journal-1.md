@@ -1587,3 +1587,36 @@ Made manual update downloads flush and close before completion, added file valid
 ### Next Steps
 
 - None - task complete
+
+
+## Session 45: 兼容登录提示后 ANSI prompt 覆盖
+
+**Date**: 2026-06-28
+**Task**: 兼容登录提示后 ANSI prompt 覆盖
+**Branch**: `main`
+
+### Summary
+
+扩展 SSH 输出归一化，处理 Last login 后 bare CR 夹 ANSI/CSI 控制序列再接 bracket prompt 的覆盖场景，并补充回归测试。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `16a538a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
