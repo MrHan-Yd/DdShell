@@ -2,7 +2,6 @@ import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { readText } from "@tauri-apps/plugin-clipboard-manager";
 import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
@@ -11,6 +10,7 @@ import { PredictiveEcho } from "./predictiveEcho";
 import { X, Plug, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star, Sparkles, Loader2, Square, Terminal as TerminalIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_DANGEROUS_COMMANDS, isCommandDangerous } from "@/lib/constants";
+import { readClipboardText } from "@/lib/clipboard";
 import { migrateTerminalBackgroundImageSetting } from "@/lib/terminalBackground";
 import { useTerminalStore } from "@/stores/terminal";
 import { useAppStore } from "@/stores/app";
@@ -1077,7 +1077,7 @@ function TerminalInstance({
     const handleMiddleClick = (e: MouseEvent) => {
       if (e.button !== 1) return;
       e.preventDefault();
-      readText().then((text) => {
+      readClipboardText().then((text) => {
         if (text) {
           const encoder = TEXT_ENCODER;
           const bytes = Array.from(encoder.encode(text));

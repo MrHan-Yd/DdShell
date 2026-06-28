@@ -103,6 +103,30 @@ if (shouldContinue) {
 
 Use this pattern for multi-select file operations such as download, upload, delete, move, or any flow where one user action may affect multiple paths and the confirmation UI is globally shared.
 
+### Clipboard text access uses the shared Tauri-first helper
+
+All frontend text clipboard reads/writes must go through `app/src/lib/clipboard.ts`:
+
+```ts
+import { readClipboardText, writeClipboardText } from "@/lib/clipboard";
+
+await writeClipboardText(command);
+const text = await readClipboardText();
+```
+
+The helper tries `@tauri-apps/plugin-clipboard-manager` first so desktop clipboard access remains governed by Tauri capabilities. It may fall back to `navigator.clipboard` for browser preview/dev environments, but feature code must not call `navigator.clipboard` directly.
+
+Do not confuse terminal session text writes with clipboard writes. For example, `app/src/features/terminal/hooks/useMacroRunner.ts` has a local `writeText(sessionId, text)` helper that writes bytes to SSH sessions; that is not a clipboard API and should not be routed through the clipboard helper.
+
+Before committing clipboard-related changes, verify:
+
+```bash
+rg "navigator\\.clipboard" app/src
+rg "@tauri-apps/plugin-clipboard-manager" app/src
+```
+
+The only allowed hits should be inside `app/src/lib/clipboard.ts`.
+
 ---
 
 ## Testing Requirements

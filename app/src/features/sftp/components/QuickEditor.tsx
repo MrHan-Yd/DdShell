@@ -1,5 +1,4 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { json } from "@codemirror/lang-json";
 import { markdown } from "@codemirror/lang-markdown";
@@ -34,6 +33,7 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { yaml } from "@codemirror/lang-yaml";
+import { readClipboardText, writeClipboardText } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 
 export type QuickEditorLineEnding = "LF" | "CRLF" | "mixed" | "unknown";
@@ -938,7 +938,7 @@ export const QuickEditor = forwardRef<QuickEditorHandle, QuickEditorProps>(funct
   const copySelection = async () => {
     const selectedText = getSelectionText();
     if (!selectedText) return;
-    await writeText(selectedText);
+    await writeClipboardText(selectedText);
   };
 
   const cutSelection = async () => {
@@ -946,7 +946,7 @@ export const QuickEditor = forwardRef<QuickEditorHandle, QuickEditorProps>(funct
     if (!view || readOnly) return;
     const selection = view.state.selection.main;
     if (selection.empty) return;
-    await writeText(view.state.sliceDoc(selection.from, selection.to));
+    await writeClipboardText(view.state.sliceDoc(selection.from, selection.to));
     view.dispatch({
       changes: { from: selection.from, to: selection.to, insert: "" },
       scrollIntoView: true,
@@ -957,7 +957,7 @@ export const QuickEditor = forwardRef<QuickEditorHandle, QuickEditorProps>(funct
   const pasteText = async () => {
     const view = viewRef.current;
     if (!view || readOnly) return;
-    const text = await readText();
+    const text = await readClipboardText();
     if (!text) return;
     const selection = view.state.selection.main;
     view.dispatch({

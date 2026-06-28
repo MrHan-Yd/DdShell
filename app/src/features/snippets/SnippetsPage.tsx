@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/themed/Button";
 import { Input } from "@/components/ui/themed/Input";
 import { Select } from "@/components/ui/themed/Select";
 import { SegmentedControl } from "@/components/ui/themed/SegmentedControl";
+import { writeClipboardText } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import { useSnippetsStore } from "@/stores/snippets";
@@ -232,10 +233,14 @@ function SnippetDetail({
   const t = useT();
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(snippet.command);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async () => {
+    try {
+      await writeClipboardText(snippet.command);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error(t("snippets.copyFailed"));
+    }
   };
 
   return (
@@ -627,8 +632,9 @@ export function SnippetsPage() {
           label: t("snippets.copy"),
           icon: <ClipboardCopy size={14} />,
           onClick: () => {
-            navigator.clipboard.writeText(menuState.data.command);
-            toast.success(t("snippets.copied"));
+            void writeClipboardText(menuState.data.command)
+              .then(() => toast.success(t("snippets.copied")))
+              .catch(() => toast.error(t("snippets.copyFailed")));
           },
         },
         ...(groups.length > 0

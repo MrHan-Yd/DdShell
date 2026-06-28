@@ -795,6 +795,7 @@ const dict = {
   "snippets.duplicateCommand": { zh: "已存在相同命令的片段", en: "A snippet with this command already exists" },
   "snippets.copy": { zh: "复制", en: "Copy" },
   "snippets.copied": { zh: "已复制!", en: "Copied!" },
+  "snippets.copyFailed": { zh: "复制失败", en: "Copy failed" },
   "snippets.formTitle": { zh: "标题", en: "Title" },
   "snippets.formCommand": { zh: "命令", en: "Command" },
   "snippets.formDescription": { zh: "描述", en: "Description" },

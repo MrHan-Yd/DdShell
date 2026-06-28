@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { Check, ChevronLeft, ChevronRight, Copy, History, Loader2, Send, Sparkles, X } from "lucide-react";
+import { writeClipboardText } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import * as api from "@/lib/tauri";
 import { Select } from "@/components/ui/themed/Select";
@@ -380,7 +381,7 @@ export function TerminalAiAssist({
 
   const handleCopy = async (command: string) => {
     try {
-      await navigator.clipboard.writeText(command);
+      await writeClipboardText(command);
       toast.success(t("aiAssist.copied"));
     } catch {
       toast.error(t("aiAssist.copyFailed"));

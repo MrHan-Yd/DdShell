@@ -12,6 +12,7 @@ import {
 import { emit } from "@tauri-apps/api/event";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/themed/Input";
+import { writeClipboardText } from "@/lib/clipboard";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { confirm } from "@/stores/confirm";
@@ -109,7 +110,7 @@ export function QuickEditTabContent({ tabId }: Props) {
 
   const handleCopyCommand = useCallback(async (command: string) => {
     try {
-      await navigator.clipboard.writeText(command);
+      await writeClipboardText(command);
       toast.success(t("quickEdit.actionCopied"));
     } catch {
       toast.error(t("quickEdit.actionCopyFailed"));
