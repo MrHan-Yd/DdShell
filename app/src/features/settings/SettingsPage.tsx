@@ -19,6 +19,7 @@ import { t as translate, useT } from "@/lib/i18n";
 import { getAppVersion } from "@/lib/constants";
 import type { DictKey, Locale } from "@/lib/i18n";
 import * as api from "@/lib/tauri";
+import { importTerminalBackgroundImagePath, migrateTerminalBackgroundImageSetting } from "@/lib/terminalBackground";
 import { confirm, useConfirmStore } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
 import type { AiAgentConfig, AiAgentExecutionMode, AiAgentModel, AiAgentProfile, AiAgentProtocol, AiAgentResponseMode, TerminalBgSource } from "@/types";
@@ -1159,6 +1160,7 @@ export function SettingsPage() {
         }
         if (savedUiTheme === "classic" || savedUiTheme === "aurora") setUiTheme(savedUiTheme);
         if (savedLocale === "zh" || savedLocale === "en") setLocale(savedLocale as Locale);
+        const migratedBgImagePath = await migrateTerminalBackgroundImageSetting(savedBgImagePath);
 
         setTerminal({
           fontFamily: savedFontFamily || DEFAULT_TERMINAL.fontFamily,
@@ -1173,7 +1175,7 @@ export function SettingsPage() {
           selectionBg: savedSelectionBg || DEFAULT_TERMINAL.selectionBg,
           bgSource: (savedBgSource as TerminalBgSource) || DEFAULT_TERMINAL.bgSource,
           bgColor: savedBgColor || DEFAULT_TERMINAL.bgColor,
-          bgImagePath: savedBgImagePath || DEFAULT_TERMINAL.bgImagePath,
+          bgImagePath: migratedBgImagePath || DEFAULT_TERMINAL.bgImagePath,
           bgOpacity: savedBgOpacity ? parseInt(savedBgOpacity) : DEFAULT_TERMINAL.bgOpacity,
           bgBlur: savedBgBlur ? parseInt(savedBgBlur) : DEFAULT_TERMINAL.bgBlur,
           encoding: savedEncoding || DEFAULT_TERMINAL.encoding,
@@ -1255,6 +1257,21 @@ export function SettingsPage() {
     setSaveStatus("saving");
     try {
       const enabledCats = COMMAND_ASSIST_ALL_IDS.filter((id) => caEnabledCategories[id]);
+      let bgImagePathToSave = terminal.bgImagePath;
+      if (bgImagePathToSave) {
+        try {
+          const importedPath = await importTerminalBackgroundImagePath(bgImagePathToSave);
+          if (importedPath !== bgImagePathToSave) {
+            bgImagePathToSave = importedPath;
+            setTerminal((current) => ({ ...current, bgImagePath: importedPath }));
+          }
+        } catch {
+          toast.error(t("settings.imageImportFailed"));
+          setSaveStatus("error");
+          setTimeout(() => setSaveStatus("idle"), 2000);
+          return;
+        }
+      }
       await api.settingSetMany([
         { key: "theme", value: theme },
         { key: "ui.theme", value: uiTheme },
@@ -1280,7 +1297,7 @@ export function SettingsPage() {
         { key: "transfer.notify", value: String(transferNotify) },
         { key: "terminal.bgSource", value: terminal.bgSource },
         { key: "terminal.bgColor", value: terminal.bgColor },
-        { key: "terminal.bgImagePath", value: terminal.bgImagePath },
+        { key: "terminal.bgImagePath", value: bgImagePathToSave },
         { key: "terminal.bgOpacity", value: String(terminal.bgOpacity) },
         { key: "terminal.bgBlur", value: String(terminal.bgBlur) },
         { key: "ui.fontFamily", value: uiFontFamily },
@@ -2231,7 +2248,12 @@ export function SettingsPage() {
                         multiple: false,
                       });
                       if (file) {
-                        setTerminal((t) => ({ ...t, bgImagePath: file as string }));
+                        try {
+                          const importedPath = await importTerminalBackgroundImagePath(file as string);
+                          setTerminal((t) => ({ ...t, bgImagePath: importedPath }));
+                        } catch {
+                          toast.error(t("settings.imageImportFailed"));
+                        }
                       }
                     }}
                   >

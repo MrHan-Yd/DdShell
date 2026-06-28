@@ -6,7 +6,9 @@ use std::time::Duration;
 use futures_util::StreamExt;
 use russh::ChannelMsg;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Manager};
+use tokio::io::AsyncReadExt;
 
 use crate::core::ai_agent::{
     AiAgentConfig, AiAgentConfigSaveReq, AiAgentSendReq, AiAgentSendResponse,
@@ -105,6 +107,18 @@ struct SuccessResponse {
     success: bool,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TerminalImportBackgroundImageReq {
+    source_path: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TerminalImportBackgroundImageResponse {
+    path: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct HealthPayload {
@@ -127,6 +141,57 @@ struct SessionConnectReq {
     password: Option<String>,
     cols: Option<u32>,
     rows: Option<u32>,
+}
+
+const TERMINAL_BACKGROUND_DIR: &str = "terminal-backgrounds";
+
+fn terminal_background_extension(path: &Path) -> Option<&'static str> {
+    let extension = path.extension()?.to_str()?.to_ascii_lowercase();
+    match extension.as_str() {
+        "png" => Some("png"),
+        "jpg" => Some("jpg"),
+        "jpeg" => Some("jpeg"),
+        "webp" => Some("webp"),
+        "gif" => Some("gif"),
+        "bmp" => Some("bmp"),
+        _ => None,
+    }
+}
+
+fn terminal_background_file_name(hash_hex: &str, extension: &str) -> String {
+    let prefix_len = hash_hex.len().min(32);
+    format!("{}.{}", &hash_hex[..prefix_len], extension)
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        out.push(HEX[(byte >> 4) as usize] as char);
+        out.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    out
+}
+
+async fn sha256_file_hex(path: &Path) -> Result<String, String> {
+    let mut file = tokio::fs::File::open(path)
+        .await
+        .map_err(|e| format!("Failed to open image: {}", e))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0u8; 16 * 1024];
+
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .await
+            .map_err(|e| format!("Failed to read image: {}", e))?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+
+    Ok(hex_encode(&hasher.finalize()))
 }
 
 // ── Commands: Health ──
@@ -889,6 +954,71 @@ async fn setting_set_many(
 ) -> Result<SuccessResponse, String> {
     db.set_settings(&entries).await.map_err(|e| e.to_string())?;
     Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
+async fn terminal_import_background_image(
+    app: AppHandle,
+    req: TerminalImportBackgroundImageReq,
+) -> Result<TerminalImportBackgroundImageResponse, String> {
+    let source_path = req.source_path.trim();
+    if source_path.is_empty() {
+        return Err("Image path is empty".to_string());
+    }
+
+    let source = PathBuf::from(source_path);
+    if !source.is_absolute() {
+        return Err("Image path must be absolute".to_string());
+    }
+
+    let extension = terminal_background_extension(&source)
+        .ok_or_else(|| "Unsupported image format".to_string())?;
+    let metadata = tokio::fs::metadata(&source)
+        .await
+        .map_err(|e| format!("Image file is not accessible: {}", e))?;
+    if !metadata.is_file() {
+        return Err("Image path is not a file".to_string());
+    }
+
+    let source = tokio::fs::canonicalize(&source)
+        .await
+        .map_err(|e| format!("Failed to resolve image path: {}", e))?;
+    let target_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to resolve app data dir: {}", e))?
+        .join(TERMINAL_BACKGROUND_DIR);
+
+    tokio::fs::create_dir_all(&target_dir)
+        .await
+        .map_err(|e| format!("Failed to create image directory: {}", e))?;
+    let target_dir = tokio::fs::canonicalize(&target_dir)
+        .await
+        .map_err(|e| format!("Failed to resolve image directory: {}", e))?;
+
+    if source.starts_with(&target_dir) {
+        return Ok(TerminalImportBackgroundImageResponse {
+            path: source.to_string_lossy().into_owned(),
+        });
+    }
+
+    let hash = sha256_file_hex(&source).await?;
+    let target = target_dir.join(terminal_background_file_name(&hash, extension));
+
+    match tokio::fs::metadata(&target).await {
+        Ok(existing) if existing.is_file() => {}
+        Ok(_) => return Err("Imported image target is not a file".to_string()),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            tokio::fs::copy(&source, &target)
+                .await
+                .map_err(|e| format!("Failed to import image: {}", e))?;
+        }
+        Err(err) => return Err(format!("Failed to inspect imported image: {}", err)),
+    }
+
+    Ok(TerminalImportBackgroundImageResponse {
+        path: target.to_string_lossy().into_owned(),
+    })
 }
 
 // ── Commands: AI Agent ──
@@ -2790,6 +2920,7 @@ pub fn run() {
             setting_get,
             setting_set,
             setting_set_many,
+            terminal_import_background_image,
             ai_agent_config_get,
             ai_agent_config_save,
             ai_agent_profile_set_key,
@@ -2848,4 +2979,46 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn terminal_background_extension_accepts_supported_images() {
+        for (name, expected) in [
+            ("wallpaper.PNG", "png"),
+            ("photo.jpg", "jpg"),
+            ("photo.JPEG", "jpeg"),
+            ("image.webp", "webp"),
+            ("loop.GIF", "gif"),
+            ("bitmap.bmp", "bmp"),
+        ] {
+            assert_eq!(
+                terminal_background_extension(Path::new(name)),
+                Some(expected)
+            );
+        }
+    }
+
+    #[test]
+    fn terminal_background_extension_rejects_unsupported_paths() {
+        assert_eq!(terminal_background_extension(Path::new("secret.txt")), None);
+        assert_eq!(
+            terminal_background_extension(Path::new("no-extension")),
+            None
+        );
+    }
+
+    #[test]
+    fn terminal_background_file_name_uses_hash_prefix_and_extension() {
+        assert_eq!(
+            terminal_background_file_name(
+                "0123456789abcdef0123456789abcdef0123456789abcdef",
+                "png"
+            ),
+            "0123456789abcdef0123456789abcdef.png"
+        );
+    }
 }

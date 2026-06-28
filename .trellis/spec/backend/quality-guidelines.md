@@ -208,6 +208,67 @@ Correct:
 }
 ```
 
+### Scenario: Terminal Background Asset Scope
+
+#### 1. Scope / Trigger
+- Trigger: terminal background images, Tauri CSP, or `assetProtocol.scope` behavior changes.
+- Applies when frontend code renders local files through `convertFileSrc`, or when backend commands import local user-selected files for WebView display.
+
+#### 2. Signatures
+- Tauri config: `app.security.csp`
+- Tauri config: `app.security.assetProtocol.scope.allow`
+- Rust command: `terminal_import_background_image(req: TerminalImportBackgroundImageReq) -> Result<TerminalImportBackgroundImageResponse, String>`
+- Request fields:
+  - `sourcePath: string`
+- Response fields:
+  - `path: string`
+- Frontend wrapper: `terminalImportBackgroundImage(sourcePath: string): Promise<{ path: string }>`
+- Settings key: `terminal.bgImagePath`
+
+#### 3. Contracts
+- `assetProtocol.scope.allow` must not be `["**"]` for terminal backgrounds.
+- Terminal background images must be copied into `$APPDATA/terminal-backgrounds/**` before being stored in `terminal.bgImagePath`.
+- `terminal.bgImagePath` stores the imported absolute path returned by the backend command, not the original user-selected path.
+- Rendering still uses `convertFileSrc(path)` from `@tauri-apps/api/core`.
+- CSP must allow current app resources, Tauri IPC, inline styles required by existing React style props, `data:` images used by CSS, and Tauri asset image URLs:
+  - `style-src 'self' 'unsafe-inline'`
+  - `img-src 'self' asset: http://asset.localhost data:`
+  - `connect-src 'self' ipc: http://ipc.localhost`
+- Backend network requests such as updater and AI provider calls are not governed by WebView CSP.
+
+#### 4. Validation & Error Matrix
+- Empty `sourcePath` -> command returns `Err("Image path is empty")`.
+- Relative `sourcePath` -> command returns `Err("Image path must be absolute")`.
+- Unsupported extension -> command returns `Err("Unsupported image format")`.
+- Missing or unreadable file -> command returns an error and frontend must not persist a new background path.
+- Non-file path -> command returns `Err("Image path is not a file")`.
+- Source already under `$APPDATA/terminal-backgrounds/**` -> command returns the canonical source path without copying.
+- Import copy failure -> command returns an error; settings save should fail visibly instead of storing an out-of-scope path.
+
+#### 5. Good/Base/Bad Cases
+- Good: user selects `/Users/me/Pictures/bg.png`, backend imports it to app data, settings stores the imported path, terminal renders it with `convertFileSrc`.
+- Base: existing old absolute path is migrated best-effort on settings or terminal load; migration failure keeps the app running and lets the user reselect.
+- Bad: frontend stores the original picker path and relies on `assetProtocol.scope.allow: ["**"]`.
+- Bad: CSP is tightened without allowing `asset:` / `http://asset.localhost`, causing background images to disappear.
+
+#### 6. Tests Required
+- `pnpm -C app build` must pass after frontend wrapper or settings flow changes.
+- `cargo check` must pass after command/config changes.
+- `cargo test` should cover accepted/rejected image extensions and deterministic imported file naming.
+- Manual smoke test should select a terminal background image and confirm it persists after reopening settings/terminal.
+
+#### 7. Wrong vs Correct
+##### Wrong
+```tsx
+setTerminal((state) => ({ ...state, bgImagePath: file as string }));
+```
+
+##### Correct
+```tsx
+const importedPath = await api.terminalImportBackgroundImage(file as string);
+setTerminal((state) => ({ ...state, bgImagePath: importedPath.path }));
+```
+
 ### Scenario: AI Agent Provider Configuration and Command Suggestions
 
 #### 1. Scope / Trigger

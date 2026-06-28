@@ -11,6 +11,7 @@ import { PredictiveEcho } from "./predictiveEcho";
 import { X, Plug, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star, Sparkles, Loader2, Square, Terminal as TerminalIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_DANGEROUS_COMMANDS, isCommandDangerous } from "@/lib/constants";
+import { migrateTerminalBackgroundImageSetting } from "@/lib/terminalBackground";
 import { useTerminalStore } from "@/stores/terminal";
 import { useAppStore } from "@/stores/app";
 import * as api from "@/lib/tauri";
@@ -1816,6 +1817,7 @@ export function TerminalPage() {
         const fileManagerEnabledNext = fileManagerDrawerEnabled !== "false";
         setFileManagerEnabled(fileManagerEnabledNext);
         if (!fileManagerEnabledNext) setShowFileManager(false);
+        const migratedBgImagePath = await migrateTerminalBackgroundImageSetting(bgImagePath);
         setTermSettings({
           fontFamily: fontFamily || undefined,
           fontSize: fontSize ? parseInt(fontSize) : undefined,
@@ -1829,7 +1831,7 @@ export function TerminalPage() {
           selectionBg: selectionBg || undefined,
           bgSource: bgSource || undefined,
           bgColor: bgColor || undefined,
-          bgImagePath: bgImagePath || null,
+          bgImagePath: migratedBgImagePath || null,
           bgOpacity: bgOpacity ? parseInt(bgOpacity) : undefined,
           bgBlur: bgBlur ? parseInt(bgBlur) : undefined,
           ansiColors: (() => { try { return JSON.parse(ansiColors || ""); } catch { return undefined; } })(),

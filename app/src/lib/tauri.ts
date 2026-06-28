@@ -565,6 +565,10 @@ export async function terminalBookmarkUpdate(id: string, path: string, label?: s
   return invoke("terminal_bookmark_update", { id, path, label: label ?? null });
 }
 
+export async function terminalImportBackgroundImage(sourcePath: string): Promise<{ path: string }> {
+  return invoke("terminal_import_background_image", { req: { sourcePath } });
+}
+
 // ── SSH Config Import ──
 
 export async function sshConfigImport(): Promise<SshConfigImportResult> {

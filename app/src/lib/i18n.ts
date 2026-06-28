@@ -504,6 +504,7 @@ const dict = {
   "settings.bgSource": { zh: "背景来源", en: "Background Source" },
   "settings.bgColor": { zh: "背景颜色", en: "Background Color" },
   "settings.imagePath": { zh: "图片路径", en: "Image Path" },
+  "settings.imageImportFailed": { zh: "图片导入失败，请重新选择图片。", en: "Image import failed. Please choose the image again." },
   "settings.opacity": { zh: "不透明度", en: "Opacity" },
   "settings.blur": { zh: "模糊", en: "Blur" },
   "settings.resetToDefault": { zh: "恢复默认", en: "Reset to Default" },
