@@ -170,3 +170,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 62: 发布 v0.2.7
+
+**Date**: 2026-06-29
+**Task**: 发布 v0.2.7
+**Branch**: `main`
+
+### Summary
+
+发布 DdShell v0.2.7，版本说明基于 v0.2.6..HEAD 提交记录生成；更新版本号、README、发布说明、Release 文案和发布文档，并推送 v0.2.7 tag 触发 GitHub Actions。用户将自行查看远端打包结果。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0ba3b3c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
