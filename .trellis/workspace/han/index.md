@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 60
-- **Last Active**: 2026-06-28
+- **Total Sessions**: 61
+- **Last Active**: 2026-06-29
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~139 | Active |
+| `journal-2.md` | ~172 | Active |
 | `journal-1.md` | ~1985 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 61 | 2026-06-29 | 修复状态栏心跳续期会话 | `66277c5` | `main` |
 | 60 | 2026-06-28 | 实现会话无操作超时 | `f81da38` | `main` |
 | 59 | 2026-06-28 | 修复重连遮罩终端边框 | `2615bb2` | `main` |
 | 58 | 2026-06-28 | 修复终端底部黑边 | `f490dcf` | `main` |

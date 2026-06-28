@@ -137,3 +137,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 61: 修复状态栏心跳续期会话
+
+**Date**: 2026-06-29
+**Task**: 修复状态栏心跳续期会话
+**Branch**: `main`
+
+### Summary
+
+定位状态栏每 5 秒 sshPing 刷新会话 activity，移除 ssh_ping 的 touch_activity，避免 latency 心跳让 30 秒 idle timeout 永远无法触发。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `66277c5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
