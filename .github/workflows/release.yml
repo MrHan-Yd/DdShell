@@ -303,9 +303,16 @@ jobs:
             exit 1
           }
 
+          $msiUpdaterSig = "$($msi.FullName).sig"
+          if (-not (Test-Path $msiUpdaterSig)) {
+            Write-Error "Windows MSI updater signature not found: $msiUpdaterSig"
+            exit 1
+          }
+
           Copy-Item $msi.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.msi"
           Copy-Item $exe.FullName "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe"
           Copy-Item $updaterSig "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe.sig"
+          Copy-Item $msiUpdaterSig "$env:RUNNER_TEMP/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.msi.sig"
 
       - name: Upload Windows msi
         if: matrix.platform == 'windows-latest'
@@ -325,7 +332,9 @@ jobs:
         if: matrix.platform == 'windows-latest'
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ runner.temp }}/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe.sig
+          files: |
+            ${{ runner.temp }}/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.exe.sig
+            ${{ runner.temp }}/DdShell-${{ github.ref_name }}-${{ matrix.suffix }}.msi.sig
           tag_name: ${{ github.ref_name }}
 
   publish-updater-manifest:
@@ -370,12 +379,29 @@ jobs:
                 signature: readSig(`DdShell-${tag}-windows-x64.exe`),
                 url: `${baseUrl}/DdShell-${tag}-windows-x64.exe`
               },
-              "windows-x86_64": {
-                signature: readSig(`DdShell-${tag}-windows-x64.exe`),
-                url: `${baseUrl}/DdShell-${tag}-windows-x64.exe`
+              "windows-x86_64-msi": {
+                signature: readSig(`DdShell-${tag}-windows-x64.msi`),
+                url: `${baseUrl}/DdShell-${tag}-windows-x64.msi`
               }
             }
           };
+
+          const requiredPlatforms = [
+            "darwin-aarch64",
+            "darwin-x86_64",
+            "windows-x86_64-nsis",
+            "windows-x86_64-msi"
+          ];
+
+          for (const platform of requiredPlatforms) {
+            if (!manifest.platforms[platform]) {
+              throw new Error(`latest.json is missing required updater platform: ${platform}`);
+            }
+          }
+
+          if (manifest.platforms["windows-x86_64"]) {
+            throw new Error("Do not publish a broad windows-x86_64 fallback while MSI and NSIS are both shipped");
+          }
 
           fs.writeFileSync("latest.json", `${JSON.stringify(manifest, null, 2)}\n`);
           NODE

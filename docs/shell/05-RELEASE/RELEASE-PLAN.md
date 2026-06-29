@@ -9,7 +9,7 @@
 - Windows：`msi` 或 `exe` 安装包。
 - macOS：`dmg` 安装包。
 - Linux：`AppImage` + `deb`（优先）。
-- 应用内更新：macOS 使用 `.app.tar.gz` updater 产物，Windows 使用 NSIS `.exe` 安装器作为 updater 产物，二者都配套 `.sig` 签名和 `latest.json` manifest；Linux 暂走 GitHub Releases fallback。
+- 应用内更新：macOS 使用 `.app.tar.gz` updater 产物；Windows 按安装器类型区分 updater 产物，NSIS 安装用户使用 `.exe` + `.exe.sig`，MSI 安装用户使用 `.msi` + `.msi.sig`；`latest.json` 不提供会跨安装器类型的 `windows-x86_64` fallback；Linux 暂走 GitHub Releases fallback。
 
 ## 3. 签名与安全
 - Windows：代码签名证书。
@@ -56,5 +56,7 @@ GitHub Actions 会自动构建并创建 Release。
 
 发布后必须验证：
 - 普通安装包已上传。
-- macOS / Windows updater 产物、`.sig` 和 `latest.json` 已上传；Windows updater 签名应为 NSIS `.exe.sig`。
+- macOS / Windows updater 产物、`.sig` 和 `latest.json` 已上传；Windows updater 签名应同时包含 NSIS `.exe.sig` 和 MSI `.msi.sig`。
+- Windows `latest.json` 包含 `windows-x86_64-nsis` 和 `windows-x86_64-msi`，不包含会把 MSI 用户导向 NSIS 的 `windows-x86_64` fallback。
+- Windows 更新冒烟：旧版本安装到非 C 盘并创建服务器记录后，通过应用内更新升级，安装路径和安装目录中的 `shell.db` 数据均保留。
 - 旧版本客户端可检查到新版本，下载并安装后只提示用户重启，不自动重启。

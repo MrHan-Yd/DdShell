@@ -363,27 +363,39 @@ if elapsed >= idle_timeout {
 - `bundle.createUpdaterArtifacts` must be enabled when release builds are expected to produce updater artifacts.
 - The updater private key must never be committed; only the public key belongs in `tauri.conf.json`.
 - macOS updater assets are `DdShell-{tag}-macos-aarch64.app.tar.gz` and `DdShell-{tag}-macos-x86_64.app.tar.gz`, each with matching `.sig`.
-- Windows updater asset is the tauri-bundler generated NSIS installer, `DdShell-{tag}-windows-x64.exe`, with matching `.sig`. Tauri's Windows updater accepts raw `.exe` and `.msi` payloads; do not require a zip unless CI actually generates one.
-- `latest.json` must include `darwin-aarch64`, `darwin-x86_64`, `windows-x86_64-nsis`, and a `windows-x86_64` fallback entry.
+- Windows updater assets are installer-family-specific:
+  - NSIS: `DdShell-{tag}-windows-x64.exe` with matching `.exe.sig`.
+  - MSI: `DdShell-{tag}-windows-x64.msi` with matching `.msi.sig`.
+- `latest.json` must include `darwin-aarch64`, `darwin-x86_64`, `windows-x86_64-nsis`, and `windows-x86_64-msi`.
+- Do not include a broad `windows-x86_64` fallback when both MSI and NSIS are shipped; it can route an installed MSI app to an NSIS updater payload and reset install/uninstall behavior.
+- Windows installed-app runtime data intentionally lives in the install directory. NSIS hooks and MSI upgrade metadata must preserve `shell.db`, `shell.db-wal`, and `shell.db-shm`.
+- NSIS `/UPDATE` can invoke the currently installed uninstaller before the new installer writes files. Do not rely on newly added NSIS hooks as the only protection for first-time upgrades from older builds; matching the installer family and preserving the registered install path are the primary safety boundary.
+- Windows updater install mode must stay non-interactive (`quiet` or stricter) for verified in-app updates. User confirmation belongs in the app UI before install/relaunch, not in the native uninstall/install wizard.
+- WiX `upgradeCode` must be explicitly pinned so MSI upgrades keep product identity across releases.
 - Restart is a user-confirmed frontend action. The updater may install silently/passively, but the app must not relaunch without explicit confirmation.
 
 #### 4. Validation & Error Matrix
 - Missing updater signing secret -> release workflow must fail before Tauri build with a clear secret name.
 - Missing updater artifact or `.sig` -> release workflow must fail before manifest generation.
 - Manifest points to an unsigned or mismatched Windows asset -> Windows official updater fails signature verification or install.
-- Manifest lacks the bundle-specific key -> updater falls back to `{os}-{arch}`; keep that fallback key present.
+- Manifest lacks the bundle-specific Windows key -> updater must fail safe and UI must expose the GitHub Releases fallback; do not cross installer families.
 - Signature/private key mismatch -> official updater fails verification and UI must expose the GitHub Releases fallback.
+- Missing `.msi.sig` while shipping MSI -> release workflow must fail before manifest generation.
+- Broad `windows-x86_64` appears while both MSI and NSIS are shipped -> release workflow must fail before uploading `latest.json`.
+- NSIS hook missing runtime-data preservation -> release workflow/build must fail or manual release verification must block publication.
 
 #### 5. Good/Base/Bad Cases
-- Good: Windows manifest `windows-x86_64-nsis` points to `DdShell-vX.Y.Z-windows-x64.exe` and the signature file signs that exe.
-- Base: `windows-x86_64` points to the same NSIS exe as a runtime fallback.
+- Good: Windows manifest `windows-x86_64-nsis` points to `DdShell-vX.Y.Z-windows-x64.exe` and `windows-x86_64-msi` points to `DdShell-vX.Y.Z-windows-x64.msi`; each signature signs the exact payload URL.
+- Good: NSIS update preserves `shell.db*` in the install directory and MSI uses the pinned UpgradeCode.
+- Bad: `windows-x86_64` fallback points to NSIS while MSI is also shipped.
 - Bad: workflow expects `*.zip` when the Tauri Windows build only produced `.exe`, `.msi`, and their `.sig` files.
 
 #### 6. Tests Required
 - `cd app && pnpm build` verifies frontend updater API types and i18n keys.
 - `cd app/src-tauri && cargo check` verifies plugin registration and Rust integration.
-- A signed local or CI bundle build must produce `.app.tar.gz` plus `.sig` on macOS and NSIS `.exe` plus `.exe.sig` on Windows.
+- A signed local or CI bundle build must produce `.app.tar.gz` plus `.sig` on macOS, NSIS `.exe` plus `.exe.sig` on Windows, and MSI `.msi` plus `.msi.sig` on Windows.
 - Release verification must check `latest.json` platform keys, URLs, and signatures before announcing the release.
+- Windows manual smoke must install an old version to a non-C path, create `shell.db` data, run in-app update, and verify the install path and data survive.
 
 #### 7. Wrong vs Correct
 
@@ -404,9 +416,9 @@ Correct:
   "signature": "<signature of DdShell-vX.Y.Z-windows-x64.exe>",
   "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64.exe"
 },
-"windows-x86_64": {
-  "signature": "<signature of DdShell-vX.Y.Z-windows-x64.exe>",
-  "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64.exe"
+"windows-x86_64-msi": {
+  "signature": "<signature of DdShell-vX.Y.Z-windows-x64.msi>",
+  "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64.msi"
 }
 ```
 

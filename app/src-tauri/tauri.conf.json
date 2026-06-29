@@ -53,6 +53,12 @@
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installerHooks": "nsis-hooks.nsh"
+      },
+      "wix": {
+        "upgradeCode": "1d44d0f1-f4a7-53ec-b373-2aa28614a169"
       }
     }
   },
@@ -61,7 +67,10 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMzRkZCNjU2MDY0MDBGNjQKUldSa0QwQUdWcmIvTTFiWHpXcURTb0h3QTBzWitEenRkbWVJMEVvTGhGVjYxSmdrckJ1VXBQUjAK",
       "endpoints": [
         "https://github.com/MrHan-Yd/DdShell/releases/latest/download/latest.json"
-      ]
+      ],
+      "windows": {
+        "installMode": "quiet"
+      }
     }
   }
 }
