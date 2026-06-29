@@ -203,3 +203,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 63: 修复 SSH 终端回车显示 ^M
+
+**Date**: 2026-06-29
+**Task**: 修复 SSH 终端回车显示 ^M
+**Branch**: `main`
+
+### Summary
+
+修复 SSH PTY 默认输入模式，启用 ICRNL 让 xterm 回车在远端按标准行输入提交；补充回归测试和后端规范，并归档任务 06-29-fix-db-enter-key。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b074883` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

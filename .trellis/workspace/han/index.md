@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 62
+- **Total Sessions**: 63
 - **Last Active**: 2026-06-29
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~205 | Active |
+| `journal-2.md` | ~238 | Active |
 | `journal-1.md` | ~1985 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 63 | 2026-06-29 | 修复 SSH 终端回车显示 ^M | `b074883` | `main` |
 | 62 | 2026-06-29 | 发布 v0.2.7 | `0ba3b3c` | `main` |
 | 61 | 2026-06-29 | 修复状态栏心跳续期会话 | `66277c5` | `main` |
 | 60 | 2026-06-28 | 实现会话无操作超时 | `f81da38` | `main` |
