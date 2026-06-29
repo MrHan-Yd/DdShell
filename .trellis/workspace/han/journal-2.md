@@ -269,3 +269,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 65: 修复 MSI 更新继承原安装路径
+
+**Date**: 2026-06-29
+**Task**: 修复 MSI 更新继承原安装路径
+**Branch**: `main`
+
+### Summary
+
+实现 Windows MSI 更新继承原安装目录：运行时为 MSI updater 注入 APPLICATIONFOLDER/INSTALLDIR，新增 WiX first-upgrade fallback 读取相关产品安装位置和注册表，并更新发布验证与后端质量规范。验证通过 cargo check、cargo test、pnpm build、tauri build --no-bundle。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c195de0` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
