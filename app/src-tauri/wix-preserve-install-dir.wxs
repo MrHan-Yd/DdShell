@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <CustomAction
+      Id="DdShellPreserveMsiInstallLocation"
+      Script="vbscript"
+      Execute="firstSequence"
+      Return="ignore"><![CDATA[
+On Error Resume Next
+
+Const UpgradeCode = "{1d44d0f1-f4a7-53ec-b373-2aa28614a169}"
+
+Function SafeString(ByVal value)
+  If IsNull(value) Or IsEmpty(value) Then
+    SafeString = ""
+    Exit Function
+  End If
+
+  Err.Clear
+  SafeString = Trim(CStr(value))
+  If Err.Number <> 0 Then
+    Err.Clear
+    SafeString = ""
+  End If
+End Function
+
+Function NormalizeInstallDir(ByVal value)
+  value = SafeString(value)
+  If Len(value) > 0 And Left(value, 1) = Chr(34) Then
+    value = Mid(value, 2)
+  End If
+  If Len(value) > 0 And Right(value, 1) = Chr(34) Then
+    value = Left(value, Len(value) - 1)
+  End If
+  Do While Len(value) > 3 And (Right(value, 1) = "\" Or Right(value, 1) = "/")
+    value = Left(value, Len(value) - 1)
+  Loop
+  NormalizeInstallDir = value
+End Function
+
+Function TryApplyInstallDir(ByVal value)
+  value = NormalizeInstallDir(value)
+  If Len(value) > 0 Then
+    Session.Property("APPLICATIONFOLDER") = value
+    Session.Property("INSTALLDIR") = value
+    TryApplyInstallDir = True
+  Else
+    TryApplyInstallDir = False
+  End If
+End Function
+
+Function ProductInstallLocation(ByVal installer, ByVal productCode)
+  Err.Clear
+  ProductInstallLocation = installer.ProductInfo(productCode, "InstallLocation")
+  If Err.Number <> 0 Then
+    Err.Clear
+    ProductInstallLocation = ""
+  End If
+End Function
+
+Function RegReadValue(ByVal shell, ByVal keyPath)
+  Err.Clear
+  RegReadValue = shell.RegRead(keyPath)
+  If Err.Number <> 0 Then
+    Err.Clear
+    RegReadValue = ""
+  End If
+End Function
+
+Function DisplayIconInstallDir(ByVal value)
+  value = SafeString(value)
+  If Len(value) = 0 Then
+    DisplayIconInstallDir = ""
+    Exit Function
+  End If
+
+  If Left(value, 1) = Chr(34) Then
+    Dim quotePos
+    quotePos = InStr(2, value, Chr(34))
+    If quotePos > 0 Then
+      value = Mid(value, 2, quotePos - 2)
+    Else
+      value = Mid(value, 2)
+    End If
+  Else
+    Dim commaPos
+    commaPos = InStrRev(value, ",")
+    If commaPos > 0 Then
+      value = Left(value, commaPos - 1)
+    End If
+  End If
+
+  Err.Clear
+  Dim fso
+  Set fso = CreateObject("Scripting.FileSystemObject")
+  If Err.Number <> 0 Then
+    Err.Clear
+    DisplayIconInstallDir = ""
+  Else
+    DisplayIconInstallDir = fso.GetParentFolderName(value)
+    If Err.Number <> 0 Then
+      Err.Clear
+      DisplayIconInstallDir = ""
+    End If
+  End If
+End Function
+
+Function RegistryInstallLocation(ByVal productCode)
+  Err.Clear
+  Dim shell
+  Set shell = CreateObject("WScript.Shell")
+  If Err.Number <> 0 Then
+    Err.Clear
+    RegistryInstallLocation = ""
+    Exit Function
+  End If
+
+  Dim roots
+  roots = Array( _
+    "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\", _
+    "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\", _
+    "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\" _
+  )
+
+  Dim root
+  For Each root In roots
+    Dim baseKey
+    baseKey = root & productCode & "\"
+
+    Dim installDir
+    installDir = RegReadValue(shell, baseKey & "InstallLocation")
+    If Len(NormalizeInstallDir(installDir)) > 0 Then
+      RegistryInstallLocation = installDir
+      Exit Function
+    End If
+
+    Dim displayIcon
+    displayIcon = RegReadValue(shell, baseKey & "DisplayIcon")
+    installDir = DisplayIconInstallDir(displayIcon)
+    If Len(NormalizeInstallDir(installDir)) > 0 Then
+      RegistryInstallLocation = installDir
+      Exit Function
+    End If
+  Next
+
+  RegistryInstallLocation = ""
+End Function
+
+Dim installer
+Set installer = CreateObject("WindowsInstaller.Installer")
+If Err.Number = 0 Then
+  Dim relatedProducts
+  Set relatedProducts = installer.RelatedProducts(UpgradeCode)
+  If Err.Number = 0 Then
+    Dim productCode
+    For Each productCode In relatedProducts
+      Dim installDir
+      installDir = ProductInstallLocation(installer, productCode)
+      If TryApplyInstallDir(installDir) Then
+        Exit For
+      End If
+
+      installDir = RegistryInstallLocation(productCode)
+      If TryApplyInstallDir(installDir) Then
+        Exit For
+      End If
+    Next
+  Else
+    Err.Clear
+  End If
+Else
+  Err.Clear
+End If
+      ]]></CustomAction>
+
+    <CustomAction
+      Id="DdShellSetArpInstallLocation"
+      Property="ARPINSTALLLOCATION"
+      Value="[APPLICATIONFOLDER]" />
+
+    <InstallUISequence>
+      <Custom Action="DdShellPreserveMsiInstallLocation" Before="CostFinalize">NOT Installed AND NOT APPLICATIONFOLDER</Custom>
+    </InstallUISequence>
+
+    <InstallExecuteSequence>
+      <Custom Action="DdShellPreserveMsiInstallLocation" Before="CostFinalize">NOT Installed AND NOT APPLICATIONFOLDER</Custom>
+      <Custom Action="DdShellSetArpInstallLocation" Before="RegisterProduct">NOT Installed AND APPLICATIONFOLDER</Custom>
+    </InstallExecuteSequence>
+  </Fragment>
+</Wix>

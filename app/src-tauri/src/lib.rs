@@ -2421,6 +2421,48 @@ fn current_package_type() -> Option<&'static str> {
     }
 }
 
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+fn normalized_msi_install_dir(path: &Path) -> String {
+    let mut value = path.to_string_lossy().replace('"', "");
+    if let Some(stripped) = value.strip_prefix(r"\\?\UNC\") {
+        value = format!(r"\\{}", stripped);
+    } else if let Some(stripped) = value.strip_prefix(r"\\?\") {
+        value = stripped.to_string();
+    }
+
+    while value.len() > 3 && (value.ends_with('\\') || value.ends_with('/')) {
+        value.pop();
+    }
+    value
+}
+
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+fn msi_install_location_args(install_dir: &Path) -> Vec<String> {
+    let install_dir = normalized_msi_install_dir(install_dir);
+    let quoted = format!("\"{}\"", install_dir);
+    vec![
+        format!("APPLICATIONFOLDER={quoted}"),
+        format!("INSTALLDIR={quoted}"),
+    ]
+}
+
+#[cfg(target_os = "windows")]
+fn configure_windows_updater_builder(
+    builder: tauri_plugin_updater::Builder,
+) -> tauri_plugin_updater::Builder {
+    if tauri::utils::platform::bundle_type() != Some(tauri::utils::config::BundleType::Msi) {
+        return builder;
+    }
+
+    match std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(Path::to_path_buf))
+    {
+        Some(install_dir) => builder.installer_args(msi_install_location_args(&install_dir)),
+        None => builder,
+    }
+}
+
 fn select_target_asset(assets: &[ReleaseAssetInfo]) -> Option<ReleaseAssetInfo> {
     #[cfg(target_os = "macos")]
     {
@@ -3006,13 +3048,17 @@ pub fn run() {
         )
         .init();
 
+    let updater_builder = tauri_plugin_updater::Builder::new();
+    #[cfg(target_os = "windows")]
+    let updater_builder = configure_windows_updater_builder(updater_builder);
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(updater_builder.build())
         .setup(|app| {
             // Set window icon (for dev mode)
             if let Some(window) = app.get_webview_window("main") {
@@ -3332,5 +3378,57 @@ mod tests {
 
         assert_eq!(output, b"Last login");
         assert_eq!(normalizer.flush(), b"\r\x1b[");
+    }
+
+    #[test]
+    fn msi_install_location_args_quote_paths_with_spaces() {
+        let args = msi_install_location_args(Path::new(r"D:\Tools\DdShell App"));
+
+        assert_eq!(
+            args,
+            vec![
+                r#"APPLICATIONFOLDER="D:\Tools\DdShell App""#.to_string(),
+                r#"INSTALLDIR="D:\Tools\DdShell App""#.to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn msi_install_location_args_trim_non_root_trailing_separator() {
+        let args = msi_install_location_args(Path::new(r"D:\Tools\DdShell\"));
+
+        assert_eq!(
+            args,
+            vec![
+                r#"APPLICATIONFOLDER="D:\Tools\DdShell""#.to_string(),
+                r#"INSTALLDIR="D:\Tools\DdShell""#.to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn msi_install_location_args_keep_drive_root_separator() {
+        let args = msi_install_location_args(Path::new(r"D:\"));
+
+        assert_eq!(
+            args,
+            vec![
+                r#"APPLICATIONFOLDER="D:\""#.to_string(),
+                r#"INSTALLDIR="D:\""#.to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn msi_install_location_args_strip_extended_path_prefix() {
+        let args = msi_install_location_args(Path::new(r"\\?\D:\Tools\DdShell App\"));
+
+        assert_eq!(
+            args,
+            vec![
+                r#"APPLICATIONFOLDER="D:\Tools\DdShell App""#.to_string(),
+                r#"INSTALLDIR="D:\Tools\DdShell App""#.to_string(),
+            ]
+        );
     }
 }

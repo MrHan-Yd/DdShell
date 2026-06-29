@@ -58,5 +58,5 @@ GitHub Actions 会自动构建并创建 Release。
 - 普通安装包已上传。
 - macOS / Windows updater 产物、`.sig` 和 `latest.json` 已上传；Windows updater 签名应同时包含 NSIS `.exe.sig` 和 MSI `.msi.sig`。
 - Windows `latest.json` 包含 `windows-x86_64-nsis` 和 `windows-x86_64-msi`，不包含会把 MSI 用户导向 NSIS 的 `windows-x86_64` fallback。
-- Windows 更新冒烟：旧版本安装到非 C 盘并创建服务器记录后，通过应用内更新升级，安装路径和安装目录中的 `shell.db` 数据均保留。
+- Windows 更新冒烟：分别用旧版 MSI/NSIS 安装到非默认目录并创建服务器记录后，通过应用内更新升级，安装路径和安装目录中的 `shell.db` 数据均保留；MSI 冒烟必须覆盖带空格路径。
 - 旧版本客户端可检查到新版本，下载并安装后只提示用户重启，不自动重启。
