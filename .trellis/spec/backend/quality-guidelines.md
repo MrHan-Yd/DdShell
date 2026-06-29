@@ -209,6 +209,65 @@ let normalized = crlf_normalizer.normalize(data);
 emit_session_output_bytes(&app, &session_id, &mut decoder, &normalized);
 ```
 
+### Scenario: SSH PTY Input Modes
+
+#### 1. Scope / Trigger
+- Trigger: SSH PTY creation, terminal input writes, Enter/newline behavior, or changes to `russh::Pty` mode requests.
+- Applies to `app/src-tauri/src/core/ssh.rs` and frontend paths that write xterm input through `session_write`.
+
+#### 2. Signatures
+- Backend PTY mode helper: `default_pty_modes() -> [(russh::Pty, u32); 3]`
+- Backend PTY open path: `SshSession::open_pty(cols, rows, set_locale)`
+- Frontend input sink: `term.onData(...) -> api.sessionWrite(sessionId, bytes)`
+
+#### 3. Contracts
+- Keep `russh::Pty::ICRNL` enabled (`1`) for SSH PTY sessions. xterm Enter sends carriage return (`\r`), and the remote terminal line discipline must map it to newline so shells and interactive database clients submit the line.
+- Keep `russh::Pty::OPOST` and `russh::Pty::ONLCR` enabled (`1`) unless a task explicitly redesigns output rendering.
+- Do not fix Enter submission by globally rewriting frontend input `\r` to `\n`; that bypasses normal terminal behavior and can break programs that expect raw terminal bytes.
+- Keep PTY mode values in one helper so tests can lock the behavior.
+
+#### 4. Validation & Error Matrix
+- `ICRNL = 0` -> Enter can echo as `^M` and not execute in canonical interactive programs.
+- Missing `ICRNL` with unknown server defaults -> verify manually against shell and database-client prompts before shipping.
+- Frontend rewrites every `\r` to `\n` -> reject unless a terminal-compatibility design proves no raw-mode regressions.
+- Output CRLF rendering issue -> use the output normalizer contract, not PTY input mode changes, unless evidence shows the mode is the cause.
+
+#### 5. Good/Base/Bad Cases
+- Good: `default_pty_modes()` includes `(russh::Pty::ICRNL, 1)` and a unit test asserts it.
+- Base: xterm emits `\r`, backend sends the bytes unchanged, remote PTY maps CR to NL and submits the command.
+- Bad: PTY request sets `(russh::Pty::ICRNL, 0)`, causing Enter to render as `^M`.
+- Bad: frontend special-cases Enter to send `\n` while leaving the backend PTY mode incorrect.
+
+#### 6. Tests Required
+- Unit test must assert `default_pty_modes()` keeps `ICRNL` enabled.
+- `cargo check --manifest-path app/src-tauri/Cargo.toml` must pass after PTY mode changes.
+- `cargo test --manifest-path app/src-tauri/Cargo.toml` must pass after PTY mode changes.
+- Manual smoke test recommended: connect to a host, run an interactive shell/database client, type a command, press Enter, and confirm no `^M` is displayed.
+
+#### 7. Wrong vs Correct
+
+Wrong:
+
+```rust
+&[
+    (russh::Pty::ICRNL, 0),
+    (russh::Pty::OPOST, 1),
+    (russh::Pty::ONLCR, 1),
+]
+```
+
+Correct:
+
+```rust
+fn default_pty_modes() -> [(russh::Pty, u32); 3] {
+    [
+        (russh::Pty::ICRNL, 1),
+        (russh::Pty::OPOST, 1),
+        (russh::Pty::ONLCR, 1),
+    ]
+}
+```
+
 ### Scenario: Terminal Session Idle Timeout
 
 #### 1. Scope / Trigger

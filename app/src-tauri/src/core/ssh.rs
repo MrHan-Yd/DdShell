@@ -89,6 +89,14 @@ pub struct ExecCommandResult {
     pub exit_code: Option<i32>,
 }
 
+fn default_pty_modes() -> [(russh::Pty, u32); 3] {
+    [
+        (russh::Pty::ICRNL, 1),
+        (russh::Pty::OPOST, 1),
+        (russh::Pty::ONLCR, 1),
+    ]
+}
+
 impl SshSession {
     /// Establish SSH connection and authenticate
     pub async fn connect(
@@ -246,9 +254,10 @@ impl SshSession {
         let channel = self.handle.channel_open_session().await?;
         let channel_id = channel.id();
 
-        // Set terminal modes: disable ICRNL (don't convert CR->NL on input)
-        // and enable OPOST+ONLCR (convert NL->CRNL on output).
-        // This matches what openssh client sends and ensures correct rendering.
+        // Set terminal modes for normal interactive behavior. xterm sends CR
+        // for Enter, so keep ICRNL enabled to let the remote line discipline
+        // turn it into NL. OPOST+ONLCR keeps output newlines rendering cleanly.
+        let pty_modes = default_pty_modes();
         channel
             .request_pty(
                 true,
@@ -257,11 +266,7 @@ impl SshSession {
                 rows,
                 0,
                 0,
-                &[
-                    (russh::Pty::ICRNL, 0),   // disable: don't map CR to NL on input
-                    (russh::Pty::OPOST, 1),   // enable: output processing
-                    (russh::Pty::ONLCR, 1),   // enable: map NL to CR+NL on output
-                ],
+                &pty_modes,
             )
             .await?;
 
@@ -579,6 +584,19 @@ mod tests {
     fn session_activity_keeps_disabled_timeout() {
         let activity = SessionActivity::new(None);
         assert_eq!(activity.idle_timeout, None);
+    }
+
+    #[test]
+    fn default_pty_modes_keep_enter_as_line_submit() {
+        let modes = default_pty_modes();
+
+        assert_eq!(
+            modes
+                .iter()
+                .find(|(mode, _)| *mode == russh::Pty::ICRNL)
+                .map(|(_, value)| *value),
+            Some(1)
+        );
     }
 
     #[test]
