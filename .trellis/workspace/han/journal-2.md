@@ -236,3 +236,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 64: 修复 Windows 更新数据丢失
+
+**Date**: 2026-06-29
+**Task**: 修复 Windows 更新数据丢失
+**Branch**: `main`
+
+### Summary
+
+修复 Windows in-app update 跨安装器类型和安装目录数据丢失问题：发布清单区分 NSIS/MSI，Windows updater quiet 安装，NSIS 保护 shell.db*，MSI 固定 upgradeCode，并更新发布验证规范。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `83a3a95` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
