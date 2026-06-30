@@ -373,3 +373,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 68: 终端分屏按钮顺序调整
+
+**Date**: 2026-06-30
+**Task**: 终端分屏按钮顺序调整
+**Branch**: `main`
+
+### Summary
+
+将终端右上角两个分屏按钮的显示顺序调整为先左右分屏、后上下分屏，保留原有功能、激活态、tooltip 和快捷键说明。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d96d7f8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
