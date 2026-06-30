@@ -406,3 +406,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 69: 终端面板显示服务器延迟
+
+**Date**: 2026-06-30
+**Task**: 终端面板显示服务器延迟
+**Branch**: `main`
+
+### Summary
+
+将终端 pane 顶栏右侧连接状态改为服务器延迟显示；为可见 pane 会话刷新 latencyMap，保持自动 ping 不触发 session activity。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `331e516` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

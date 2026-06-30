@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 68
+- **Total Sessions**: 69
 - **Last Active**: 2026-06-30
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~408 | Active |
+| `journal-2.md` | ~441 | Active |
 | `journal-1.md` | ~1985 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 69 | 2026-06-30 | 终端面板显示服务器延迟 | `331e516` | `main` |
 | 68 | 2026-06-30 | 终端分屏按钮顺序调整 | `d96d7f8` | `main` |
 | 67 | 2026-06-30 | 发布 v0.2.8 与终端工具栏图标 | `ea0cdd1`, `798722b` | `main` |
 | 66 | 2026-06-30 | Terminal selection actions and session lifecycle fixes | `709092a`, `ee62195`, `f452a9a`, `0aa911e`, `a160e43` | `main` |
