@@ -1,0 +1,43 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="18" y1="18" x2="182" y2="182" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.56" stop-color="#FBFEFF"/>
+      <stop offset="1" stop-color="#E8F0F4"/>
+    </linearGradient>
+    <linearGradient id="ddGrad" x1="30" y1="34" x2="170" y2="166" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2A8BA5"/>
+      <stop offset="0.54" stop-color="#7759D8"/>
+      <stop offset="1" stop-color="#C85D8B"/>
+    </linearGradient>
+    <linearGradient id="rainGrad" x1="62" y1="70" x2="146" y2="142" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.68"/>
+      <stop offset="0.52" stop-color="#2A8BA5" stop-opacity="0.48"/>
+      <stop offset="1" stop-color="#C85D8B" stop-opacity="0.40"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#2A8BA5" stop-opacity="0.20"/>
+      <stop offset="0.58" stop-color="#7759D8" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#7759D8" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#07192A" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+
+  <rect x="16" y="16" width="168" height="168" rx="38" fill="url(#bgGrad)"/>
+  <circle cx="100" cy="100" r="78" fill="url(#glow)"/>
+  <rect x="16.5" y="16.5" width="167" height="167" rx="37.5" stroke="#07192A" stroke-opacity="0.10"/>
+
+  <g filter="url(#shadow)">
+    <path d="M96 34V76C96 84 86 91 86 100C86 109 96 116 96 124V166C48 166 30 138 30 100C30 62 48 34 96 34Z" fill="url(#ddGrad)"/>
+    <path d="M104 34V76C104 84 114 91 114 100C114 109 104 116 104 124V166C152 166 170 138 170 100C170 62 152 34 104 34Z" fill="url(#ddGrad)"/>
+  </g>
+
+  <path d="M70 70L62 112" stroke="url(#rainGrad)" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M84 84L78 122" stroke="#2A8BA5" stroke-opacity="0.40" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M130 66L121 110" stroke="url(#rainGrad)" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M146 92L139 130" stroke="#C85D8B" stroke-opacity="0.36" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M58 139C70 135 82 135 94 139" stroke="#2A8BA5" stroke-opacity="0.24" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M112 146C126 141 140 141 154 146" stroke="#C85D8B" stroke-opacity="0.26" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

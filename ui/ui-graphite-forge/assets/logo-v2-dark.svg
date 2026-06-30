@@ -1,0 +1,58 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="10" x2="190" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2B3134"/>
+      <stop offset="0.52" stop-color="#090B0C"/>
+      <stop offset="1" stop-color="#151A1D"/>
+    </linearGradient>
+    <linearGradient id="paint" x1="18" y1="24" x2="182" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#141719"/>
+      <stop offset="0.28" stop-color="#2A3034"/>
+      <stop offset="0.48" stop-color="#36E0C2"/>
+      <stop offset="0.66" stop-color="#5EA7FF"/>
+      <stop offset="0.84" stop-color="#F2C94C"/>
+      <stop offset="1" stop-color="#0E1112"/>
+    </linearGradient>
+    <linearGradient id="line" x1="36" y1="36" x2="164" y2="164" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9AF6E6" stop-opacity="0.18"/>
+      <stop offset="0.48" stop-color="#9AF6E6" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#F2C94C" stop-opacity="0.46"/>
+    </linearGradient>
+    <radialGradient id="arcGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(132 128) rotate(132) scale(78 48)">
+      <stop stop-color="#36E0C2" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#36E0C2" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="bodyClip">
+      <path d="M96 24V68C96 78 84 85 84 100C84 115 96 122 96 132V176C38 174 18 143 18 100C18 57 38 26 96 24Z"/>
+      <path d="M104 24V68C104 78 116 85 116 100C116 115 104 122 104 132V176C162 174 182 143 182 100C182 57 162 26 104 24Z"/>
+    </clipPath>
+    <filter id="softGlow" x="-28%" y="-28%" width="156%" height="156%">
+      <feGaussianBlur stdDeviation="5.5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.21 0 0 0 0 0.88 0 0 0 0 0.76 0 0 0 0.34 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#bg)"/>
+  <path d="M34 48H76M122 48H166M34 152H82M118 152H166" stroke="#F1F4F0" stroke-opacity="0.09" stroke-linecap="round"/>
+  <path d="M26 82L78 30M122 170L174 118" stroke="#36E0C2" stroke-opacity="0.11" stroke-linecap="round"/>
+  <path d="M142 38L166 62M34 136L58 160" stroke="#F2C94C" stroke-opacity="0.18" stroke-width="3" stroke-linecap="round"/>
+  <rect x="10.5" y="10.5" width="179" height="179" rx="39.5" stroke="#DBE4E0" stroke-opacity="0.13"/>
+  <g filter="url(#softGlow)">
+    <path d="M96 24V68C96 78 84 85 84 100C84 115 96 122 96 132V176C38 174 18 143 18 100C18 57 38 26 96 24Z" fill="url(#paint)"/>
+    <path d="M104 24V68C104 78 116 85 116 100C116 115 104 122 104 132V176C162 174 182 143 182 100C182 57 162 26 104 24Z" fill="url(#paint)"/>
+  </g>
+  <g clip-path="url(#bodyClip)">
+    <path d="M28 82L76 34M38 108L112 34M54 134L148 40M78 154L170 62M112 170L178 104" stroke="#07090A" stroke-opacity="0.24" stroke-width="8" stroke-linecap="round"/>
+    <path d="M44 62H86M114 62H156M42 142H88M112 142H158" stroke="#F1F4F0" stroke-opacity="0.28" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M48 104C66 86 84 86 100 100C116 114 134 110 152 90" stroke="url(#line)" stroke-width="5" stroke-linecap="round" opacity="0.72"/>
+    <path d="M122 70L134 58M140 78L154 74M120 88L134 94" stroke="#F2C94C" stroke-opacity="0.70" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="66" cy="76" r="3.6" fill="#07090A" fill-opacity="0.42" stroke="#9AF6E6" stroke-opacity="0.72"/>
+    <circle cx="134" cy="76" r="3.6" fill="#07090A" fill-opacity="0.42" stroke="#9AF6E6" stroke-opacity="0.72"/>
+    <circle cx="66" cy="124" r="3.6" fill="#07090A" fill-opacity="0.42" stroke="#F2C94C" stroke-opacity="0.66"/>
+    <circle cx="134" cy="124" r="3.6" fill="#07090A" fill-opacity="0.42" stroke="#F2C94C" stroke-opacity="0.66"/>
+  </g>
+  <rect x="99.2" y="31" width="1.6" height="138" fill="#F1F4F0" opacity="0.50"/>
+  <path d="M62 138C86 150 120 150 144 138" stroke="#F2C94C" stroke-opacity="0.62" stroke-width="4" stroke-linecap="round"/>
+  <path d="M128 130L142 140L128 150M144 130L158 140L144 150" stroke="#F2C94C" stroke-width="3.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.76"/>
+  <circle cx="132" cy="128" r="35" fill="url(#arcGlow)"/>
+</svg>

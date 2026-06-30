@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="zh-CN" data-page="settings">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>DdShell · Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/base.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<link rel="stylesheet" href="styles/layout.css" />
+<link rel="stylesheet" href="styles/pages/settings.css" />
+</head>
+<body class="theme-light">
+
+<div class="page-overlay">
+  <a class="btn btn-ghost btn-sm" href="index.html">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Back to index
+  </a>
+  <div class="theme-toggle" role="group" aria-label="Theme">
+    <button data-theme="dark"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>Dark</button>
+    <button data-theme="light" class="is-active"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>Light</button>
+  </div>
+</div>
+
+<div class="app">
+  <header class="titlebar">
+    <div class="traffic-lights"><span class="tl-close"></span><span class="tl-min"></span><span class="tl-max"></span></div>
+    <span class="title">DdShell — Settings</span>
+    <div class="titlebar-right"></div>
+  </header>
+
+  <div class="app-body">
+
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="logo"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
+        <span class="name">DdShell</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="connections.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></span><span class="label">Connections</span><span class="meta">12</span></a>
+        <a class="nav-item" href="terminal.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span><span class="label">Terminal</span><span class="badge badge-accent" style="height:16px;font-size:10px;padding:0 6px;">3</span></a>
+        <a class="nav-item" href="sftp.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span><span class="label">SFTP</span></a>
+        <a class="nav-item" href="monitor.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="label">Monitor</span></a>
+        <a class="nav-item" href="snippets.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span><span class="label">Snippets</span><span class="meta">24</span></a>
+        <a class="nav-item" href="workflows.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span class="label">Workflows</span></a>
+      </nav>
+      <span class="sidebar-spacer"></span>
+      <div class="sidebar-footer">
+        <a class="nav-item is-active" href="settings.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6 1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="label">Settings</span></a>
+      </div>
+    </aside>
+
+    <main class="app-main settings-main">
+
+      <div class="page-header">
+        <div class="title-block">
+          <span class="title">Settings</span>
+          <span class="subtitle">Personalise DdShell · 6 categories · synced</span>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost btn-sm">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export
+          </button>
+          <button class="btn btn-secondary btn-sm">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            Reset to defaults
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-body">
+
+        <!-- Left categories -->
+        <aside class="settings-nav">
+          <span class="input-with-icon settings-search">
+            <span class="input-icon"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            <input class="input" placeholder="Search settings…" />
+          </span>
+
+          <ul class="settings-cat-list">
+            <li><button class="settings-cat is-active" data-cat="general">
+              <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+              <span class="label">通用</span>
+              <span class="meta">General</span>
+            </button></li>
+            <li><button class="settings-cat" data-cat="appearance">
+              <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20"/></svg></span>
+              <span class="label">外观</span>
+              <span class="meta">Appearance</span>
+            </button></li>
+            <li><button class="settings-cat" data-cat="terminal">
+              <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
+              <span class="label">终端</span>
+              <span class="meta">Terminal</span>
+            </button></li>
+            <li><button class="settings-cat" data-cat="assist">
+              <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
+              <span class="label">命令助手</span>
+              <span class="meta">AI Assist</span>
+              <span class="settings-cat-badge badge badge-accent">Beta</span>
+            </button></li>
+            <li><button class="settings-cat" data-cat="data">
+              <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span>
+              <span class="label">数据</span>
+              <span class="meta">Data &amp; Sync</span>
+            </button></li>
+            <li><button class="settings-cat" data-cat="about">
+              <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+              <span class="label">关于</span>
+              <span class="meta">About</span>
+            </button></li>
+          </ul>
+
+          <div class="settings-account">
+            <span class="avatar avatar-sm">H</span>
+            <div class="settings-account-info">
+              <span class="settings-account-name">han</span>
+              <span class="settings-account-mail">han@ddshell.app</span>
+            </div>
+            <button class="btn btn-ghost btn-icon" title="Sign out">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+          </div>
+        </aside>
+
+        <!-- Right form -->
+        <section class="settings-pane">
+
+          <!-- Category: General (active) -->
+          <div class="settings-cat-panel is-active" data-panel="general">
+            <header class="settings-pane-head">
+              <div>
+                <h2 class="settings-pane-title">通用</h2>
+                <p class="settings-pane-sub">应用启动、Shell、语言、自动更新等基础偏好。</p>
+              </div>
+              <span class="settings-pane-saved">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Saved · 14:08
+              </span>
+            </header>
+
+            <section class="settings-group">
+              <h3 class="settings-group-title">Shell &amp; 启动</h3>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">默认本地 Shell</span>
+                  <span class="settings-row-help">用于打开本地终端 tab 时启动的程序。</span>
+                </div>
+                <div class="settings-row-control">
+                  <select class="select">
+                    <option>/bin/zsh</option>
+                    <option>/bin/bash</option>
+                    <option>/opt/homebrew/bin/fish</option>
+                    <option>/usr/bin/pwsh</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">启动时自动连接</span>
+                  <span class="settings-row-help">DdShell 启动时自动恢复上次的连接会话。</span>
+                </div>
+                <div class="settings-row-control">
+                  <label class="toggle">
+                    <input type="checkbox" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">最近主机数</span>
+                  <span class="settings-row-help">侧栏「最近」列表保留多少个主机。</span>
+                </div>
+                <div class="settings-row-control">
+                  <div class="input-stepper">
+                    <button class="input-stepper-btn"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                    <input class="input" value="8" />
+                    <button class="input-stepper-btn"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-group">
+              <h3 class="settings-group-title">语言 &amp; 区域</h3>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">界面语言</span>
+                  <span class="settings-row-help">立即生效，无需重启。</span>
+                </div>
+                <div class="settings-row-control">
+                  <div class="seg-control">
+                    <button class="seg is-active">中文</button>
+                    <button class="seg">English</button>
+                    <button class="seg">日本語</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">日期格式</span>
+                </div>
+                <div class="settings-row-control">
+                  <select class="select">
+                    <option>2026/05/08</option>
+                    <option>May 8, 2026</option>
+                    <option>2026-05-08</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-group">
+              <h3 class="settings-group-title">更新</h3>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">更新通道</span>
+                  <span class="settings-row-help">stable 推荐普通用户；beta 包含未发布功能。</span>
+                </div>
+                <div class="settings-row-control">
+                  <div class="seg-control">
+                    <button class="seg is-active">stable</button>
+                    <button class="seg">beta</button>
+                    <button class="seg">nightly</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">自动检查更新</span>
+                  <span class="settings-row-help">每 6 小时检查一次。新版本会提示但不自动下载。</span>
+                </div>
+                <div class="settings-row-control">
+                  <label class="toggle">
+                    <input type="checkbox" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-row settings-row-stack">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">当前版本</span>
+                </div>
+                <div class="settings-version-row">
+                  <span class="settings-version">DdShell <span class="mono">v0.2.2</span></span>
+                  <span class="badge badge-success"><span class="dot dot-success"></span>up-to-date</span>
+                  <button class="btn btn-ghost btn-sm">检查更新</button>
+                </div>
+              </div>
+            </section>
+
+          </div>
+
+          <!-- Category: Appearance (hidden placeholder) -->
+          <div class="settings-cat-panel" data-panel="appearance">
+            <header class="settings-pane-head">
+              <div>
+                <h2 class="settings-pane-title">外观</h2>
+                <p class="settings-pane-sub">主题、字体、强调色、终端背景。</p>
+              </div>
+            </header>
+            <section class="settings-group">
+              <h3 class="settings-group-title">主题</h3>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">应用主题</span>
+                  <span class="settings-row-help">跟随系统会在亮 / 暗模式间自动切换。</span>
+                </div>
+                <div class="settings-row-control">
+                  <div class="seg-control">
+                    <button class="seg">跟随系统</button>
+                    <button class="seg is-active">深色</button>
+                    <button class="seg">浅色</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">强调色</span>
+                  <span class="settings-row-help">影响按钮、链接、focus 描边。</span>
+                </div>
+                <div class="settings-row-control settings-color-row">
+                  <button class="settings-color is-active" style="--swatch: linear-gradient(135deg, #2D9BA3, #FFF2C8 48%, #F47C3C);" title="橘子海"></button>
+                  <button class="settings-color" style="--swatch: linear-gradient(135deg, #F472B6, #F87171);" title="Rose"></button>
+                  <button class="settings-color" style="--swatch: linear-gradient(135deg, #4ADE80, #22D3EE);" title="Mint"></button>
+                  <button class="settings-color" style="--swatch: linear-gradient(135deg, #FBBF24, #F87171);" title="Sunset"></button>
+                  <button class="settings-color" style="--swatch: linear-gradient(135deg, #60A5FA, #C084FC);" title="Iris"></button>
+                  <button class="settings-color" style="--swatch: var(--bg-elevated); border: 1px dashed var(--border-default);" title="Custom">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-group">
+              <h3 class="settings-group-title">字体</h3>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">界面字号</span>
+                </div>
+                <div class="settings-row-control settings-slider-row">
+                  <span class="muted mono">12</span>
+                  <input class="slider" type="range" min="11" max="16" value="13" />
+                  <span class="muted mono">16</span>
+                  <span class="settings-slider-value mono">13 px</span>
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">界面字体</span>
+                </div>
+                <div class="settings-row-control">
+                  <select class="select">
+                    <option>Inter (default)</option>
+                    <option>SF Pro Display</option>
+                    <option>Geist Sans</option>
+                    <option>System UI</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">圆角强度</span>
+                </div>
+                <div class="settings-row-control">
+                  <div class="seg-control">
+                    <button class="seg">Sharp</button>
+                    <button class="seg is-active">Soft</button>
+                    <button class="seg">Round</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Category: Terminal (placeholder) -->
+          <div class="settings-cat-panel" data-panel="terminal">
+            <header class="settings-pane-head">
+              <div>
+                <h2 class="settings-pane-title">终端</h2>
+                <p class="settings-pane-sub">滚动、光标、字体、背景图。</p>
+              </div>
+            </header>
+            <section class="settings-group">
+              <h3 class="settings-group-title">显示</h3>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">终端字体</span>
+                </div>
+                <div class="settings-row-control">
+                  <select class="select">
+                    <option>JetBrains Mono</option>
+                    <option>SF Mono</option>
+                    <option>Fira Code</option>
+                    <option>Cascadia Code</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">终端字号</span>
+                </div>
+                <div class="settings-row-control settings-slider-row">
+                  <span class="muted mono">10</span>
+                  <input class="slider" type="range" min="10" max="20" value="13" />
+                  <span class="muted mono">20</span>
+                  <span class="settings-slider-value mono">13 px</span>
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">滚动行数</span>
+                  <span class="settings-row-help">超出会被截断；过大会占用内存。</span>
+                </div>
+                <div class="settings-row-control">
+                  <div class="input-stepper">
+                    <button class="input-stepper-btn"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                    <input class="input" value="10000" />
+                    <button class="input-stepper-btn"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="settings-group">
+              <h3 class="settings-group-title">光标</h3>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">样式</span>
+                </div>
+                <div class="settings-row-control">
+                  <div class="seg-control">
+                    <button class="seg is-active">块状 ▮</button>
+                    <button class="seg">下划线 _</button>
+                    <button class="seg">竖线 |</button>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">光标闪烁</span>
+                </div>
+                <div class="settings-row-control">
+                  <label class="toggle">
+                    <input type="checkbox" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">Bell 提示</span>
+                  <span class="settings-row-help">收到 \a 时如何提示。</span>
+                </div>
+                <div class="settings-row-control">
+                  <div class="seg-control">
+                    <button class="seg is-active">视觉</button>
+                    <button class="seg">声音</button>
+                    <button class="seg">关闭</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Category: Assist (placeholder) -->
+          <div class="settings-cat-panel" data-panel="assist">
+            <header class="settings-pane-head">
+              <div>
+                <h2 class="settings-pane-title">命令助手 <span class="badge badge-accent" style="margin-left:8px;">Beta</span></h2>
+                <p class="settings-pane-sub">配置 // 触发的命令补全模型与隐私选项。</p>
+              </div>
+            </header>
+            <section class="settings-group">
+              <h3 class="settings-group-title">触发器 &amp; 模型</h3>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">触发器</span>
+                  <span class="settings-row-help">在终端中输入即可弹出候选浮层。</span>
+                </div>
+                <div class="settings-row-control">
+                  <input class="input mono" value="//" style="width: 80px; text-align: center;" />
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">默认模型</span>
+                  <span class="settings-row-help">需要先在「数据」配置 API Key。</span>
+                </div>
+                <div class="settings-row-control">
+                  <select class="select">
+                    <option>Claude Opus 4.7 (推荐)</option>
+                    <option>Claude Sonnet 4.6</option>
+                    <option>Claude Haiku 4.5</option>
+                    <option>本地：DeepSeek-Coder-7B</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+            <section class="settings-group">
+              <h3 class="settings-group-title">隐私</h3>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">发送当前命令历史作为上下文</span>
+                  <span class="settings-row-help">关闭时仅发送当前查询，回答质量可能下降。</span>
+                </div>
+                <div class="settings-row-control">
+                  <label class="toggle">
+                    <input type="checkbox" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">脱敏环境变量</span>
+                  <span class="settings-row-help">自动屏蔽 PASSWORD / TOKEN / SECRET 类变量。</span>
+                </div>
+                <div class="settings-row-control">
+                  <label class="toggle">
+                    <input type="checkbox" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Category: Data (placeholder) -->
+          <div class="settings-cat-panel" data-panel="data">
+            <header class="settings-pane-head">
+              <div>
+                <h2 class="settings-pane-title">数据</h2>
+                <p class="settings-pane-sub">连接库、片段、工作流的存储与同步。</p>
+              </div>
+            </header>
+            <section class="settings-group">
+              <h3 class="settings-group-title">本地存储</h3>
+              <div class="settings-row settings-row-stack">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">数据目录</span>
+                </div>
+                <div class="settings-version-row">
+                  <span class="mono settings-path">~/Library/Application Support/DdShell</span>
+                  <button class="btn btn-ghost btn-sm">在 Finder 中显示</button>
+                  <button class="btn btn-ghost btn-sm">更改…</button>
+                </div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">已使用空间</span>
+                  <span class="settings-row-help">connections.db 0.4 MB · snippets.db 1.2 MB · cache 4.8 MB</span>
+                </div>
+                <div class="settings-row-control">
+                  <span class="badge">6.4 MB</span>
+                </div>
+              </div>
+            </section>
+            <section class="settings-group">
+              <h3 class="settings-group-title">同步</h3>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">通过 GitHub Gist 同步</span>
+                  <span class="settings-row-help">私密 Gist，加密存储 connections / snippets / workflows。</span>
+                </div>
+                <div class="settings-row-control">
+                  <label class="toggle">
+                    <input type="checkbox" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="settings-row settings-row-stack">
+                <div class="settings-row-text">
+                  <span class="settings-row-label">导入 / 导出</span>
+                </div>
+                <div class="settings-version-row">
+                  <button class="btn btn-secondary btn-sm">导出全部为 JSON</button>
+                  <button class="btn btn-secondary btn-sm">从备份导入…</button>
+                  <button class="btn btn-danger btn-sm">清除所有数据…</button>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Category: About (placeholder) -->
+          <div class="settings-cat-panel" data-panel="about">
+            <header class="settings-pane-head">
+              <div>
+                <h2 class="settings-pane-title">关于</h2>
+                <p class="settings-pane-sub">版本信息、致谢、反馈渠道。</p>
+              </div>
+            </header>
+
+            <div class="settings-about-card card-glow">
+              <div class="inner">
+                <div class="settings-about-head">
+                  <span class="settings-about-logo">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                  </span>
+                  <div>
+                    <h3 class="settings-about-name">DdShell</h3>
+                    <p class="settings-about-tag">A modern SSH workbench for developers</p>
+                  </div>
+                </div>
+                <ul class="settings-about-meta">
+                  <li><span class="muted">版本</span><span class="mono">v0.2.2</span></li>
+                  <li><span class="muted">构建</span><span class="mono">2026.05.06 · build #482</span></li>
+                  <li><span class="muted">运行时</span><span class="mono">Tauri 2.4 · React 19.0 · Rust 1.84</span></li>
+                  <li><span class="muted">平台</span><span class="mono">macOS arm64 · Darwin 25.3.0</span></li>
+                </ul>
+                <div class="settings-about-actions">
+                  <button class="btn btn-primary btn-sm">检查更新</button>
+                  <a class="btn btn-ghost btn-sm" href="https://github.com/MrHan-Yd/DdShell" target="_blank" rel="noreferrer">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                    GitHub
+                  </a>
+                  <a class="btn btn-ghost btn-sm" href="#">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    反馈与建议
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <section class="settings-group">
+              <h3 class="settings-group-title">致谢</h3>
+              <ul class="settings-credits">
+                <li><span class="settings-credit-name">Tauri</span><span class="muted">应用打包与原生壳层</span></li>
+                <li><span class="settings-credit-name">React 19 · Vite</span><span class="muted">前端运行时与构建</span></li>
+                <li><span class="settings-credit-name">xterm.js</span><span class="muted">终端模拟与渲染</span></li>
+                <li><span class="settings-credit-name">russh</span><span class="muted">Rust 原生 SSH / SFTP 客户端</span></li>
+                <li><span class="settings-credit-name">CodeMirror 6</span><span class="muted">远程文件编辑器</span></li>
+                <li><span class="settings-credit-name">Inter · JetBrains Mono</span><span class="muted">字体</span></li>
+              </ul>
+            </section>
+          </div>
+
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <footer class="statusbar">
+    <span class="status-item">DdShell <span class="mono">v0.2.2</span></span>
+    <span class="status-item"><span class="dot dot-success"></span>settings synced</span>
+    <span class="spacer"></span>
+    <span class="status-item">~/Library/Application Support/DdShell</span>
+    <span class="status-item accent">⌘ ,</span>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var root = document.body;
+    var key = 'ddshell-ui-theme';
+    var saved = localStorage.getItem(key);
+    if (saved === 'dark' || saved === 'light') applyTheme(saved); else applyTheme('light');
+    document.querySelectorAll('.theme-toggle [data-theme]').forEach(function (b) {
+      b.addEventListener('click', function () { applyTheme(b.getAttribute('data-theme')); });
+    });
+    function applyTheme(t) {
+      root.classList.remove('theme-dark', 'theme-light');
+      root.classList.add('theme-' + t);
+      localStorage.setItem(key, t);
+      document.querySelectorAll('.theme-toggle [data-theme]').forEach(function (b) {
+        b.classList.toggle('is-active', b.getAttribute('data-theme') === t);
+      });
+    }
+  })();
+
+  // Settings 分类切换（极简）
+  (function () {
+    var cats = document.querySelectorAll('.settings-cat[data-cat]');
+    var panels = document.querySelectorAll('.settings-cat-panel[data-panel]');
+    cats.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var cat = btn.getAttribute('data-cat');
+        cats.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+        panels.forEach(function (p) { p.classList.toggle('is-active', p.getAttribute('data-panel') === cat); });
+      });
+    });
+  })();
+</script>
+</body>
+</html>

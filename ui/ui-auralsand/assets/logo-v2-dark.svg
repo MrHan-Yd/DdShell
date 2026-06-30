@@ -1,0 +1,38 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="10" x2="190" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#121416"/>
+      <stop offset="0.55" stop-color="#08090A"/>
+      <stop offset="1" stop-color="#1A1C1B"/>
+    </linearGradient>
+    <linearGradient id="paint" x1="10" y1="24" x2="190" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#56554D"/>
+      <stop offset="0.24" stop-color="#8F8877"/>
+      <stop offset="0.46" stop-color="#F4EFE3"/>
+      <stop offset="0.62" stop-color="#DCD8CC"/>
+      <stop offset="0.80" stop-color="#74D9CC"/>
+      <stop offset="1" stop-color="#59605E"/>
+    </linearGradient>
+    <linearGradient id="sweep" x1="42" y1="14" x2="136" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0.18" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.43" stop-color="#F4EFE3" stop-opacity="0.68"/>
+      <stop offset="0.52" stop-color="#FFFFFF" stop-opacity="0.14"/>
+      <stop offset="0.80" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0.76 0 1 0 0 0.73 0 0 1 0 0.64 0 0 0 0.36 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#bg)"/>
+  <path d="M24 58C72 18 128 18 176 58" stroke="#F4EFE3" stroke-opacity="0.10"/>
+  <path d="M24 142C72 182 128 182 176 142" stroke="#74D9CC" stroke-opacity="0.18"/>
+  <rect x="10.5" y="10.5" width="179" height="179" rx="39.5" stroke="#F4EFE3" stroke-opacity="0.12"/>
+  <g filter="url(#softGlow)">
+    <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z" fill="url(#paint)"/>
+    <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z" fill="url(#paint)"/>
+  </g>
+  <rect x="99.3" y="28" width="1.4" height="142" fill="url(#sweep)" opacity="0.72"/>
+  <path d="M46 56L140 134" stroke="url(#sweep)" stroke-width="7" stroke-linecap="round" opacity="0.36"/>
+</svg>

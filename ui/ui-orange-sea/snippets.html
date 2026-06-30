@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="zh-CN" data-page="snippets">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>DdShell · Snippets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/base.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<link rel="stylesheet" href="styles/layout.css" />
+<link rel="stylesheet" href="styles/pages/snippets.css" />
+</head>
+<body class="theme-light">
+
+<div class="page-overlay">
+  <a class="btn btn-ghost btn-sm" href="index.html">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Back to index
+  </a>
+  <div class="theme-toggle" role="group" aria-label="Theme">
+    <button data-theme="dark"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>Dark</button>
+    <button data-theme="light" class="is-active"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>Light</button>
+  </div>
+</div>
+
+<div class="app">
+  <header class="titlebar">
+    <div class="traffic-lights"><span class="tl-close"></span><span class="tl-min"></span><span class="tl-max"></span></div>
+    <span class="title">DdShell — Snippets</span>
+    <div class="titlebar-right"></div>
+  </header>
+
+  <div class="app-body">
+
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="logo"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
+        <span class="name">DdShell</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="connections.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></span><span class="label">Connections</span><span class="meta">12</span></a>
+        <a class="nav-item" href="terminal.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span><span class="label">Terminal</span><span class="badge badge-accent" style="height:16px;font-size:10px;padding:0 6px;">3</span></a>
+        <a class="nav-item" href="sftp.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span><span class="label">SFTP</span></a>
+        <a class="nav-item" href="monitor.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="label">Monitor</span></a>
+        <a class="nav-item is-active" href="snippets.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span><span class="label">Snippets</span><span class="meta">24</span></a>
+        <a class="nav-item" href="workflows.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span class="label">Workflows</span></a>
+      </nav>
+      <span class="sidebar-spacer"></span>
+      <div class="sidebar-footer">
+        <a class="nav-item" href="settings.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6 1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="label">Settings</span></a>
+      </div>
+    </aside>
+
+    <main class="app-main snippets-main">
+
+      <div class="page-header">
+        <div class="title-block">
+          <span class="title">Snippets</span>
+          <span class="subtitle">24 snippets · 3 groups · synced 4 min ago</span>
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary btn-sm">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import
+          </button>
+          <button class="btn btn-primary btn-sm">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New snippet
+          </button>
+        </div>
+      </div>
+
+      <div class="snippets-body">
+
+        <!-- Left: groups -->
+        <aside class="snip-aside">
+          <div class="aside-toolbar">
+            <span class="input-with-icon flex-1">
+              <span class="input-icon"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+              <input class="input" placeholder="Search…" />
+            </span>
+          </div>
+          <div class="snip-groups">
+            <h4 class="section-title" style="padding: 0 var(--space-3); margin-top: var(--space-3); margin-bottom: var(--space-2);">Library</h4>
+            <a class="list-item is-active" href="#">
+              <span class="icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+              All snippets
+              <span style="margin-left:auto;font-size:10px;color:var(--fg-muted)">24</span>
+            </a>
+            <a class="list-item" href="#">
+              <span class="icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8 22 9 17 14 18 21 12 17 6 21 7 14 2 9 9 8 12 2"/></svg></span>
+              Favorites
+              <span style="margin-left:auto;font-size:10px;color:var(--fg-muted)">5</span>
+            </a>
+            <a class="list-item" href="#">
+              <span class="icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>
+              Recent
+              <span style="margin-left:auto;font-size:10px;color:var(--fg-muted)">8</span>
+            </a>
+
+            <h4 class="section-title" style="padding: 0 var(--space-3); margin-top: var(--space-4); margin-bottom: var(--space-2);">Groups</h4>
+            <a class="list-item" href="#">
+              <span class="icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+              Logs &amp; Diagnostics
+              <span style="margin-left:auto;font-size:10px;color:var(--fg-muted)">9</span>
+            </a>
+            <a class="list-item" href="#">
+              <span class="icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+              Docker &amp; Containers
+              <span style="margin-left:auto;font-size:10px;color:var(--fg-muted)">7</span>
+            </a>
+            <a class="list-item" href="#">
+              <span class="icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+              Networking
+              <span style="margin-left:auto;font-size:10px;color:var(--fg-muted)">5</span>
+            </a>
+            <a class="list-item" href="#">
+              <span class="icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+              Security &amp; Auth
+              <span style="margin-left:auto;font-size:10px;color:var(--fg-muted)">3</span>
+            </a>
+          </div>
+        </aside>
+
+        <!-- Middle: list -->
+        <section class="snip-list">
+          <header class="snip-list-head">
+            <span class="section-title">All snippets · 24</span>
+            <div class="seg-control">
+              <button class="seg is-active">Recent</button>
+              <button class="seg">A→Z</button>
+              <button class="seg">Used</button>
+            </div>
+          </header>
+          <div class="snip-list-scroll">
+            <button class="snip-card is-active">
+              <div class="snip-card-head">
+                <span class="snip-card-title">Tail latest nginx errors</span>
+                <span class="snip-card-fav"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" style="color:var(--warning)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+              </div>
+              <pre class="snip-card-preview mono">tail -f /var/log/nginx/error.log | grep -i error</pre>
+              <div class="snip-card-meta">
+                <span class="tag">nginx</span>
+                <span class="tag">logs</span>
+                <span class="tag">prod</span>
+                <span class="snip-uses">used 14×</span>
+              </div>
+            </button>
+
+            <button class="snip-card">
+              <div class="snip-card-head"><span class="snip-card-title">Restart systemd service</span></div>
+              <pre class="snip-card-preview mono">sudo systemctl restart {{service}}</pre>
+              <div class="snip-card-meta">
+                <span class="tag">systemd</span>
+                <span class="tag">restart</span>
+                <span class="snip-uses">used 9×</span>
+              </div>
+            </button>
+
+            <button class="snip-card">
+              <div class="snip-card-head"><span class="snip-card-title">Clean up dangling docker images</span></div>
+              <pre class="snip-card-preview mono">docker image prune -a -f --filter "until=72h"</pre>
+              <div class="snip-card-meta">
+                <span class="tag">docker</span>
+                <span class="tag">cleanup</span>
+                <span class="snip-uses">used 6×</span>
+              </div>
+            </button>
+
+            <button class="snip-card">
+              <div class="snip-card-head"><span class="snip-card-title">Top 10 directories by size</span></div>
+              <pre class="snip-card-preview mono">du -h --max-depth=1 {{path}} 2&gt;/dev/null | sort -hr | head -n 10</pre>
+              <div class="snip-card-meta">
+                <span class="tag">disk</span>
+                <span class="tag">diagnose</span>
+                <span class="snip-uses">used 5×</span>
+              </div>
+            </button>
+
+            <button class="snip-card">
+              <div class="snip-card-head"><span class="snip-card-title">Generate ed25519 keypair</span></div>
+              <pre class="snip-card-preview mono">ssh-keygen -t ed25519 -C "{{email}}" -f ~/.ssh/{{name}}</pre>
+              <div class="snip-card-meta">
+                <span class="tag">ssh</span>
+                <span class="tag">auth</span>
+                <span class="snip-uses">used 3×</span>
+              </div>
+            </button>
+
+            <button class="snip-card">
+              <div class="snip-card-head"><span class="snip-card-title">Show TCP listeners</span></div>
+              <pre class="snip-card-preview mono">sudo ss -tlnp | column -t</pre>
+              <div class="snip-card-meta">
+                <span class="tag">network</span>
+                <span class="tag">diagnose</span>
+                <span class="snip-uses">used 3×</span>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        <!-- Right: detail -->
+        <section class="snip-detail">
+          <header class="snip-detail-head">
+            <div class="title-block">
+              <h2 class="snip-title">Tail latest nginx errors</h2>
+              <p class="snip-desc">实时跟踪 nginx error.log，仅过滤含 "error" 的行。常用于排查 502 / upstream timeout 问题。</p>
+              <div class="snip-tags">
+                <span class="tag">nginx</span>
+                <span class="tag">logs</span>
+                <span class="tag">prod</span>
+                <span class="tag">read-only</span>
+              </div>
+            </div>
+            <div class="snip-detail-actions">
+              <button class="btn btn-icon btn-ghost" title="Favorite"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="color:var(--warning)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+              <button class="btn btn-icon btn-ghost" title="Edit"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+              <button class="btn btn-icon btn-ghost" title="Delete"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+            </div>
+          </header>
+
+          <!-- Command block -->
+          <div class="snip-cmd-block card-glow">
+            <div class="inner">
+              <header class="cmd-block-head">
+                <span class="lang-tag mono">bash</span>
+                <span class="cmd-block-actions">
+                  <button class="btn btn-ghost btn-sm"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button>
+                </span>
+              </header>
+              <pre class="cmd-block mono"><span class="c-violet">tail</span> <span class="c-cyan">-f</span> <span class="c-yellow">/var/log/nginx/error.log</span> <span class="c-muted">|</span> <span class="c-violet">grep</span> <span class="c-cyan">-i</span> <span class="c-green">"error"</span></pre>
+            </div>
+          </div>
+
+          <!-- Variables -->
+          <section class="snip-vars">
+            <h3 class="section-title">Variables</h3>
+            <div class="var-grid">
+              <div class="var-row">
+                <span class="var-key mono">$HOST</span>
+                <span class="var-default">api-prod-01</span>
+                <span class="var-desc">target host (auto-resolved from current connection)</span>
+              </div>
+              <div class="var-row">
+                <span class="var-key mono">$LOG_PATH</span>
+                <span class="var-default">/var/log/nginx/error.log</span>
+                <span class="var-desc">log file to tail (override per host)</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Run -->
+          <div class="snip-run">
+            <button class="btn btn-primary btn-lg">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Run on api-prod-01
+              <span class="kbd">⌘</span><span class="kbd">↵</span>
+            </button>
+            <button class="btn btn-secondary btn-lg">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              Insert into terminal
+            </button>
+            <span class="snip-run-hint">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              Read-only · safe to run on production
+            </span>
+          </div>
+
+          <!-- Activity -->
+          <section class="snip-activity">
+            <h3 class="section-title">Recent runs</h3>
+            <ul class="activity-list">
+              <li><span class="dot dot-success"></span><span class="when mono">14:22</span><span class="what">api-prod-01 · exit 130 (Ctrl-C)</span></li>
+              <li><span class="dot dot-success"></span><span class="when mono">10:18</span><span class="what">api-prod-02 · exit 0 · 4m 12s</span></li>
+              <li><span class="dot dot-warning"></span><span class="when mono">Yesterday</span><span class="what">api-prod-01 · exit 130 (Ctrl-C)</span></li>
+            </ul>
+          </section>
+
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <footer class="statusbar">
+    <span class="status-item">DdShell <span class="mono">v0.2.2</span></span>
+    <span class="status-item">24 snippets · synced</span>
+    <span class="spacer"></span>
+    <span class="status-item">last sync 4 min ago</span>
+    <span class="status-item accent">⌘ ⇧ S</span>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var root = document.body;
+    var key = 'ddshell-ui-theme';
+    var saved = localStorage.getItem(key);
+    if (saved === 'dark' || saved === 'light') applyTheme(saved); else applyTheme('light');
+    document.querySelectorAll('.theme-toggle [data-theme]').forEach(function (b) {
+      b.addEventListener('click', function () { applyTheme(b.getAttribute('data-theme')); });
+    });
+    function applyTheme(t) {
+      root.classList.remove('theme-dark', 'theme-light');
+      root.classList.add('theme-' + t);
+      localStorage.setItem(key, t);
+      document.querySelectorAll('.theme-toggle [data-theme]').forEach(function (b) {
+        b.classList.toggle('is-active', b.getAttribute('data-theme') === t);
+      });
+    }
+  })();
+</script>
+</body>
+</html>

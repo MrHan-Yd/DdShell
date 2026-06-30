@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="zh-CN" data-page="monitor">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>DdShell · Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/base.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<link rel="stylesheet" href="styles/layout.css" />
+<link rel="stylesheet" href="styles/pages/monitor.css" />
+</head>
+<body class="theme-dark">
+
+<div class="page-overlay">
+  <a class="btn btn-ghost btn-sm" href="index.html">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Back to index
+  </a>
+  <div class="theme-toggle" role="group" aria-label="Theme">
+    <button data-theme="dark" class="is-active">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      Dark
+    </button>
+    <button data-theme="light">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      Light
+    </button>
+  </div>
+</div>
+
+<div class="app">
+  <header class="titlebar">
+    <div class="traffic-lights"><span class="tl-close"></span><span class="tl-min"></span><span class="tl-max"></span></div>
+    <span class="title">DdShell — Monitor</span>
+    <div class="titlebar-right"></div>
+  </header>
+
+  <div class="app-body">
+
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="logo"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
+        <span class="name">DdShell</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="connections.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></span><span class="label">Connections</span><span class="meta">12</span></a>
+        <a class="nav-item" href="terminal.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span><span class="label">Terminal</span><span class="badge badge-accent" style="height:16px;font-size:10px;padding:0 6px;">3</span></a>
+        <a class="nav-item" href="sftp.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span><span class="label">SFTP</span></a>
+        <a class="nav-item is-active" href="monitor.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="label">Monitor</span><span class="dot dot-success"></span></a>
+        <a class="nav-item" href="snippets.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span><span class="label">Snippets</span></a>
+        <a class="nav-item" href="workflows.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span class="label">Workflows</span></a>
+      </nav>
+      <span class="sidebar-spacer"></span>
+      <div class="sidebar-footer">
+        <a class="nav-item" href="settings.html"><span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6 1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="label">Settings</span></a>
+      </div>
+    </aside>
+
+    <main class="app-main monitor-main">
+
+      <div class="page-header">
+        <div class="title-block">
+          <span class="title">Monitor · api-prod-01</span>
+          <span class="subtitle">10.42.0.18 · ubuntu 22.04 · uptime 47d 12h · last sample 2s ago</span>
+        </div>
+        <div class="actions">
+          <div class="seg-control" role="tablist">
+            <button class="seg">5m</button>
+            <button class="seg">15m</button>
+            <button class="seg is-active">1h</button>
+            <button class="seg">6h</button>
+            <button class="seg">24h</button>
+          </div>
+          <button class="btn btn-secondary btn-sm">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            Auto · 2s
+          </button>
+        </div>
+      </div>
+
+      <div class="monitor-body">
+
+        <!-- KPI cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <header class="kpi-head">
+              <span class="kpi-label">CPU</span>
+              <span class="badge badge-info" style="height:16px;font-size:10px;">2 vCPU</span>
+            </header>
+            <div class="kpi-value">
+              <span class="num">38</span><span class="unit">%</span>
+            </div>
+            <span class="kpi-meta">avg 32% · peak 71%</span>
+            <svg class="kpi-spark" viewBox="0 0 100 30" preserveAspectRatio="none">
+              <defs><linearGradient id="sparkAccent" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#9A7CFF" stop-opacity="0.32"/><stop offset="100%" stop-color="#9A7CFF" stop-opacity="0"/></linearGradient></defs>
+              <path d="M0,22 L10,18 L20,20 L30,14 L40,17 L50,11 L60,15 L70,9 L80,12 L90,8 L100,10 L100,30 L0,30 Z" fill="url(#sparkAccent)"/>
+              <polyline points="0,22 10,18 20,20 30,14 40,17 50,11 60,15 70,9 80,12 90,8 100,10" fill="none" stroke="#9A7CFF" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="kpi-card">
+            <header class="kpi-head">
+              <span class="kpi-label">Memory</span>
+              <span class="badge badge-warning" style="height:16px;font-size:10px;">High</span>
+            </header>
+            <div class="kpi-value">
+              <span class="num">3.4</span><span class="unit">/ 4 GB</span>
+            </div>
+            <span class="kpi-meta">85% used · cache 612 MB</span>
+            <svg class="kpi-spark" viewBox="0 0 100 30" preserveAspectRatio="none">
+              <defs><linearGradient id="sparkWarn" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#E8C78A" stop-opacity="0.32"/><stop offset="100%" stop-color="#E8C78A" stop-opacity="0"/></linearGradient></defs>
+              <path d="M0,12 L10,11 L20,10 L30,9 L40,8 L50,7 L60,8 L70,6 L80,5 L90,4 L100,4 L100,30 L0,30 Z" fill="url(#sparkWarn)"/>
+              <polyline points="0,12 10,11 20,10 30,9 40,8 50,7 60,8 70,6 80,5 90,4 100,4" fill="none" stroke="#E8C78A" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="kpi-card">
+            <header class="kpi-head">
+              <span class="kpi-label">Network</span>
+              <span class="badge badge-info" style="height:16px;font-size:10px;">eth0</span>
+            </header>
+            <div class="kpi-value">
+              <span class="num">42.1</span><span class="unit">Mbps ↓ / 8.6 ↑</span>
+            </div>
+            <span class="kpi-meta">total 1.8 TB this month</span>
+            <svg class="kpi-spark" viewBox="0 0 100 30" preserveAspectRatio="none">
+              <defs><linearGradient id="sparkInfo" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#ECA68B" stop-opacity="0.32"/><stop offset="100%" stop-color="#ECA68B" stop-opacity="0"/></linearGradient></defs>
+              <path d="M0,16 L10,12 L20,18 L30,8 L40,20 L50,5 L60,22 L70,9 L80,16 L90,11 L100,14 L100,30 L0,30 Z" fill="url(#sparkInfo)"/>
+              <polyline points="0,16 10,12 20,18 30,8 40,20 50,5 60,22 70,9 80,16 90,11 100,14" fill="none" stroke="#ECA68B" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="kpi-card">
+            <header class="kpi-head">
+              <span class="kpi-label">Load Avg</span>
+              <span class="badge badge-success" style="height:16px;font-size:10px;">Healthy</span>
+            </header>
+            <div class="kpi-value">
+              <span class="num">0.84</span><span class="unit">/ 1.02 / 0.96</span>
+            </div>
+            <span class="kpi-meta">1m / 5m / 15m</span>
+            <svg class="kpi-spark" viewBox="0 0 100 30" preserveAspectRatio="none">
+              <defs><linearGradient id="sparkOK" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#4ADE80" stop-opacity="0.32"/><stop offset="100%" stop-color="#4ADE80" stop-opacity="0"/></linearGradient></defs>
+              <path d="M0,20 L10,21 L20,19 L30,22 L40,20 L50,21 L60,18 L70,20 L80,19 L90,21 L100,20 L100,30 L0,30 Z" fill="url(#sparkOK)"/>
+              <polyline points="0,20 10,21 20,19 30,22 40,20 50,21 60,18 70,20 80,19 90,21 100,20" fill="none" stroke="#4ADE80" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Big chart -->
+        <section class="chart-card">
+          <header class="chart-head">
+            <div class="chart-tabs">
+              <button class="chart-tab is-active">CPU usage</button>
+              <button class="chart-tab">Memory</button>
+              <button class="chart-tab">Network I/O</button>
+              <button class="chart-tab">Disk I/O</button>
+            </div>
+            <div class="chart-legend">
+              <span class="lg-item"><span class="lg-dot" style="background:var(--accent-violet)"></span>user</span>
+              <span class="lg-item"><span class="lg-dot" style="background:var(--accent-cyan)"></span>system</span>
+              <span class="lg-item"><span class="lg-dot" style="background:var(--warning)"></span>iowait</span>
+            </div>
+          </header>
+
+          <div class="chart-canvas">
+            <svg viewBox="0 0 600 200" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gradUser" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#9A7CFF" stop-opacity="0.36"/>
+                  <stop offset="100%" stop-color="#9A7CFF" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="gradSys" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#ECA68B" stop-opacity="0.28"/>
+                  <stop offset="100%" stop-color="#ECA68B" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+
+              <!-- 网格 -->
+              <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(255,255,255,0.06)"/>
+              <line x1="0" y1="100" x2="600" y2="100" stroke="rgba(255,255,255,0.06)"/>
+              <line x1="0" y1="150" x2="600" y2="150" stroke="rgba(255,255,255,0.06)"/>
+
+              <!-- system area -->
+              <path d="M0,170 L40,168 L80,165 L120,160 L160,155 L200,158 L240,150 L280,152 L320,140 L360,148 L400,135 L440,140 L480,128 L520,135 L560,130 L600,134 L600,200 L0,200 Z" fill="url(#gradSys)"/>
+              <polyline points="0,170 40,168 80,165 120,160 160,155 200,158 240,150 280,152 320,140 360,148 400,135 440,140 480,128 520,135 560,130 600,134" fill="none" stroke="#ECA68B" stroke-width="1.6"/>
+
+              <!-- user area -->
+              <path d="M0,140 L40,135 L80,128 L120,125 L160,110 L200,118 L240,95 L280,108 L320,80 L360,92 L400,70 L440,82 L480,55 L520,70 L560,60 L600,65 L600,200 L0,200 Z" fill="url(#gradUser)"/>
+              <polyline points="0,140 40,135 80,128 120,125 160,110 200,118 240,95 280,108 320,80 360,92 400,70 440,82 480,55 520,70 560,60 600,65" fill="none" stroke="#9A7CFF" stroke-width="1.8"/>
+
+              <!-- 当前时间游标 -->
+              <line x1="540" y1="0" x2="540" y2="200" stroke="rgba(143,232,255,0.6)" stroke-dasharray="3 3"/>
+              <circle cx="540" cy="62" r="4" fill="#9A7CFF" stroke="#07050E" stroke-width="2"/>
+            </svg>
+
+            <!-- 顶部 tooltip -->
+            <div class="chart-tooltip">
+              <span class="tt-time mono">14:38:21</span>
+              <span class="tt-row"><span class="lg-dot" style="background:var(--accent-violet)"></span>user <strong>32.4%</strong></span>
+              <span class="tt-row"><span class="lg-dot" style="background:var(--accent-cyan)"></span>system <strong>5.8%</strong></span>
+            </div>
+          </div>
+
+          <footer class="chart-axis mono">
+            <span>14:00</span><span>14:15</span><span>14:30</span><span>14:45</span><span>now</span>
+          </footer>
+        </section>
+
+        <!-- Process table -->
+        <section class="proc-card">
+          <header class="proc-head">
+            <h3 class="proc-title">Processes</h3>
+            <div class="proc-actions">
+              <span class="input-with-icon">
+                <span class="input-icon"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                <input class="input" placeholder="Filter by command…" />
+              </span>
+              <button class="btn btn-ghost btn-sm">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+                Sort by CPU
+              </button>
+            </div>
+          </header>
+          <div class="proc-table">
+            <div class="proc-row proc-th">
+              <span>PID</span><span>USER</span><span>CPU%</span><span>MEM%</span><span>TIME</span><span>COMMAND</span><span></span>
+            </div>
+            <div class="proc-row">
+              <span class="mono">1532</span>
+              <span>root</span>
+              <span class="bar-cell"><span class="bar"><span class="bar-fill" style="width:42%; background:var(--accent-violet)"></span></span><em>42.1</em></span>
+              <span class="bar-cell"><span class="bar"><span class="bar-fill" style="width:18%; background:var(--accent-cyan)"></span></span><em>18.4</em></span>
+              <span class="mono">02:47</span>
+              <span class="mono">/usr/sbin/nginx -g daemon off;</span>
+              <span class="proc-act"><button class="btn btn-icon btn-ghost"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button></span>
+            </div>
+            <div class="proc-row">
+              <span class="mono">2841</span>
+              <span>postgres</span>
+              <span class="bar-cell"><span class="bar"><span class="bar-fill" style="width:28%; background:var(--accent-violet)"></span></span><em>28.6</em></span>
+              <span class="bar-cell"><span class="bar"><span class="bar-fill" style="width:46%; background:var(--accent-cyan)"></span></span><em>46.2</em></span>
+              <span class="mono">12:11</span>
+              <span class="mono">postgres: 15/main: writer</span>
+              <span class="proc-act"><button class="btn btn-icon btn-ghost"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button></span>
+            </div>
+            <div class="proc-row">
+              <span class="mono">3921</span>
+              <span>app</span>
+              <span class="bar-cell"><span class="bar"><span class="bar-fill" style="width:18%; background:var(--accent-violet)"></span></span><em>18.2</em></span>
+              <span class="bar-cell"><span class="bar"><span class="bar-fill" style="width:12%; background:var(--accent-cyan)"></span></span><em>12.0</em></span>
+              <span class="mono">01:32</span>
+              <span class="mono">/usr/bin/node /srv/app/server.js</span>
+              <span class="proc-act"><button class="btn btn-icon btn-ghost"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button></span>
+            </div>
+            <div class="proc-row">
+              <span class="mono">4128</span>
+              <span>root</span>
+              <span class="bar-cell"><span class="bar"><span class="bar-fill" style="width:6%; background:var(--accent-violet)"></span></span><em>6.0</em></span>
+              <span class="bar-cell"><span class="bar"><span class="bar-fill" style="width:4%; background:var(--accent-cyan)"></span></span><em>4.1</em></span>
+              <span class="mono">00:42</span>
+              <span class="mono">sshd: han [priv]</span>
+              <span class="proc-act"><button class="btn btn-icon btn-ghost"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button></span>
+            </div>
+            <div class="proc-row">
+              <span class="mono">5021</span>
+              <span>redis</span>
+              <span class="bar-cell"><span class="bar"><span class="bar-fill" style="width:4%; background:var(--accent-violet)"></span></span><em>4.0</em></span>
+              <span class="bar-cell"><span class="bar"><span class="bar-fill" style="width:6%; background:var(--accent-cyan)"></span></span><em>6.5</em></span>
+              <span class="mono">04:22</span>
+              <span class="mono">redis-server *:6379</span>
+              <span class="proc-act"><button class="btn btn-icon btn-ghost"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button></span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+    </main>
+  </div>
+
+  <footer class="statusbar">
+    <span class="status-item"><span class="dot dot-success"></span>api-prod-01 sampling 2s</span>
+    <span class="status-item">CPU 38% · MEM 85% · LA 0.84</span>
+    <span class="spacer"></span>
+    <span class="status-item">last 14:38:23</span>
+    <span class="status-item accent">Healthy</span>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var root = document.body;
+    var key = 'ddshell-ui-theme';
+    if (localStorage.getItem(key) === 'light') applyTheme('light');
+    document.querySelectorAll('.theme-toggle [data-theme]').forEach(function (b) {
+      b.addEventListener('click', function () { applyTheme(b.getAttribute('data-theme')); });
+    });
+    function applyTheme(t) {
+      root.classList.remove('theme-dark', 'theme-light');
+      root.classList.add('theme-' + t);
+      localStorage.setItem(key, t);
+      document.querySelectorAll('.theme-toggle [data-theme]').forEach(function (b) {
+        b.classList.toggle('is-active', b.getAttribute('data-theme') === t);
+      });
+    }
+  })();
+</script>
+</body>
+</html>

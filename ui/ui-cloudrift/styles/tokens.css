@@ -1,0 +1,197 @@
+/*
+ * tokens.css — DdShell 设计令牌（双主题）
+ * 风格：云岚 / Cloudrift
+ * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
+ */
+
+:root,
+.theme-dark {
+  /* ── Background layers ── */
+  --bg-app: #0B1018;            /* 应用最底层（窗口背景） */
+  --bg-base: #111927;           /* 主区域背景 */
+  --bg-elevated: #182334;       /* 次级面板（侧栏、状态栏、tab 栏） */
+  --bg-surface: #202B3B;        /* 卡片、下拉、popover */
+  --bg-overlay: rgba(17, 25, 39, 0.74); /* 遮罩 */
+  --bg-hover: rgba(238, 242, 232, 0.055);
+  --bg-active: rgba(207, 218, 231, 0.11);
+
+  /* ── Foreground / text ── */
+  --fg-primary: #F5F7F2;
+  --fg-secondary: #C9D2DC;
+  --fg-muted: #7F8DA0;
+  --fg-disabled: #536172;
+  --fg-on-accent: #172235;
+
+  /* ── Accent (云岚核心色) ── */
+  --accent-violet: #D9D1BD;     /* 云米阴影端，保留变量名兼容页面 CSS */
+  --accent-cyan: #BFD6EA;       /* 天云高光端，保留变量名兼容页面 CSS */
+  --accent: #DCD3BE;
+  --accent-hover: #ECE5D7;
+  --accent-subtle: rgba(220, 211, 190, 0.16);
+  --accent-glow: rgba(191, 214, 234, 0.28);
+  --accent-gradient: linear-gradient(135deg, #AFC6DA 0%, #F3F0E6 44%, #DCD3BE 72%, #9EB8D2 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(175, 198, 218, 0.18) 0%, rgba(243, 240, 230, 0.16) 45%, rgba(220, 211, 190, 0.14) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(243, 240, 230, 0.13), rgba(191, 214, 234, 0.06));
+  --icon-stroke: #DCD3BE;
+  --icon-stroke-muted: #9EB0C1;
+  --icon-shine: rgba(255, 255, 255, 0.50);
+
+  /* ── Border ── */
+  --border-subtle: rgba(238, 242, 232, 0.07);
+  --border-default: rgba(238, 242, 232, 0.12);
+  --border-strong: rgba(238, 242, 232, 0.20);
+  --border-focus: var(--accent);
+
+  /* ── Status colors ── */
+  --success: #4ADE80;
+  --success-subtle: rgba(74, 222, 128, 0.14);
+  --warning: #D8C9A9;
+  --warning-subtle: rgba(216, 201, 169, 0.16);
+  --danger: #F87171;
+  --danger-subtle: rgba(248, 113, 113, 0.14);
+  --info: #9EC9E6;
+  --info-subtle: rgba(158, 201, 230, 0.14);
+
+  /* Health: GOOD / FAIR / POOR */
+  --health-good: #4ADE80;
+  --health-fair: #D8C9A9;
+  --health-poor: #F87171;
+
+  /* ── Terminal ANSI（在 .terminal-window 内使用） ── */
+  --term-bg: #08111C;
+  --term-fg: #F5F7F2;
+  --term-cursor: #DCD3BE;
+  --term-selection: rgba(191, 214, 234, 0.28);
+  --ansi-black: #182334;
+  --ansi-red: #F87171;
+  --ansi-green: #4ADE80;
+  --ansi-yellow: #D8C9A9;
+  --ansi-blue: #9EC9E6;
+  --ansi-magenta: #C8B7D8;
+  --ansi-cyan: #BFD6EA;
+  --ansi-white: #F5F7F2;
+
+  /* ── Shadows / glow ── */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.34), 0 4px 14px rgba(0, 0, 0, 0.22);
+  --shadow-popover: 0 4px 8px rgba(0, 0, 0, 0.30), 0 18px 44px rgba(0, 0, 0, 0.48);
+  --shadow-glow: 0 0 0 1px rgba(191, 214, 234, 0.30), 0 0 28px rgba(220, 211, 190, 0.16);
+
+  /* ── Glass 效果（用于 Sidebar / Titlebar / StatusBar） ── */
+  --glass-bg: rgba(24, 35, 52, 0.72);
+  --glass-blur: 18px;
+
+  color-scheme: dark;
+}
+
+/* ─────────────────────────── Light theme ─────────────────────────── */
+.theme-light {
+  --bg-app: #EEF3F4;
+  --bg-base: #FAF8F0;
+  --bg-elevated: #EEF0E8;
+  --bg-surface: #FFFDF6;
+  --bg-overlay: rgba(238, 243, 244, 0.76);
+  --bg-hover: rgba(109, 133, 156, 0.055);
+  --bg-active: rgba(175, 198, 218, 0.14);
+
+  --fg-primary: #1B2634;
+  --fg-secondary: #556779;
+  --fg-muted: #83909A;
+  --fg-disabled: #BDC6CA;
+  --fg-on-accent: #172235;
+
+  --accent-violet: #D9D1BD;
+  --accent-cyan: #8FBAD8;
+  --accent: #CFC7B5;
+  --accent-hover: #B8D0E4;
+  --accent-subtle: rgba(207, 199, 181, 0.18);
+  --accent-glow: rgba(143, 186, 216, 0.20);
+  --accent-gradient: linear-gradient(135deg, #8FBAD8 0%, #F7F5ED 42%, #D9D1BD 72%, #BFD6EA 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(143, 186, 216, 0.12) 0%, rgba(247, 245, 237, 0.18) 48%, rgba(217, 209, 189, 0.18) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(255, 253, 246, 0.70), rgba(191, 214, 234, 0.16));
+  --icon-stroke: #6D9FC4;
+  --icon-stroke-muted: #7D8E9E;
+  --icon-shine: rgba(255, 255, 255, 0.82);
+
+  --border-subtle: rgba(86, 112, 136, 0.08);
+  --border-default: rgba(86, 112, 136, 0.13);
+  --border-strong: rgba(86, 112, 136, 0.22);
+
+  --success: #16A34A;
+  --success-subtle: rgba(22, 163, 74, 0.10);
+  --warning: #B9A779;
+  --warning-subtle: rgba(185, 167, 121, 0.12);
+  --danger: #DC2626;
+  --danger-subtle: rgba(220, 38, 38, 0.10);
+  --info: #4E9ECF;
+  --info-subtle: rgba(78, 158, 207, 0.10);
+
+  --health-good: #16A34A;
+  --health-fair: #B9A779;
+  --health-poor: #DC2626;
+
+  --term-bg: #08111C;          /* 终端始终保持深色（即使在亮色主题下） */
+  --term-fg: #F5F7F2;
+  --term-cursor: #DCD3BE;
+  --term-selection: rgba(191, 214, 234, 0.28);
+
+  --shadow-card: 0 1px 2px rgba(51, 72, 92, 0.05), 0 4px 16px rgba(51, 72, 92, 0.08);
+  --shadow-popover: 0 4px 12px rgba(51, 72, 92, 0.11), 0 24px 48px rgba(51, 72, 92, 0.13);
+  --shadow-glow: 0 0 0 1px rgba(143, 186, 216, 0.24), 0 0 24px rgba(217, 209, 189, 0.12);
+
+  --glass-bg: rgba(255, 253, 246, 0.72);
+  --glass-blur: 18px;
+
+  color-scheme: light;
+}
+
+/* ─────────────────────────── Sizing tokens ─────────────────────────── */
+:root {
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Type scale */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h: 36px;
+  --tabbar-h: 38px;
+  --statusbar-h: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
+}

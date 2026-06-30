@@ -1,0 +1,44 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="10" x2="190" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFB"/>
+      <stop offset="1" stop-color="#F2EBDD"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="18" y1="20" x2="182" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3A352E"/>
+      <stop offset="0.34" stop-color="#1E1D1A"/>
+      <stop offset="0.62" stop-color="#2A2824"/>
+      <stop offset="0.82" stop-color="#B94135"/>
+      <stop offset="1" stop-color="#366E80"/>
+    </linearGradient>
+    <linearGradient id="paperEdge" x1="46" y1="22" x2="152" y2="178" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFB" stop-opacity="0"/>
+      <stop offset="0.44" stop-color="#F7EBDD" stop-opacity="0.42"/>
+      <stop offset="0.72" stop-color="#366E80" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFB" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="bodyClip">
+      <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z"/>
+      <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z"/>
+    </clipPath>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#1E1D1A" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+  <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#bg)"/>
+  <rect x="10.5" y="10.5" width="179" height="179" rx="39.5" stroke="#1E1D1A" stroke-opacity="0.10"/>
+  <path d="M26 54C70 24 130 24 174 54" stroke="#B94135" stroke-opacity="0.12"/>
+  <path d="M32 146C72 174 128 174 168 146" stroke="#366E80" stroke-opacity="0.16"/>
+  <g filter="url(#shadow)">
+    <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z" fill="url(#ink)"/>
+    <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z" fill="url(#ink)"/>
+  </g>
+  <g clip-path="url(#bodyClip)">
+    <path d="M26 62H174M22 96H178M28 132H172" stroke="#FFFFFB" stroke-opacity="0.10" stroke-width="2"/>
+    <path d="M46 54C78 66 122 66 154 54M44 148C78 136 122 136 156 148" stroke="#F7EBDD" stroke-opacity="0.16" stroke-width="2" stroke-linecap="round"/>
+    <path d="M54 44L145 146" stroke="url(#paperEdge)" stroke-width="7" stroke-linecap="round" opacity="0.46"/>
+    <path d="M128 126H158V156H128Z" fill="#B94135" fill-opacity="0.74"/>
+    <path d="M134 132H152M134 141H152M134 150H146" stroke="#FFF8E8" stroke-opacity="0.54" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <rect x="99.25" y="28" width="1.5" height="142" fill="#F7EBDD" opacity="0.26"/>
+</svg>

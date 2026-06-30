@@ -1,0 +1,36 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="10" x2="190" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.55" stop-color="#FAF8F0"/>
+      <stop offset="1" stop-color="#EEF3F4"/>
+    </linearGradient>
+    <linearGradient id="cloudPaint" x1="10" y1="24" x2="190" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8FBAD8"/>
+      <stop offset="0.30" stop-color="#BFD6EA"/>
+      <stop offset="0.50" stop-color="#F7F5ED"/>
+      <stop offset="0.72" stop-color="#D9D1BD"/>
+      <stop offset="1" stop-color="#9EB8D2"/>
+    </linearGradient>
+    <linearGradient id="cloudSweep" x1="54" y1="16" x2="146" y2="184" gradientUnits="userSpaceOnUse">
+      <stop offset="0.18" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.48" stop-color="#FFFFFF" stop-opacity="0.78"/>
+      <stop offset="0.58" stop-color="#BFD6EA" stop-opacity="0.20"/>
+      <stop offset="0.82" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#33485C" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+  <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#bg)"/>
+  <path d="M28 64C74 34 126 34 172 64" stroke="#8FBAD8" stroke-opacity="0.16"/>
+  <path d="M28 136C74 166 126 166 172 136" stroke="#D9D1BD" stroke-opacity="0.20"/>
+  <rect x="10.5" y="10.5" width="179" height="179" rx="39.5" stroke="#567088" stroke-opacity="0.10"/>
+  <g filter="url(#shadow)">
+    <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z" fill="url(#cloudPaint)"/>
+    <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z" fill="url(#cloudPaint)"/>
+  </g>
+  <rect x="99.3" y="26" width="1.4" height="148" fill="url(#cloudSweep)"/>
+  <path d="M48 68C82 56 118 56 152 68" stroke="url(#cloudSweep)" stroke-width="7" stroke-linecap="round" opacity="0.42"/>
+  <path d="M42 110C80 126 120 126 158 110" stroke="#FFFFFF" stroke-opacity="0.20"/>
+</svg>

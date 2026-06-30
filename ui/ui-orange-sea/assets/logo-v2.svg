@@ -1,0 +1,62 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="10" x2="190" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.52" stop-color="#FFF8EC"/>
+      <stop offset="1" stop-color="#E8F2EF"/>
+    </linearGradient>
+    <linearGradient id="sunsetPaint" x1="10" y1="24" x2="190" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2D9BA3"/>
+      <stop offset="0.34" stop-color="#70C1B9"/>
+      <stop offset="0.56" stop-color="#FFF2C8"/>
+      <stop offset="0.76" stop-color="#F47C3C"/>
+      <stop offset="1" stop-color="#C94A2B"/>
+    </linearGradient>
+    <linearGradient id="sunPath" x1="40" y1="60" x2="160" y2="140" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF7DA" stop-opacity="0"/>
+      <stop offset="0.48" stop-color="#FFF7DA" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#F47C3C" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="waterLine" x1="34" y1="0" x2="166" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2D9BA3" stop-opacity="0"/>
+      <stop offset="0.25" stop-color="#2D9BA3" stop-opacity="0.52"/>
+      <stop offset="0.55" stop-color="#FFF2C8" stop-opacity="0.70"/>
+      <stop offset="1" stop-color="#F47C3C" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#1F3640" flood-opacity="0.16"/>
+    </filter>
+    <clipPath id="leftD">
+      <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z"/>
+    </clipPath>
+    <clipPath id="rightD">
+      <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z"/>
+    </clipPath>
+  </defs>
+  <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#bg)"/>
+  <circle cx="148" cy="56" r="22" fill="#FFE2A0" opacity="0.58"/>
+  <path d="M28 68C74 38 126 38 172 68" stroke="#2D9BA3" stroke-opacity="0.16"/>
+  <path d="M30 136C72 158 128 158 170 136" stroke="#F47C3C" stroke-opacity="0.20"/>
+  <rect x="10.5" y="10.5" width="179" height="179" rx="39.5" stroke="#10233A" stroke-opacity="0.10"/>
+
+  <g filter="url(#shadow)">
+    <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z" fill="url(#sunsetPaint)"/>
+    <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z" fill="url(#sunsetPaint)"/>
+  </g>
+
+  <g clip-path="url(#leftD)" opacity="0.72">
+    <path d="M34 86C52 78 68 78 88 86" stroke="url(#waterLine)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M26 106C44 98 62 98 82 106C90 110 96 110 104 106" stroke="#FFF7DA" stroke-opacity="0.32" stroke-width="3" stroke-linecap="round"/>
+    <path d="M24 126C42 118 62 118 80 126C88 130 96 130 106 126" stroke="#2D9BA3" stroke-opacity="0.30" stroke-width="3" stroke-linecap="round"/>
+    <path d="M34 146C50 140 70 140 88 146" stroke="#F47C3C" stroke-opacity="0.28" stroke-width="2.4" stroke-linecap="round"/>
+  </g>
+  <g clip-path="url(#rightD)" opacity="0.78">
+    <path d="M116 78C134 68 154 68 174 78" stroke="#FFF7DA" stroke-opacity="0.36" stroke-width="4" stroke-linecap="round"/>
+    <path d="M106 98C126 88 148 88 170 98C178 102 184 102 192 98" stroke="url(#waterLine)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M108 120C130 112 148 112 168 120C176 124 184 124 192 120" stroke="#2D9BA3" stroke-opacity="0.32" stroke-width="3" stroke-linecap="round"/>
+    <path d="M116 142C134 136 154 136 174 142" stroke="#F47C3C" stroke-opacity="0.30" stroke-width="2.4" stroke-linecap="round"/>
+  </g>
+  <path d="M74 108C86 104 114 104 126 108" stroke="url(#sunPath)" stroke-width="8" stroke-linecap="round" opacity="0.58"/>
+  <circle cx="100" cy="76" r="13" fill="#FFF2C8" fill-opacity="0.32"/>
+  <path d="M87 76H113" stroke="#FFF8EC" stroke-opacity="0.42" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,197 @@
+/*
+ * tokens.css - DdShell 设计令牌（双主题）
+ * 风格：星云尘埃 / Nebula Dust
+ * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
+ */
+
+:root,
+.theme-dark {
+  /* -- Background layers -- */
+  --bg-app: #07050E;
+  --bg-base: #0D0B18;
+  --bg-elevated: #151225;
+  --bg-surface: #1F1A33;
+  --bg-overlay: rgba(7, 5, 14, 0.76);
+  --bg-hover: rgba(236, 166, 139, 0.055);
+  --bg-active: rgba(236, 166, 139, 0.11);
+
+  /* -- Foreground / text -- */
+  --fg-primary: #F4F0F7;
+  --fg-secondary: #CFC4DD;
+  --fg-muted: #817391;
+  --fg-disabled: #51475F;
+  --fg-on-accent: #140B10;
+
+  /* -- Accent (星云尘埃核心色) -- */
+  --accent-violet: #9A7CFF;     /* 暗雾紫，保留变量名兼容页面 CSS */
+  --accent-cyan: #ECA68B;       /* 粉橙星尘，保留变量名兼容页面 CSS */
+  --accent: #ECA68B;
+  --accent-hover: #F6BCA5;
+  --accent-subtle: rgba(236, 166, 139, 0.14);
+  --accent-glow: rgba(236, 166, 139, 0.26);
+  --accent-gradient: linear-gradient(135deg, #4B3D83 0%, #9A7CFF 42%, #ECA68B 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(75, 61, 131, 0.18) 0%, rgba(154, 124, 255, 0.14) 42%, rgba(236, 166, 139, 0.13) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(236, 166, 139, 0.11), rgba(154, 124, 255, 0.08));
+  --icon-stroke: #ECA68B;
+  --icon-stroke-muted: #A99AB7;
+  --icon-shine: rgba(255, 239, 228, 0.46);
+
+  /* -- Border -- */
+  --border-subtle: rgba(244, 240, 247, 0.06);
+  --border-default: rgba(244, 240, 247, 0.10);
+  --border-strong: rgba(244, 240, 247, 0.18);
+  --border-focus: var(--accent);
+
+  /* -- Status colors -- */
+  --success: #74D8A6;
+  --success-subtle: rgba(116, 216, 166, 0.14);
+  --warning: #E8C78A;
+  --warning-subtle: rgba(232, 199, 138, 0.14);
+  --danger: #F07A8A;
+  --danger-subtle: rgba(240, 122, 138, 0.14);
+  --info: #9FB7FF;
+  --info-subtle: rgba(159, 183, 255, 0.14);
+
+  /* Health: GOOD / FAIR / POOR */
+  --health-good: #74D8A6;
+  --health-fair: #E8C78A;
+  --health-poor: #F07A8A;
+
+  /* -- Terminal ANSI（在 .terminal-window 内使用） -- */
+  --term-bg: #05040B;
+  --term-fg: #F4F0F7;
+  --term-cursor: #ECA68B;
+  --term-selection: rgba(236, 166, 139, 0.28);
+  --ansi-black: #151225;
+  --ansi-red: #F07A8A;
+  --ansi-green: #74D8A6;
+  --ansi-yellow: #E8C78A;
+  --ansi-blue: #88A7FF;
+  --ansi-magenta: #B99BFF;
+  --ansi-cyan: #9FB7FF;
+  --ansi-white: #F4F0F7;
+
+  /* -- Shadows / glow -- */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.38), 0 4px 14px rgba(0, 0, 0, 0.26);
+  --shadow-popover: 0 4px 8px rgba(0, 0, 0, 0.34), 0 18px 44px rgba(0, 0, 0, 0.54);
+  --shadow-glow: 0 0 0 1px rgba(236, 166, 139, 0.26), 0 0 28px rgba(154, 124, 255, 0.16);
+
+  /* -- Glass 效果（用于 Sidebar / Titlebar / StatusBar） -- */
+  --glass-bg: rgba(21, 18, 37, 0.72);
+  --glass-blur: 18px;
+
+  color-scheme: dark;
+}
+
+/* --------------------------- Light theme --------------------------- */
+.theme-light {
+  --bg-app: #F5F1F6;
+  --bg-base: #FFFCFD;
+  --bg-elevated: #EEE8F2;
+  --bg-surface: #FFFFFF;
+  --bg-overlay: rgba(245, 241, 246, 0.74);
+  --bg-hover: rgba(26, 19, 45, 0.05);
+  --bg-active: rgba(157, 105, 178, 0.10);
+
+  --fg-primary: #1A132D;
+  --fg-secondary: #554A67;
+  --fg-muted: #857A92;
+  --fg-disabled: #C1B7CA;
+  --fg-on-accent: #140B10;
+
+  --accent-violet: #6F55D8;
+  --accent-cyan: #C36F5C;
+  --accent: #C36F5C;
+  --accent-hover: #9F4F40;
+  --accent-subtle: rgba(195, 111, 92, 0.11);
+  --accent-glow: rgba(195, 111, 92, 0.18);
+  --accent-gradient: linear-gradient(135deg, #6F55D8 0%, #B98AD8 44%, #E7A17F 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(111, 85, 216, 0.10) 0%, rgba(185, 138, 216, 0.12) 44%, rgba(231, 161, 127, 0.14) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(231, 161, 127, 0.12));
+  --icon-stroke: #C36F5C;
+  --icon-stroke-muted: #7B6F8B;
+  --icon-shine: rgba(255, 255, 255, 0.84);
+
+  --border-subtle: rgba(26, 19, 45, 0.06);
+  --border-default: rgba(26, 19, 45, 0.10);
+  --border-strong: rgba(26, 19, 45, 0.18);
+
+  --success: #15803D;
+  --success-subtle: rgba(21, 128, 61, 0.10);
+  --warning: #A86F20;
+  --warning-subtle: rgba(168, 111, 32, 0.10);
+  --danger: #DC2626;
+  --danger-subtle: rgba(220, 38, 38, 0.10);
+  --info: #536FC8;
+  --info-subtle: rgba(83, 111, 200, 0.10);
+
+  --health-good: #15803D;
+  --health-fair: #A86F20;
+  --health-poor: #DC2626;
+
+  --term-bg: #05040B;
+  --term-fg: #F4F0F7;
+  --term-cursor: #ECA68B;
+  --term-selection: rgba(236, 166, 139, 0.28);
+
+  --shadow-card: 0 1px 2px rgba(26, 19, 45, 0.05), 0 4px 16px rgba(26, 19, 45, 0.07);
+  --shadow-popover: 0 4px 12px rgba(26, 19, 45, 0.10), 0 24px 48px rgba(26, 19, 45, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(195, 111, 92, 0.22), 0 0 24px rgba(111, 85, 216, 0.10);
+
+  --glass-bg: rgba(255, 252, 253, 0.74);
+  --glass-blur: 18px;
+
+  color-scheme: light;
+}
+
+/* --------------------------- Sizing tokens --------------------------- */
+:root {
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Type scale */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h: 36px;
+  --tabbar-h: 38px;
+  --statusbar-h: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
+}

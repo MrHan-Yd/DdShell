@@ -1,0 +1,35 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="10" x2="190" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFDF7"/>
+      <stop offset="1" stop-color="#E9E8E1"/>
+    </linearGradient>
+    <linearGradient id="paint" x1="10" y1="24" x2="190" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4E504A"/>
+      <stop offset="0.28" stop-color="#746C5B"/>
+      <stop offset="0.50" stop-color="#EDE8DB"/>
+      <stop offset="0.68" stop-color="#A9A59A"/>
+      <stop offset="0.80" stop-color="#2C958A"/>
+      <stop offset="1" stop-color="#636862"/>
+    </linearGradient>
+    <linearGradient id="sweep" x1="44" y1="16" x2="136" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0.18" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.44" stop-color="#FFFFFF" stop-opacity="0.72"/>
+      <stop offset="0.53" stop-color="#F2F1EC" stop-opacity="0.16"/>
+      <stop offset="0.80" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#1C1D1C" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+  <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#bg)"/>
+  <rect x="10.5" y="10.5" width="179" height="179" rx="39.5" stroke="#1C1D1C" stroke-opacity="0.10"/>
+  <g filter="url(#shadow)">
+    <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z" fill="url(#paint)"/>
+    <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z" fill="url(#paint)"/>
+  </g>
+  <rect x="99.3" y="28" width="1.4" height="142" fill="url(#sweep)" opacity="0.68"/>
+  <path d="M46 58L140 136" stroke="url(#sweep)" stroke-width="7" stroke-linecap="round" opacity="0.32"/>
+  <path d="M36 100H164" stroke="#FFFDF7" stroke-opacity="0.18"/>
+  <path d="M42 132C74 144 126 144 158 132" stroke="#2C958A" stroke-opacity="0.20"/>
+</svg>

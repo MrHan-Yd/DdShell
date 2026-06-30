@@ -1,0 +1,54 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="10" x2="190" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#123269"/>
+      <stop offset="0.52" stop-color="#030B1C"/>
+      <stop offset="1" stop-color="#071735"/>
+    </linearGradient>
+    <linearGradient id="paint" x1="18" y1="24" x2="182" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#082A62"/>
+      <stop offset="0.26" stop-color="#55D8FF"/>
+      <stop offset="0.52" stop-color="#7C92FF"/>
+      <stop offset="0.72" stop-color="#F2F6FF"/>
+      <stop offset="0.88" stop-color="#E4478C"/>
+      <stop offset="1" stop-color="#061A3A"/>
+    </linearGradient>
+    <linearGradient id="line" x1="36" y1="36" x2="164" y2="164" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#BDF2FF" stop-opacity="0.18"/>
+      <stop offset="0.48" stop-color="#BDF2FF" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#E4478C" stop-opacity="0.42"/>
+    </linearGradient>
+    <radialGradient id="magentaGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(138 132) rotate(132) scale(74 50)">
+      <stop stop-color="#E4478C" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#E4478C" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="bodyClip">
+      <path d="M96 24V68C96 78 84 85 84 100C84 115 96 122 96 132V176C38 174 18 143 18 100C18 57 38 26 96 24Z"/>
+      <path d="M104 24V68C104 78 116 85 116 100C116 115 104 122 104 132V176C162 174 182 143 182 100C182 57 162 26 104 24Z"/>
+    </clipPath>
+    <filter id="softGlow" x="-28%" y="-28%" width="156%" height="156%">
+      <feGaussianBlur stdDeviation="5.5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.33 0 0 0 0 0.85 0 0 0 0 1 0 0 0 0.34 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#bg)"/>
+  <path d="M34 56H166M34 100H166M34 144H166M56 34V166M100 34V166M144 34V166" stroke="#55D8FF" stroke-opacity="0.12"/>
+  <path d="M26 76L76 26M124 174L174 124" stroke="#F2F6FF" stroke-opacity="0.12" stroke-linecap="round"/>
+  <rect x="10.5" y="10.5" width="179" height="179" rx="39.5" stroke="#BDF2FF" stroke-opacity="0.14"/>
+  <g filter="url(#softGlow)">
+    <path d="M96 24V68C96 78 84 85 84 100C84 115 96 122 96 132V176C38 174 18 143 18 100C18 57 38 26 96 24Z" fill="url(#paint)"/>
+    <path d="M104 24V68C104 78 116 85 116 100C116 115 104 122 104 132V176C162 174 182 143 182 100C182 57 162 26 104 24Z" fill="url(#paint)"/>
+  </g>
+  <g clip-path="url(#bodyClip)">
+    <path d="M28 66H172M28 100H172M28 134H172M66 28V172M100 28V172M134 28V172" stroke="#061225" stroke-opacity="0.34"/>
+    <path d="M40 48H160M40 152H160M48 40V160M152 40V160" stroke="#BDF2FF" stroke-opacity="0.42"/>
+    <path d="M46 62L138 136" stroke="url(#line)" stroke-width="5" stroke-linecap="round" opacity="0.72"/>
+    <circle cx="68" cy="100" r="4" fill="#061225" fill-opacity="0.38" stroke="#BDF2FF" stroke-opacity="0.72"/>
+    <circle cx="132" cy="100" r="4" fill="#061225" fill-opacity="0.38" stroke="#BDF2FF" stroke-opacity="0.72"/>
+  </g>
+  <rect x="99.2" y="31" width="1.6" height="138" fill="#F2F6FF" opacity="0.58"/>
+  <path d="M68 136C92 148 124 148 148 136" stroke="#E4478C" stroke-opacity="0.58" stroke-width="4" stroke-linecap="round"/>
+  <path d="M132 126L150 138L142 154" stroke="#E4478C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.72"/>
+  <circle cx="138" cy="132" r="35" fill="url(#magentaGlow)"/>
+</svg>

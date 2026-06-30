@@ -1,0 +1,197 @@
+/*
+ * tokens.css — DdShell 设计令牌（双主题）
+ * 风格：曜砂 / Obsidian Sand
+ * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
+ */
+
+:root,
+.theme-dark {
+  /* ── Background layers ── */
+  --bg-app: #08090A;            /* 应用最底层（窗口背景） */
+  --bg-base: #101113;           /* 主区域背景 */
+  --bg-elevated: #17191B;       /* 次级面板（侧栏、状态栏、tab 栏） */
+  --bg-surface: #1F2020;        /* 卡片、下拉、popover */
+  --bg-overlay: rgba(12, 13, 14, 0.78); /* 遮罩 */
+  --bg-hover: rgba(238, 235, 224, 0.055);
+  --bg-active: rgba(116, 217, 204, 0.105);
+
+  /* ── Foreground / text ── */
+  --fg-primary: #FBF7EE;
+  --fg-secondary: #E0DCD1;
+  --fg-muted: #ABA698;
+  --fg-disabled: #6D695F;
+  --fg-on-accent: #101214;
+
+  /* ── Accent (曜砂核心色) ── */
+  --accent-violet: #B6B1A4;     /* 月白砂端，保留变量名兼容页面 CSS */
+  --accent-cyan: #74D9CC;       /* 冷青金属反射端，保留变量名兼容页面 CSS */
+  --accent: #DCD8CC;
+  --accent-hover: #F4EFE3;
+  --accent-subtle: rgba(216, 209, 191, 0.115);
+  --accent-glow: rgba(116, 217, 204, 0.26);
+  --accent-gradient: linear-gradient(135deg, #74D9CC 0%, #F4EFE3 46%, #DCD8CC 72%, #8E9089 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(116, 217, 204, 0.13) 0%, rgba(244, 239, 227, 0.11) 48%, rgba(142, 144, 137, 0.08) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(244, 239, 227, 0.12), rgba(116, 217, 204, 0.085) 48%, rgba(142, 144, 137, 0.045));
+  --icon-stroke: #E4DDC9;
+  --icon-stroke-muted: #A7A296;
+  --icon-shine: rgba(248, 245, 236, 0.48);
+
+  /* ── Border ── */
+  --border-subtle: rgba(238, 235, 224, 0.07);
+  --border-default: rgba(238, 235, 224, 0.12);
+  --border-strong: rgba(238, 235, 224, 0.20);
+  --border-focus: var(--accent);
+
+  /* ── Status colors ── */
+  --success: #4ADE80;
+  --success-subtle: rgba(74, 222, 128, 0.14);
+  --warning: #D0C4A5;
+  --warning-subtle: rgba(208, 196, 165, 0.14);
+  --danger: #F87171;
+  --danger-subtle: rgba(248, 113, 113, 0.14);
+  --info: #74D9CC;
+  --info-subtle: rgba(116, 217, 204, 0.14);
+
+  /* Health: GOOD / FAIR / POOR */
+  --health-good: #4ADE80;
+  --health-fair: #D0C4A5;
+  --health-poor: #F87171;
+
+  /* ── Terminal ANSI（在 .terminal-window 内使用） ── */
+  --term-bg: #08090A;
+  --term-fg: #F8F4EA;
+  --term-cursor: #74D9CC;
+  --term-selection: rgba(116, 217, 204, 0.24);
+  --ansi-black: #1B1C1D;
+  --ansi-red: #F87171;
+  --ansi-green: #4ADE80;
+  --ansi-yellow: #D0C4A5;
+  --ansi-blue: #8CB7D6;
+  --ansi-magenta: #C6A6D6;
+  --ansi-cyan: #74D9CC;
+  --ansi-white: #F8F4EA;
+
+  /* ── Shadows / glow ── */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.34), 0 4px 14px rgba(0, 0, 0, 0.22);
+  --shadow-popover: 0 4px 8px rgba(0, 0, 0, 0.30), 0 18px 44px rgba(0, 0, 0, 0.48);
+  --shadow-glow: 0 0 0 1px rgba(244, 239, 227, 0.20), 0 0 24px rgba(116, 217, 204, 0.15), 0 0 34px rgba(220, 216, 204, 0.08);
+
+  /* ── Glass 效果（用于 Sidebar / Titlebar / StatusBar） ── */
+  --glass-bg: rgba(17, 18, 19, 0.88);
+  --glass-blur: 12px;
+
+  color-scheme: dark;
+}
+
+/* ─────────────────────────── Light theme ─────────────────────────── */
+.theme-light {
+  --bg-app: #F2F1EC;
+  --bg-base: #FAF9F4;
+  --bg-elevated: #E9E8E1;
+  --bg-surface: #FFFDF7;
+  --bg-overlay: rgba(246, 245, 239, 0.76);
+  --bg-hover: rgba(35, 38, 37, 0.05);
+  --bg-active: rgba(44, 149, 138, 0.10);
+
+  --fg-primary: #1C1D1C;
+  --fg-secondary: #4E514D;
+  --fg-muted: #77776F;
+  --fg-disabled: #B8B6AA;
+  --fg-on-accent: #101214;
+
+  --accent-violet: #74776F;
+  --accent-cyan: #2C958A;
+  --accent: #565B57;
+  --accent-hover: #2C958A;
+  --accent-subtle: rgba(44, 149, 138, 0.105);
+  --accent-glow: rgba(44, 149, 138, 0.20);
+  --accent-gradient: linear-gradient(135deg, #2C958A 0%, #EDE8DB 46%, #A9A59A 72%, #565B57 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(44, 149, 138, 0.12) 0%, rgba(237, 232, 219, 0.20) 48%, rgba(86, 91, 87, 0.08) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(44, 149, 138, 0.085) 50%, rgba(169, 165, 154, 0.09));
+  --icon-stroke: #565B57;
+  --icon-stroke-muted: #77776F;
+  --icon-shine: rgba(255, 255, 255, 0.78);
+
+  --border-subtle: rgba(31, 33, 32, 0.08);
+  --border-default: rgba(31, 33, 32, 0.13);
+  --border-strong: rgba(31, 33, 32, 0.22);
+
+  --success: #16A34A;
+  --success-subtle: rgba(22, 163, 74, 0.10);
+  --warning: #8C7E5F;
+  --warning-subtle: rgba(140, 126, 95, 0.11);
+  --danger: #DC2626;
+  --danger-subtle: rgba(220, 38, 38, 0.10);
+  --info: #2C958A;
+  --info-subtle: rgba(44, 149, 138, 0.10);
+
+  --health-good: #16A34A;
+  --health-fair: #8C7E5F;
+  --health-poor: #DC2626;
+
+  --term-bg: #08090A;          /* 终端始终保持深色（即使在亮色主题下） */
+  --term-fg: #F8F4EA;
+  --term-cursor: #74D9CC;
+  --term-selection: rgba(116, 217, 204, 0.24);
+
+  --shadow-card: 0 1px 2px rgba(20, 22, 21, 0.05), 0 4px 16px rgba(20, 22, 21, 0.08);
+  --shadow-popover: 0 4px 12px rgba(20, 22, 21, 0.12), 0 24px 48px rgba(20, 22, 21, 0.14);
+  --shadow-glow: 0 0 0 1px rgba(44, 149, 138, 0.20), 0 0 24px rgba(44, 149, 138, 0.13), 0 0 30px rgba(86, 91, 87, 0.06);
+
+  --glass-bg: rgba(255, 253, 246, 0.72);
+  --glass-blur: 18px;
+
+  color-scheme: light;
+}
+
+/* ─────────────────────────── Sizing tokens ─────────────────────────── */
+:root {
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Type scale */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h: 36px;
+  --tabbar-h: 38px;
+  --statusbar-h: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
+}

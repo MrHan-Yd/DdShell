@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="zh-CN" data-page="terminal">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>DdShell · Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/base.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<link rel="stylesheet" href="styles/layout.css" />
+<link rel="stylesheet" href="styles/pages/terminal.css" />
+</head>
+<body class="theme-light">
+
+<!-- 顶部覆盖层：返回首页 + 主题切换 -->
+<div class="page-overlay">
+  <a class="btn btn-ghost btn-sm" href="index.html">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Back to index
+  </a>
+  <div class="theme-toggle" role="group" aria-label="Theme">
+    <button data-theme="dark">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      Dark
+    </button>
+    <button data-theme="light" class="is-active">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      Light
+    </button>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- ──────────────── Titlebar ──────────────── -->
+  <header class="titlebar">
+    <div class="traffic-lights">
+      <span class="tl-close"></span>
+      <span class="tl-min"></span>
+      <span class="tl-max"></span>
+    </div>
+    <span class="title">DdShell — Terminal</span>
+    <div class="titlebar-right"></div>
+  </header>
+
+  <!-- ──────────────── Body ──────────────── -->
+  <div class="app-body">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="logo">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        </span>
+        <span class="name">DdShell</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="connections.html">
+          <span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></span>
+          <span class="label">Connections</span>
+          <span class="meta">12</span>
+        </a>
+        <a class="nav-item is-active" href="terminal.html">
+          <span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
+          <span class="label">Terminal</span>
+          <span class="badge badge-accent" style="height:16px;font-size:10px;padding:0 6px;">3</span>
+        </a>
+        <a class="nav-item" href="#">
+          <span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+          <span class="label">SFTP</span>
+        </a>
+        <a class="nav-item" href="#">
+          <span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+          <span class="label">Monitor</span>
+        </a>
+        <a class="nav-item" href="#">
+          <span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+          <span class="label">Snippets</span>
+        </a>
+        <a class="nav-item" href="#">
+          <span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+          <span class="label">Workflows</span>
+        </a>
+      </nav>
+
+      <span class="sidebar-spacer"></span>
+
+      <div class="sidebar-footer">
+        <a class="nav-item" href="#">
+          <span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6 1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          <span class="label">Settings</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="app-main term-main">
+
+      <!-- ───── Tab bar ───── -->
+      <div class="term-tabbar">
+        <div class="tabs">
+          <button class="tab is-active" title="api-prod-01">
+            <span class="dot dot-success"></span>
+            <span class="tab-label">api-prod-01</span>
+            <span class="tab-host mono">10.42.0.18</span>
+            <span class="tab-close" title="Close">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+            </span>
+          </button>
+          <button class="tab" title="db-primary">
+            <span class="dot dot-success"></span>
+            <span class="tab-label">db-primary</span>
+            <span class="tab-host mono">10.42.1.5</span>
+            <span class="tab-close">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+            </span>
+          </button>
+          <button class="tab" title="jumphost">
+            <span class="dot dot-warning"></span>
+            <span class="tab-label">jumphost</span>
+            <span class="tab-host mono">52.86.121.4</span>
+            <span class="tab-close">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+            </span>
+          </button>
+          <button class="tab-new" title="New tab">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+
+        <div class="tabbar-actions">
+          <button class="btn btn-icon btn-ghost" title="Split horizontally">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+          </button>
+          <button class="btn btn-icon btn-ghost" title="Split vertically">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
+          </button>
+          <button class="btn btn-icon btn-ghost" title="Search in terminal">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ───── Pane area (split) ───── -->
+      <div class="term-panes is-split">
+
+        <!-- Active pane (left) -->
+        <section class="term-pane is-active" data-host="api-prod-01">
+          <div class="pane-bar">
+            <span class="pane-host">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+              <span class="mono">root@api-prod-01</span>
+            </span>
+            <span class="pane-meta mono">/var/log/nginx</span>
+            <span class="pane-spacer"></span>
+            <span class="pane-tag">
+              <span class="dot dot-success"></span>
+              24 ms
+            </span>
+          </div>
+
+          <div class="term-window mono">
+            <!-- 一段命令 -->
+            <div class="term-line">
+              <span class="ps1">
+                <span class="ps1-user">root</span><span class="ps1-at">@</span><span class="ps1-host">api-prod-01</span><span class="ps1-colon">:</span><span class="ps1-path">/var/log/nginx</span><span class="ps1-sigil">#</span>
+              </span>
+              <span class="cmd">ls -lah</span>
+            </div>
+            <div class="term-line out">total 248M</div>
+            <div class="term-line out"><span class="c-blue">drwxr-xr-x</span> 2 root  adm   4.0K May  8 18:44 <span class="c-cyan">.</span></div>
+            <div class="term-line out"><span class="c-blue">drwxr-xr-x</span> 9 root  root  4.0K May  6 02:01 <span class="c-cyan">..</span></div>
+            <div class="term-line out">-rw-r----- 1 www-data adm   84M May  8 18:43 access.log</div>
+            <div class="term-line out">-rw-r----- 1 www-data adm   12M May  8 18:42 error.log</div>
+            <div class="term-line out">-rw-r----- 1 www-data adm   38M May  7 02:00 access.log.1.gz</div>
+
+            <!-- 第二段命令：tail -->
+            <div class="term-line">
+              <span class="ps1">
+                <span class="ps1-user">root</span><span class="ps1-at">@</span><span class="ps1-host">api-prod-01</span><span class="ps1-colon">:</span><span class="ps1-path">/var/log/nginx</span><span class="ps1-sigil">#</span>
+              </span>
+              <span class="cmd">tail -f /var/log/nginx/access.log</span>
+            </div>
+            <div class="term-line out"><span class="c-muted">10.42.0.4 - -</span> [08/May/2026:18:44:02 +0000] <span class="c-green">"GET /api/v1/health HTTP/1.1"</span> <span class="c-green">200</span> 18 <span class="c-cyan">"kube-probe/1.29"</span></div>
+            <div class="term-line out"><span class="c-muted">203.0.113.42 - -</span> [08/May/2026:18:44:03 +0000] <span class="c-green">"POST /api/v1/sessions HTTP/2.0"</span> <span class="c-green">201</span> 412 <span class="c-cyan">"DdShell/0.2.2"</span></div>
+            <div class="term-line out"><span class="c-muted">198.51.100.7 - -</span> [08/May/2026:18:44:05 +0000] <span class="c-yellow">"GET /api/v1/jobs/9182 HTTP/2.0"</span> <span class="c-yellow">404</span> 51 <span class="c-cyan">"-"</span></div>
+            <div class="term-line out"><span class="c-muted">10.42.0.5 - -</span> [08/May/2026:18:44:06 +0000] <span class="c-green">"GET /api/v1/metrics HTTP/1.1"</span> <span class="c-green">200</span> 8924 <span class="c-cyan">"prometheus/2.51"</span></div>
+            <div class="term-line out err"><span class="c-red">2026/05/08 18:44:06 [error]</span> 4271#4271: *81923 upstream timed out (110: Connection timed out) while reading response header from upstream</div>
+            <div class="term-line out"><span class="c-muted">^C</span></div>
+
+            <!-- 当前提示符 + 闪烁光标 -->
+            <div class="term-line current">
+              <span class="ps1">
+                <span class="ps1-user">root</span><span class="ps1-at">@</span><span class="ps1-host">api-prod-01</span><span class="ps1-colon">:</span><span class="ps1-path">/var/log/nginx</span><span class="ps1-sigil">#</span>
+              </span>
+              <span class="cmd-typed">systemctl status nginx</span><span class="caret"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Inactive pane (right) -->
+        <section class="term-pane" data-host="db-primary">
+          <div class="pane-bar">
+            <span class="pane-host">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+              <span class="mono">postgres@db-primary</span>
+            </span>
+            <span class="pane-meta mono">~</span>
+            <span class="pane-spacer"></span>
+            <span class="pane-tag">
+              <span class="dot dot-success"></span>
+              42 ms
+            </span>
+          </div>
+
+          <div class="term-window mono">
+            <div class="term-line">
+              <span class="ps1">
+                <span class="ps1-user">postgres</span><span class="ps1-at">@</span><span class="ps1-host">db-primary</span><span class="ps1-colon">:</span><span class="ps1-path">~</span><span class="ps1-sigil">$</span>
+              </span>
+              <span class="cmd">psql -U postgres -d ddshell</span>
+            </div>
+            <div class="term-line out"><span class="c-cyan">psql (15.6 (Ubuntu 15.6-1.pgdg22.04+1))</span></div>
+            <div class="term-line out">Type "help" for help.</div>
+            <div class="term-line out">&nbsp;</div>
+            <div class="term-line">
+              <span class="ps1"><span class="ps1-host">ddshell</span><span class="ps1-sigil">=#</span></span>
+              <span class="cmd">\dt</span>
+            </div>
+            <div class="term-line out">          List of relations</div>
+            <div class="term-line out"><span class="c-muted"> Schema |    Name     | Type  |  Owner  </span></div>
+            <div class="term-line out"><span class="c-muted">--------+-------------+-------+---------</span></div>
+            <div class="term-line out"> public | <span class="c-cyan">connections</span> | table | postgres</div>
+            <div class="term-line out"> public | <span class="c-cyan">sessions</span>    | table | postgres</div>
+            <div class="term-line out"> public | <span class="c-cyan">snippets</span>    | table | postgres</div>
+            <div class="term-line out"> public | <span class="c-cyan">workflows</span>   | table | postgres</div>
+            <div class="term-line out">(4 rows)</div>
+            <div class="term-line out">&nbsp;</div>
+
+            <div class="term-line current">
+              <span class="ps1"><span class="ps1-host">ddshell</span><span class="ps1-sigil">=#</span></span>
+              <span class="caret"></span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ───── AI Assist popover (悬浮) ───── -->
+      <aside class="term-ai-popover" role="complementary" aria-label="AI command assistant">
+        <header class="ai-head">
+          <span class="ai-title">
+            <span class="ai-glow"></span>
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6z"/><path d="M19 14l.9 2.7L22 17.5l-2.1.8L19 21l-.9-2.7L16 17.5l2.1-.8z"/></svg>
+            AI Assist
+          </span>
+          <span class="ai-actions">
+            <button class="btn btn-icon btn-ghost" title="History">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            </button>
+            <button class="btn btn-icon btn-ghost" title="Collapse">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+            </button>
+          </span>
+        </header>
+
+        <!-- 用户问的问题 -->
+        <div class="ai-question">
+          <span class="who">You</span>
+          <p>nginx 现在 502，怎么排查？</p>
+        </div>
+
+        <!-- AI 建议命令卡片 -->
+        <div class="ai-suggestion">
+          <div class="ai-suggestion-head">
+            <span class="ai-step-tag">Step 1 of 3</span>
+            <span class="ai-confidence">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              high confidence
+            </span>
+          </div>
+
+          <div class="ai-cmd-block">
+            <pre class="ai-cmd mono"><span class="c-violet">systemctl</span> status nginx <span class="c-muted">--no-pager</span> | <span class="c-violet">tail</span> -n 30</pre>
+            <button class="btn btn-icon btn-ghost ai-copy" title="Copy">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+
+          <p class="ai-explain">
+            先看 nginx 主进程是否健康。如果状态行显示 <code class="mono">active (running)</code>，再去查 upstream；如果是 <code class="mono">failed</code>，重点看最近 30 行日志里的崩溃栈。
+          </p>
+
+          <div class="ai-cta">
+            <button class="btn btn-primary btn-sm">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Run command
+              <span class="kbd">⌘</span><span class="kbd">↵</span>
+            </button>
+            <button class="btn btn-ghost btn-sm">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+              Dismiss
+            </button>
+            <span class="ai-cta-spacer"></span>
+            <button class="btn btn-ghost btn-sm" title="Show next step">
+              Next
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 输入栏 -->
+        <form class="ai-input-bar" onsubmit="event.preventDefault();">
+          <span class="ai-input-icon">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6z"/></svg>
+          </span>
+          <input class="ai-input" placeholder="问 AI 想做什么…  (查日志、重启服务、查 PID)" />
+          <span class="ai-input-kbd">
+            <span class="kbd">⌘</span><span class="kbd">K</span>
+          </span>
+        </form>
+      </aside>
+
+    </main>
+  </div>
+
+  <!-- ──────────────── Status bar ──────────────── -->
+  <footer class="statusbar">
+    <span class="status-item">
+      <span class="dot dot-success"></span>
+      Connected
+    </span>
+    <span class="status-item mono">root@api-prod-01:/var/log/nginx</span>
+    <span class="status-item">
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      24 ms
+    </span>
+    <span class="spacer"></span>
+    <span class="status-item">UTF-8</span>
+    <span class="status-item">xterm-256color</span>
+    <span class="status-item mono">42×136</span>
+    <span class="status-item accent">
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6z"/></svg>
+      AI on
+    </span>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var root = document.body;
+    var key = 'ddshell-ui-theme';
+    var saved = localStorage.getItem(key);
+    if (saved === 'dark' || saved === 'light') applyTheme(saved); else applyTheme('light');
+    document.querySelectorAll('.theme-toggle [data-theme]').forEach(function (b) {
+      b.addEventListener('click', function () { applyTheme(b.getAttribute('data-theme')); });
+    });
+    function applyTheme(t) {
+      root.classList.remove('theme-dark', 'theme-light');
+      root.classList.add('theme-' + t);
+      localStorage.setItem(key, t);
+      document.querySelectorAll('.theme-toggle [data-theme]').forEach(function (b) {
+        b.classList.toggle('is-active', b.getAttribute('data-theme') === t);
+      });
+    }
+  })();
+</script>
+</body>
+</html>

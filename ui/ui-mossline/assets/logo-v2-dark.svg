@@ -1,0 +1,47 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="10" x2="190" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#13261A"/>
+      <stop offset="0.54" stop-color="#051109"/>
+      <stop offset="1" stop-color="#102018"/>
+    </linearGradient>
+    <linearGradient id="paint" x1="18" y1="20" x2="182" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#244B2F"/>
+      <stop offset="0.28" stop-color="#4F8C3F"/>
+      <stop offset="0.52" stop-color="#A9D87A"/>
+      <stop offset="0.76" stop-color="#5ED397"/>
+      <stop offset="1" stop-color="#3F8A4C"/>
+    </linearGradient>
+    <linearGradient id="vein" x1="42" y1="28" x2="158" y2="172" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#DDF4BF" stop-opacity="0.12"/>
+      <stop offset="0.48" stop-color="#DDF4BF" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#5ED397" stop-opacity="0.16"/>
+    </linearGradient>
+    <clipPath id="bodyClip">
+      <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z"/>
+      <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z"/>
+    </clipPath>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.36 0 0 0 0 0.82 0 0 0 0 0.56 0 0 0 0.36 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#bg)"/>
+  <path d="M24 58C70 22 130 22 176 58" stroke="#DDF4BF" stroke-opacity="0.10"/>
+  <path d="M26 142C74 179 126 179 174 142" stroke="#5ED397" stroke-opacity="0.18"/>
+  <rect x="10.5" y="10.5" width="179" height="179" rx="39.5" stroke="#DDF4BF" stroke-opacity="0.12"/>
+  <g filter="url(#softGlow)">
+    <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z" fill="url(#paint)"/>
+    <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z" fill="url(#paint)"/>
+  </g>
+  <g clip-path="url(#bodyClip)" opacity="0.74">
+    <path d="M55 28C47 62 49 122 58 180" stroke="url(#vein)" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M80 26C74 64 76 128 84 182" stroke="url(#vein)" stroke-width="2.4" stroke-linecap="round" opacity="0.62"/>
+    <path d="M121 26C128 66 126 126 116 182" stroke="url(#vein)" stroke-width="2.4" stroke-linecap="round" opacity="0.62"/>
+    <path d="M146 28C154 66 152 124 141 180" stroke="url(#vein)" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M28 66H88M31 102H86M28 138H92M112 66H172M114 102H169M108 138H172" stroke="#051109" stroke-opacity="0.18" stroke-width="2"/>
+    <path d="M44 88C61 80 74 72 86 56M156 88C139 80 126 72 114 56M44 122C62 129 75 138 88 154M156 122C138 129 125 138 112 154" stroke="#DDF4BF" stroke-opacity="0.22" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <rect x="99.25" y="28" width="1.5" height="142" fill="url(#vein)" opacity="0.58"/>
+</svg>

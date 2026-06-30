@@ -1,0 +1,41 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="18" y1="18" x2="182" y2="182" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#142A33"/>
+      <stop offset="0.56" stop-color="#050A0D"/>
+      <stop offset="1" stop-color="#0D1C24"/>
+    </linearGradient>
+    <linearGradient id="ddGrad" x1="30" y1="34" x2="170" y2="166" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#43E8D8"/>
+      <stop offset="0.58" stop-color="#C8F56A"/>
+      <stop offset="1" stop-color="#FF7A3D"/>
+    </linearGradient>
+    <linearGradient id="plumeGrad" x1="100" y1="136" x2="100" y2="78" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF7A3D" stop-opacity="0.78"/>
+      <stop offset="0.55" stop-color="#43E8D8" stop-opacity="0.54"/>
+      <stop offset="1" stop-color="#43E8D8" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#43E8D8" stop-opacity="0.54"/>
+      <stop offset="0.58" stop-color="#43E8D8" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#43E8D8" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-24%" y="-24%" width="148%" height="148%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+
+  <rect x="16" y="16" width="168" height="168" rx="38" fill="url(#bgGrad)"/>
+  <circle cx="100" cy="100" r="78" fill="url(#glow)"/>
+  <rect x="16.5" y="16.5" width="167" height="167" rx="37.5" stroke="#EAF7F3" stroke-opacity="0.10"/>
+
+  <g filter="url(#softGlow)">
+    <path d="M96 34V76C96 84 86 91 86 100C86 109 96 116 96 124V166C48 166 30 138 30 100C30 62 48 34 96 34Z" fill="#071219" fill-opacity="0.34" stroke="url(#ddGrad)" stroke-width="3.2" stroke-linejoin="round"/>
+    <path d="M104 34V76C104 84 114 91 114 100C114 109 104 116 104 124V166C152 166 170 138 170 100C170 62 152 34 104 34Z" fill="#071219" fill-opacity="0.34" stroke="url(#ddGrad)" stroke-width="3.2" stroke-linejoin="round"/>
+  </g>
+
+  <path d="M66 130C61 116 64 102 72 90" stroke="url(#plumeGrad)" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M132 142C140 122 137 100 126 78" stroke="url(#plumeGrad)" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M146 126C151 114 149 102 142 92" stroke="#43E8D8" stroke-opacity="0.22" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

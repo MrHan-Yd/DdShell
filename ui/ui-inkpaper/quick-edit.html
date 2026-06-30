@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="zh-CN" data-page="quick-edit">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>DdShell · Quick Edit — nginx.conf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="stylesheet" href="styles/base.css" />
+<link rel="stylesheet" href="styles/components.css" />
+<link rel="stylesheet" href="styles/layout.css" />
+<link rel="stylesheet" href="styles/pages/quick-edit.css" />
+</head>
+<body class="theme-light">
+
+<div class="page-overlay">
+  <a class="btn btn-ghost btn-sm" href="index.html">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Back to index
+  </a>
+  <div class="theme-toggle" role="group" aria-label="Theme">
+    <button data-theme="dark"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>Dark</button>
+    <button data-theme="light" class="is-active"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>Light</button>
+  </div>
+</div>
+
+<div class="qe-window">
+
+  <!-- Titlebar (no Sidebar — independent window) -->
+  <header class="titlebar qe-titlebar">
+    <div class="traffic-lights"><span class="tl-close"></span><span class="tl-min"></span><span class="tl-max"></span></div>
+    <span class="title">
+      <span class="qe-titlebar-host"><span class="dot dot-success"></span>api-prod-01</span>
+      <span class="qe-titlebar-sep">·</span>
+      <span class="mono">nginx.conf</span>
+      <span class="qe-titlebar-modified">— modified</span>
+    </span>
+    <div class="titlebar-right">
+      <span class="badge badge-warning"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>sudo</span>
+    </div>
+  </header>
+
+  <!-- Toolbar -->
+  <div class="qe-toolbar">
+    <div class="qe-toolbar-group">
+      <button class="btn btn-primary btn-sm">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Save
+        <span class="kbd">⌘</span><span class="kbd">S</span>
+      </button>
+      <button class="btn btn-ghost btn-sm" title="Save and reload remote service">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Save &amp; reload nginx
+      </button>
+    </div>
+
+    <span class="divider"></span>
+
+    <div class="qe-toolbar-group">
+      <span class="input-with-icon qe-find">
+        <span class="input-icon"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+        <input class="input" placeholder="Find…" value="proxy_pass" />
+        <span class="qe-find-count">3 / 7</span>
+      </span>
+      <button class="btn btn-ghost btn-icon" title="Replace">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      </button>
+      <button class="btn btn-ghost btn-sm" title="Go to line">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+        :48
+      </button>
+    </div>
+
+    <span class="qe-spacer"></span>
+
+    <div class="qe-toolbar-group">
+      <button class="btn btn-ghost btn-sm">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Reload from remote
+      </button>
+      <button class="btn btn-ghost btn-icon" title="Diff against remote">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="12" x2="2" y2="12"/><polyline points="5.45 5.11 2 12 5.45 18.89"/><polyline points="18.55 5.11 22 12 18.55 18.89"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="qe-tabs">
+    <button class="qe-tab is-active">
+      <span class="qe-tab-icon">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </span>
+      <span class="qe-tab-name">nginx.conf</span>
+      <span class="qe-tab-dirty" title="Unsaved changes"></span>
+      <span class="qe-tab-close"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+    </button>
+
+    <button class="qe-tab">
+      <span class="qe-tab-icon">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </span>
+      <span class="qe-tab-name">sites-available/api.conf</span>
+      <span class="qe-tab-close"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+    </button>
+
+    <button class="qe-tab">
+      <span class="qe-tab-icon">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </span>
+      <span class="qe-tab-name">php-fpm.conf</span>
+      <span class="qe-tab-dirty"></span>
+      <span class="qe-tab-close"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+    </button>
+
+    <button class="qe-tab">
+      <span class="qe-tab-icon">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </span>
+      <span class="qe-tab-name">.env.production</span>
+      <span class="qe-tab-close"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+    </button>
+
+    <button class="qe-tab-add" title="Open another remote file">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <!-- Path breadcrumb -->
+  <div class="qe-breadcrumb">
+    <span class="qe-bc-host mono">han@api-prod-01</span>
+    <span class="qe-bc-sep">:</span>
+    <span class="qe-bc-path mono">/etc/nginx/<span class="accent">nginx.conf</span></span>
+    <span class="qe-bc-meta">8.4 KB · modified 2m ago</span>
+  </div>
+
+  <!-- Editor -->
+  <main class="qe-editor">
+    <div class="qe-gutter">
+      <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+      <span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span>
+      <span>21</span><span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span>
+      <span>31</span><span>32</span><span>33</span><span>34</span><span>35</span><span>36</span><span>37</span><span>38</span><span>39</span><span>40</span>
+      <span>41</span><span>42</span><span>43</span><span>44</span><span>45</span><span>46</span><span>47</span><span class="active">48</span><span>49</span><span>50</span>
+    </div>
+
+    <pre class="qe-code mono"><code><span class="line"><span class="kw">user</span> <span class="ident">www-data</span>;</span>
+<span class="line"><span class="kw">worker_processes</span> <span class="kw">auto</span>;</span>
+<span class="line"><span class="kw">pid</span> <span class="str">/run/nginx.pid</span>;</span>
+<span class="line"><span class="kw">include</span> <span class="str">/etc/nginx/modules-enabled/*.conf</span>;</span>
+<span class="line"></span>
+<span class="line"><span class="kw">events</span> {</span>
+<span class="line">    <span class="kw">worker_connections</span> <span class="num">4096</span>;</span>
+<span class="line">    <span class="kw">multi_accept</span> <span class="kw">on</span>;</span>
+<span class="line">}</span>
+<span class="line"></span>
+<span class="line"><span class="kw">http</span> {</span>
+<span class="line">    <span class="kw">sendfile</span> <span class="kw">on</span>;</span>
+<span class="line">    <span class="kw">tcp_nopush</span> <span class="kw">on</span>;</span>
+<span class="line">    <span class="kw">tcp_nodelay</span> <span class="kw">on</span>;</span>
+<span class="line">    <span class="kw">keepalive_timeout</span> <span class="num">65</span>;</span>
+<span class="line">    <span class="kw">types_hash_max_size</span> <span class="num">2048</span>;</span>
+<span class="line">    <span class="kw">server_tokens</span> <span class="kw">off</span>;</span>
+<span class="line"></span>
+<span class="line">    <span class="kw">include</span> <span class="str">/etc/nginx/mime.types</span>;</span>
+<span class="line">    <span class="kw">default_type</span> <span class="ident">application/octet-stream</span>;</span>
+<span class="line"></span>
+<span class="line">    <span class="cmt"># ── Logging ──────────────────────────────────────────</span></span>
+<span class="line">    <span class="kw">log_format</span> main <span class="str">'$remote_addr - $remote_user [$time_local] "$request" '</span></span>
+<span class="line">                    <span class="str">'$status $body_bytes_sent "$http_referer" '</span></span>
+<span class="line">                    <span class="str">'"$http_user_agent" "$http_x_forwarded_for"'</span>;</span>
+<span class="line">    <span class="kw">access_log</span> <span class="str">/var/log/nginx/access.log</span> main <span class="ident">buffer=32k flush=5s</span>;</span>
+<span class="line">    <span class="kw">error_log</span> <span class="str">/var/log/nginx/error.log</span> <span class="kw">warn</span>;</span>
+<span class="line"></span>
+<span class="line">    <span class="cmt"># ── Gzip ─────────────────────────────────────────────</span></span>
+<span class="line">    <span class="kw">gzip</span> <span class="kw">on</span>;</span>
+<span class="line">    <span class="kw">gzip_vary</span> <span class="kw">on</span>;</span>
+<span class="line">    <span class="kw">gzip_min_length</span> <span class="num">1024</span>;</span>
+<span class="line">    <span class="kw">gzip_types</span> <span class="ident">text/plain text/css application/json application/javascript text/xml application/xml</span>;</span>
+<span class="line"></span>
+<span class="line">    <span class="cmt"># ── Upstream: api-service (3 replicas) ───────────────</span></span>
+<span class="line">    <span class="kw">upstream</span> api_backend {</span>
+<span class="line">        <span class="kw">least_conn</span>;</span>
+<span class="line">        <span class="kw">server</span> <span class="ident">127.0.0.1:8001</span> max_fails=2 fail_timeout=10s;</span>
+<span class="line">        <span class="kw">server</span> <span class="ident">127.0.0.1:8002</span> max_fails=2 fail_timeout=10s;</span>
+<span class="line">        <span class="kw">server</span> <span class="ident">127.0.0.1:8003</span> max_fails=2 fail_timeout=10s;</span>
+<span class="line">        <span class="kw">keepalive</span> <span class="num">32</span>;</span>
+<span class="line">    }</span>
+<span class="line"></span>
+<span class="line">    <span class="kw">server</span> {</span>
+<span class="line">        <span class="kw">listen</span> <span class="num">443</span> <span class="kw">ssl</span> <span class="kw">http2</span>;</span>
+<span class="line">        <span class="kw">server_name</span> <span class="ident">api.ddshell.app</span>;</span>
+<span class="line"></span>
+<span class="line">        <span class="kw">location</span> /v1/ {</span>
+<span class="line"><span class="cursor-line">            <span class="kw">proxy_pass</span> <span class="match">http://api_backend</span>;<span class="cursor"></span></span></span>
+<span class="line">            <span class="kw">proxy_http_version</span> <span class="num">1.1</span>;</span>
+<span class="line">            <span class="kw">proxy_set_header</span> <span class="ident">Connection</span> <span class="str">""</span>;</span>
+</code></pre>
+  </main>
+
+  <!-- Status bar -->
+  <footer class="statusbar qe-statusbar">
+    <span class="status-item">
+      <span class="dot dot-success"></span>connected
+    </span>
+    <span class="status-item mono">han@api-prod-01</span>
+    <span class="divider"></span>
+    <span class="status-item">Ln <strong>48</strong>, Col <strong>32</strong></span>
+    <span class="status-item">Sel 0</span>
+    <span class="spacer"></span>
+    <span class="status-item">Spaces: 4</span>
+    <span class="status-item">UTF-8</span>
+    <span class="status-item">LF</span>
+    <span class="status-item accent">nginx</span>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var root = document.body;
+    var key = 'ddshell-ui-theme';
+    if (localStorage.getItem(key) === 'dark') applyTheme('dark');
+    document.querySelectorAll('.theme-toggle [data-theme]').forEach(function (b) {
+      b.addEventListener('click', function () { applyTheme(b.getAttribute('data-theme')); });
+    });
+    function applyTheme(t) {
+      root.classList.remove('theme-dark', 'theme-light');
+      root.classList.add('theme-' + t);
+      localStorage.setItem(key, t);
+      document.querySelectorAll('.theme-toggle [data-theme]').forEach(function (b) {
+        b.classList.toggle('is-active', b.getAttribute('data-theme') === t);
+      });
+    }
+  })();
+</script>
+</body>
+</html>

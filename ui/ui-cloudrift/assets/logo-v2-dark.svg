@@ -1,0 +1,44 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="10" x2="190" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#182334"/>
+      <stop offset="0.55" stop-color="#0B1018"/>
+      <stop offset="1" stop-color="#203247"/>
+    </linearGradient>
+    <linearGradient id="cloudPaint" x1="10" y1="24" x2="190" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8FBAD8"/>
+      <stop offset="0.30" stop-color="#BFD6EA"/>
+      <stop offset="0.50" stop-color="#F3F0E6"/>
+      <stop offset="0.70" stop-color="#D9D1BD"/>
+      <stop offset="1" stop-color="#9EB8D2"/>
+    </linearGradient>
+    <radialGradient id="skyGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#BFD6EA" stop-opacity="0.65"/>
+      <stop offset="0.55" stop-color="#BFD6EA" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#BFD6EA" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cloudSweep" x1="54" y1="16" x2="146" y2="184" gradientUnits="userSpaceOnUse">
+      <stop offset="0.18" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.48" stop-color="#FFFDF6" stop-opacity="0.68"/>
+      <stop offset="0.58" stop-color="#BFD6EA" stop-opacity="0.18"/>
+      <stop offset="0.82" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0.70 0 0 0 0.38 0 0.86 0 0 0.55 0 0 1 0 0.74 0 0 0 0.42 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#bg)"/>
+  <circle cx="54" cy="48" r="74" fill="url(#skyGlow)"/>
+  <circle cx="152" cy="152" r="68" fill="url(#skyGlow)" opacity="0.55"/>
+  <path d="M28 66C70 34 126 34 172 66" stroke="#F3F0E6" stroke-opacity="0.13"/>
+  <path d="M22 136C70 170 130 170 178 136" stroke="#BFD6EA" stroke-opacity="0.10"/>
+  <rect x="10.5" y="10.5" width="179" height="179" rx="39.5" stroke="#EEF2E8" stroke-opacity="0.12"/>
+  <g filter="url(#softGlow)">
+    <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z" fill="url(#cloudPaint)"/>
+    <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z" fill="url(#cloudPaint)"/>
+  </g>
+  <rect x="99.3" y="26" width="1.4" height="148" fill="url(#cloudSweep)"/>
+  <path d="M48 68C82 56 118 56 152 68" stroke="url(#cloudSweep)" stroke-width="7" stroke-linecap="round" opacity="0.40"/>
+</svg>
