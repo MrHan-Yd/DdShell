@@ -27,27 +27,31 @@
   color: var(--fg-on-accent);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 20px var(--accent-glow);
 }
-[data-ui-theme="aurora"] .btn-primary:hover { filter: brightness(1.08); }
+[data-ui-theme="aurora"] .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
 [data-ui-theme="aurora"] .btn-primary:focus-visible { outline: none; box-shadow: var(--shadow-glow); }
+[data-ui-theme="aurora"] .btn-primary:disabled {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  filter: none;
+}
 
 [data-ui-theme="aurora"] .btn-secondary {
   background: var(--bg-surface);
   color: var(--fg-primary);
   border: 1px solid var(--border-default);
 }
-[data-ui-theme="aurora"] .btn-secondary:hover { background: var(--bg-active); border-color: var(--border-strong); }
+[data-ui-theme="aurora"] .btn-secondary:hover:not(:disabled) { background: var(--bg-active); border-color: var(--border-strong); }
 
 [data-ui-theme="aurora"] .btn-ghost {
   background: transparent;
   color: var(--fg-secondary);
 }
-[data-ui-theme="aurora"] .btn-ghost:hover { background: var(--bg-hover); color: var(--fg-primary); }
+[data-ui-theme="aurora"] .btn-ghost:hover:not(:disabled) { background: var(--bg-hover); color: var(--fg-primary); }
 
 [data-ui-theme="aurora"] .btn-danger {
   background: var(--danger-subtle);
   color: var(--danger);
 }
-[data-ui-theme="aurora"] .btn-danger:hover { background: var(--danger); color: var(--fg-on-accent); }
+[data-ui-theme="aurora"] .btn-danger:hover:not(:disabled) { background: var(--danger); color: var(--fg-on-accent); }
 
 [data-ui-theme="aurora"] .btn-icon {
   width: 28px; height: 28px;

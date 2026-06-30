@@ -126,6 +126,43 @@ Questions to answer:
 - `app/src/styles/aurora/base.css`
 - `app/src/styles/aurora/pages/sftp.css`
 
+### Disabled glowing buttons can bleed into adjacent disabled controls
+
+**What**: Buttons with outer glow or large shadows must remove that outer shadow in `:disabled` state, and hover styling should use `:hover:not(:disabled)`.
+
+**Why**: Disabled controls use opacity to indicate unavailable state. If a primary button keeps an outer glow while the neighboring button is also disabled, the neighbor becomes translucent and the glow underneath can show through as a rectangular spillover.
+
+**Wrong**:
+
+```css
+[data-ui-theme="aurora"] .btn-primary {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 20px var(--accent-glow);
+}
+
+[data-ui-theme="aurora"] .btn-primary:hover {
+  filter: brightness(1.08);
+}
+```
+
+**Correct**:
+
+```css
+[data-ui-theme="aurora"] .btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+[data-ui-theme="aurora"] .btn-primary:disabled {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  filter: none;
+}
+```
+
+**Required check**: For side-by-side loading actions, verify the active/loading button's shadow does not tint or cover its disabled neighbor in both dark and light themes.
+
+**Related**:
+- `app/src/styles/aurora/components.css`
+- `app/src/styles/aurora/pages/connections.css`
+
 ### Xterm parent backgrounds must match the terminal theme background
 
 **What**: When embedding xterm, set the same terminal background on the xterm surface and any parent pane/window backgrounds that can show through.

@@ -219,10 +219,13 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
+  isolation: isolate;
 }
 [data-ui-theme="aurora"] .detail-cta .btn-lg {
+  position: relative;
   width: 100%;
   height: 44px;
+  min-width: 0;
 }
 [data-ui-theme="aurora"] .detail-cta .btn-primary { gap: var(--space-3); }
 [data-ui-theme="aurora"] .detail-cta .kbd { background: rgba(255, 255, 255, 0.18); border: 0; color: var(--fg-on-accent); }
