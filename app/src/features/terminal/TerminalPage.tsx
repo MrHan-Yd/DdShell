@@ -7,7 +7,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { FitAddon } from "@xterm/addon-fit";
 import { PredictiveEcho } from "./predictiveEcho";
-import { X, Plug, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star, Sparkles, Loader2, Square, Terminal as TerminalIcon, ClipboardCopy, ClipboardPaste } from "lucide-react";
+import { X, Plug, History, Search, Rows2, Columns2, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star, Sparkles, Loader2, Square, Terminal as TerminalIcon, ClipboardCopy, ClipboardPaste } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_DANGEROUS_COMMANDS, isCommandDangerous } from "@/lib/constants";
 import { readClipboardText, writeClipboardText } from "@/lib/clipboard";
@@ -2729,32 +2729,35 @@ export function TerminalPage() {
           <button
             onClick={() => splitPane("horizontal")}
             className={cn(
-              "flex h-7 items-center rounded-[var(--radius-control)] px-1.5 text-[var(--font-size-xs)] transition-colors",
+              "flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--font-size-xs)] transition-colors",
               splitDirection === "horizontal"
                 ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
                 : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
             )}
             title="Split Horizontal (Alt+Shift+-)"
+            aria-label="Split Horizontal (Alt+Shift+-)"
           >
-            <SplitSquareHorizontal size={14} />
+            <Rows2 size={14} />
           </button>
           <button
             onClick={() => splitPane("vertical")}
             className={cn(
-              "flex h-7 items-center rounded-[var(--radius-control)] px-1.5 text-[var(--font-size-xs)] transition-colors",
+              "flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--font-size-xs)] transition-colors",
               splitDirection === "vertical"
                 ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
                 : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
             )}
             title="Split Vertical (Alt+Shift+|)"
+            aria-label="Split Vertical (Alt+Shift+|)"
           >
-            <SplitSquareVertical size={14} />
+            <Columns2 size={14} />
           </button>
           {splitDirection && (
             <button
               onClick={closeSplit}
-              className="flex h-7 items-center rounded-[var(--radius-control)] px-1.5 text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] transition-colors"
+              className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] transition-colors"
               title="Close Split"
+              aria-label="Close Split"
             >
               <XCircle size={14} />
             </button>
@@ -2770,14 +2773,16 @@ export function TerminalPage() {
               setShowHistory((v) => !v);
             }}
             className={cn(
-              "flex h-7 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-[var(--font-size-xs)] transition-colors",
+              "flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--font-size-xs)] transition-colors",
               showHistory
                 ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
                 : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-secondary)]",
             )}
+            title={t("term.history")}
+            aria-label={t("term.history")}
+            aria-pressed={showHistory}
           >
             <History size={14} />
-            <span>{t("term.history")}</span>
           </button>
         </div>
         </div>
