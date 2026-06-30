@@ -44,6 +44,7 @@ const FILE_MANAGER_REMOTE_RESIZE_SUPPRESS_MS = FILE_MANAGER_DRAWER_TRANSITION_MS
 // banner is still settling, causing bash/readline to repaint prompt fragments.
 const REMOTE_RESIZE_STARTUP_SUPPRESS_MS = 1500;
 const REMOTE_RESIZE_LOCAL_ONLY_SUPPRESS_MS = 250;
+const TERMINAL_FOREGROUND_ACTIVITY_INTERVAL_MS = 10_000;
 const SELECTION_ACTION_POPOVER_WIDTH = 72;
 const SELECTION_ACTION_POPOVER_ESTIMATED_HEIGHT = 38;
 const SELECTION_ACTION_EDGE_MARGIN = 8;
@@ -1949,6 +1950,7 @@ export function TerminalPage() {
   const splitPane = useTerminalStore((s) => s.splitPane);
   const closeSplit = useTerminalStore((s) => s.closeSplit);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
+  const currentPage = useAppStore((s) => s.currentPage);
   const recipes = useWorkflowsStore((s) => s.recipes);
   const fetchRecipes = useWorkflowsStore((s) => s.fetchRecipes);
   const [showHistory, setShowHistory] = useState(false);
@@ -1998,6 +2000,14 @@ export function TerminalPage() {
     handleSessionStateChanged,
     clearFailedBadge,
   } = useMacroRunner();
+  const connectedSessionIds = useMemo(
+    () => Array.from(new Set(
+      tabs
+        .filter((tab) => tab.state === "connected")
+        .map((tab) => tab.sessionId),
+    )),
+    [tabs],
+  );
 
   useEffect(() => {
     if (!showBookmarks && !showHistory) return;
@@ -2124,6 +2134,31 @@ export function TerminalPage() {
       window.removeEventListener("terminal:settings-changed", handleSettingsChanged);
     };
   }, []);
+
+  useEffect(() => {
+    if (connectedSessionIds.length === 0) return;
+
+    const touchConnectedSessions = () => {
+      connectedSessionIds.forEach((sessionId) => {
+        void api.sessionTouchActivity(sessionId).catch(() => {});
+      });
+    };
+
+    if (currentPage !== "terminal") return;
+
+    touchConnectedSessions();
+    const intervalId = window.setInterval(
+      touchConnectedSessions,
+      TERMINAL_FOREGROUND_ACTIVITY_INTERVAL_MS,
+    );
+
+    return () => {
+      window.clearInterval(intervalId);
+      // Reset the idle baseline when foreground keepalive stops, so switching
+      // away from Terminal starts the configured timeout from that moment.
+      touchConnectedSessions();
+    };
+  }, [connectedSessionIds, currentPage]);
 
   const goToConnections = useCallback(() => {
     setCurrentPage("connections");

@@ -303,6 +303,10 @@ export async function sessionDisconnect(sessionId: string): Promise<{ success: b
   return invoke("session_disconnect", { sessionId });
 }
 
+export async function sessionTouchActivity(sessionId: string): Promise<{ success: boolean }> {
+  return invoke("session_touch_activity", { sessionId });
+}
+
 export async function sessionWrite(sessionId: string, data: number[]): Promise<{ success: boolean }> {
   return invoke("session_write", { sessionId, data });
 }

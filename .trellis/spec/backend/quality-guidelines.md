@@ -284,6 +284,10 @@ fn default_pty_modes() -> [(russh::Pty, u32); 3] {
   - `SessionManager::touch_activity(session_id: &str) -> bool`
   - `SessionManager::idle_timeout(session_id: &str) -> Option<Duration>`
   - `SessionManager::idle_elapsed(session_id: &str) -> Option<Duration>`
+- Tauri command:
+  - `session_touch_activity(session_id: String) -> Result<SuccessResponse, String>`
+- Frontend wrapper:
+  - `sessionTouchActivity(sessionId: string): Promise<{ success: boolean }>`
 
 #### 3. Contracts
 - `session.keepAlive` means application-level user/application inactivity, not SSH protocol inactivity.
@@ -296,6 +300,8 @@ fn default_pty_modes() -> [(russh::Pty, u32); 3] {
   - SFTP transfer start and transfer chunk progress
   - SSH env/system-detect commands
   - explicit monitor start actions
+- The foreground terminal page may refresh activity for connected terminal sessions with `session_touch_activity` at a bounded interval and once when leaving the terminal page. This means a user who remains on the Terminal page does not idle-disconnect, and the configured timeout starts from the page switch when they navigate away.
+- `session_touch_activity` must only update the application idle tracker. It must not write SSH input, resize the PTY, start SFTP work, or run a latency ping.
 - Automatic status/latency ping must not call `touch_activity`; it is a heartbeat for display, not user activity.
 - `session.keepAlive = "0"` disables the application idle watchdog for new terminal sessions.
 - Automatic idle disconnect must remove the session through `SessionManager::disconnect` and emit the same `disconnected` session-state event as other backend disconnect paths.
@@ -309,14 +315,18 @@ fn default_pty_modes() -> [(russh::Pty, u32); 3] {
 - Long SFTP transfer exceeds timeout but continues making chunk progress -> transfer progress touches activity and should not be disconnected as idle.
 - Status bar latency ping fires every few seconds -> latency may update, but idle elapsed time must continue increasing.
 - Remote output only, with no user/application active command -> session may be disconnected after the configured idle timeout.
+- `session_touch_activity` receives a missing/closed session id -> return `"Session not found"`; frontend foreground keepalive callers may ignore this because disconnects and tab closure race with timers.
 
 #### 5. Good/Base/Bad Cases
-- Good: A terminal session configured with `"30"` and no user/application operation for 30 seconds is disconnected by the backend watchdog.
+- Good: A terminal session configured with `"30"` and no user/application operation for 30 seconds while the Terminal page is not foreground is disconnected by the backend watchdog.
+- Good: A connected terminal session stays alive while the user remains on the Terminal page, even if they do not type.
+- Good: When the user switches away from the Terminal page, the frontend touches the session once and stops foreground keepalive; the configured timeout then starts from the page switch.
 - Good: A large upload running for several minutes keeps touching activity as chunks are transferred.
 - Base: A user opens the file manager and lists a directory; that SFTP command refreshes activity.
 - Bad: Relying on `russh::client::Config.inactivity_timeout` to represent user inactivity while also enabling keepalive.
 - Bad: Treating remote output or SSH keepalive as user activity.
 - Bad: Treating automatic status bar `ssh_ping` as user activity; it can keep a 30-second idle timeout alive forever.
+- Bad: Keeping a terminal alive by sending synthetic SSH input or resize events from the frontend while the page is merely visible.
 
 #### 6. Tests Required
 - Unit tests must cover the activity tracker for disabled timeout and touch/reset behavior.
@@ -345,6 +355,22 @@ if elapsed >= idle_timeout {
     mgr.disconnect(&session_id).await?;
     event::emit_session_state(&app, &session_id, "disconnected");
 }
+```
+
+Wrong:
+
+```ts
+window.setInterval(() => {
+  void api.sshPing(sessionId);
+}, 10_000);
+```
+
+Correct:
+
+```ts
+window.setInterval(() => {
+  void api.sessionTouchActivity(sessionId);
+}, 10_000);
 ```
 
 ### Scenario: Tauri Official Updater Release Contract

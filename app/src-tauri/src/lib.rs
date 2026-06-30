@@ -1221,6 +1221,18 @@ async fn session_disconnect(
 }
 
 #[tauri::command]
+async fn session_touch_activity(
+    mgr: tauri::State<'_, SessionManager>,
+    session_id: String,
+) -> Result<SuccessResponse, String> {
+    if mgr.touch_activity(&session_id) {
+        Ok(SuccessResponse { success: true })
+    } else {
+        Err("Session not found".to_string())
+    }
+}
+
+#[tauri::command]
 async fn session_write(
     mgr: tauri::State<'_, SessionManager>,
     session_id: String,
@@ -3177,6 +3189,7 @@ pub fn run() {
             ai_agent_send_stream,
             session_connect,
             session_disconnect,
+            session_touch_activity,
             session_write,
             session_resize,
             sftp_list_dir,
