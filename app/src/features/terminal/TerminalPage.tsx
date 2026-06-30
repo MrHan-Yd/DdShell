@@ -7,10 +7,10 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { FitAddon } from "@xterm/addon-fit";
 import { PredictiveEcho } from "./predictiveEcho";
-import { X, Plug, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star, Sparkles, Loader2, Square, Terminal as TerminalIcon } from "lucide-react";
+import { X, Plug, History, Search, SplitSquareHorizontal, SplitSquareVertical, XCircle, Zap, Trash2, Bookmark, FolderOpen, Star, Sparkles, Loader2, Square, Terminal as TerminalIcon, ClipboardCopy, ClipboardPaste } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_DANGEROUS_COMMANDS, isCommandDangerous } from "@/lib/constants";
-import { readClipboardText } from "@/lib/clipboard";
+import { readClipboardText, writeClipboardText } from "@/lib/clipboard";
 import { migrateTerminalBackgroundImageSetting } from "@/lib/terminalBackground";
 import { useTerminalStore } from "@/stores/terminal";
 import { useAppStore } from "@/stores/app";
@@ -44,6 +44,80 @@ const FILE_MANAGER_REMOTE_RESIZE_SUPPRESS_MS = FILE_MANAGER_DRAWER_TRANSITION_MS
 // banner is still settling, causing bash/readline to repaint prompt fragments.
 const REMOTE_RESIZE_STARTUP_SUPPRESS_MS = 1500;
 const REMOTE_RESIZE_LOCAL_ONLY_SUPPRESS_MS = 250;
+const SELECTION_ACTION_POPOVER_WIDTH = 72;
+const SELECTION_ACTION_POPOVER_ESTIMATED_HEIGHT = 38;
+const SELECTION_ACTION_EDGE_MARGIN = 8;
+
+type TerminalCellGeometry = {
+  charW: number;
+  charH: number;
+  offsetX: number;
+  offsetY: number;
+};
+
+type SelectionActionsState = {
+  text: string;
+  left: number;
+  top: number;
+};
+
+type SelectionActionMode = "copy" | "copyPaste";
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getSelectionActionPosition(
+  term: Terminal,
+  container: HTMLElement,
+  geo: TerminalCellGeometry,
+): Pick<SelectionActionsState, "left" | "top"> | null {
+  const range = term.getSelectionPosition();
+  if (!range) return null;
+
+  const containerRect = container.getBoundingClientRect();
+  if (containerRect.width <= 0 || containerRect.height <= 0) return null;
+
+  const viewportY = term.buffer.active.viewportY;
+  const startRow = range.start.y - 1 - viewportY;
+  const endRow = range.end.y - 1 - viewportY;
+  const minRow = Math.min(startRow, endRow);
+  const maxRow = Math.max(startRow, endRow);
+  if (maxRow < 0 || minRow > term.rows - 1) return null;
+
+  const anchorRow = clampNumber(startRow, 0, Math.max(term.rows - 1, 0));
+  const startCol = clampNumber(range.start.x - 1, 0, term.cols);
+  const endCol = clampNumber(range.end.x - 1, 0, term.cols);
+  const anchorCol = startRow === endRow
+    ? (Math.min(startCol, endCol) + Math.max(startCol, endCol)) / 2
+    : startCol;
+
+  const rawLeft = geo.offsetX + anchorCol * geo.charW - SELECTION_ACTION_POPOVER_WIDTH / 2;
+  const maxLeft = Math.max(
+    SELECTION_ACTION_EDGE_MARGIN,
+    containerRect.width - SELECTION_ACTION_POPOVER_WIDTH - SELECTION_ACTION_EDGE_MARGIN,
+  );
+  const left = clampNumber(rawLeft, SELECTION_ACTION_EDGE_MARGIN, maxLeft);
+
+  const rowTop = geo.offsetY + anchorRow * geo.charH;
+  const aboveTop = rowTop - SELECTION_ACTION_POPOVER_ESTIMATED_HEIGHT - SELECTION_ACTION_EDGE_MARGIN;
+  const belowTop = rowTop + geo.charH + SELECTION_ACTION_EDGE_MARGIN;
+  const rawTop = aboveTop >= SELECTION_ACTION_EDGE_MARGIN ? aboveTop : belowTop;
+  const maxTop = Math.max(
+    SELECTION_ACTION_EDGE_MARGIN,
+    containerRect.height - SELECTION_ACTION_POPOVER_ESTIMATED_HEIGHT - SELECTION_ACTION_EDGE_MARGIN,
+  );
+  const top = clampNumber(rawTop, SELECTION_ACTION_EDGE_MARGIN, maxTop);
+
+  return {
+    left: Math.round(left),
+    top: Math.round(top),
+  };
+}
+
+async function writeSessionText(sessionId: string, text: string): Promise<void> {
+  await api.sessionWrite(sessionId, Array.from(TEXT_ENCODER.encode(text)));
+}
 
 /** Strip ANSI escape sequences and trim whitespace */
 function cleanSelection(text: string): string {
@@ -202,6 +276,85 @@ function TerminalInstance({
   // so we read it through a ref. Translation isn't on the keystroke fast path.
   const tRef = useRef(t);
   tRef.current = t;
+  const selectionActionsPopoverRef = useRef<HTMLDivElement>(null);
+  const selectionActionsRef = useRef<SelectionActionsState | null>(null);
+  const selectionActionTimerRef = useRef<number | null>(null);
+  const [selectionActions, setSelectionActions] = useState<SelectionActionsState | null>(null);
+
+  useEffect(() => {
+    selectionActionsRef.current = selectionActions;
+  }, [selectionActions]);
+
+  const clearSelectionActionTimer = useCallback(() => {
+    if (selectionActionTimerRef.current === null) return;
+    window.clearTimeout(selectionActionTimerRef.current);
+    selectionActionTimerRef.current = null;
+  }, []);
+
+  const hideSelectionActions = useCallback(() => {
+    clearSelectionActionTimer();
+    setSelectionActions(null);
+  }, [clearSelectionActionTimer]);
+
+  const updateSelectionActions = useCallback(() => {
+    const term = termRef.current;
+    const container = containerRef.current;
+    if (!term || !container || !term.hasSelection()) {
+      setSelectionActions(null);
+      return;
+    }
+
+    const text = term.getSelection();
+    if (!text || text.trim().length === 0) {
+      setSelectionActions(null);
+      return;
+    }
+
+    const position = getSelectionActionPosition(term, container, geoRef.current);
+    if (!position) {
+      setSelectionActions(null);
+      return;
+    }
+
+    setSelectionActions({
+      text,
+      ...position,
+    });
+  }, []);
+
+  const scheduleSelectionActions = useCallback(() => {
+    clearSelectionActionTimer();
+    selectionActionTimerRef.current = window.setTimeout(() => {
+      selectionActionTimerRef.current = null;
+      updateSelectionActions();
+    }, 90);
+  }, [clearSelectionActionTimer, updateSelectionActions]);
+
+  const handleSelectionAction = useCallback(async (mode: SelectionActionMode) => {
+    const current = selectionActionsRef.current;
+    if (!current?.text) return;
+
+    try {
+      await writeClipboardText(current.text);
+      if (mode === "copyPaste") {
+        await writeSessionText(sessionIdRef.current, current.text);
+      }
+    } catch {
+      toast.error(tRef.current(mode === "copyPaste" ? "term.selectionCopyPasteFailed" : "term.selectionCopyFailed"));
+    } finally {
+      hideSelectionActions();
+      termRef.current?.focus();
+    }
+  }, [hideSelectionActions]);
+
+  const handleSelectionActionMouseDown = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
+  useEffect(() => {
+    return () => clearSelectionActionTimer();
+  }, [clearSelectionActionTimer]);
 
   // Quick Edit picker（仅活动面板响应快捷键）
   const hostName = useTerminalStore((s) => s.tabs.find((tb) => tb.id === tabId)?.title) ?? "";
@@ -864,6 +1017,7 @@ function TerminalInstance({
   useEffect(() => {
     const term = termRef.current;
     if (!term) return;
+    setSelectionActions(null);
     sessionOutputDecoderRef.current = new TextDecoder();
     macroFilterBufferRef.current = "";
     // Predictive Echo: clear queue and return to Cold so a stale prediction
@@ -989,6 +1143,7 @@ function TerminalInstance({
     remoteResizeSuppressUntilRef.current = Date.now() + REMOTE_RESIZE_STARTUP_SUPPRESS_MS;
     lastSentRemoteSizeRef.current = null;
     const onResize = term.onResize(({ cols, rows }) => {
+      hideSelectionActions();
       if (cols <= 1 || rows <= 1) return;
       if (suppressRemoteResizeRef.current) return;
       if (Date.now() < remoteResizeSuppressUntilRef.current) return;
@@ -996,6 +1151,14 @@ function TerminalInstance({
       if (lastSent?.cols === cols && lastSent.rows === rows) return;
       lastSentRemoteSizeRef.current = { cols, rows };
       api.sessionResize(sessionIdRef.current, cols, rows).catch(() => {});
+    });
+
+    const onSelectionChange = term.onSelectionChange(() => {
+      scheduleSelectionActions();
+    });
+
+    const onScroll = term.onScroll(() => {
+      hideSelectionActions();
     });
 
     // Track cursor movement for follow-cursor command assist positioning
@@ -1119,6 +1282,13 @@ function TerminalInstance({
     const termElForMouse = term.element;
     termElForMouse?.addEventListener("mousedown", handleMiddleClick);
 
+    const handleDocumentPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && selectionActionsPopoverRef.current?.contains(target)) return;
+      hideSelectionActions();
+    };
+    document.addEventListener("pointerdown", handleDocumentPointerDown, true);
+
     term.focus();
 
     return () => {
@@ -1128,6 +1298,8 @@ function TerminalInstance({
       }
       onData.dispose();
       onResize.dispose();
+      onSelectionChange.dispose();
+      onScroll.dispose();
       onCursorMove.dispose();
       unlisten.then((fn) => fn());
       unlistenState.then((fn) => fn());
@@ -1137,8 +1309,9 @@ function TerminalInstance({
       termEl?.removeEventListener("compositionstart", handleCompositionStart);
       termEl?.removeEventListener("compositionend", handleCompositionEnd);
       termElForMouse?.removeEventListener("mousedown", handleMiddleClick);
+      document.removeEventListener("pointerdown", handleDocumentPointerDown, true);
     };
-  }, [sessionId, hostId, tabId, updateTabState, closeAssist]);
+  }, [sessionId, hostId, tabId, updateTabState, closeAssist, hideSelectionActions, scheduleSelectionActions]);
 
   const hasBgImage = termSettings?.bgSource === "image" && termSettings?.bgImagePath;
   const terminalSurfaceBg = hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F1115");
@@ -1163,6 +1336,39 @@ function TerminalInstance({
           padding: "2px 4px 0",
         }}
       />
+      {selectionActions && (
+        <div
+          ref={selectionActionsPopoverRef}
+          className="terminal-selection-actions"
+          role="toolbar"
+          aria-label={t("term.selectionActions")}
+          style={{
+            left: selectionActions.left,
+            top: selectionActions.top,
+          }}
+        >
+          <button
+            type="button"
+            className="terminal-selection-action"
+            aria-label={t("term.selectionCopy")}
+            title={t("term.selectionCopy")}
+            onMouseDown={handleSelectionActionMouseDown}
+            onClick={() => void handleSelectionAction("copy")}
+          >
+            <ClipboardCopy size={14} />
+          </button>
+          <button
+            type="button"
+            className="terminal-selection-action"
+            aria-label={t("term.selectionCopyPaste")}
+            title={t("term.selectionCopyPaste")}
+            onMouseDown={handleSelectionActionMouseDown}
+            onClick={() => void handleSelectionAction("copyPaste")}
+          >
+            <ClipboardPaste size={14} />
+          </button>
+        </div>
+      )}
       {/* Command Assist floating panel */}
       <CommandAssist
         visible={assistVisible}

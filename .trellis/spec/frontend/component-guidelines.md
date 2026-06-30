@@ -180,6 +180,35 @@ const terminalBg = hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F11
 - `app/src/styles/aurora/pages/terminal.css`
 - `app/src/features/terminal/TerminalPage.tsx`
 
+### Xterm selection overlays use public buffer coordinates
+
+**What**: Selection-driven terminal overlays must use xterm's public selection APIs (`term.getSelection()`, `term.hasSelection()`, and `term.getSelectionPosition()`) and convert buffer coordinates into terminal-container coordinates. Hide stale overlays on xterm `onScroll`, `onResize`, session changes, and outside pointer down.
+
+**Why**: xterm selection rendering is an internal implementation detail that can differ between renderers and versions. Reading private DOM selection layers or assuming native browser selection rectangles can make the overlay drift, especially after scrollback movement, split-pane resize, or background renderer changes.
+
+**Example**:
+
+```tsx
+const range = term.getSelectionPosition();
+if (!range || !term.hasSelection()) return;
+
+const row = range.start.y - 1 - term.buffer.active.viewportY;
+const col = range.start.x - 1;
+const left = offsetX + col * charW;
+const top = offsetY + row * charH;
+
+const onSelectionChange = term.onSelectionChange(scheduleOverlayUpdate);
+const onScroll = term.onScroll(hideOverlay);
+const onResize = term.onResize(hideOverlay);
+```
+
+**Required check**: For terminal selection overlays, verify split panes do not cross-act on each other, empty selections clear the overlay, and the overlay does not sit above `.term-pane.is-active::after`.
+
+**Related**:
+- `app/src/features/terminal/TerminalPage.tsx`
+- `app/src/styles.css`
+- `app/src/styles/aurora/pages/terminal.css`
+
 ---
 
 ## Convention: Static UI drafts are visual references, not feature contracts

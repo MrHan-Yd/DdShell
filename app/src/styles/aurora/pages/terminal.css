@@ -217,6 +217,64 @@
   overflow: hidden;
 }
 
+[data-ui-theme="aurora"] .terminal-selection-actions {
+  position: absolute;
+  z-index: 18;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 72px;
+  max-width: calc(100% - 16px);
+  padding: 4px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+  box-shadow: var(--shadow-popover);
+  color: var(--fg-primary);
+  pointer-events: auto;
+  user-select: none;
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+
+[data-ui-theme="aurora"] button.terminal-selection-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  width: 30px;
+  min-width: 30px;
+  flex: 1 1 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0;
+  background: transparent;
+  color: var(--fg-secondary);
+  font-size: var(--fs-xs);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--d-fast) var(--ease-smooth),
+    color var(--d-fast) var(--ease-smooth);
+}
+
+[data-ui-theme="aurora"] button.terminal-selection-action:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="aurora"] button.terminal-selection-action:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus-ring);
+}
+
+[data-ui-theme="aurora"] button.terminal-selection-action svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
 [data-ui-theme="aurora"] .term-line {
   white-space: pre-wrap;
   word-break: break-word;

@@ -3878,6 +3878,63 @@ body.theme-light [data-ui-theme="classic"] .connections-page .detail-cta .kbd {
   transition: none;
 }
 
+.terminal-page .terminal-selection-actions {
+  position: absolute;
+  z-index: 18;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 72px;
+  max-width: calc(100% - 16px);
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
+  box-shadow: var(--shadow-floating), var(--border-hairline-inner);
+  color: var(--color-text-primary);
+  pointer-events: auto;
+  user-select: none;
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+
+.terminal-page button.terminal-selection-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  width: 30px;
+  min-width: 30px;
+  flex: 1 1 0;
+  border: 0;
+  border-radius: 7px;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-smooth),
+    color var(--duration-fast) var(--ease-smooth);
+}
+
+.terminal-page button.terminal-selection-action:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.terminal-page button.terminal-selection-action:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus-ring);
+}
+
+.terminal-page button.terminal-selection-action svg {
+  flex-shrink: 0;
+}
+
 .terminal-disconnect-overlay {
   position: absolute;
   inset: 0;
