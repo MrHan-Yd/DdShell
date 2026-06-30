@@ -339,3 +339,37 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 67: 发布 v0.2.8 与终端工具栏图标
+
+**Date**: 2026-06-30
+**Task**: 发布 v0.2.8 与终端工具栏图标
+**Branch**: `main`
+
+### Summary
+
+完成 v0.2.8 版本提交并补推 tag 触发 Release workflow；调整终端工具栏分屏图标为上下/左右分屏图标，历史记录入口改为仅图标显示。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ea0cdd1` | (see git log) |
+| `798722b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
