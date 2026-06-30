@@ -20,6 +20,7 @@ interface TerminalState {
   reconnectSession: (tabId: string) => Promise<void>;
   splitPane: (direction: "horizontal" | "vertical") => void;
   closeSplit: () => void;
+  pingSession: (sessionId: string) => Promise<void>;
   pingActiveSession: () => Promise<void>;
 }
 
@@ -151,20 +152,26 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
 
   closeSplit: () => set({ splitDirection: null, splitTabId: null }),
 
-  pingActiveSession: async () => {
-    const { activeTabId, tabs } = get();
-    if (!activeTabId) return;
-    const tab = tabs.find((t) => t.id === activeTabId);
+  pingSession: async (sessionId) => {
+    const tab = get().tabs.find((t) => t.sessionId === sessionId);
     if (!tab || tab.state !== "connected") return;
     try {
-      const ms = await api.sshPing(tab.sessionId);
+      const ms = await api.sshPing(sessionId);
       set((s) => {
         const next = new Map(s.latencyMap);
-        next.set(tab.sessionId, ms);
+        next.set(sessionId, ms);
         return { latencyMap: next };
       });
     } catch {
       // session may be gone, ignore
     }
+  },
+
+  pingActiveSession: async () => {
+    const { activeTabId, tabs, pingSession } = get();
+    if (!activeTabId) return;
+    const tab = tabs.find((t) => t.id === activeTabId);
+    if (!tab || tab.state !== "connected") return;
+    await pingSession(tab.sessionId);
   },
 }));

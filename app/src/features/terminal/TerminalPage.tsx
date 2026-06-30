@@ -15,7 +15,7 @@ import { migrateTerminalBackgroundImageSetting } from "@/lib/terminalBackground"
 import { useTerminalStore } from "@/stores/terminal";
 import { useAppStore } from "@/stores/app";
 import * as api from "@/lib/tauri";
-import type { CommandHistoryItem, TerminalBookmark, WorkflowRecipe } from "@/types";
+import type { CommandHistoryItem, TerminalBookmark, TerminalTab, WorkflowRecipe } from "@/types";
 import { useT } from "@/lib/i18n";
 import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
@@ -45,6 +45,7 @@ const FILE_MANAGER_REMOTE_RESIZE_SUPPRESS_MS = FILE_MANAGER_DRAWER_TRANSITION_MS
 const REMOTE_RESIZE_STARTUP_SUPPRESS_MS = 1500;
 const REMOTE_RESIZE_LOCAL_ONLY_SUPPRESS_MS = 250;
 const TERMINAL_FOREGROUND_ACTIVITY_INTERVAL_MS = 10_000;
+const PANE_LATENCY_PING_INTERVAL_MS = 5_000;
 const SELECTION_ACTION_POPOVER_WIDTH = 72;
 const SELECTION_ACTION_POPOVER_ESTIMATED_HEIGHT = 38;
 const SELECTION_ACTION_EDGE_MARGIN = 8;
@@ -70,6 +71,13 @@ type SelectionActionPopoverSize = {
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function formatPaneTag(tab: TerminalTab | null | undefined, latencyMap: Map<string, number>): string {
+  if (!tab) return "idle";
+  if (tab.state !== "connected") return tab.state;
+  const latency = latencyMap.get(tab.sessionId);
+  return latency === undefined ? "-- ms" : `${latency} ms`;
 }
 
 function getSelectionActionPosition(
@@ -1949,6 +1957,8 @@ export function TerminalPage() {
   const splitTabId = useTerminalStore((s) => s.splitTabId);
   const splitPane = useTerminalStore((s) => s.splitPane);
   const closeSplit = useTerminalStore((s) => s.closeSplit);
+  const latencyMap = useTerminalStore((s) => s.latencyMap);
+  const pingSession = useTerminalStore((s) => s.pingSession);
   const setCurrentPage = useAppStore((s) => s.setCurrentPage);
   const currentPage = useAppStore((s) => s.currentPage);
   const recipes = useWorkflowsStore((s) => s.recipes);
@@ -2237,6 +2247,29 @@ export function TerminalPage() {
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
   const splitTab = splitTabId ? tabs.find((t) => t.id === splitTabId) ?? null : null;
+  const visiblePaneSessionIds = useMemo(() => {
+    const ids: string[] = [];
+    if (activeTab?.state === "connected") ids.push(activeTab.sessionId);
+    if (splitTab?.state === "connected" && !ids.includes(splitTab.sessionId)) {
+      ids.push(splitTab.sessionId);
+    }
+    return ids;
+  }, [activeTab?.sessionId, activeTab?.state, splitTab?.sessionId, splitTab?.state]);
+
+  useEffect(() => {
+    if (currentPage !== "terminal" || visiblePaneSessionIds.length === 0) return;
+
+    const pingVisiblePanes = () => {
+      visiblePaneSessionIds.forEach((sessionId) => {
+        void pingSession(sessionId);
+      });
+    };
+
+    pingVisiblePanes();
+    const intervalId = window.setInterval(pingVisiblePanes, PANE_LATENCY_PING_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
+  }, [currentPage, pingSession, visiblePaneSessionIds]);
+
   const fileManagerTab = useMemo(() => {
     const focused = lastFocusedSessionId
       ? tabs.find((tab) => tab.sessionId === lastFocusedSessionId && tab.state === "connected")
@@ -2953,7 +2986,7 @@ export function TerminalPage() {
               <svg className="flex-shrink-0" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
               <span className="pane-host mono">{activeTab?.title ?? "terminal"}</span>
               <span className="pane-spacer" />
-              <span className="pane-tag"><span className={cn("tab-dot", activeTab?.state === "connected" ? "dot-success" : activeTab?.state === "failed" ? "dot-danger" : "dot-idle")} />{activeTab?.state ?? "idle"}</span>
+              <span className="pane-tag"><span className={cn("tab-dot", activeTab?.state === "connected" ? "dot-success" : activeTab?.state === "failed" ? "dot-danger" : "dot-idle")} />{formatPaneTag(activeTab, latencyMap)}</span>
             </div>
             <div className="term-window p-0">
             {tabs.map((tab) => (
@@ -2995,7 +3028,7 @@ export function TerminalPage() {
                   <svg className="flex-shrink-0" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
                   <span className="pane-host mono">{splitTab.title}</span>
                   <span className="pane-spacer" />
-                  <span className="pane-tag"><span className={cn("tab-dot", splitTab.state === "connected" ? "dot-success" : splitTab.state === "failed" ? "dot-danger" : "dot-idle")} />{splitTab.state}</span>
+                  <span className="pane-tag"><span className={cn("tab-dot", splitTab.state === "connected" ? "dot-success" : splitTab.state === "failed" ? "dot-danger" : "dot-idle")} />{formatPaneTag(splitTab, latencyMap)}</span>
                 </div>
                 <div className="term-window p-0">
                   {termSettings && (
