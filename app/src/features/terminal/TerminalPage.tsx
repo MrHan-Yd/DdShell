@@ -87,15 +87,15 @@ function getSelectionActionPosition(
   if (containerRect.width <= 0 || containerRect.height <= 0) return null;
 
   const viewportY = term.buffer.active.viewportY;
-  const startRow = range.start.y - 1 - viewportY;
-  const endRow = range.end.y - 1 - viewportY;
+  const startRow = range.start.y - viewportY;
+  const endRow = range.end.y - viewportY;
   const minRow = Math.min(startRow, endRow);
   const maxRow = Math.max(startRow, endRow);
   if (maxRow < 0 || minRow > term.rows - 1) return null;
 
   const anchorRow = clampNumber(startRow, 0, Math.max(term.rows - 1, 0));
-  const startCol = clampNumber(range.start.x - 1, 0, term.cols);
-  const endCol = clampNumber(range.end.x - 1, 0, term.cols);
+  const startCol = clampNumber(range.start.x, 0, term.cols);
+  const endCol = clampNumber(range.end.x, 0, term.cols);
   const anchorCol = startRow === endRow
     ? (Math.min(startCol, endCol) + Math.max(startCol, endCol)) / 2
     : startCol;

@@ -182,7 +182,7 @@ const terminalBg = hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F11
 
 ### Xterm selection overlays use public buffer coordinates
 
-**What**: Selection-driven terminal overlays must use xterm's public selection APIs (`term.getSelection()`, `term.hasSelection()`, and `term.getSelectionPosition()`) and convert buffer coordinates into terminal-container coordinates. Hide stale overlays on xterm `onScroll`, `onResize`, session changes, and outside pointer down. Edge-aware positioning must use the rendered overlay size when available and flip below the selection near the terminal's top edge instead of clamping a partially clipped overlay above it.
+**What**: Selection-driven terminal overlays must use xterm's public selection APIs (`term.getSelection()`, `term.hasSelection()`, and `term.getSelectionPosition()`) and convert buffer coordinates into terminal-container coordinates. In the current `@xterm/xterm` implementation, `getSelectionPosition()` forwards the selection service's 0-based buffer coordinates, so do not subtract 1 from `x` / `y` even though the generated type comments mention 1-based positions. Hide stale overlays on xterm `onScroll`, `onResize`, session changes, and outside pointer down. Edge-aware positioning must use the rendered overlay size when available and flip below the selection near the terminal's top edge instead of clamping a partially clipped overlay above it.
 
 **Why**: xterm selection rendering is an internal implementation detail that can differ between renderers and versions. Reading private DOM selection layers or assuming native browser selection rectangles can make the overlay drift, especially after scrollback movement, split-pane resize, or background renderer changes.
 
@@ -192,8 +192,8 @@ const terminalBg = hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F11
 const range = term.getSelectionPosition();
 if (!range || !term.hasSelection()) return;
 
-const row = range.start.y - 1 - term.buffer.active.viewportY;
-const col = range.start.x - 1;
+const row = range.start.y - term.buffer.active.viewportY;
+const col = range.start.x;
 const left = offsetX + col * charW;
 const top = offsetY + row * charH;
 
