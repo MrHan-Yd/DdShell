@@ -302,3 +302,40 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 66: Terminal selection actions and session lifecycle fixes
+
+**Date**: 2026-06-30
+**Task**: Terminal selection actions and session lifecycle fixes
+**Branch**: `main`
+
+### Summary
+
+Added terminal selection quick actions, fixed top-edge popover placement, prevented connection loading shadow bleed, and kept terminal sessions alive while the terminal page is foregrounded.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `709092a` | (see git log) |
+| `ee62195` | (see git log) |
+| `f452a9a` | (see git log) |
+| `0aa911e` | (see git log) |
+| `a160e43` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

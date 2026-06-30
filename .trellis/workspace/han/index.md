@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 65
-- **Last Active**: 2026-06-29
+- **Total Sessions**: 66
+- **Last Active**: 2026-06-30
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~304 | Active |
+| `journal-2.md` | ~341 | Active |
 | `journal-1.md` | ~1985 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 66 | 2026-06-30 | Terminal selection actions and session lifecycle fixes | `709092a`, `ee62195`, `f452a9a`, `0aa911e`, `a160e43` | `main` |
 | 65 | 2026-06-29 | 修复 MSI 更新继承原安装路径 | `c195de0` | `main` |
 | 64 | 2026-06-29 | 修复 Windows 更新数据丢失 | `83a3a95` | `main` |
 | 63 | 2026-06-29 | 修复 SSH 终端回车显示 ^M | `b074883` | `main` |
