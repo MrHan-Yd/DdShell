@@ -2727,19 +2727,6 @@ export function TerminalPage() {
 
           {/* Split controls */}
           <button
-            onClick={() => splitPane("horizontal")}
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--font-size-xs)] transition-colors",
-              splitDirection === "horizontal"
-                ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
-                : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
-            )}
-            title="Split Horizontal (Alt+Shift+-)"
-            aria-label="Split Horizontal (Alt+Shift+-)"
-          >
-            <Rows2 size={14} />
-          </button>
-          <button
             onClick={() => splitPane("vertical")}
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--font-size-xs)] transition-colors",
@@ -2751,6 +2738,19 @@ export function TerminalPage() {
             aria-label="Split Vertical (Alt+Shift+|)"
           >
             <Columns2 size={14} />
+          </button>
+          <button
+            onClick={() => splitPane("horizontal")}
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--font-size-xs)] transition-colors",
+              splitDirection === "horizontal"
+                ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
+                : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
+            )}
+            title="Split Horizontal (Alt+Shift+-)"
+            aria-label="Split Horizontal (Alt+Shift+-)"
+          >
+            <Rows2 size={14} />
           </button>
           {splitDirection && (
             <button
