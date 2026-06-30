@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState, useMemo } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo, useLayoutEffect } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -62,6 +62,10 @@ type SelectionActionsState = {
 };
 
 type SelectionActionMode = "copy" | "copyPaste";
+type SelectionActionPopoverSize = {
+  width: number;
+  height: number;
+};
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -71,6 +75,10 @@ function getSelectionActionPosition(
   term: Terminal,
   container: HTMLElement,
   geo: TerminalCellGeometry,
+  popoverSize: SelectionActionPopoverSize = {
+    width: SELECTION_ACTION_POPOVER_WIDTH,
+    height: SELECTION_ACTION_POPOVER_ESTIMATED_HEIGHT,
+  },
 ): Pick<SelectionActionsState, "left" | "top"> | null {
   const range = term.getSelectionPosition();
   if (!range) return null;
@@ -92,20 +100,27 @@ function getSelectionActionPosition(
     ? (Math.min(startCol, endCol) + Math.max(startCol, endCol)) / 2
     : startCol;
 
-  const rawLeft = geo.offsetX + anchorCol * geo.charW - SELECTION_ACTION_POPOVER_WIDTH / 2;
+  const popoverWidth = popoverSize.width;
+  const popoverHeight = popoverSize.height;
+  const rawLeft = geo.offsetX + anchorCol * geo.charW - popoverWidth / 2;
   const maxLeft = Math.max(
     SELECTION_ACTION_EDGE_MARGIN,
-    containerRect.width - SELECTION_ACTION_POPOVER_WIDTH - SELECTION_ACTION_EDGE_MARGIN,
+    containerRect.width - popoverWidth - SELECTION_ACTION_EDGE_MARGIN,
   );
   const left = clampNumber(rawLeft, SELECTION_ACTION_EDGE_MARGIN, maxLeft);
 
   const rowTop = geo.offsetY + anchorRow * geo.charH;
-  const aboveTop = rowTop - SELECTION_ACTION_POPOVER_ESTIMATED_HEIGHT - SELECTION_ACTION_EDGE_MARGIN;
+  const aboveTop = rowTop - popoverHeight - SELECTION_ACTION_EDGE_MARGIN;
   const belowTop = rowTop + geo.charH + SELECTION_ACTION_EDGE_MARGIN;
-  const rawTop = aboveTop >= SELECTION_ACTION_EDGE_MARGIN ? aboveTop : belowTop;
+  const shouldForceBelowTopEdge = rowTop <= popoverHeight + SELECTION_ACTION_EDGE_MARGIN;
+  const canShowAbove = !shouldForceBelowTopEdge && aboveTop >= SELECTION_ACTION_EDGE_MARGIN;
+  const canShowBelow = belowTop + popoverHeight <= containerRect.height - SELECTION_ACTION_EDGE_MARGIN;
+  const rawTop = canShowAbove || (!canShowBelow && aboveTop >= SELECTION_ACTION_EDGE_MARGIN)
+    ? aboveTop
+    : belowTop;
   const maxTop = Math.max(
     SELECTION_ACTION_EDGE_MARGIN,
-    containerRect.height - SELECTION_ACTION_POPOVER_ESTIMATED_HEIGHT - SELECTION_ACTION_EDGE_MARGIN,
+    containerRect.height - popoverHeight - SELECTION_ACTION_EDGE_MARGIN,
   );
   const top = clampNumber(rawTop, SELECTION_ACTION_EDGE_MARGIN, maxTop);
 
@@ -283,6 +298,32 @@ function TerminalInstance({
 
   useEffect(() => {
     selectionActionsRef.current = selectionActions;
+  }, [selectionActions]);
+
+  useLayoutEffect(() => {
+    if (!selectionActions) return;
+
+    const term = termRef.current;
+    const container = containerRef.current;
+    const popover = selectionActionsPopoverRef.current;
+    if (!term || !container || !popover) return;
+
+    const rect = popover.getBoundingClientRect();
+    const position = getSelectionActionPosition(term, container, geoRef.current, {
+      width: rect.width,
+      height: rect.height,
+    });
+    if (!position) return;
+
+    setSelectionActions((current) => {
+      if (!current || (current.left === position.left && current.top === position.top)) {
+        return current;
+      }
+      return {
+        ...current,
+        ...position,
+      };
+    });
   }, [selectionActions]);
 
   const clearSelectionActionTimer = useCallback(() => {

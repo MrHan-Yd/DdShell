@@ -182,7 +182,7 @@ const terminalBg = hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F11
 
 ### Xterm selection overlays use public buffer coordinates
 
-**What**: Selection-driven terminal overlays must use xterm's public selection APIs (`term.getSelection()`, `term.hasSelection()`, and `term.getSelectionPosition()`) and convert buffer coordinates into terminal-container coordinates. Hide stale overlays on xterm `onScroll`, `onResize`, session changes, and outside pointer down.
+**What**: Selection-driven terminal overlays must use xterm's public selection APIs (`term.getSelection()`, `term.hasSelection()`, and `term.getSelectionPosition()`) and convert buffer coordinates into terminal-container coordinates. Hide stale overlays on xterm `onScroll`, `onResize`, session changes, and outside pointer down. Edge-aware positioning must use the rendered overlay size when available and flip below the selection near the terminal's top edge instead of clamping a partially clipped overlay above it.
 
 **Why**: xterm selection rendering is an internal implementation detail that can differ between renderers and versions. Reading private DOM selection layers or assuming native browser selection rectangles can make the overlay drift, especially after scrollback movement, split-pane resize, or background renderer changes.
 
@@ -202,7 +202,7 @@ const onScroll = term.onScroll(hideOverlay);
 const onResize = term.onResize(hideOverlay);
 ```
 
-**Required check**: For terminal selection overlays, verify split panes do not cross-act on each other, empty selections clear the overlay, and the overlay does not sit above `.term-pane.is-active::after`.
+**Required check**: For terminal selection overlays, verify split panes do not cross-act on each other, empty selections clear the overlay, top-edge selections display the overlay below the selected row, and the overlay does not sit above `.term-pane.is-active::after`.
 
 **Related**:
 - `app/src/features/terminal/TerminalPage.tsx`

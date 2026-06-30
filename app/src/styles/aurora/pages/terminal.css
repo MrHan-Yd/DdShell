@@ -220,6 +220,7 @@
 [data-ui-theme="aurora"] .terminal-selection-actions {
   position: absolute;
   z-index: 18;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   gap: 4px;

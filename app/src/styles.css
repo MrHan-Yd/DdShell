@@ -3881,6 +3881,7 @@ body.theme-light [data-ui-theme="classic"] .connections-page .detail-cta .kbd {
 .terminal-page .terminal-selection-actions {
   position: absolute;
   z-index: 18;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   gap: 4px;
