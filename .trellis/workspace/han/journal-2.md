@@ -439,3 +439,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 70: 底部状态栏隐藏延迟
+
+**Date**: 2026-06-30
+**Task**: 底部状态栏隐藏延迟
+**Branch**: `main`
+
+### Summary
+
+移除底部状态栏会话数量旁的延迟显示，保留终端 pane 顶栏延迟。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3605af4` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
