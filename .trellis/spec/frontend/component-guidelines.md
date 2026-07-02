@@ -217,6 +217,36 @@ const terminalBg = hasBgImage ? "transparent" : (termSettings?.bgColor ?? "#0F11
 - `app/src/styles/aurora/pages/terminal.css`
 - `app/src/features/terminal/TerminalPage.tsx`
 
+### Terminal split panes must reuse one TerminalInstance per tab
+
+**What**: Terminal split views must render each `TerminalTab` through exactly one mounted `TerminalInstance`. Move the tab's pane role between primary, split, and hidden states with layout classes/styles instead of mounting a second `TerminalInstance` for the same `tab.id` / `sessionId`.
+
+**Why**: `TerminalInstance` owns xterm state, session output listeners, input handlers, resize handling, command history buffering, and selection overlays. Duplicating an instance for a split pane can register duplicate session listeners and creates a fresh xterm buffer that does not contain the already-rendered terminal history.
+
+**Example**:
+
+```tsx
+{tabs.map((tab) => {
+  const paneRole = tab.id === activeTabId
+    ? "primary"
+    : tab.id === splitTabId
+      ? "split"
+      : "hidden";
+
+  return (
+    <div key={tab.id} className={cn("term-pane", paneRole === "hidden" && "hidden")}>
+      <TerminalInstance key={`${tab.id}-${settingsVersion}`} tabId={tab.id} sessionId={tab.sessionId} />
+    </div>
+  );
+})}
+```
+
+**Required check**: When changing terminal split layout, verify `TerminalInstance` keys are based on the canonical tab identity and that split panes do not render a second instance with a `split-*` key for an already-mounted tab.
+
+**Related**:
+- `app/src/features/terminal/TerminalPage.tsx`
+- `app/src/stores/terminal.ts`
+
 ### Xterm selection overlays use public buffer coordinates
 
 **What**: Selection-driven terminal overlays must use xterm's public selection APIs (`term.getSelection()`, `term.hasSelection()`, and `term.getSelectionPosition()`) and convert buffer coordinates into terminal-container coordinates. In the current `@xterm/xterm` implementation, `getSelectionPosition()` forwards the selection service's 0-based buffer coordinates, so do not subtract 1 from `x` / `y` even though the generated type comments mention 1-based positions. Hide stale overlays on xterm `onScroll`, `onResize`, session changes, and outside pointer down. Edge-aware positioning must use the rendered overlay size when available and flip below the selection near the terminal's top edge instead of clamping a partially clipped overlay above it.

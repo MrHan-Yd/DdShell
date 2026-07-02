@@ -28,6 +28,7 @@ import type { Terminal } from "@xterm/xterm";
  *     与预测光标对账，失败整队回滚 + Frozen；Frozen + 队列空时对账成功自动恢复
  *     Active。CPR 应答入口仍保留给切片 5 初始化兜底，为 Ctrl+A/E + 左右箭头编辑
  *     预留基础设施）
+ *   ✓ 行尾保护：预测字符即将跨终端行宽时冻结，避免同一行内 CSI D/C 覆盖跨行输入
  *   ↳ UI 设置开关 / 一次性引导（切片 4，由 SettingsPage / TerminalPage 接入）
  *
  * ── 与现有功能的契约 ──
@@ -344,10 +345,19 @@ export class PredictiveEcho {
    *
    * 调用顺序建议：在 onData 现有逻辑（cmdBuffer 维护、命令助手、sessionWrite）
    * 全部跑完之后调用，避免影响业务路径。
+   *
+   * 粘贴会以多字符批量输入到达。批量预测对用户价值很低，且长粘贴跨行时
+   * 更容易触发本地预测重写与远端 echo 的竞态；生产入口应关闭批量预测。
    */
-  onUserInput(data: string): void {
+  onUserInput(data: string, options: { allowBulkPrediction?: boolean } = {}): void {
     if (this.state !== "Active") return;
     this.checkTimeout();
+    if (this.state !== "Active") return;
+
+    if (options.allowBulkPrediction === false && data.length > 1) {
+      this.freeze("bulkInput");
+      return;
+    }
 
     for (const ch of data) {
       // 退格分支（切片 3）：必须前置，否则 isPredictableChar 会把 0x7f / \b
@@ -469,6 +479,10 @@ export class PredictiveEcho {
         // 但属行编辑，须先分流），freeze 之前（俄/希腊等非 CJK 非 ASCII 字符走
         // freeze 兜底，与阶段 1 行为一致）。
         if (isCJKWideChar(ch)) {
+          if (this.wouldCrossLine(2)) {
+            this.freeze("lineWrap");
+            return;
+          }
           if (this.queue.length >= this.opts.maxQueueSize) {
             return;
           }
@@ -496,6 +510,11 @@ export class PredictiveEcho {
 
       if (this.queue.length >= this.opts.maxQueueSize) {
         // 饱和保护：停止新预测，让远程 echo 自然消化已有队列。
+        return;
+      }
+
+      if (this.wouldCrossLine(1)) {
+        this.freeze("lineWrap");
         return;
       }
 
@@ -550,10 +569,6 @@ export class PredictiveEcho {
       const head = this.queue[0];
 
       if (remaining.startsWith(head.expectedEcho)) {
-        // 命中：消费掉远程 echo 中对应的字节，出队
-        remaining = remaining.slice(head.expectedEcho.length);
-        this.queue.shift();
-        this.metrics.confirmCount++;
         if (head.kind === "char") {
           // char 项命中：把屏幕上那个 dim 字符"原位转正常色"。
           // shift 之前队首字符距离光标 = (后续 char 项 echo 长度 + 当前命中长度)。
@@ -563,6 +578,17 @@ export class PredictiveEcho {
           //   3. 若剩余 char 项非空，光标右移回原位
           // 切片 8：echoLen 必须按 charDisplayWidth 算（CJK 字符占 2 列），
           // 而非 expectedEcho.length（UTF-16 长度对 BMP CJK 仍是 1，会算错列偏移）。
+          const totalBack = this.totalRemainingEchoLength();
+          if (!this.canRewriteWithinLine(totalBack)) {
+            return this.handleMismatch(remaining);
+          }
+        }
+
+        // 命中：消费掉远程 echo 中对应的字节，出队
+        remaining = remaining.slice(head.expectedEcho.length);
+        this.queue.shift();
+        this.metrics.confirmCount++;
+        if (head.kind === "char") {
           const echoLen = charDisplayWidth(head.char ?? "");
           const offsetAfter = this.totalRemainingEchoLength();
           const totalBack = echoLen + offsetAfter;
@@ -607,17 +633,19 @@ export class PredictiveEcho {
             return this.handleMismatch(remaining);
           }
           const remoteConsumed = remaining.slice(0, consumed);
-          remaining = remaining.slice(consumed);
-          this.queue.shift();
-          this.metrics.confirmCount++;
           // 与严格命中转正同构：写"远程带色字节"代替 expectedEcho 纯字符——
           // 关 dim 后远程 SGR 决定字符渲染，着色保留。光标偏移按"普通字符数"算
           // （SGR 序列不占屏幕格），所以 echoLen / offsetAfter 与原路径同义。
           // 切片 8：与严格命中分支同步——echoLen 必须按 charDisplayWidth 算
           // （CJK 字符占 2 列），不能用 expectedEcho.length（BMP CJK UTF-16 长度仍为 1）。
-          const echoLen = charDisplayWidth(head.char ?? "");
+          const totalBack = this.totalRemainingEchoLength();
+          if (!this.canRewriteWithinLine(totalBack)) {
+            return this.handleMismatch(remaining);
+          }
+          remaining = remaining.slice(consumed);
+          this.queue.shift();
+          this.metrics.confirmCount++;
           const offsetAfter = this.totalRemainingEchoLength();
-          const totalBack = echoLen + offsetAfter;
           let seq = `\x1b[${totalBack}D${ANSI_DIM_OFF}${remoteConsumed}`;
           if (offsetAfter > 0) {
             seq += `\x1b[${offsetAfter}C`;
@@ -951,6 +979,30 @@ export class PredictiveEcho {
   }
 
   /**
+   * 预测层的原位转正依赖同一行内 CSI D/C 光标移动。xterm 在行尾 autowrap
+   * 附近没有“最后一格之后”的同一行坐标，继续预测会让后续确认覆盖错位置。
+   */
+  private wouldCrossLine(width: number): boolean {
+    if (width <= 0) return false;
+    const cols = this.term.cols;
+    if (!Number.isFinite(cols) || cols <= 1) return true;
+    const cursor = this.predictedCursor ?? this.realCursorReader?.() ?? null;
+    if (cursor === null) return false;
+    return cursor.col + width >= cols;
+  }
+
+  /**
+   * 确认预测字符前，确认本次左移不会跨到上一行。无法定位光标时保持旧行为，
+   * 让后续失配/光标对账兜底。
+   */
+  private canRewriteWithinLine(totalBack: number): boolean {
+    if (totalBack <= 0) return true;
+    const cursor = this.predictedCursor ?? this.realCursorReader?.() ?? null;
+    if (cursor === null) return true;
+    return cursor.col >= totalBack;
+  }
+
+  /**
    * 切片 9：启动光标周期对账 timer。幂等——重复调用不会启动多个 timer。
    * 仅在 realCursorReader 已注入时启动。每次 tick：
    *   • cprAuditPending 为 true（上一轮仍在执行）→ 跳过本次
@@ -1128,6 +1180,8 @@ export function selfCheck(): SelfCheckResult {
   function makeMockTerm() {
     const writes: string[] = [];
     const mock = {
+      cols: 80,
+      rows: 24,
       buffer: { active: { cursorX: 0, cursorY: 0 } },
       write: (data: string) => {
         writes.push(data);
@@ -2616,6 +2670,40 @@ export function selfCheck(): SelfCheckResult {
       pe._debugState().predictedCursor === null,
       "T80: setEnabled(false) 清零 predictedCursor",
     );
+  }
+
+  // T81: 行尾保护——下一字符会进入 xterm autowrap 区时冻结，避免跨行 CSI D/C 重写
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.setRealCursorReader(() => ({ col: 78, row: 5 }));
+    pe.onPromptReady();
+    pe.onUserInput("a");
+    assert(pe._debugState().queueSize === 1, "T81: col 78 输入一字符仍在同一行内");
+    assert(pe._debugState().predictedCursor?.col === 79, "T81: 预测光标推进到 col 79");
+
+    const beforeWrap = writes.length;
+    pe.onUserInput("b");
+    assert(pe._debugState().state === "Frozen", "T81: col 79 再输入会冻结");
+    assert(pe._debugState().queueSize === 0, "T81: lineWrap freeze 清空队列");
+    assert(
+      writes.slice(beforeWrap).join("") === "\b \b",
+      "T81: 冻结时撤销尚未确认的行尾预测字符",
+    );
+  }
+
+  // T82: 生产入口禁用批量预测——粘贴长命令不本地抢画，等待远端 echo
+  {
+    const { term, writes } = makeMockTerm();
+    const pe = new PredictiveEcho(term);
+    pe.onPromptReady();
+    pe.onUserInput(
+      "tar -xOzf '/data/mysql-backups/db_backup_2026-07-01T03:35:15Z.tgz'",
+      { allowBulkPrediction: false },
+    );
+    assert(pe._debugState().state === "Frozen", "T82: 批量输入触发冻结");
+    assert(pe._debugState().queueSize === 0, "T82: 批量输入不入预测队列");
+    assert(writes.length === 0, "T82: 批量输入不产生本地预测写屏");
   }
 
   // eslint-disable-next-line no-console

@@ -16,6 +16,9 @@ use crate::core::ssh::SessionManager;
 use crate::core::store::Database;
 use crate::core::event;
 
+const SFTP_CLOSE_TIMEOUT_SECS: u64 = 10;
+const SFTP_CLOSE_VERIFY_TIMEOUT_SECS: u64 = 5;
+
 /// Convert russh-sftp FilePermissions to unix permission bits
 fn permissions_to_u32(p: &russh_sftp::protocol::FilePermissions) -> u32 {
     let mut bits: u32 = 0;
@@ -998,8 +1001,53 @@ impl SftpManager {
             }
         }
 
-        remote_file.shutdown().await?;
+        let close_result = tokio::time::timeout(
+            Duration::from_secs(SFTP_CLOSE_TIMEOUT_SECS),
+            remote_file.shutdown(),
+        )
+        .await;
+        match close_result {
+            Ok(Ok(())) => {}
+            Ok(Err(err)) => {
+                let remote_len = tokio::time::timeout(
+                    Duration::from_secs(SFTP_CLOSE_VERIFY_TIMEOUT_SECS),
+                    sftp.metadata(&remote_path),
+                )
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .map(|metadata| metadata.len());
+                if remote_len != Some(total) {
+                    return Err(anyhow::anyhow!("Remote close failed: {}", err));
+                }
+                tracing::warn!(
+                    "execute_upload: remote close failed for task {} but remote size verified as complete",
+                    task_id,
+                );
+            }
+            Err(_) => {
+                let remote_len = tokio::time::timeout(
+                    Duration::from_secs(SFTP_CLOSE_VERIFY_TIMEOUT_SECS),
+                    sftp.metadata(&remote_path),
+                )
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .map(|metadata| metadata.len());
+                if remote_len != Some(total) {
+                    return Err(anyhow::anyhow!(
+                        "Remote close timed out after {} seconds",
+                        SFTP_CLOSE_TIMEOUT_SECS
+                    ));
+                }
+                tracing::warn!(
+                    "execute_upload: remote close timed out for task {} but remote size verified as complete",
+                    task_id,
+                );
+            }
+        }
 
+        event::emit_transfer_progress(app, task_id, total, total, 0);
         self.update_task_state(task_id, TransferState::Completed, None);
         Ok(())
     }
@@ -1205,6 +1253,10 @@ impl SftpManager {
     ) {
         let mut tasks = self.tasks.lock();
         if let Some(task) = tasks.get_mut(task_id) {
+            if state == TransferState::Completed {
+                task.transferred_bytes = task.total_bytes;
+                task.speed_bytes_per_sec = 0;
+            }
             task.state = state;
             task.error = error;
         }

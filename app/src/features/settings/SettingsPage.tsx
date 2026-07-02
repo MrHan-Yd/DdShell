@@ -1012,6 +1012,7 @@ export function SettingsPage() {
   const [downloadPath, setDownloadPath] = useState("");
   const [transferNotify, setTransferNotify] = useState(true);
   const [predictiveEchoEnabled, setPredictiveEchoEnabled] = useState(true);
+  const [predictiveEchoShowPasswordInput, setPredictiveEchoShowPasswordInput] = useState(true);
   // CommandAssist settings are drafted here and committed together on Save.
   const [caEnabled, setCaEnabled] = useState(false);
   const [caMode, setCaMode] = useState<CommandAssistMode>(DEFAULT_COMMAND_ASSIST_MODE);
@@ -1037,7 +1038,7 @@ export function SettingsPage() {
   const snapshotValue = {
     theme, uiTheme, locale, terminal, uiFontFamily, uiFontSize,
     confirmDanger, sessionTimeout, chunkSize, maxConcurrent, transferTimeout,
-    retryCount, downloadPath, transferNotify, predictiveEchoEnabled,
+    retryCount, downloadPath, transferNotify, predictiveEchoEnabled, predictiveEchoShowPasswordInput,
     caEnabled, caMode, caConfirmKey, caPosition, caEnabledCategories,
     aiAgentConfig, aiAgentKeyDrafts, aiAgentClearedKeys,
   };
@@ -1117,6 +1118,7 @@ export function SettingsPage() {
           savedDisabledBuiltinCmds,
           savedCustomDangerousCommands,
           savedPredictiveEchoEnabled,
+          savedPredictiveEchoShowPasswordInput,
         ] = await Promise.all([
           api.settingGet("theme"),
           api.settingGet("terminal.fontFamily"),
@@ -1154,6 +1156,7 @@ export function SettingsPage() {
           api.settingGet("terminal.disabledBuiltinCmds"),
           api.settingGet("terminal.customDangerousCommands"),
           api.settingGet("terminal.predictiveEcho.enabled"),
+          api.settingGet("terminal.predictiveEcho.showPasswordInput"),
         ]);
 
         if (savedTheme === "dark" || savedTheme === "light" || savedTheme === "system") {
@@ -1198,6 +1201,7 @@ export function SettingsPage() {
         setTransferNotify(savedTransferNotify !== "false");
         const predictiveEchoEnabledByDefault = savedPredictiveEchoEnabled !== "false";
         setPredictiveEchoEnabled(predictiveEchoEnabledByDefault);
+        setPredictiveEchoShowPasswordInput(savedPredictiveEchoShowPasswordInput !== "false");
         if (predictiveEchoEnabledByDefault && savedPredictiveEchoEnabled == null) {
           maybeShowPredictiveEchoGuidance();
         }
@@ -1310,6 +1314,7 @@ export function SettingsPage() {
         { key: "terminal.disabledBuiltinCmds", value: JSON.stringify(terminal.disabledBuiltinCmds) },
         { key: "terminal.customDangerousCommands", value: JSON.stringify(terminal.customDangerousCommands) },
         { key: "terminal.predictiveEcho.enabled", value: String(predictiveEchoEnabled) },
+        { key: "terminal.predictiveEcho.showPasswordInput", value: String(predictiveEchoShowPasswordInput) },
         { key: "commandAssist.enabled", value: String(caEnabled) },
         { key: "commandAssist.mode", value: caMode },
         { key: "commandAssist.confirmKey", value: caConfirmKey },
@@ -2426,6 +2431,19 @@ export function SettingsPage() {
             <button
               onClick={() => handleTogglePredictiveEcho(!predictiveEchoEnabled)}
               data-state={predictiveEchoEnabled ? "on" : "off"}
+              className="toggle-switch"
+            >
+              <span className="toggle-thumb" />
+            </button>
+          </SettingRow>
+          <SettingRow
+            label={t("settings.predictiveEchoShowPasswordInput")}
+            description={t("settings.predictiveEchoShowPasswordInputDesc")}
+            indented
+          >
+            <button
+              onClick={() => setPredictiveEchoShowPasswordInput((value) => !value)}
+              data-state={predictiveEchoShowPasswordInput ? "on" : "off"}
               className="toggle-switch"
             >
               <span className="toggle-thumb" />

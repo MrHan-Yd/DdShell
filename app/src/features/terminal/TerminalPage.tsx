@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState, useMemo, useLayoutEffect } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { Terminal } from "@xterm/xterm";
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { DEFAULT_DANGEROUS_COMMANDS, isCommandDangerous } from "@/lib/constants";
 import { readClipboardText, writeClipboardText } from "@/lib/clipboard";
 import { migrateTerminalBackgroundImageSetting } from "@/lib/terminalBackground";
-import { useTerminalStore } from "@/stores/terminal";
+import { useTerminalStore, type ConcreteSplitDirection } from "@/stores/terminal";
 import { useAppStore } from "@/stores/app";
 import * as api from "@/lib/tauri";
 import type { CommandHistoryItem, TerminalBookmark, TerminalTab, WorkflowRecipe } from "@/types";
@@ -49,6 +49,8 @@ const PANE_LATENCY_PING_INTERVAL_MS = 5_000;
 const SELECTION_ACTION_POPOVER_WIDTH = 72;
 const SELECTION_ACTION_POPOVER_ESTIMATED_HEIGHT = 38;
 const SELECTION_ACTION_EDGE_MARGIN = 8;
+const SENSITIVE_INPUT_PROMPT_RE =
+  /(?:password|passphrase|verification code|one[-\s]?time code|otp|密码|口令|验证码|密钥短语)(?:\s+(?:for|of)\s+[^:：]*)?[:：]\s*$/i;
 
 type TerminalCellGeometry = {
   charW: number;
@@ -68,6 +70,7 @@ type SelectionActionPopoverSize = {
   width: number;
   height: number;
 };
+type TerminalPaneRole = "primary" | "split" | "hidden";
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -78,6 +81,37 @@ function formatPaneTag(tab: TerminalTab | null | undefined, latencyMap: Map<stri
   if (tab.state !== "connected") return tab.state;
   const latency = latencyMap.get(tab.sessionId);
   return latency === undefined ? "-- ms" : `${latency} ms`;
+}
+
+function stripTerminalControlSequences(text: string): string {
+  return text
+    .replace(/\x1b\][^\x07]*(?:\x07|\x1b\\)/g, "")
+    .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "");
+}
+
+function getSensitivePromptTail(previousTail: string, remoteText: string): string {
+  const visibleText = stripTerminalControlSequences(remoteText);
+  if (!visibleText) return previousTail;
+  const lastLineBreak = Math.max(visibleText.lastIndexOf("\n"), visibleText.lastIndexOf("\r"));
+  const nextTail = lastLineBreak >= 0
+    ? visibleText.slice(lastLineBreak + 1)
+    : previousTail + visibleText;
+  return nextTail.slice(-300);
+}
+
+function getTerminalPaneStyle(role: TerminalPaneRole, direction: ConcreteSplitDirection | null): CSSProperties | undefined {
+  if (role === "hidden" || !direction) return undefined;
+  if (direction === "horizontal") {
+    return { gridColumn: "1", gridRow: role === "primary" ? "1" : "3" };
+  }
+  return { gridColumn: role === "primary" ? "1" : "3", gridRow: "1" };
+}
+
+function getResizeHandleStyle(direction: ConcreteSplitDirection): CSSProperties {
+  if (direction === "horizontal") {
+    return { gridColumn: "1", gridRow: "2" };
+  }
+  return { gridColumn: "2", gridRow: "1" };
 }
 
 function getSelectionActionPosition(
@@ -278,6 +312,9 @@ function TerminalInstance({
   const dangerousCmdPendingRef = useRef(false);
   const sessionOutputDecoderRef = useRef(new TextDecoder());
   const macroFilterBufferRef = useRef("");
+  const predictiveEchoShowPasswordInputRef = useRef(true);
+  const sensitiveInputPromptActiveRef = useRef(false);
+  const sensitiveInputPromptTailRef = useRef("");
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
   suspendResizeRef.current = suspendResize;
@@ -935,8 +972,12 @@ function TerminalInstance({
 
     const loadPredictiveEcho = async () => {
       try {
-        const v = await api.settingGet("terminal.predictiveEcho.enabled");
-        pe.setEnabled(v !== "false");
+        const [enabled, showPasswordInput] = await Promise.all([
+          api.settingGet("terminal.predictiveEcho.enabled"),
+          api.settingGet("terminal.predictiveEcho.showPasswordInput"),
+        ]);
+        pe.setEnabled(enabled !== "false");
+        predictiveEchoShowPasswordInputRef.current = showPasswordInput !== "false";
       } catch {
         // Read failure → stay Disabled. Safer than silently enabling an
         // experimental feature when storage is unhappy.
@@ -1070,6 +1111,8 @@ function TerminalInstance({
     setSelectionActions(null);
     sessionOutputDecoderRef.current = new TextDecoder();
     macroFilterBufferRef.current = "";
+    sensitiveInputPromptActiveRef.current = false;
+    sensitiveInputPromptTailRef.current = "";
     // Predictive Echo: clear queue and return to Cold so a stale prediction
     // from the previous session can't bleed into the new one.
     predictiveEchoRef.current?.reset();
@@ -1083,50 +1126,65 @@ function TerminalInstance({
       if (composingRef.current) return;
 
       const sid = sessionIdRef.current;
+      const wasSensitiveInputPrompt = sensitiveInputPromptActiveRef.current;
 
       let pendingCommand = "";
 
-      // Process each character for command history buffering
-      for (const ch of data) {
-        if (ch === "\r" || ch === "\n") {
-          // If assist is visible and confirmKey is enter, don't send enter to terminal
-          // (handled by CommandAssist keydown handler)
-          if (assistVisibleRef.current && assistConfirmKeyRef.current === "enter") {
-            return;
-          }
-          pendingCommand = cmdBufferRef.current.trim();
-          if (pendingCommand.length > 0) {
-            api.commandHistoryInsert(sid, hostId, pendingCommand).then(() => {
-              window.dispatchEvent(new Event("command-history-updated"));
-            }).catch(() => {});
-          }
+      if (wasSensitiveInputPrompt) {
+        // Password/passphrase prompts are remote-controlled sensitive input.
+        // Never mirror them into command history, dangerous-command checks, or
+        // command assist buffers. The bytes still go to the PTY unchanged.
+        if (data.includes("\r") || data.includes("\n") || data.includes("\x03")) {
           cmdBufferRef.current = "";
-          // Close assist on enter
+          sensitiveInputPromptActiveRef.current = false;
+          sensitiveInputPromptTailRef.current = "";
           if (assistVisibleRef.current) {
             closeAssist();
           }
-        } else if (ch === "\x7f" || ch === "\b") {
-          cmdBufferRef.current = cmdBufferRef.current.slice(0, -1);
-        } else if (ch === "\x03") {
-          cmdBufferRef.current = "";
-          // Close assist on Ctrl+C
-          if (assistVisibleRef.current) {
-            closeAssist();
+        }
+      } else {
+        // Process each character for command history buffering
+        for (const ch of data) {
+          if (ch === "\r" || ch === "\n") {
+            // If assist is visible and confirmKey is enter, don't send enter to terminal
+            // (handled by CommandAssist keydown handler)
+            if (assistVisibleRef.current && assistConfirmKeyRef.current === "enter") {
+              return;
+            }
+            pendingCommand = cmdBufferRef.current.trim();
+            if (pendingCommand.length > 0) {
+              api.commandHistoryInsert(sid, hostId, pendingCommand).then(() => {
+                window.dispatchEvent(new Event("command-history-updated"));
+              }).catch(() => {});
+            }
+            cmdBufferRef.current = "";
+            // Close assist on enter
+            if (assistVisibleRef.current) {
+              closeAssist();
+            }
+          } else if (ch === "\x7f" || ch === "\b") {
+            cmdBufferRef.current = cmdBufferRef.current.slice(0, -1);
+          } else if (ch === "\x03") {
+            cmdBufferRef.current = "";
+            // Close assist on Ctrl+C
+            if (assistVisibleRef.current) {
+              closeAssist();
+            }
+          } else if (ch === "\t") {
+            // If assist is visible and confirmKey is tab, don't send tab to terminal
+            // (handled by CommandAssist keydown handler)
+            if (assistVisibleRef.current && assistConfirmKeyRef.current === "tab") {
+              return;
+            }
+          } else if (ch === "\x1b") {
+            // Esc — close assist if visible
+            if (assistVisibleRef.current) {
+              closeAssist();
+              return;
+            }
+          } else if (ch.charCodeAt(0) >= 32) {
+            cmdBufferRef.current += ch;
           }
-        } else if (ch === "\t") {
-          // If assist is visible and confirmKey is tab, don't send tab to terminal
-          // (handled by CommandAssist keydown handler)
-          if (assistVisibleRef.current && assistConfirmKeyRef.current === "tab") {
-            return;
-          }
-        } else if (ch === "\x1b") {
-          // Esc — close assist if visible
-          if (assistVisibleRef.current) {
-            closeAssist();
-            return;
-          }
-        } else if (ch.charCodeAt(0) >= 32) {
-          cmdBufferRef.current += ch;
         }
       }
 
@@ -1166,10 +1224,11 @@ function TerminalInstance({
       // suggestion list doesn't wait for remote echo.
       const buf = cmdBufferRef.current;
       const shouldCheckAssist =
-        assistVisibleRef.current ||
-        (assistModeRef.current === "listview"
-          ? assistEnabledRef.current && buf.trim().length > 0
-          : buf.indexOf("//") >= 0);
+        !wasSensitiveInputPrompt &&
+        (assistVisibleRef.current ||
+          (assistModeRef.current === "listview"
+            ? assistEnabledRef.current && buf.trim().length > 0
+            : buf.indexOf("//") >= 0));
       if (
         !assistCheckScheduledRef.current &&
         shouldCheckAssist
@@ -1184,23 +1243,55 @@ function TerminalInstance({
       // Predictive Echo: hook in only on the "normal input" path, after all
       // business short-circuits (IME / dangerous cmd dialog / assist enter or
       // tab takeover / Esc-closes-assist) have already returned. Predicts
-      // visible chars locally for instant feedback; control chars (Enter/
-      // ESC/Tab/Ctrl) trigger freeze inside PredictiveEcho.
-      predictiveEchoRef.current?.onUserInput(data);
+      // visible single-key chars locally for instant feedback; paste/bulk input
+      // is left to remote echo because long wrapped paste can corrupt local
+      // prediction rewrite.
+      if (!wasSensitiveInputPrompt || predictiveEchoShowPasswordInputRef.current) {
+        predictiveEchoRef.current?.onUserInput(data, { allowBulkPrediction: false });
+      }
     });
 
-    // Handle resize -> SSH (skip when container is hidden)
+    // Handle resize -> SSH (skip when container is hidden). The first fit()
+    // happens before this listener is bound, while the backend session was
+    // created with fallback dimensions. Defer the startup resize instead of
+    // dropping it, otherwise remote readline wraps pasted long commands using
+    // stale PTY columns.
     remoteResizeSuppressUntilRef.current = Date.now() + REMOTE_RESIZE_STARTUP_SUPPRESS_MS;
     lastSentRemoteSizeRef.current = null;
-    const onResize = term.onResize(({ cols, rows }) => {
-      hideSelectionActions();
+    let pendingRemoteResize: { cols: number; rows: number } | null = null;
+    let pendingRemoteResizeTimer: ReturnType<typeof setTimeout> | null = null;
+    const sendRemoteResize = (cols: number, rows: number) => {
       if (cols <= 1 || rows <= 1) return;
-      if (suppressRemoteResizeRef.current) return;
-      if (Date.now() < remoteResizeSuppressUntilRef.current) return;
       const lastSent = lastSentRemoteSizeRef.current;
       if (lastSent?.cols === cols && lastSent.rows === rows) return;
       lastSentRemoteSizeRef.current = { cols, rows };
       api.sessionResize(sessionIdRef.current, cols, rows).catch(() => {});
+    };
+    const scheduleRemoteResize = (cols: number, rows: number, delayMs: number) => {
+      if (cols <= 1 || rows <= 1) return;
+      pendingRemoteResize = { cols, rows };
+      if (pendingRemoteResizeTimer !== null) {
+        clearTimeout(pendingRemoteResizeTimer);
+      }
+      pendingRemoteResizeTimer = setTimeout(() => {
+        pendingRemoteResizeTimer = null;
+        const pending = pendingRemoteResize;
+        pendingRemoteResize = null;
+        if (!pending || suppressRemoteResizeRef.current) return;
+        sendRemoteResize(pending.cols, pending.rows);
+      }, Math.max(0, delayMs));
+    };
+    scheduleRemoteResize(term.cols, term.rows, REMOTE_RESIZE_STARTUP_SUPPRESS_MS);
+    const onResize = term.onResize(({ cols, rows }) => {
+      hideSelectionActions();
+      if (cols <= 1 || rows <= 1) return;
+      if (suppressRemoteResizeRef.current) return;
+      const now = Date.now();
+      if (now < remoteResizeSuppressUntilRef.current) {
+        scheduleRemoteResize(cols, rows, remoteResizeSuppressUntilRef.current - now);
+        return;
+      }
+      sendRemoteResize(cols, rows);
     });
 
     const onSelectionChange = term.onSelectionChange(() => {
@@ -1238,6 +1329,13 @@ function TerminalInstance({
           const { safeText, remain } = filterMacroInternalChunk(combined, activeFilter);
           macroFilterBufferRef.current = remain;
           if (safeText) {
+            const nextSensitivePromptTail = getSensitivePromptTail(
+              sensitiveInputPromptTailRef.current,
+              safeText,
+            );
+            sensitiveInputPromptTailRef.current = nextSensitivePromptTail;
+            sensitiveInputPromptActiveRef.current =
+              SENSITIVE_INPUT_PROMPT_RE.test(nextSensitivePromptTail);
             // Predictive Echo runs AFTER macro filtering so macro tokens
             // (which are stripped by filterMacroInternalChunk) never reach
             // the prediction layer. The remote bytes that match in-flight
@@ -1345,6 +1443,10 @@ function TerminalInstance({
       if (cursorRafRef.current !== null) {
         cancelAnimationFrame(cursorRafRef.current);
         cursorRafRef.current = null;
+      }
+      if (pendingRemoteResizeTimer !== null) {
+        clearTimeout(pendingRemoteResizeTimer);
+        pendingRemoteResizeTimer = null;
       }
       onData.dispose();
       onResize.dispose();
@@ -1901,9 +2003,11 @@ function BookmarkPanel({
 function ResizeHandle({
   direction,
   onResize,
+  style,
 }: {
-  direction: "horizontal" | "vertical";
+  direction: ConcreteSplitDirection;
   onResize: (delta: number) => void;
+  style?: CSSProperties;
 }) {
   const handleRef = useRef<HTMLDivElement>(null);
 
@@ -1936,6 +2040,7 @@ function ResizeHandle({
     <div
       ref={handleRef}
       onMouseDown={handleMouseDown}
+      style={style}
       className={cn(
         "flex-shrink-0 bg-[var(--color-border)] hover:bg-[var(--color-accent)] transition-colors",
         direction === "horizontal"
@@ -1977,6 +2082,7 @@ export function TerminalPage() {
   const [lastFocusedSessionId, setLastFocusedSessionId] = useState<string | null>(null);
   const [sessionCwdMap, setSessionCwdMap] = useState<Record<string, string>>({});
   const [splitRatio, setSplitRatio] = useState(0.5);
+  const [pendingSplitDirection, setPendingSplitDirection] = useState<ConcreteSplitDirection | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
   const [dragDeltaX, setDragDeltaX] = useState(0);
@@ -1995,9 +2101,12 @@ export function TerminalPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarkDrawerRef = useRef<HTMLDivElement>(null);
   const historyDrawerRef = useRef<HTMLDivElement>(null);
+  const splitPickerRef = useRef<HTMLDivElement>(null);
   const fileManagerShellRef = useRef<HTMLDivElement>(null);
   const bookmarkToggleRef = useRef<HTMLButtonElement>(null);
   const historyToggleRef = useRef<HTMLButtonElement>(null);
+  const splitVerticalButtonRef = useRef<HTMLButtonElement>(null);
+  const splitHorizontalButtonRef = useRef<HTMLButtonElement>(null);
   const {
     activeMacroRun,
     macroOutputFilter,
@@ -2020,12 +2129,17 @@ export function TerminalPage() {
   );
 
   useEffect(() => {
-    if (!showBookmarks && !showHistory) return;
+    if (!showBookmarks && !showHistory && !pendingSplitDirection) return;
     const handler = (e: PointerEvent) => {
       const confirmEl = document.querySelector("[data-confirm-dialog]");
       if (confirmEl) return;
       const target = e.target as Node;
-      if (bookmarkToggleRef.current?.contains(target) || historyToggleRef.current?.contains(target)) {
+      if (
+        bookmarkToggleRef.current?.contains(target) ||
+        historyToggleRef.current?.contains(target) ||
+        splitVerticalButtonRef.current?.contains(target) ||
+        splitHorizontalButtonRef.current?.contains(target)
+      ) {
         return;
       }
       if (showBookmarks && bookmarkDrawerRef.current && !bookmarkDrawerRef.current.contains(target)) {
@@ -2033,6 +2147,9 @@ export function TerminalPage() {
       }
       if (showHistory && historyDrawerRef.current && !historyDrawerRef.current.contains(target)) {
         setShowHistory(false);
+      }
+      if (pendingSplitDirection && splitPickerRef.current && !splitPickerRef.current.contains(target)) {
+        setPendingSplitDirection(null);
       }
     };
     const timer = setTimeout(() => {
@@ -2042,7 +2159,7 @@ export function TerminalPage() {
       clearTimeout(timer);
       document.removeEventListener("pointerdown", handler);
     };
-  }, [showBookmarks, showHistory]);
+  }, [pendingSplitDirection, showBookmarks, showHistory]);
 
   useEffect(() => {
     fetchRecipes().catch(() => {});
@@ -2246,7 +2363,11 @@ export function TerminalPage() {
   );
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
-  const splitTab = splitTabId ? tabs.find((t) => t.id === splitTabId) ?? null : null;
+  const splitTab = splitTabId && splitTabId !== activeTabId ? tabs.find((t) => t.id === splitTabId) ?? null : null;
+  const splitCandidates = useMemo(
+    () => activeTab ? tabs.filter((tab) => tab.id !== activeTab.id) : [],
+    [activeTab, tabs],
+  );
   const visiblePaneSessionIds = useMemo(() => {
     const ids: string[] = [];
     if (activeTab?.state === "connected") ids.push(activeTab.sessionId);
@@ -2255,6 +2376,75 @@ export function TerminalPage() {
     }
     return ids;
   }, [activeTab?.sessionId, activeTab?.state, splitTab?.sessionId, splitTab?.state]);
+
+  const requestSplit = useCallback(
+    (direction: ConcreteSplitDirection) => {
+      if (splitDirection) {
+        splitPane(direction);
+        setPendingSplitDirection(null);
+        return;
+      }
+      if (!activeTab) {
+        toast.error(t("macro.noActiveTab"));
+        return;
+      }
+      if (splitCandidates.length === 0) {
+        toast.error(t("term.splitNoTarget"));
+        return;
+      }
+
+      setShowBookmarks(false);
+      setShowHistory(false);
+      if (splitCandidates.length === 1) {
+        if (!splitPane(direction, splitCandidates[0].id)) {
+          toast.error(t("term.splitNoTarget"));
+        }
+        return;
+      }
+
+      setPendingSplitDirection(direction);
+    },
+    [activeTab, splitCandidates, splitDirection, splitPane, t],
+  );
+
+  const handleSelectSplitTarget = useCallback(
+    (targetTabId: string) => {
+      if (!pendingSplitDirection) return;
+      if (!splitPane(pendingSplitDirection, targetTabId)) {
+        toast.error(t("term.splitNoTarget"));
+      }
+      setPendingSplitDirection(null);
+    },
+    [pendingSplitDirection, splitPane, t],
+  );
+
+  const handleCloseSplit = useCallback(() => {
+    setPendingSplitDirection(null);
+    closeSplit();
+  }, [closeSplit]);
+
+  useEffect(() => {
+    if (splitDirection && !splitTab) {
+      closeSplit();
+    }
+  }, [closeSplit, splitDirection, splitTab]);
+
+  useEffect(() => {
+    if (!pendingSplitDirection) return;
+    if (splitDirection || splitCandidates.length === 0) {
+      setPendingSplitDirection(null);
+    }
+  }, [pendingSplitDirection, splitCandidates.length, splitDirection]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const direction = (event as CustomEvent<{ direction?: string }>).detail?.direction;
+      if (direction !== "horizontal" && direction !== "vertical") return;
+      requestSplit(direction);
+    };
+    window.addEventListener("terminal:split-pane", handler);
+    return () => window.removeEventListener("terminal:split-pane", handler);
+  }, [requestSplit]);
 
   useEffect(() => {
     if (currentPage !== "terminal" || visiblePaneSessionIds.length === 0) return;
@@ -2756,14 +2946,15 @@ export function TerminalPage() {
           </div>
 
           {/* Right controls - fixed */}
-          <div className="tabbar-actions flex h-[var(--height-tabbar)] shrink-0 items-center gap-1 px-1">
+          <div className="tabbar-actions relative flex h-[var(--height-tabbar)] shrink-0 items-center gap-1 px-1">
 
           {/* Split controls */}
           <button
-            onClick={() => splitPane("vertical")}
+            ref={splitVerticalButtonRef}
+            onClick={() => requestSplit("vertical")}
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--font-size-xs)] transition-colors",
-              splitDirection === "vertical"
+              splitDirection === "vertical" || pendingSplitDirection === "vertical"
                 ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
                 : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
             )}
@@ -2773,10 +2964,11 @@ export function TerminalPage() {
             <Columns2 size={14} />
           </button>
           <button
-            onClick={() => splitPane("horizontal")}
+            ref={splitHorizontalButtonRef}
+            onClick={() => requestSplit("horizontal")}
             className={cn(
               "flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--font-size-xs)] transition-colors",
-              splitDirection === "horizontal"
+              splitDirection === "horizontal" || pendingSplitDirection === "horizontal"
                 ? "bg-[var(--color-accent-subtle)] text-[var(--color-accent)]"
                 : "text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)]",
             )}
@@ -2787,7 +2979,7 @@ export function TerminalPage() {
           </button>
           {splitDirection && (
             <button
-              onClick={closeSplit}
+              onClick={handleCloseSplit}
               className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] transition-colors"
               title="Close Split"
               aria-label="Close Split"
@@ -2803,6 +2995,7 @@ export function TerminalPage() {
             ref={historyToggleRef}
             onClick={() => {
               setShowBookmarks(false);
+              setPendingSplitDirection(null);
               setShowHistory((v) => !v);
             }}
             className={cn(
@@ -2817,6 +3010,40 @@ export function TerminalPage() {
           >
             <History size={14} />
           </button>
+          {pendingSplitDirection && splitCandidates.length > 0 && (
+            <div
+              ref={splitPickerRef}
+              className="terminal-split-picker"
+              role="menu"
+              aria-label={t("term.splitPickerTitle")}
+            >
+              <div className="terminal-split-picker-title">{t("term.splitPickerTitle")}</div>
+              <div className="terminal-split-target-list">
+                {splitCandidates.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    className="terminal-split-target"
+                    role="menuitem"
+                    onClick={() => handleSelectSplitTarget(tab.id)}
+                  >
+                    <TerminalIcon size={13} />
+                    <span className="terminal-split-target-name">{tab.title}</span>
+                    <span
+                      className={cn(
+                        "tab-dot",
+                        tab.state === "connected"
+                          ? "dot-success"
+                          : tab.state === "failed"
+                            ? "dot-danger"
+                            : "dot-idle",
+                      )}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         </div>
 
@@ -2884,6 +3111,7 @@ export function TerminalPage() {
                 disabled={!activeTab}
                 onClick={() => {
                   setShowHistory(false);
+                  setPendingSplitDirection(null);
                   setShowBookmarks((v) => !v);
                 }}
               >
@@ -2978,66 +3206,39 @@ export function TerminalPage() {
               </div>
             )}
           </div>
-          {/* Primary pane */}
-          <div
-            className="term-pane is-active relative z-10 overflow-hidden"
-          >
-            <div className="pane-bar">
-              <svg className="flex-shrink-0" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
-              <span className="pane-host mono">{activeTab?.title ?? "terminal"}</span>
-              <span className="pane-spacer" />
-              <span className="pane-tag"><span className={cn("tab-dot", activeTab?.state === "connected" ? "dot-success" : activeTab?.state === "failed" ? "dot-danger" : "dot-idle")} />{formatPaneTag(activeTab, latencyMap)}</span>
-            </div>
-            <div className="term-window p-0">
-            {tabs.map((tab) => (
+          {tabs.map((tab) => {
+            const paneRole: TerminalPaneRole =
+              tab.id === activeTabId
+                ? "primary"
+                : splitDirection && splitTab?.id === tab.id
+                  ? "split"
+                  : "hidden";
+            const isVisiblePane = paneRole !== "hidden";
+
+            return (
               <div
                 key={tab.id}
                 className={cn(
-                  "h-full w-full",
-                  tab.id === activeTabId ? "block" : "hidden",
+                  "term-pane relative z-10 overflow-hidden",
+                  paneRole === "primary" && "is-active",
+                  !isVisiblePane && "hidden",
                 )}
-              >
-                {termSettings && (
-                  <TerminalInstance
-                    key={`${tab.id}-${settingsVersion}`}
-                    tabId={tab.id}
-                    sessionId={tab.sessionId}
-                    hostId={tab.hostId}
-                    macroOutputFilter={macroOutputFilter?.sessionId === tab.sessionId ? macroOutputFilter : null}
-                    termSettings={termSettings}
-                    suspendResize={shouldSuspendTerminalResize}
-                    syncResizeAfterSuspend={shouldSyncTerminalResizeAfterSuspend}
-                    suppressRemoteResize={suppressFileManagerRemoteResize}
-                    onFocusSession={handleTerminalFocus}
-                    onCwdChange={handleTerminalCwdChange}
-                  />
-                )}
-              </div>
-            ))}
-            </div>
-          </div>
-
-          {/* Resize handle + second pane */}
-          {splitDirection && splitTab && (
-            <>
-              <ResizeHandle direction={splitDirection} onResize={handleResize} />
-              <div
-                className="term-pane relative z-10 overflow-hidden"
+                style={getTerminalPaneStyle(paneRole, splitDirection)}
               >
                 <div className="pane-bar">
                   <svg className="flex-shrink-0" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
-                  <span className="pane-host mono">{splitTab.title}</span>
+                  <span className="pane-host mono">{tab.title}</span>
                   <span className="pane-spacer" />
-                  <span className="pane-tag"><span className={cn("tab-dot", splitTab.state === "connected" ? "dot-success" : splitTab.state === "failed" ? "dot-danger" : "dot-idle")} />{formatPaneTag(splitTab, latencyMap)}</span>
+                  <span className="pane-tag"><span className={cn("tab-dot", tab.state === "connected" ? "dot-success" : tab.state === "failed" ? "dot-danger" : "dot-idle")} />{formatPaneTag(tab, latencyMap)}</span>
                 </div>
                 <div className="term-window p-0">
                   {termSettings && (
                     <TerminalInstance
-                      key={`split-${splitTab.id}-${settingsVersion}`}
-                      tabId={splitTab.id}
-                      sessionId={splitTab.sessionId}
-                      hostId={splitTab.hostId}
-                      macroOutputFilter={macroOutputFilter?.sessionId === splitTab.sessionId ? macroOutputFilter : null}
+                      key={`${tab.id}-${settingsVersion}`}
+                      tabId={tab.id}
+                      sessionId={tab.sessionId}
+                      hostId={tab.hostId}
+                      macroOutputFilter={macroOutputFilter?.sessionId === tab.sessionId ? macroOutputFilter : null}
                       termSettings={termSettings}
                       suspendResize={shouldSuspendTerminalResize}
                       syncResizeAfterSuspend={shouldSyncTerminalResizeAfterSuspend}
@@ -3048,7 +3249,15 @@ export function TerminalPage() {
                   )}
                 </div>
               </div>
-            </>
+            );
+          })}
+
+          {splitDirection && splitTab && (
+            <ResizeHandle
+              direction={splitDirection}
+              onResize={handleResize}
+              style={getResizeHandleStyle(splitDirection)}
+            />
           )}
 
           {/* Bookmark drawer */}

@@ -135,6 +135,8 @@ const dict = {
   "term.selectionCopyPaste": { zh: "复制并粘贴到光标处", en: "Copy and paste" },
   "term.selectionCopyFailed": { zh: "复制失败", en: "Copy failed" },
   "term.selectionCopyPasteFailed": { zh: "复制并粘贴失败", en: "Copy and paste failed" },
+  "term.splitPickerTitle": { zh: "选择分屏服务器", en: "Choose split server" },
+  "term.splitNoTarget": { zh: "没有可分屏的其他服务器", en: "No other server to split" },
   "macro.search": { zh: "搜索命令宏...", en: "Search macros..." },
   "macro.noResults": { zh: "未找到匹配的命令宏", en: "No macros found" },
   "macro.recent": { zh: "最近使用", en: "Recent" },
@@ -642,6 +644,8 @@ const dict = {
   // ── Predictive Echo (Experimental) ──
   "settings.predictiveEcho": { zh: "预测回显（实验）", en: "Predictive Echo (Experimental)" },
   "settings.predictiveEchoDesc": { zh: "高延迟链路下减少打字卡顿感：对普通字符与退格立即显示预测，远程回显在后台校验。vim、tmux 等场景自动关闭。", en: "Reduce typing lag on high-latency links by previewing plain characters and backspaces locally, then validating against the actual remote echo. Auto-disabled in vim, tmux, and similar." },
+  "settings.predictiveEchoShowPasswordInput": { zh: "显示密码输入预览", en: "Show password input preview" },
+  "settings.predictiveEchoShowPasswordInputDesc": { zh: "开启时，密码或密钥短语提示下输入的字符会以预测回显的浅色样式显示；关闭后按普通终端行为隐藏输入。", en: "When enabled, characters typed at password or passphrase prompts appear as dim predictive echo. Disable it to hide input like a standard terminal." },
   "settings.predictiveEchoGuidance": { zh: "预测回显已开启。预测中的字符显示为浅色，确认后转为正常色。如遇异常请在设置中关闭。", en: "Predictive echo enabled. Predicted characters appear dim and turn normal once confirmed. Disable it in Settings if you see anything odd." },
 
   // ── AI Agent ──

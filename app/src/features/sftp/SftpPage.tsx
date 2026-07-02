@@ -114,6 +114,12 @@ const QUICK_EDIT_TEXT_FILENAMES = new Set([
   "nginx.conf",
 ]);
 
+function transferProgressPercent(task: TransferTask): number {
+  if (task.state === "completed") return 100;
+  if (task.totalBytes <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((task.transferredBytes / task.totalBytes) * 100)));
+}
+
 function isLikelyQuickEditFile(entry: FileEntry): boolean {
   if (entry.fileType !== "file") return false;
   if (entry.size > QUICK_EDIT_MAX_BYTES) return false;
@@ -757,9 +763,12 @@ function LocalFileList({
         for (let i = 0; i < taskIds.length; i++) {
           const lp = task.localPaths[i];
           const fileName = getPathName(lp || "");
-          const localEntry = entries.find((e) => e.name === fileName);
-          if (localEntry && taskIds[i]) {
-            addUploadingEntry(fileName, localEntry.size, taskIds[i]);
+          const remoteFilePath = fileName ? joinRemotePath(task.remoteDir, fileName) : "";
+          const localEntry = task.remoteDir === remotePath
+            ? entries.find((e) => e.name === fileName && e.fileType !== "dir")
+            : undefined;
+          if (remoteFilePath && taskIds[i]) {
+            addUploadingEntry(remoteFilePath, localEntry?.size ?? 0, taskIds[i]);
           }
           if (taskIds[i]) allTaskIds.push(taskIds[i]);
         }
@@ -887,16 +896,16 @@ function RemoteFileList() {
   const t = useT();
   const tabs = useTerminalStore((s) => s.tabs);
   const uploadingFiles = useSftpStore((s) => s.uploadingFiles);
-  const taskIdToName = useSftpStore((s) => s.taskIdToName);
+  const taskIdToRemotePath = useSftpStore((s) => s.taskIdToRemotePath);
   const transfers = useSftpStore((s) => s.transfers);
   const uploadSpeeds = useMemo(() => {
     const map = new Map<string, number>();
-    for (const t of transfers) {
-      const name = taskIdToName.get(t.id);
-      if (name && t.speedBytesPerSec) map.set(name, t.speedBytesPerSec);
+    for (const task of transfers) {
+      const remoteFilePath = taskIdToRemotePath.get(task.id) || (task.direction === "upload" ? task.remotePath : undefined);
+      if (remoteFilePath && task.speedBytesPerSec) map.set(remoteFilePath, task.speedBytesPerSec);
     }
     return map;
-  }, [transfers, taskIdToName]);
+  }, [transfers, taskIdToRemotePath]);
   const {
     sessionId,
     remotePath,
@@ -1396,8 +1405,9 @@ function RemoteFileList() {
               for (let i = 0; i < taskIds.length; i++) {
                 const lp = task.localPaths[i];
                 const taskFileName = getPathName(lp || "");
-                if (taskFileName && taskIds[i]) {
-                  addUploadingEntryDrop(taskFileName, 0, taskIds[i]);
+                const remoteFilePath = taskFileName ? joinRemotePath(task.remoteDir, taskFileName) : "";
+                if (remoteFilePath && taskIds[i]) {
+                  addUploadingEntryDrop(remoteFilePath, 0, taskIds[i]);
                 }
                 if (taskIds[i]) allTaskIds.push(taskIds[i]);
               }
@@ -1619,10 +1629,11 @@ function RemoteFileList() {
 
         {!loading &&
           remoteEntries.map((entry) => {
-            const totalSize = uploadingFiles.get(entry.name);
+            const entryRemotePath = joinRemotePath(remotePath, entry.name);
+            const totalSize = uploadingFiles.get(entryRemotePath);
             const isUploading = totalSize !== undefined;
             const progress = isUploading && totalSize! > 0
-              ? Math.round((entry.size / totalSize!) * 100)
+              ? Math.max(0, Math.min(100, Math.round((entry.size / totalSize!) * 100)))
               : 0;
 
             return (
@@ -1689,7 +1700,7 @@ function RemoteFileList() {
                 {/* Perm column */}
                 <span className="col-perm">
                   {isUploading
-                    ? `${progress}%${uploadSpeeds.has(entry.name) ? ` · ${formatBytes(uploadSpeeds.get(entry.name)!)}/s` : ""}`
+                    ? `${progress}%${uploadSpeeds.has(entryRemotePath) ? ` · ${formatBytes(uploadSpeeds.get(entryRemotePath)!)}/s` : ""}`
                     : formatPermissions(entry.permissions, entry.fileType)}
                 </span>
               </div>
@@ -1813,10 +1824,7 @@ function TransferRow({
   task: TransferTask;
   onCancel: (id: string) => void;
 }) {
-  const progress =
-    task.totalBytes > 0
-      ? Math.round((task.transferredBytes / task.totalBytes) * 100)
-      : 0;
+  const progress = transferProgressPercent(task);
 
   const fileName = task.direction === "upload"
     ? task.localPath.split("/").pop() || task.localPath

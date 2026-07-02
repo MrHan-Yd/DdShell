@@ -100,7 +100,7 @@ export function useShortcuts() {
         alt: true,
         shift: true,
         handler: () => {
-          useTerminalStore.getState().splitPane("horizontal");
+          window.dispatchEvent(new CustomEvent("terminal:split-pane", { detail: { direction: "horizontal" } }));
         },
         page: "terminal",
       },
@@ -109,7 +109,7 @@ export function useShortcuts() {
         alt: true,
         shift: true,
         handler: () => {
-          useTerminalStore.getState().splitPane("vertical");
+          window.dispatchEvent(new CustomEvent("terminal:split-pane", { detail: { direction: "vertical" } }));
         },
         page: "terminal",
       },

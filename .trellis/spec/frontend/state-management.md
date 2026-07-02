@@ -203,3 +203,66 @@ useEffect(() => {
   void navigateRemote(resolvedInitialPath);
 }, [sessionId, setSessionId, navigateRemote]);
 ```
+
+---
+
+## Scenario: SFTP Upload Tracking Uses Full Remote Paths
+
+### 1. Scope / Trigger
+
+- Trigger: frontend code tracks active SFTP uploads, virtual remote file rows, task-to-file mappings, or transfer progress in `useSftpStore`.
+- Applies to standalone SFTP file management and embedded terminal file management because both share the same upload state.
+
+### 2. Signatures
+
+```ts
+uploadingFiles: Map<string, number>; // remotePath -> totalSize
+taskIdToRemotePath: Map<string, string>; // taskId -> remotePath
+addUploadingEntry(remotePath: string, totalSize: number, taskId: string): void;
+clearUploadingEntry(remotePath: string): void;
+```
+
+### 3. Contracts
+
+- Upload tracking keys must be full remote file paths such as `/app/src/index.ts`, not basenames such as `index.ts`.
+- Components that render a visible directory must compute each row key with `joinRemotePath(remotePath, entry.name)` before checking `uploadingFiles` or upload speed maps.
+- `navigateRemote(path)` may merge only upload placeholders whose parent directory equals `path`.
+- `transfer:completed`, `transfer:failed`, and refreshed terminal transfer states must clear upload placeholders using the task's full `remotePath`.
+
+### 4. Validation & Error Matrix
+
+- Directory upload contains repeated basenames -> each task remains isolated by full remote path.
+- Upload is in a nested directory while the UI is browsing the parent -> do not render the nested file as a parent-directory row.
+- User navigates into the upload target directory during transfer -> show only placeholders for that directory.
+- Completed upload close/progress event arrives late -> clear the full-path placeholder and force completed transfer progress to 100%.
+
+### 5. Good/Base/Bad Cases
+
+- Good: `/web/src/index.ts` and `/web/dist/index.ts` upload concurrently without sharing progress or speed text.
+- Base: uploading `/tmp/readme.md` into the current remote directory shows one virtual `readme.md` row.
+- Bad: using `entry.name` or `fileName` as the upload key, causing nested `package.json` uploads to overwrite each other's progress.
+
+### 6. Tests Required
+
+- Frontend build must pass after store contract changes.
+- Search must show no upload progress lookup by basename, for example no `uploadingFiles.get(entry.name)` or `taskIdToName` references.
+- Manual or integration test should upload a directory containing repeated basenames and verify progress reaches 100% and placeholders clear without reconnecting.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+addUploadingEntry(fileName, size, taskId);
+const total = uploadingFiles.get(entry.name);
+```
+
+#### Correct
+
+```ts
+const remoteFilePath = joinRemotePath(task.remoteDir, getPathName(localPath));
+addUploadingEntry(remoteFilePath, size, taskId);
+
+const entryRemotePath = joinRemotePath(remotePath, entry.name);
+const total = uploadingFiles.get(entryRemotePath);
+```

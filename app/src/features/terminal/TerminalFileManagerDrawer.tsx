@@ -142,6 +142,12 @@ function fileNameFromTransfer(task: TransferTask): string {
     : getPathName(task.remotePath);
 }
 
+function transferProgressPercent(task: TransferTask): number {
+  if (task.state === "completed") return 100;
+  if (task.totalBytes <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((task.transferredBytes / task.totalBytes) * 100)));
+}
+
 function TransferRow({
   task,
   onCancel,
@@ -150,9 +156,7 @@ function TransferRow({
   onCancel: (id: string) => void;
 }) {
   const t = useT();
-  const progress = task.totalBytes > 0
-    ? Math.round((task.transferredBytes / task.totalBytes) * 100)
-    : 0;
+  const progress = transferProgressPercent(task);
 
   return (
     <div
@@ -204,13 +208,18 @@ function CompactTransferStatus() {
 
   const activeTransfers = transfers.filter((task) => task.state === "running" || task.state === "queued");
   const finishedTransfers = transfers.filter((task) => task.state === "completed" || task.state === "failed");
-  const activeProgress = activeTransfers.length > 0
-    ? Math.round(
-        activeTransfers.reduce((sum, task) => {
-          if (task.totalBytes <= 0) return sum;
-          return sum + task.transferredBytes / task.totalBytes;
-        }, 0) / activeTransfers.length * 100,
-      )
+  const activeTotals = activeTransfers.reduce(
+    (sum, task) => {
+      if (task.totalBytes <= 0) return sum;
+      return {
+        transferred: sum.transferred + Math.min(Math.max(0, task.transferredBytes), task.totalBytes),
+        total: sum.total + task.totalBytes,
+      };
+    },
+    { transferred: 0, total: 0 },
+  );
+  const activeProgress = activeTotals.total > 0
+    ? Math.max(0, Math.min(100, Math.round((activeTotals.transferred / activeTotals.total) * 100)))
     : 0;
 
   if (transfers.length === 0) return null;
@@ -276,7 +285,7 @@ export function TerminalFileManagerDrawer({
     selectedRemoteEntries,
     uploadingFiles,
     transfers,
-    taskIdToName,
+    taskIdToRemotePath,
     setSessionId,
     navigateRemote,
     refreshRemote,
@@ -338,11 +347,11 @@ export function TerminalFileManagerDrawer({
   const uploadSpeeds = useMemo(() => {
     const map = new Map<string, number>();
     for (const task of transfers) {
-      const name = taskIdToName.get(task.id);
-      if (name && task.speedBytesPerSec) map.set(name, task.speedBytesPerSec);
+      const remoteFilePath = taskIdToRemotePath.get(task.id) || (task.direction === "upload" ? task.remotePath : undefined);
+      if (remoteFilePath && task.speedBytesPerSec) map.set(remoteFilePath, task.speedBytesPerSec);
     }
     return map;
-  }, [transfers, taskIdToName]);
+  }, [transfers, taskIdToRemotePath]);
 
   useEffect(() => {
     if (!open) return;
@@ -649,7 +658,8 @@ export function TerminalFileManagerDrawer({
           const localPath = task.localPaths[i];
           const taskId = taskIds[i];
           const fileName = getPathName(localPath || "");
-          if (fileName && taskId) addUploadingEntry(fileName, 0, taskId);
+          const remoteFilePath = fileName ? joinRemotePath(task.remoteDir, fileName) : "";
+          if (remoteFilePath && taskId) addUploadingEntry(remoteFilePath, 0, taskId);
           if (taskId) allTaskIds.push(taskId);
         }
       }
@@ -963,9 +973,12 @@ export function TerminalFileManagerDrawer({
         )}
 
         {!loading && remoteEntries.map((entry) => {
-          const totalSize = uploadingFiles.get(entry.name);
+          const entryRemotePath = joinRemotePath(remotePath, entry.name);
+          const totalSize = uploadingFiles.get(entryRemotePath);
           const isUploading = totalSize !== undefined;
-          const progress = isUploading && totalSize > 0 ? Math.round((entry.size / totalSize) * 100) : 0;
+          const progress = isUploading && totalSize > 0
+            ? Math.max(0, Math.min(100, Math.round((entry.size / totalSize) * 100)))
+            : 0;
           return (
             <div
               key={entry.name}
@@ -1014,7 +1027,7 @@ export function TerminalFileManagerDrawer({
               <span className="col-mtime">{isUploading ? t("sftp.uploading") : formatTime(entry.mtime)}</span>
               <span className="col-perm">
                 {isUploading
-                  ? `${progress}%${uploadSpeeds.has(entry.name) ? ` · ${formatBytes(uploadSpeeds.get(entry.name)!)} /s` : ""}`
+                  ? `${progress}%${uploadSpeeds.has(entryRemotePath) ? ` · ${formatBytes(uploadSpeeds.get(entryRemotePath)!)} /s` : ""}`
                   : formatPermissions(entry.permissions, entry.fileType)}
               </span>
             </div>

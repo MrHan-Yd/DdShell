@@ -3936,6 +3936,80 @@ body.theme-light [data-ui-theme="classic"] .connections-page .detail-cta .kbd {
   flex-shrink: 0;
 }
 
+.terminal-page .terminal-split-picker {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 42;
+  box-sizing: border-box;
+  width: min(230px, calc(100vw - 24px));
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-popover);
+  background: color-mix(in srgb, var(--color-bg-surface) 94%, transparent);
+  box-shadow: var(--shadow-floating), var(--border-hairline-inner);
+  color: var(--color-text-primary);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+
+.terminal-page .terminal-split-picker-title {
+  padding: 2px 4px 7px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.terminal-page .terminal-split-target-list {
+  display: flex;
+  max-height: min(260px, calc(100vh - 120px));
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.terminal-page button.terminal-split-target {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 16px minmax(0, 1fr) 8px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 7px 8px;
+  text-align: left;
+  transition:
+    background var(--duration-fast) var(--ease-smooth),
+    border-color var(--duration-fast) var(--ease-smooth),
+    color var(--duration-fast) var(--ease-smooth);
+}
+
+.terminal-page button.terminal-split-target:hover {
+  border-color: var(--color-border);
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.terminal-page button.terminal-split-target:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus-ring);
+}
+
+.terminal-page button.terminal-split-target svg {
+  color: var(--color-accent);
+}
+
+.terminal-page .terminal-split-target-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .terminal-disconnect-overlay {
   position: absolute;
   inset: 0;
@@ -6858,8 +6932,7 @@ button.tfm-transfer-summary:hover {
   padding-right: 16px;
 }
 
-/* Workflow action buttons — match ui/styles/components.css .btn + .btn-sm density locally. */
-.workflow-page-header .workflow-action-button,
+/* Workflow detail action buttons — match ui/styles/components.css .btn + .btn-sm density locally. */
 .workflow-detail-head .workflow-action-button {
   height: 26px;
   min-height: 26px;
@@ -6876,28 +6949,14 @@ button.tfm-transfer-summary:hover {
               filter var(--duration-fast) var(--ease-smooth);
 }
 
-.workflow-page-header .workflow-action-button svg,
 .workflow-detail-head .workflow-action-button svg {
   width: 13px;
   height: 13px;
   flex-shrink: 0;
 }
 
-.workflow-page-header .workflow-action-button:active,
 .workflow-detail-head .workflow-action-button:active {
   transform: scale(0.97);
-}
-
-/* Page header primary button ("New workflow") — accent gradient + draft .btn-sm sizing */
-.workflow-page-header .workflow-page-primary-action {
-  background: var(--color-accent-gradient) !important;
-  color: var(--color-fg-on-accent) !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset,
-              0 6px 20px var(--color-accent-glow) !important;
-  border: none !important;
-}
-.workflow-page-header .workflow-page-primary-action:hover {
-  filter: brightness(1.08);
 }
 
 /* Detail actions — action-group spacing and hover polish */

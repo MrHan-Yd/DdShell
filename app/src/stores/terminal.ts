@@ -4,6 +4,7 @@ import * as api from "@/lib/tauri";
 import { useSftpStore } from "@/stores/sftp";
 
 export type SplitDirection = "horizontal" | "vertical" | null;
+export type ConcreteSplitDirection = Exclude<SplitDirection, null>;
 
 interface TerminalState {
   tabs: TerminalTab[];
@@ -18,7 +19,7 @@ interface TerminalState {
   moveTab: (fromId: string, toIndex: number) => void;
   updateTabState: (sessionId: string, state: SessionState) => void;
   reconnectSession: (tabId: string) => Promise<void>;
-  splitPane: (direction: "horizontal" | "vertical") => void;
+  splitPane: (direction: ConcreteSplitDirection, targetTabId?: string) => boolean;
   closeSplit: () => void;
   pingSession: (sessionId: string) => Promise<void>;
   pingActiveSession: () => Promise<void>;
@@ -78,19 +79,34 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     set((s) => {
       const remaining = s.tabs.filter((t) => t.id !== tabId);
       const closedSplit = s.splitTabId === tab?.id;
+      const nextActiveTabId =
+        s.activeTabId === tabId
+          ? remaining[remaining.length - 1]?.id ?? null
+          : s.activeTabId;
+      const nextSplitTabId = closedSplit
+        ? null
+        : s.splitTabId === nextActiveTabId
+          ? remaining.find((t) => t.id !== nextActiveTabId)?.id ?? null
+          : s.splitTabId;
       return {
         tabs: remaining,
-        activeTabId:
-          s.activeTabId === tabId
-            ? remaining[remaining.length - 1]?.id ?? null
-            : s.activeTabId,
-        splitDirection: closedSplit ? null : s.splitDirection,
-        splitTabId: closedSplit ? null : s.splitTabId,
+        activeTabId: nextActiveTabId,
+        splitDirection: nextSplitTabId ? s.splitDirection : null,
+        splitTabId: nextSplitTabId,
       };
     });
   },
 
-  setActiveTab: (tabId) => set({ activeTabId: tabId }),
+  setActiveTab: (tabId) =>
+    set((s) => {
+      if (s.splitTabId === tabId && s.activeTabId && s.activeTabId !== tabId) {
+        return {
+          activeTabId: tabId,
+          splitTabId: s.activeTabId,
+        };
+      }
+      return { activeTabId: tabId };
+    }),
 
   moveTab: (fromId, toIndex) =>
     set((s) => {
@@ -133,21 +149,26 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     }
   },
 
-  splitPane: (direction) => {
+  splitPane: (direction, targetTabId) => {
     const state = get();
     if (state.splitDirection) {
       // Already split, just change direction
       set({ splitDirection: direction });
-      return;
+      return true;
     }
-    // Use current active session as the split pane
     const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
-    if (activeTab) {
-      set({
-        splitDirection: direction,
-        splitTabId: activeTab.id,
-      });
-    }
+    if (!activeTab) return false;
+
+    const targetTab = targetTabId
+      ? state.tabs.find((t) => t.id === targetTabId)
+      : state.tabs.find((t) => t.id !== activeTab.id);
+    if (!targetTab || targetTab.id === activeTab.id) return false;
+
+    set({
+      splitDirection: direction,
+      splitTabId: targetTab.id,
+    });
+    return true;
   },
 
   closeSplit: () => set({ splitDirection: null, splitTabId: null }),

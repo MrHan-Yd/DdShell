@@ -815,8 +815,11 @@ export function SnippetsPage() {
             <ArrowDownAZ size={13} strokeWidth={2} />
             {t("snippets.import")}
           </Button>
-          <Button size="sm" onClick={() => { setEditingSnippet(null); setShowForm(true); }}>
-            <Plus size={13} strokeWidth={2.2} />
+          <Button
+            size="sm"
+            onClick={() => { setEditingSnippet(null); setShowForm(true); }}
+          >
+            <Plus size={14} />
             {t("snippets.newSnippet")}
           </Button>
         </div>

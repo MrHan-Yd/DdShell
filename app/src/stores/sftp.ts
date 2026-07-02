@@ -6,6 +6,18 @@ import { useAppStore } from "@/stores/app";
 import { toast } from "@/stores/toast";
 import * as api from "@/lib/tauri";
 
+function getRemoteFileName(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  return normalized.split("/").filter(Boolean).pop() ?? path;
+}
+
+function getRemoteParentPath(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const parts = normalized.split("/").filter(Boolean);
+  parts.pop();
+  return `/${parts.join("/")}` || "/";
+}
+
 interface SftpState {
   sessionId: string | null;
   remotePath: string;
@@ -14,9 +26,9 @@ interface SftpState {
   error: string | null;
   transfers: TransferTask[];
   selectedRemoteEntries: Set<string>;
-  uploadingFiles: Map<string, number>; // name -> totalSize for files being uploaded
-  taskIdToName: Map<string, string>; // taskId -> name
-  completedUploads: Set<string>; // names of recently completed uploads (for fade-out)
+  uploadingFiles: Map<string, number>; // remotePath -> totalSize for files being uploaded
+  taskIdToRemotePath: Map<string, string>; // taskId -> remotePath
+  completedUploads: Set<string>; // remote paths of recently completed uploads (for fade-out)
   activeBatches: Map<string, { taskIds: Set<string>; completed: number; failed: number; total: number; direction: TransferDirection }>;
 
   setSessionId: (id: string | null, options?: { navigate?: boolean }) => void;
@@ -32,9 +44,9 @@ interface SftpState {
   clearFinishedTransfers: () => Promise<void>;
   toggleSelectRemote: (name: string) => void;
   clearSelectRemote: () => void;
-  addUploadingEntry: (name: string, totalSize: number, taskId: string) => void;
-  updateUploadingEntry: (name: string, transferredSize: number) => void;
-  clearUploadingEntry: (name: string) => void;
+  addUploadingEntry: (remotePath: string, totalSize: number, taskId: string) => void;
+  updateUploadingEntry: (remotePath: string, transferredSize: number) => void;
+  clearUploadingEntry: (remotePath: string) => void;
   updateTransferProgress: (taskId: string, transferred: number, total: number, speed?: number) => void;
   markTransferCompleted: (taskId: string) => void;
   markTransferFailed: (taskId: string, error: string) => void;
@@ -50,12 +62,12 @@ export const useSftpStore = create<SftpState>((set, get) => ({
   transfers: [],
   selectedRemoteEntries: new Set(),
   uploadingFiles: new Map(),
-  taskIdToName: new Map(),
+  taskIdToRemotePath: new Map(),
   completedUploads: new Set(),
   activeBatches: new Map(),
 
   setSessionId: (id, options) => {
-    set({ sessionId: id, remotePath: "/", remoteEntries: [], error: null, uploadingFiles: new Map(), taskIdToName: new Map(), completedUploads: new Set() });
+    set({ sessionId: id, remotePath: "/", remoteEntries: [], error: null, uploadingFiles: new Map(), taskIdToRemotePath: new Map(), completedUploads: new Set() });
     if (id && options?.navigate !== false) {
       get().navigateRemote("/");
     }
@@ -68,13 +80,17 @@ export const useSftpStore = create<SftpState>((set, get) => ({
     set({ loading: true, error: null, selectedRemoteEntries: new Set() });
     try {
       const entries = await api.sftpListDir(sessionId, path);
-      const { uploadingFiles, remoteEntries: currentEntries } = get();
+      const { uploadingFiles, remoteEntries: currentEntries, remotePath: previousRemotePath } = get();
       // Build merged list: preserve uploaded size for files still being uploaded.
       const serverMap = new Map(entries.map((e) => [e.name, e]));
 
-      for (const [name] of uploadingFiles) {
+      for (const [uploadPath] of uploadingFiles) {
+        if (getRemoteParentPath(uploadPath) !== path) continue;
+        const name = getRemoteFileName(uploadPath);
         // Find the current tracked entry (has our transferred bytes)
-        const tracked = currentEntries.find((r) => r.name === name);
+        const tracked = previousRemotePath === path
+          ? currentEntries.find((r) => r.name === name)
+          : undefined;
         if (serverMap.has(name)) {
           // File exists on server — override size with our tracked transferred bytes
           if (tracked) {
@@ -83,6 +99,14 @@ export const useSftpStore = create<SftpState>((set, get) => ({
         } else if (tracked) {
           // File NOT on server yet (upload just started) — keep virtual entry
           serverMap.set(name, tracked);
+        } else {
+          serverMap.set(name, {
+            name,
+            fileType: "file",
+            size: 0,
+            mtime: Date.now() / 1000,
+            permissions: 0o644,
+          });
         }
       }
 
@@ -160,7 +184,85 @@ export const useSftpStore = create<SftpState>((set, get) => ({
 
   refreshTransfers: async () => {
     const transfers = await api.sftpTransferList();
-    set({ transfers });
+    let shouldRefreshRemote = false;
+    const completedBatchToasts: Array<{ total: number; completed: number; failed: number; direction: TransferDirection }> = [];
+
+    set((s) => {
+      const taskById = new Map(transfers.map((task) => [task.id, task]));
+      const newUploading = new Map(s.uploadingFiles);
+      const newTaskIdToRemotePath = new Map(s.taskIdToRemotePath);
+      const newCompletedUploads = new Set(s.completedUploads);
+      const newBatches = new Map(s.activeBatches);
+
+      for (const task of transfers) {
+        const terminalState =
+          task.state === "completed" || task.state === "failed" || task.state === "canceled";
+        if (!terminalState || task.direction !== "upload") continue;
+
+        const uploadPath = newTaskIdToRemotePath.get(task.id) || task.remotePath;
+        if (!uploadPath) continue;
+
+        if (newUploading.delete(uploadPath)) {
+          shouldRefreshRemote = true;
+          if (task.state === "completed") {
+            newCompletedUploads.add(uploadPath);
+            setTimeout(() => {
+              useSftpStore.setState((current) => {
+                const next = new Set(current.completedUploads);
+                next.delete(uploadPath);
+                return { completedUploads: next };
+              });
+            }, 1500);
+          }
+        }
+        newTaskIdToRemotePath.delete(task.id);
+      }
+
+      for (const [batchKey, batch] of newBatches) {
+        let completed = 0;
+        let failed = 0;
+        for (const taskId of batch.taskIds) {
+          const task = taskById.get(taskId);
+          if (!task) continue;
+          if (task.state === "completed") completed += 1;
+          if (task.state === "failed" || task.state === "canceled") failed += 1;
+        }
+
+        const allDone = completed + failed >= batch.total;
+        if (allDone) {
+          newBatches.delete(batchKey);
+          completedBatchToasts.push({ total: batch.total, completed, failed, direction: batch.direction });
+          if (batch.direction === "upload") {
+            shouldRefreshRemote = true;
+          }
+        } else if (completed !== batch.completed || failed !== batch.failed) {
+          newBatches.set(batchKey, { ...batch, completed, failed });
+        }
+      }
+
+      return {
+        transfers,
+        uploadingFiles: newUploading,
+        taskIdToRemotePath: newTaskIdToRemotePath,
+        completedUploads: newCompletedUploads,
+        activeBatches: newBatches,
+      };
+    });
+
+    for (const batch of completedBatchToasts) {
+      const locale = useAppStore.getState().locale;
+      if (batch.failed === 0) {
+        toast.success(t("sftp.batchAllSuccess", locale, { n: batch.total }));
+      } else if (batch.completed === 0) {
+        toast.error(t("sftp.batchSummary", locale, { success: 0, failed: batch.failed }));
+      } else {
+        toast.info(t("sftp.batchSummary", locale, { success: batch.completed, failed: batch.failed }));
+      }
+    }
+
+    if (shouldRefreshRemote) {
+      void get().refreshRemote();
+    }
   },
 
   clearFinishedTransfers: async () => {
@@ -182,15 +284,21 @@ export const useSftpStore = create<SftpState>((set, get) => ({
 
   clearSelectRemote: () => set({ selectedRemoteEntries: new Set() }),
 
-  // Add a virtual entry for uploading file (not yet on remote server)
-  addUploadingEntry: (name, totalSize, taskId) => {
+  // Add a virtual entry for an uploading file in the currently visible directory.
+  addUploadingEntry: (remoteFilePath, totalSize, taskId) => {
     set((s) => {
       const newUploading = new Map(s.uploadingFiles);
-      newUploading.set(name, totalSize);
+      newUploading.set(remoteFilePath, totalSize);
 
-      // Track taskId -> name for reliable progress updates via taskId
-      const newTaskIdToName = new Map(s.taskIdToName);
-      newTaskIdToName.set(taskId, name);
+      // Track taskId -> remote path for reliable progress updates via taskId.
+      const newTaskIdToRemotePath = new Map(s.taskIdToRemotePath);
+      newTaskIdToRemotePath.set(taskId, remoteFilePath);
+
+      const parentPath = getRemoteParentPath(remoteFilePath);
+      const name = getRemoteFileName(remoteFilePath);
+      if (parentPath !== s.remotePath) {
+        return { uploadingFiles: newUploading, taskIdToRemotePath: newTaskIdToRemotePath };
+      }
 
       const existingIdx = s.remoteEntries.findIndex((e) => e.name === name);
       let newRemoteEntries = s.remoteEntries;
@@ -208,62 +316,72 @@ export const useSftpStore = create<SftpState>((set, get) => ({
         };
         newRemoteEntries = [...s.remoteEntries, newEntry];
       }
-      return { remoteEntries: newRemoteEntries, uploadingFiles: newUploading, taskIdToName: newTaskIdToName };
+      return { remoteEntries: newRemoteEntries, uploadingFiles: newUploading, taskIdToRemotePath: newTaskIdToRemotePath };
     });
   },
 
   // Update the transferred size for an uploading file
-  updateUploadingEntry: (name, transferredSize) => {
+  updateUploadingEntry: (remoteFilePath, transferredSize) => {
     set((s) => ({
       remoteEntries: s.remoteEntries.map((e) =>
-        e.name === name ? { ...e, size: transferredSize } : e,
+        getRemoteParentPath(remoteFilePath) === s.remotePath && e.name === getRemoteFileName(remoteFilePath)
+          ? { ...e, size: transferredSize }
+          : e,
       ),
     }));
   },
 
   // Clear uploading entry after transfer completes
-  clearUploadingEntry: (name) => {
+  clearUploadingEntry: (remoteFilePath) => {
     set((s) => {
       const newUploading = new Map(s.uploadingFiles);
-      newUploading.delete(name);
-      // Also remove taskId -> name mapping
-      const newTaskIdToName = new Map(s.taskIdToName);
-      for (const [tid, n] of newTaskIdToName) {
-        if (n === name) newTaskIdToName.delete(tid);
+      newUploading.delete(remoteFilePath);
+      // Also remove taskId -> remote path mapping.
+      const newTaskIdToRemotePath = new Map(s.taskIdToRemotePath);
+      for (const [tid, path] of newTaskIdToRemotePath) {
+        if (path === remoteFilePath) newTaskIdToRemotePath.delete(tid);
       }
-      return { uploadingFiles: newUploading, taskIdToName: newTaskIdToName };
+      return { uploadingFiles: newUploading, taskIdToRemotePath: newTaskIdToRemotePath };
     });
   },
 
   updateTransferProgress: (taskId, transferred, total, speed) => {
     set((s) => {
-      // Look up the filename directly from taskId — reliable, no path matching needed
-      const filename = s.taskIdToName.get(taskId);
+      const safeTotal = Math.max(0, total);
+      const safeTransferred = safeTotal > 0
+        ? Math.min(Math.max(0, transferred), safeTotal)
+        : Math.max(0, transferred);
+      const task = s.transfers.find((t) => t.id === taskId);
+      // Look up the upload path directly from taskId; fall back to refreshed transfer data.
+      const uploadPath = s.taskIdToRemotePath.get(taskId) || (task?.direction === "upload" ? task.remotePath : undefined);
       let newUploading = s.uploadingFiles;
 
-      if (filename) {
+      if (uploadPath) {
         // Update uploadingFiles with the latest total
         newUploading = new Map(s.uploadingFiles);
-        newUploading.set(filename, total);
+        newUploading.set(uploadPath, safeTotal);
+
+        const name = getRemoteFileName(uploadPath);
+        const parentPath = getRemoteParentPath(uploadPath);
 
         return {
           transfers: s.transfers.map((t) =>
             t.id === taskId
-              ? { ...t, transferredBytes: transferred, totalBytes: total, speedBytesPerSec: speed, state: "running" as const }
+              ? { ...t, transferredBytes: safeTransferred, totalBytes: safeTotal, speedBytesPerSec: speed, state: "running" as const }
               : t,
           ),
           remoteEntries: s.remoteEntries.map((e) =>
-            e.name === filename ? { ...e, size: transferred } : e,
+            parentPath === s.remotePath && e.name === name ? { ...e, size: safeTransferred } : e,
           ),
           uploadingFiles: newUploading,
         };
       }
 
-      // Task not found in taskIdToName — might be a download or task not yet registered
+      // Task not found in taskIdToRemotePath — might be a download or task not yet registered.
       return {
         transfers: s.transfers.map((t) =>
           t.id === taskId
-            ? { ...t, transferredBytes: transferred, totalBytes: total, speedBytesPerSec: speed, state: "running" as const }
+            ? { ...t, transferredBytes: safeTransferred, totalBytes: safeTotal, speedBytesPerSec: speed, state: "running" as const }
             : t,
         ),
       };
@@ -273,7 +391,14 @@ export const useSftpStore = create<SftpState>((set, get) => ({
   markTransferCompleted: (taskId) => {
     set((s) => ({
       transfers: s.transfers.map((t) =>
-        t.id === taskId ? { ...t, state: "completed" as const } : t,
+        t.id === taskId
+          ? {
+              ...t,
+              state: "completed" as const,
+              transferredBytes: t.totalBytes > 0 ? t.totalBytes : t.transferredBytes,
+              speedBytesPerSec: 0,
+            }
+          : t,
       ),
     }));
   },
@@ -358,17 +483,16 @@ export function initSftpListeners() {
 
     if (task && task.direction === "upload") {
       const remotePath = task.remotePath;
-      const filename = remotePath.split("/").pop() || "";
       // Move from uploading → completed (shows green fade-out)
-      state.clearUploadingEntry(filename);
+      state.clearUploadingEntry(remotePath);
       useSftpStore.setState((s) => ({
-        completedUploads: new Set(s.completedUploads).add(filename),
+        completedUploads: new Set(s.completedUploads).add(remotePath),
       }));
       // After fade-out animation, remove from completedUploads
       setTimeout(() => {
         useSftpStore.setState((s) => {
           const next = new Set(s.completedUploads);
-          next.delete(filename);
+          next.delete(remotePath);
           return { completedUploads: next };
         });
       }, 1500);
@@ -433,8 +557,7 @@ export function initSftpListeners() {
     // If this is an upload task, clear the uploading entry
     if (task && task.direction === "upload") {
       const remotePath = task.remotePath;
-      const filename = remotePath.split("/").pop() || "";
-      state.clearUploadingEntry(filename);
+      state.clearUploadingEntry(remotePath);
     }
 
     useSftpStore

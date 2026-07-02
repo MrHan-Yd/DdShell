@@ -17,9 +17,9 @@ const buttonVariants = cva(
           "bg-[var(--color-error)] text-white hover:opacity-90 rounded-[var(--radius-control)] shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-floating)] active:shadow-none",
       },
       size: {
-        sm: "h-7 px-2.5 text-[var(--font-size-xs)]",
-        md: "h-8 px-3 text-[var(--font-size-sm)]",
-        lg: "h-9 px-4 text-[var(--font-size-base)]",
+        sm: "h-7 px-2.5 text-[length:var(--font-size-xs)]",
+        md: "h-8 px-3 text-[length:var(--font-size-sm)]",
+        lg: "h-9 px-4 text-[length:var(--font-size-base)]",
         icon: "h-8 w-8 rounded-[var(--radius-control)]",
       },
     },

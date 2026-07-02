@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock, ListChecks, Plus, Variable, Workflow } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/themed/Button";
 import { useT } from "@/lib/i18n";
 import { confirm } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
@@ -158,8 +158,8 @@ export function WorkflowsPage() {
           )}
         </div>
         <div className="actions workflow-page-actions flex flex-shrink-0 items-center gap-2">
-          <Button size="sm" className="workflow-action-button workflow-page-primary-action" onClick={beginCreate}>
-            <Plus size={13} />
+          <Button size="sm" onClick={beginCreate}>
+            <Plus size={14} />
             {t("workflows.newRecipe")}
           </Button>
         </div>
