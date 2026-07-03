@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { useAppStore } from "@/stores/app";
+import { useAppStore, usesDesignSystemTheme } from "@/stores/app";
 import { SegmentedControl as ClassicSegmentedControl } from "@/components/ui/SegmentedControl";
 import { AuroraSegmentedControl } from "@/components/ui/aurora/SegmentedControl";
 
@@ -18,8 +18,8 @@ export interface SegmentedControlProps<T extends string> {
 export function SegmentedControl<T extends string>(
   props: SegmentedControlProps<T>,
 ) {
-  const isAurora = useAppStore((s) => s.uiTheme === "aurora");
-  return isAurora ? (
+  const useDesignSystem = useAppStore((s) => usesDesignSystemTheme(s.uiTheme));
+  return useDesignSystem ? (
     <AuroraSegmentedControl {...props} />
   ) : (
     <ClassicSegmentedControl {...props} />

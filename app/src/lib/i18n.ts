@@ -471,6 +471,8 @@ const dict = {
   "settings.uiThemeClassicDesc": { zh: "保留当前稳重的工具感布局与配色。", en: "Keep the current stable tooling layout and color treatment." },
   "settings.uiThemeAurora": { zh: "极光主题", en: "Aurora" },
   "settings.uiThemeAuroraDesc": { zh: "采用紫青渐变、玻璃质感与更强层次感的新视觉。", en: "Switch to the new violet-cyan gradient, glassy, layered visual language." },
+  "settings.uiThemeAbyssalVent": { zh: "深海热泉", en: "Abyssal Vent" },
+  "settings.uiThemeAbyssalVentDesc": { zh: "采用深海蓝黑、热泉青、硫黄绿与熔橙微光的开发工具视觉。", en: "Use a deep-sea blue-black interface with vent cyan, sulfur green, and molten orange highlights." },
   "settings.theme": { zh: "主题", en: "Theme" },
   "settings.themeDesc": { zh: "选择应用的配色方案", en: "Choose the application color scheme" },
   "settings.colorMode": { zh: "颜色模式", en: "Color Mode" },

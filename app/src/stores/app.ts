@@ -2,7 +2,16 @@ import { create } from "zustand";
 import type { Page } from "@/types";
 import type { Locale } from "@/lib/i18n";
 
-export type UiTheme = "classic" | "aurora";
+export const UI_THEMES = ["classic", "aurora", "abyssal-vent"] as const;
+export type UiTheme = typeof UI_THEMES[number];
+
+export function isUiTheme(value: string | null): value is UiTheme {
+  return UI_THEMES.includes(value as UiTheme);
+}
+
+export function usesDesignSystemTheme(uiTheme: UiTheme): boolean {
+  return uiTheme === "aurora" || uiTheme === "abyssal-vent";
+}
 
 interface AppState {
   currentPage: Page;

@@ -1,5 +1,5 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
-import { useAppStore } from "@/stores/app";
+import { useAppStore, usesDesignSystemTheme } from "@/stores/app";
 import { Button as ClassicButton, type ButtonProps as ClassicButtonProps } from "@/components/ui/Button";
 import {
   AuroraButton,
@@ -31,8 +31,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant, size, ...rest }, ref) => {
-    const isAurora = useAppStore((s) => s.uiTheme === "aurora");
-    if (isAurora) {
+    const useDesignSystem = useAppStore((s) => usesDesignSystemTheme(s.uiTheme));
+    if (useDesignSystem) {
       return (
         <AuroraButton
           ref={ref}

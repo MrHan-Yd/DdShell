@@ -6,7 +6,7 @@ import { ToastContainer } from "@/components/Toast";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useT } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
-import { useAppStore } from "@/stores/app";
+import { isUiTheme, useAppStore } from "@/stores/app";
 import { useQuickEditStore } from "@/stores/quickEdit";
 import * as api from "@/lib/tauri";
 import type { QuickEditOpenPayload } from "@/lib/quickEditWindow";
@@ -69,7 +69,7 @@ export function QuickEditWindow() {
           if (savedTheme === "dark" || savedTheme === "light" || savedTheme === "system") {
             useAppStore.getState().setTheme(savedTheme);
           }
-          if (savedUiTheme === "classic" || savedUiTheme === "aurora") {
+          if (isUiTheme(savedUiTheme)) {
             useAppStore.getState().setUiTheme(savedUiTheme);
           }
         } catch {

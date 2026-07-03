@@ -9,7 +9,7 @@ import { UpdaterProgress } from "@/components/UpdaterProgress";
 import { DEFAULT_DANGEROUS_COMMANDS } from "@/lib/constants";
 import { Select } from "@/components/ui/themed/Select";
 import { SegmentedControl } from "@/components/ui/themed/SegmentedControl";
-import { useAppStore } from "@/stores/app";
+import { isUiTheme, useAppStore } from "@/stores/app";
 import type { UiTheme } from "@/stores/app";
 import { useCommandAssistStore } from "@/stores/commandAssist";
 import { useTerminalStore } from "@/stores/terminal";
@@ -1162,7 +1162,7 @@ export function SettingsPage() {
         if (savedTheme === "dark" || savedTheme === "light" || savedTheme === "system") {
           setTheme(savedTheme);
         }
-        if (savedUiTheme === "classic" || savedUiTheme === "aurora") setUiTheme(savedUiTheme);
+        if (isUiTheme(savedUiTheme)) setUiTheme(savedUiTheme);
         if (savedLocale === "zh" || savedLocale === "en") setLocale(savedLocale as Locale);
         const migratedBgImagePath = await migrateTerminalBackgroundImageSetting(savedBgImagePath);
 
@@ -1562,7 +1562,11 @@ export function SettingsPage() {
 
   const activeTabMeta = tabItems.find((item) => item.value === activeTab) ?? tabItems[0];
   const hasFilteredTabs = filteredTabItems.length > 0;
-  const currentUiThemeLabel = committedUiTheme === "aurora" ? t("settings.uiThemeAurora") : t("settings.uiThemeClassic");
+  const currentUiThemeLabel = committedUiTheme === "abyssal-vent"
+    ? t("settings.uiThemeAbyssalVent")
+    : committedUiTheme === "aurora"
+      ? t("settings.uiThemeAurora")
+      : t("settings.uiThemeClassic");
   const currentModeLabel = committedTheme === "dark" ? t("settings.dark") : committedTheme === "light" ? t("settings.light") : t("settings.system");
   const activePanelId = `settings-panel-${activeTab}`;
   const activeTabId = `settings-tab-${activeTab}`;
@@ -1708,6 +1712,12 @@ export function SettingsPage() {
                   title: t("settings.uiThemeAurora"),
                   description: t("settings.uiThemeAuroraDesc"),
                   previewClassName: "theme-preview theme-preview--aurora",
+                },
+                {
+                  value: "abyssal-vent",
+                  title: t("settings.uiThemeAbyssalVent"),
+                  description: t("settings.uiThemeAbyssalVentDesc"),
+                  previewClassName: "theme-preview theme-preview--abyssal-vent",
                 },
               ] as const).map((option) => {
                 const active = uiTheme === option.value;

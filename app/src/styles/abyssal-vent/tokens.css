@@ -1,0 +1,266 @@
+/* Auto-scoped Abyssal Vent CSS mapped from ui/styles/tokens.css. Do not edit ui/styles sources. */
+/*
+ * tokens.css - DdShell design tokens
+ * Style: Abyssal Vent. Dark + light modes are driven by the existing body
+ * theme classes, while layout dimensions stay identical to Aurora.
+ */
+
+[data-ui-theme="abyssal-vent"],
+[data-ui-theme="abyssal-vent"] body.theme-dark,
+body.theme-dark [data-ui-theme="abyssal-vent"] {
+  /* Background layers */
+  --bg-app: #050A0D;
+  --bg-base: #071219;
+  --bg-elevated: #0D1C24;
+  --bg-surface: #142A33;
+  --bg-overlay: rgba(5, 10, 13, 0.76);
+  --bg-hover: rgba(67, 232, 216, 0.055);
+  --bg-active: rgba(67, 232, 216, 0.10);
+
+  /* Foreground / text */
+  --fg-primary: #EAF7F3;
+  --fg-secondary: #AAC4C0;
+  --fg-muted: #66807F;
+  --fg-disabled: #40575A;
+  --fg-on-accent: #031012;
+
+  /* Accent: vent cyan, sulfur green, molten orange */
+  --accent-violet: #FF7A3D;
+  --accent-cyan: #43E8D8;
+  --accent: #43E8D8;
+  --accent-hover: #7CF7EA;
+  --accent-subtle: rgba(67, 232, 216, 0.14);
+  --accent-glow: rgba(67, 232, 216, 0.32);
+  --accent-gradient: linear-gradient(135deg, #43E8D8 0%, #C8F56A 48%, #FF7A3D 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(67, 232, 216, 0.18) 0%, rgba(200, 245, 106, 0.12) 48%, rgba(255, 122, 61, 0.16) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(67, 232, 216, 0.12), rgba(255, 122, 61, 0.06));
+  --icon-stroke: #43E8D8;
+  --icon-stroke-muted: #7DA6A4;
+  --icon-shine: rgba(230, 255, 247, 0.52);
+
+  /* Border */
+  --border-subtle: rgba(234, 247, 243, 0.10);
+  --border-default: rgba(234, 247, 243, 0.18);
+  --border-strong: rgba(234, 247, 243, 0.30);
+  --border-focus: var(--accent);
+
+  /* Status colors */
+  --success: #4ADE80;
+  --success-subtle: rgba(74, 222, 128, 0.14);
+  --warning: #C8F56A;
+  --warning-subtle: rgba(200, 245, 106, 0.14);
+  --danger: #FF6B6B;
+  --danger-subtle: rgba(255, 107, 107, 0.14);
+  --info: #43E8D8;
+  --info-subtle: rgba(67, 232, 216, 0.14);
+
+  /* Health: GOOD / FAIR / POOR */
+  --health-good: #4ADE80;
+  --health-fair: #C8F56A;
+  --health-poor: #FF6B6B;
+
+  /* Terminal ANSI */
+  --term-bg: #03080B;
+  --term-fg: #EAF7F3;
+  --term-cursor: #43E8D8;
+  --term-selection: rgba(67, 232, 216, 0.30);
+  --ansi-black: #0D1C24;
+  --ansi-red: #FF6B6B;
+  --ansi-green: #4ADE80;
+  --ansi-yellow: #C8F56A;
+  --ansi-blue: #5BB7FF;
+  --ansi-magenta: #D895FF;
+  --ansi-cyan: #43E8D8;
+  --ansi-white: #EAF7F3;
+
+  /* Shadows / glow */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.36), 0 4px 14px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(234, 247, 243, 0.04);
+  --shadow-popover: 0 4px 8px rgba(0, 0, 0, 0.32), 0 18px 44px rgba(0, 0, 0, 0.52), 0 0 0 1px rgba(234, 247, 243, 0.06);
+  --shadow-glow: 0 0 0 1px rgba(67, 232, 216, 0.30), 0 0 28px rgba(67, 232, 216, 0.18);
+
+  /* Glass surfaces */
+  --glass-bg: rgba(13, 28, 36, 0.72);
+  --glass-blur: 18px;
+
+  color-scheme: dark;
+}
+
+/* ─────────────────────────── Light theme ─────────────────────────── */
+[data-theme="light"][data-ui-theme="abyssal-vent"],
+[data-ui-theme="abyssal-vent"] body.theme-light,
+body.theme-light [data-ui-theme="abyssal-vent"] {
+  --bg-app: #EEF5F2;
+  --bg-base: #FAFDFB;
+  --bg-elevated: #E7F0EC;
+  --bg-surface: #FFFFFF;
+  --bg-overlay: rgba(238, 245, 242, 0.74);
+  --bg-hover: rgba(7, 18, 25, 0.05);
+  --bg-active: rgba(15, 152, 143, 0.10);
+
+  --fg-primary: #071219;
+  --fg-secondary: #40575A;
+  --fg-muted: #748988;
+  --fg-disabled: #B4C3C0;
+  --fg-on-accent: #031012;
+
+  --accent-violet: #E85D2F;
+  --accent-cyan: #0F988F;
+  --accent: #0F988F;
+  --accent-hover: #0B746E;
+  --accent-subtle: rgba(15, 152, 143, 0.11);
+  --accent-glow: rgba(15, 152, 143, 0.20);
+  --accent-gradient: linear-gradient(135deg, #0F988F 0%, #B4D84D 48%, #E85D2F 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(15, 152, 143, 0.10) 0%, rgba(180, 216, 77, 0.12) 48%, rgba(232, 93, 47, 0.10) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(15, 152, 143, 0.10));
+  --icon-stroke: #0F988F;
+  --icon-stroke-muted: #5D7C7A;
+  --icon-shine: rgba(255, 255, 255, 0.86);
+
+  --border-subtle: rgba(7, 18, 25, 0.08);
+  --border-default: rgba(7, 18, 25, 0.14);
+  --border-strong: rgba(7, 18, 25, 0.24);
+
+  --success: #16A34A;
+  --success-subtle: rgba(22, 163, 74, 0.10);
+  --warning: #8EA91B;
+  --warning-subtle: rgba(142, 169, 27, 0.10);
+  --danger: #DC2626;
+  --danger-subtle: rgba(220, 38, 38, 0.10);
+  --info: #0F988F;
+  --info-subtle: rgba(15, 152, 143, 0.10);
+
+  --health-good: #16A34A;
+  --health-fair: #8EA91B;
+  --health-poor: #DC2626;
+
+  --term-bg: #03080B;
+  --term-fg: #EAF7F3;
+  --term-cursor: #43E8D8;
+  --term-selection: rgba(67, 232, 216, 0.30);
+
+  --shadow-card: 0 1px 2px rgba(7, 18, 25, 0.05), 0 4px 16px rgba(7, 18, 25, 0.07);
+  --shadow-popover: 0 4px 12px rgba(7, 18, 25, 0.10), 0 24px 48px rgba(7, 18, 25, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(15, 152, 143, 0.22), 0 0 24px rgba(15, 152, 143, 0.10);
+
+  --glass-bg: rgba(250, 253, 251, 0.74);
+  --glass-blur: 18px;
+  --app-bg-image:
+    radial-gradient(circle at 12% 18%, rgba(15, 152, 143, 0.10), transparent 34%),
+    radial-gradient(circle at 88% 82%, rgba(232, 93, 47, 0.10), transparent 30%),
+    linear-gradient(180deg, #FFFFFF 0%, var(--bg-app) 48%, var(--bg-elevated) 100%);
+  --app-shell-overlay:
+    radial-gradient(circle at 16% 18%, rgba(15, 152, 143, 0.08), transparent 28%),
+    radial-gradient(circle at 82% 78%, rgba(232, 93, 47, 0.07), transparent 24%);
+
+  color-scheme: light;
+}
+
+/* ─────────────────────────── Sizing tokens ─────────────────────────── */
+[data-ui-theme="abyssal-vent"] {
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Type scale */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h: 36px;
+  --tabbar-h: 38px;
+  --statusbar-h: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
+}
+
+/* Bridge the existing React/Tailwind token names to the ui/ prototype token names. */
+[data-ui-theme="abyssal-vent"] {
+  --height-titlebar: var(--titlebar-h);
+  --width-sidebar: var(--sidebar-w);
+  --width-sidebar-collapsed: var(--sidebar-w-collapsed);
+  --height-tabbar: var(--tabbar-h);
+  --height-statusbar: var(--statusbar-h);
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --font-size-xs: var(--fs-xs);
+  --font-size-sm: var(--fs-sm);
+  --font-size-base: var(--fs-base);
+  --font-size-lg: var(--fs-lg);
+  --font-size-xl: var(--fs-xl);
+  --duration-fast: var(--d-fast);
+  --duration-base: var(--d-base);
+  --duration-panel: var(--d-panel);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+  --color-text-primary: var(--fg-primary);
+  --color-text-secondary: var(--fg-secondary);
+  --color-text-muted: var(--fg-muted);
+  --color-text-inverse: var(--fg-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-gradient: var(--accent-gradient);
+  --color-accent-glow: var(--accent-glow);
+  --color-fg-on-accent: var(--fg-on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: var(--info);
+  --color-good: var(--health-good);
+  --color-fair: var(--health-fair);
+  --color-poor: var(--health-poor);
+  --surface-window: var(--glass-bg);
+  --surface-card: var(--bg-surface);
+  --app-bg-image:
+    radial-gradient(circle at 12% 18%, rgba(67, 232, 216, 0.10), transparent 32%),
+    radial-gradient(circle at 88% 82%, rgba(255, 122, 61, 0.10), transparent 30%),
+    linear-gradient(180deg, var(--bg-app) 0%, var(--bg-base) 58%, var(--bg-app) 100%);
+  --app-shell-overlay:
+    radial-gradient(circle at 16% 18%, rgba(67, 232, 216, 0.08), transparent 28%),
+    radial-gradient(circle at 82% 78%, rgba(255, 122, 61, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(234, 247, 243, 0.015), transparent 24%);
+  --app-shell-overlay-opacity: 1;
+  --shadow-floating: var(--shadow-popover);
+  --shadow-focus-ring: 0 0 0 3px var(--accent-subtle);
+  --shadow-accent-glow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 20px var(--accent-glow);
+}

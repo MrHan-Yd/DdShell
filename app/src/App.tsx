@@ -4,7 +4,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { StatusBar } from "@/components/StatusBar";
 import { ToastContainer } from "@/components/Toast";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { useAppStore } from "@/stores/app";
+import { isUiTheme, useAppStore } from "@/stores/app";
 import { useShortcuts } from "@/hooks/useShortcuts";
 import { TerminalPage } from "@/features/terminal/TerminalPage";
 import { useCommandAssistStore } from "@/stores/commandAssist";
@@ -82,7 +82,7 @@ export default function App() {
       }).catch(() => {});
 
       api.settingGet("ui.theme").then((saved) => {
-        if (saved === "classic" || saved === "aurora") {
+        if (isUiTheme(saved)) {
           setUiTheme(saved);
         }
       }).catch(() => {});

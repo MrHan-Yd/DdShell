@@ -1,0 +1,219 @@
+/*
+ * App-specific Abyssal Vent color layer.
+ * Layout stays owned by the existing app/Aurora rules; this file only changes
+ * theme color, background, border color, and shadow treatment.
+ */
+
+[data-ui-theme="abyssal-vent"] .glass-surface,
+[data-ui-theme="abyssal-vent"] .glass-card {
+  border-color: var(--border-default);
+}
+
+[data-ui-theme="abyssal-vent"] .app-titlebar,
+[data-ui-theme="abyssal-vent"] .app-sidebar,
+[data-ui-theme="abyssal-vent"] .app-statusbar {
+  border-color: var(--border-default);
+  background:
+    linear-gradient(180deg, rgba(234, 247, 243, 0.055), rgba(234, 247, 243, 0.016)),
+    var(--glass-bg);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(234, 247, 243, 0.07);
+}
+
+[data-ui-theme="abyssal-vent"] .app-main-frame,
+[data-ui-theme="abyssal-vent"] .settings-pane-frame {
+  border-color: var(--border-default);
+  background:
+    linear-gradient(180deg, rgba(234, 247, 243, 0.038), rgba(234, 247, 243, 0.012)),
+    rgba(7, 18, 25, 0.52);
+  box-shadow: var(--shadow-popover), inset 0 1px 0 rgba(234, 247, 243, 0.055);
+}
+
+[data-theme="light"][data-ui-theme="abyssal-vent"] .app-titlebar,
+[data-theme="light"][data-ui-theme="abyssal-vent"] .app-sidebar,
+[data-theme="light"][data-ui-theme="abyssal-vent"] .app-statusbar {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.66)),
+    var(--glass-bg);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+[data-theme="light"][data-ui-theme="abyssal-vent"] .app-main-frame,
+[data-theme="light"][data-ui-theme="abyssal-vent"] .settings-pane-frame {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.68)),
+    rgba(250, 253, 251, 0.58);
+}
+
+[data-ui-theme="abyssal-vent"] .app-sidebar__brand,
+[data-ui-theme="abyssal-vent"] .settings-nav-button[data-active="true"] {
+  background:
+    linear-gradient(135deg, rgba(67, 232, 216, 0.14), rgba(200, 245, 106, 0.08) 48%, rgba(255, 122, 61, 0.08)),
+    rgba(234, 247, 243, 0.026);
+}
+
+[data-theme="light"][data-ui-theme="abyssal-vent"] .app-sidebar__brand,
+[data-theme="light"][data-ui-theme="abyssal-vent"] .settings-nav-button[data-active="true"] {
+  background:
+    linear-gradient(135deg, rgba(15, 152, 143, 0.10), rgba(180, 216, 77, 0.07) 48%, rgba(232, 93, 47, 0.06)),
+    rgba(255, 255, 255, 0.62);
+}
+
+[data-ui-theme="abyssal-vent"] .app-sidebar__footer,
+[data-ui-theme="abyssal-vent"] .settings-nav-empty,
+[data-ui-theme="abyssal-vent"] .settings-hero-card {
+  border-color: rgba(67, 232, 216, 0.18);
+}
+
+[data-theme="light"][data-ui-theme="abyssal-vent"] .app-sidebar__footer,
+[data-theme="light"][data-ui-theme="abyssal-vent"] .settings-nav-empty,
+[data-theme="light"][data-ui-theme="abyssal-vent"] .settings-hero-card {
+  border-color: rgba(15, 152, 143, 0.18);
+}
+
+[data-ui-theme="abyssal-vent"] .settings-nav-stat,
+[data-ui-theme="abyssal-vent"] .settings-nav-button:hover,
+[data-ui-theme="abyssal-vent"] .settings-nav-empty {
+  background:
+    linear-gradient(135deg, rgba(67, 232, 216, 0.09), rgba(200, 245, 106, 0.05) 48%, rgba(255, 122, 61, 0.05)),
+    rgba(234, 247, 243, 0.024);
+}
+
+[data-theme="light"][data-ui-theme="abyssal-vent"] .settings-nav-stat,
+[data-theme="light"][data-ui-theme="abyssal-vent"] .settings-nav-button:hover,
+[data-theme="light"][data-ui-theme="abyssal-vent"] .settings-nav-empty {
+  background:
+    linear-gradient(135deg, rgba(15, 152, 143, 0.08), rgba(180, 216, 77, 0.05) 48%, rgba(232, 93, 47, 0.045)),
+    rgba(255, 255, 255, 0.70);
+}
+
+[data-ui-theme="abyssal-vent"] .settings-nav-button__icon {
+  background:
+    linear-gradient(180deg, rgba(234, 247, 243, 0.08), rgba(234, 247, 243, 0.02)),
+    var(--bg-elevated);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
+[data-ui-theme="abyssal-vent"] .settings-nav-button[data-active="true"] .settings-nav-button__icon {
+  background:
+    linear-gradient(135deg, rgba(67, 232, 216, 0.20), rgba(255, 122, 61, 0.12)),
+    var(--bg-elevated);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="abyssal-vent"] .settings-account-card__avatar {
+  box-shadow: 0 12px 26px var(--accent-glow);
+}
+
+[data-ui-theme="abyssal-vent"] .settings-floatbar > div {
+  border-color: rgba(67, 232, 216, 0.22);
+  background:
+    linear-gradient(180deg, rgba(234, 247, 243, 0.07), rgba(234, 247, 243, 0.025)),
+    rgba(7, 18, 25, 0.82);
+}
+
+[data-theme="light"][data-ui-theme="abyssal-vent"] .settings-floatbar > div {
+  border-color: rgba(15, 152, 143, 0.20);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.90), rgba(255, 255, 255, 0.72)),
+    rgba(250, 253, 251, 0.76);
+}
+
+[data-ui-theme="abyssal-vent"] .theme-option-card {
+  background: var(--bg-base);
+  border-color: var(--border-strong);
+}
+
+[data-theme="dark"][data-ui-theme="abyssal-vent"] .theme-option-card {
+  border-color: rgba(234, 247, 243, 0.28);
+}
+
+[data-theme="light"][data-ui-theme="abyssal-vent"] .theme-option-card {
+  background: var(--bg-surface);
+  border-color: rgba(7, 18, 25, 0.18);
+}
+
+[data-ui-theme="abyssal-vent"] .theme-option-card:hover,
+[data-ui-theme="abyssal-vent"] .theme-option-card[data-active="true"] {
+  border-color: var(--accent);
+}
+
+[data-ui-theme="abyssal-vent"] .theme-option-card[data-active="true"] {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+[data-ui-theme="abyssal-vent"] .theme-option-card__check {
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  border-color: var(--border-strong);
+}
+
+[data-ui-theme="abyssal-vent"] .theme-option-card__check--active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--fg-on-accent);
+}
+
+[data-ui-theme="abyssal-vent"] .lang-chip {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+  color: var(--fg-secondary);
+}
+
+[data-ui-theme="abyssal-vent"] .lang-chip:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="abyssal-vent"] .lang-chip--active {
+  background:
+    linear-gradient(135deg, rgba(67, 232, 216, 0.18), rgba(200, 245, 106, 0.10) 48%, rgba(255, 122, 61, 0.12)),
+    var(--bg-elevated);
+  border-color: rgba(67, 232, 216, 0.48);
+  color: var(--fg-primary);
+  box-shadow: 0 0 0 1px rgba(67, 232, 216, 0.18),
+              0 0 14px rgba(67, 232, 216, 0.14);
+}
+
+[data-theme="light"][data-ui-theme="abyssal-vent"] .lang-chip--active {
+  background:
+    linear-gradient(135deg, rgba(15, 152, 143, 0.10), rgba(180, 216, 77, 0.08) 48%, rgba(232, 93, 47, 0.08)),
+    var(--bg-elevated);
+  border-color: rgba(15, 152, 143, 0.42);
+  color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(15, 152, 143, 0.14);
+}
+
+[data-ui-theme="abyssal-vent"] .toggle-switch,
+[data-ui-theme="abyssal-vent"] .segmented-control {
+  border-color: var(--border-default);
+  background: var(--bg-elevated);
+}
+
+[data-ui-theme="abyssal-vent"] .toggle-switch[data-state="on"],
+[data-ui-theme="abyssal-vent"] .segmented-control .seg-pill {
+  background: var(--accent-gradient);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+[data-ui-theme="abyssal-vent"] .toggle-switch[data-state="off"],
+[data-ui-theme="abyssal-vent"] .range-mac {
+  background: var(--bg-active);
+}
+
+[data-ui-theme="abyssal-vent"] .range-mac::-webkit-slider-thumb,
+[data-ui-theme="abyssal-vent"] .range-mac::-moz-range-thumb {
+  background: var(--accent-gradient);
+  border-color: var(--bg-app);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+[data-ui-theme="abyssal-vent"] .terminal-disconnect-card {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-bg-surface) 92%, transparent), color-mix(in srgb, var(--color-bg-surface) 92%, transparent)),
+    var(--accent-gradient);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  border-color: transparent;
+}
