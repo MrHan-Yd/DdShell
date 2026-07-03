@@ -58,10 +58,27 @@ Questions to answer:
 
 **Why**: A product skin changes visual language, tokens, logos, and layout treatment across the app. Color mode controls dark/light behavior. Combining them into one field would break existing settings semantics and make persistence/migration harder.
 
+**Theme registry contract**:
+
+- Declare all valid UI themes once in `app/src/stores/app.ts` as `UI_THEMES`.
+- Derive `UiTheme` from that tuple, not from a duplicated string union.
+- Validate persisted settings through `isUiTheme(saved)` everywhere a saved `ui.theme` value is loaded.
+- Use `usesDesignSystemTheme(uiTheme)` for component-family switches. Do not hard-code `uiTheme === "aurora"` in shared themed controls when a new UI theme should reuse the same design-system component set.
+- Adding a UI theme must update the settings option card, i18n labels, CSS entry import in `main.tsx`, and document boundary behavior in every rendered window.
+
 **Example**:
 
 ```ts
-export type UiTheme = "classic" | "aurora";
+export const UI_THEMES = ["classic", "aurora", "abyssal-vent", "obsidian-sand"] as const;
+export type UiTheme = typeof UI_THEMES[number];
+
+export function isUiTheme(value: string | null): value is UiTheme {
+  return UI_THEMES.includes(value as UiTheme);
+}
+
+export function usesDesignSystemTheme(uiTheme: UiTheme): boolean {
+  return uiTheme === "aurora" || uiTheme === "abyssal-vent" || uiTheme === "obsidian-sand";
+}
 
 interface AppState {
   theme: "dark" | "light" | "system";
@@ -75,7 +92,7 @@ Load and persist them independently:
 
 ```ts
 api.settingGet("ui.theme").then((saved) => {
-  if (saved === "classic" || saved === "aurora") setUiTheme(saved);
+  if (isUiTheme(saved)) setUiTheme(saved);
 });
 
 api.settingGet("theme").then((saved) => {
@@ -94,11 +111,31 @@ document.body.classList.toggle("theme-light", !isDark);
 
 Every rendered window must apply the same boundary contract. This includes detached or secondary windows such as quick-edit, not only the main app shell. Aurora CSS tokens are scoped through both `data-ui-theme` and `theme-dark/theme-light`; setting only the `<html>` attributes can leave the body in the wrong color mode.
 
+**Adding a new UI theme**:
+
+1. Add the id to `UI_THEMES` and decide whether `usesDesignSystemTheme()` should return true for it.
+2. Import a theme index CSS file from `app/src/main.tsx`; the index should own imports for tokens, base, components, layout, page styles, and app overrides.
+3. Scope theme CSS with `[data-ui-theme="<id>"]`; light/dark differences should combine `data-theme` and body color-mode classes where needed.
+4. Add the theme option in `SettingsPage`, including preview CSS and typed i18n keys for both `zh` and `en`.
+5. Replace any loading guard that enumerates old theme ids with `isUiTheme(saved)`.
+6. Verify the main window and secondary windows load the same saved `ui.theme`.
+
+**Required check**:
+
+```bash
+rg 'uiTheme === "|savedUiTheme ===|saved === "classic"|saved === "aurora"' app/src
+```
+
+Every remaining hard-coded theme comparison must be intentional and local to a branch where individual theme behavior differs.
+
 **Related**:
 - `app/src/stores/app.ts`
 - `app/src/App.tsx`
 - `app/src/features/settings/SettingsPage.tsx`
 - `app/src/features/quick-edit/QuickEditWindow.tsx`
+- `app/src/main.tsx`
+- `app/src/styles/abyssal-vent-index.css`
+- `app/src/styles/obsidian-sand-index.css`
 
 ---
 

@@ -1,6 +1,6 @@
 /*
  * tokens.css - DdShell 设计令牌（双主题）
- * 风格：深海热泉 / Abyssal Vent
+ * 风格：渊泉 / Abyssal Vent
  * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
  */
 
@@ -22,7 +22,7 @@
   --fg-disabled: #40575A;
   --fg-on-accent: #031012;
 
-  /* -- Accent (深海热泉核心色) -- */
+  /* -- Accent (渊泉核心色) -- */
   --accent-violet: #FF7A3D;     /* 熔橙端，保留变量名兼容页面 CSS */
   --accent-cyan: #43E8D8;       /* 热泉青，保留变量名兼容页面 CSS */
   --accent: #43E8D8;

@@ -1,0 +1,219 @@
+/*
+ * App-specific Obsidian Sand color layer.
+ * Layout stays owned by the existing app/Aurora rules; this file only changes
+ * theme color, background, border color, and shadow treatment.
+ */
+
+[data-ui-theme="obsidian-sand"] .glass-surface,
+[data-ui-theme="obsidian-sand"] .glass-card {
+  border-color: var(--border-default);
+}
+
+[data-ui-theme="obsidian-sand"] .app-titlebar,
+[data-ui-theme="obsidian-sand"] .app-sidebar,
+[data-ui-theme="obsidian-sand"] .app-statusbar {
+  border-color: var(--border-default);
+  background:
+    linear-gradient(180deg, rgba(238, 235, 224, 0.050), rgba(238, 235, 224, 0.014)),
+    var(--glass-bg);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(238, 235, 224, 0.065);
+}
+
+[data-ui-theme="obsidian-sand"] .app-main-frame,
+[data-ui-theme="obsidian-sand"] .settings-pane-frame {
+  border-color: var(--border-default);
+  background:
+    linear-gradient(180deg, rgba(238, 235, 224, 0.032), rgba(238, 235, 224, 0.010)),
+    rgba(16, 17, 19, 0.56);
+  box-shadow: var(--shadow-popover), inset 0 1px 0 rgba(238, 235, 224, 0.050);
+}
+
+[data-theme="light"][data-ui-theme="obsidian-sand"] .app-titlebar,
+[data-theme="light"][data-ui-theme="obsidian-sand"] .app-sidebar,
+[data-theme="light"][data-ui-theme="obsidian-sand"] .app-statusbar {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.86), rgba(255, 253, 247, 0.66)),
+    var(--glass-bg);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.76);
+}
+
+[data-theme="light"][data-ui-theme="obsidian-sand"] .app-main-frame,
+[data-theme="light"][data-ui-theme="obsidian-sand"] .settings-pane-frame {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.86), rgba(255, 253, 247, 0.68)),
+    rgba(250, 249, 244, 0.58);
+}
+
+[data-ui-theme="obsidian-sand"] .app-sidebar__brand,
+[data-ui-theme="obsidian-sand"] .settings-nav-button[data-active="true"] {
+  background:
+    linear-gradient(135deg, rgba(116, 217, 204, 0.12), rgba(244, 239, 227, 0.09) 48%, rgba(142, 144, 137, 0.08)),
+    rgba(238, 235, 224, 0.024);
+}
+
+[data-theme="light"][data-ui-theme="obsidian-sand"] .app-sidebar__brand,
+[data-theme="light"][data-ui-theme="obsidian-sand"] .settings-nav-button[data-active="true"] {
+  background:
+    linear-gradient(135deg, rgba(44, 149, 138, 0.10), rgba(237, 232, 219, 0.14) 48%, rgba(86, 91, 87, 0.055)),
+    rgba(255, 253, 247, 0.62);
+}
+
+[data-ui-theme="obsidian-sand"] .app-sidebar__footer,
+[data-ui-theme="obsidian-sand"] .settings-nav-empty,
+[data-ui-theme="obsidian-sand"] .settings-hero-card {
+  border-color: rgba(216, 209, 191, 0.18);
+}
+
+[data-theme="light"][data-ui-theme="obsidian-sand"] .app-sidebar__footer,
+[data-theme="light"][data-ui-theme="obsidian-sand"] .settings-nav-empty,
+[data-theme="light"][data-ui-theme="obsidian-sand"] .settings-hero-card {
+  border-color: rgba(44, 149, 138, 0.18);
+}
+
+[data-ui-theme="obsidian-sand"] .settings-nav-stat,
+[data-ui-theme="obsidian-sand"] .settings-nav-button:hover,
+[data-ui-theme="obsidian-sand"] .settings-nav-empty {
+  background:
+    linear-gradient(135deg, rgba(116, 217, 204, 0.075), rgba(244, 239, 227, 0.060) 48%, rgba(142, 144, 137, 0.050)),
+    rgba(238, 235, 224, 0.022);
+}
+
+[data-theme="light"][data-ui-theme="obsidian-sand"] .settings-nav-stat,
+[data-theme="light"][data-ui-theme="obsidian-sand"] .settings-nav-button:hover,
+[data-theme="light"][data-ui-theme="obsidian-sand"] .settings-nav-empty {
+  background:
+    linear-gradient(135deg, rgba(44, 149, 138, 0.075), rgba(237, 232, 219, 0.16) 48%, rgba(86, 91, 87, 0.040)),
+    rgba(255, 253, 247, 0.70);
+}
+
+[data-ui-theme="obsidian-sand"] .settings-nav-button__icon {
+  background:
+    linear-gradient(180deg, rgba(238, 235, 224, 0.075), rgba(238, 235, 224, 0.020)),
+    var(--bg-elevated);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
+[data-ui-theme="obsidian-sand"] .settings-nav-button[data-active="true"] .settings-nav-button__icon {
+  background:
+    linear-gradient(135deg, rgba(116, 217, 204, 0.18), rgba(244, 239, 227, 0.14)),
+    var(--bg-elevated);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="obsidian-sand"] .settings-account-card__avatar {
+  box-shadow: 0 12px 26px var(--accent-glow);
+}
+
+[data-ui-theme="obsidian-sand"] .settings-floatbar > div {
+  border-color: rgba(216, 209, 191, 0.22);
+  background:
+    linear-gradient(180deg, rgba(238, 235, 224, 0.065), rgba(238, 235, 224, 0.022)),
+    rgba(16, 17, 19, 0.84);
+}
+
+[data-theme="light"][data-ui-theme="obsidian-sand"] .settings-floatbar > div {
+  border-color: rgba(44, 149, 138, 0.20);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.90), rgba(255, 253, 247, 0.72)),
+    rgba(250, 249, 244, 0.76);
+}
+
+[data-ui-theme="obsidian-sand"] .theme-option-card {
+  background: var(--bg-base);
+  border-color: var(--border-strong);
+}
+
+[data-theme="dark"][data-ui-theme="obsidian-sand"] .theme-option-card {
+  border-color: rgba(238, 235, 224, 0.24);
+}
+
+[data-theme="light"][data-ui-theme="obsidian-sand"] .theme-option-card {
+  background: var(--bg-surface);
+  border-color: rgba(31, 33, 32, 0.18);
+}
+
+[data-ui-theme="obsidian-sand"] .theme-option-card:hover,
+[data-ui-theme="obsidian-sand"] .theme-option-card[data-active="true"] {
+  border-color: var(--accent);
+}
+
+[data-ui-theme="obsidian-sand"] .theme-option-card[data-active="true"] {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+[data-ui-theme="obsidian-sand"] .theme-option-card__check {
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  border-color: var(--border-strong);
+}
+
+[data-ui-theme="obsidian-sand"] .theme-option-card__check--active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--fg-on-accent);
+}
+
+[data-ui-theme="obsidian-sand"] .lang-chip {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+  color: var(--fg-secondary);
+}
+
+[data-ui-theme="obsidian-sand"] .lang-chip:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="obsidian-sand"] .lang-chip--active {
+  background:
+    linear-gradient(135deg, rgba(116, 217, 204, 0.14), rgba(244, 239, 227, 0.13) 48%, rgba(142, 144, 137, 0.10)),
+    var(--bg-elevated);
+  border-color: rgba(216, 209, 191, 0.46);
+  color: var(--fg-primary);
+  box-shadow: 0 0 0 1px rgba(216, 209, 191, 0.16),
+              0 0 14px rgba(116, 217, 204, 0.10);
+}
+
+[data-theme="light"][data-ui-theme="obsidian-sand"] .lang-chip--active {
+  background:
+    linear-gradient(135deg, rgba(44, 149, 138, 0.10), rgba(237, 232, 219, 0.18) 48%, rgba(86, 91, 87, 0.06)),
+    var(--bg-elevated);
+  border-color: rgba(44, 149, 138, 0.38);
+  color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(44, 149, 138, 0.14);
+}
+
+[data-ui-theme="obsidian-sand"] .toggle-switch,
+[data-ui-theme="obsidian-sand"] .segmented-control {
+  border-color: var(--border-default);
+  background: var(--bg-elevated);
+}
+
+[data-ui-theme="obsidian-sand"] .toggle-switch[data-state="on"],
+[data-ui-theme="obsidian-sand"] .segmented-control .seg-pill {
+  background: var(--accent-gradient);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+[data-ui-theme="obsidian-sand"] .toggle-switch[data-state="off"],
+[data-ui-theme="obsidian-sand"] .range-mac {
+  background: var(--bg-active);
+}
+
+[data-ui-theme="obsidian-sand"] .range-mac::-webkit-slider-thumb,
+[data-ui-theme="obsidian-sand"] .range-mac::-moz-range-thumb {
+  background: var(--accent-gradient);
+  border-color: var(--bg-app);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+[data-ui-theme="obsidian-sand"] .terminal-disconnect-card {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-bg-surface) 92%, transparent), color-mix(in srgb, var(--color-bg-surface) 92%, transparent)),
+    var(--accent-gradient);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  border-color: transparent;
+}

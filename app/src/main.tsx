@@ -5,6 +5,7 @@ import { QuickEditWindow } from "./features/quick-edit/QuickEditWindow";
 import "./styles.css";
 import "./styles/aurora-index.css";
 import "./styles/abyssal-vent-index.css";
+import "./styles/obsidian-sand-index.css";
 
 // Disable default webview context menu to prevent opening browser actions.
 document.addEventListener("contextmenu", (event) => {

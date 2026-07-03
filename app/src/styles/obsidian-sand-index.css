@@ -1,0 +1,9 @@
+@import "./obsidian-sand/tokens.css";
+@import "./obsidian-sand/base.css";
+@import "./obsidian-sand/components.css";
+@import "./obsidian-sand/layout.css";
+@import "./obsidian-sand/pages/settings.css";
+@import "./obsidian-sand/pages/connections.css";
+@import "./obsidian-sand/pages/terminal.css";
+@import "./obsidian-sand/pages/sftp.css";
+@import "./obsidian-sand/app-overrides.css";

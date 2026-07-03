@@ -1562,11 +1562,13 @@ export function SettingsPage() {
 
   const activeTabMeta = tabItems.find((item) => item.value === activeTab) ?? tabItems[0];
   const hasFilteredTabs = filteredTabItems.length > 0;
-  const currentUiThemeLabel = committedUiTheme === "abyssal-vent"
-    ? t("settings.uiThemeAbyssalVent")
-    : committedUiTheme === "aurora"
-      ? t("settings.uiThemeAurora")
-      : t("settings.uiThemeClassic");
+  const currentUiThemeLabel = committedUiTheme === "obsidian-sand"
+    ? t("settings.uiThemeObsidianSand")
+    : committedUiTheme === "abyssal-vent"
+      ? t("settings.uiThemeAbyssalVent")
+      : committedUiTheme === "aurora"
+        ? t("settings.uiThemeAurora")
+        : t("settings.uiThemeClassic");
   const currentModeLabel = committedTheme === "dark" ? t("settings.dark") : committedTheme === "light" ? t("settings.light") : t("settings.system");
   const activePanelId = `settings-panel-${activeTab}`;
   const activeTabId = `settings-tab-${activeTab}`;
@@ -1718,6 +1720,12 @@ export function SettingsPage() {
                   title: t("settings.uiThemeAbyssalVent"),
                   description: t("settings.uiThemeAbyssalVentDesc"),
                   previewClassName: "theme-preview theme-preview--abyssal-vent",
+                },
+                {
+                  value: "obsidian-sand",
+                  title: t("settings.uiThemeObsidianSand"),
+                  description: t("settings.uiThemeObsidianSandDesc"),
+                  previewClassName: "theme-preview theme-preview--obsidian-sand",
                 },
               ] as const).map((option) => {
                 const active = uiTheme === option.value;
