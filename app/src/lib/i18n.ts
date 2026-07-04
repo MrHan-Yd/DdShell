@@ -475,6 +475,8 @@ const dict = {
   "settings.uiThemeAbyssalVentDesc": { zh: "采用深海蓝黑、热泉青、硫黄绿与熔橙微光的开发工具视觉。", en: "Use a deep-sea blue-black interface with vent cyan, sulfur green, and molten orange highlights." },
   "settings.uiThemeObsidianSand": { zh: "曜砂", en: "Obsidian Sand" },
   "settings.uiThemeObsidianSandDesc": { zh: "采用曜石黑、铂砂灰与冷青反射的克制工具型视觉。", en: "Use an obsidian-black, platinum-sand, and cool-cyan reflective tool theme." },
+  "settings.uiThemeCloudrift": { zh: "云岚", en: "Cloudrift" },
+  "settings.uiThemeCloudriftDesc": { zh: "采用高空蓝、云白米色与柔灰阴影的清透浅色工具视觉。", en: "Use an airy sky-blue, cloud-white, and soft-shadow tool theme." },
   "settings.theme": { zh: "主题", en: "Theme" },
   "settings.themeDesc": { zh: "选择应用的配色方案", en: "Choose the application color scheme" },
   "settings.colorMode": { zh: "颜色模式", en: "Color Mode" },

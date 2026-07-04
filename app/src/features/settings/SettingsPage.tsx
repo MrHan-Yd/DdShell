@@ -1562,13 +1562,15 @@ export function SettingsPage() {
 
   const activeTabMeta = tabItems.find((item) => item.value === activeTab) ?? tabItems[0];
   const hasFilteredTabs = filteredTabItems.length > 0;
-  const currentUiThemeLabel = committedUiTheme === "obsidian-sand"
-    ? t("settings.uiThemeObsidianSand")
-    : committedUiTheme === "abyssal-vent"
-      ? t("settings.uiThemeAbyssalVent")
-      : committedUiTheme === "aurora"
-        ? t("settings.uiThemeAurora")
-        : t("settings.uiThemeClassic");
+  const currentUiThemeLabel = committedUiTheme === "cloudrift"
+    ? t("settings.uiThemeCloudrift")
+    : committedUiTheme === "obsidian-sand"
+      ? t("settings.uiThemeObsidianSand")
+      : committedUiTheme === "abyssal-vent"
+        ? t("settings.uiThemeAbyssalVent")
+        : committedUiTheme === "aurora"
+          ? t("settings.uiThemeAurora")
+          : t("settings.uiThemeClassic");
   const currentModeLabel = committedTheme === "dark" ? t("settings.dark") : committedTheme === "light" ? t("settings.light") : t("settings.system");
   const activePanelId = `settings-panel-${activeTab}`;
   const activeTabId = `settings-tab-${activeTab}`;
@@ -1701,7 +1703,7 @@ export function SettingsPage() {
         {activeTab === "general" && (<>
         <Section title={t("settings.uiThemeSection")} description={t("settings.uiThemeDesc")}>
           <div className="space-y-3">
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="theme-option-grid grid gap-3 md:grid-cols-2">
               {([
                 {
                   value: "classic",
@@ -1726,6 +1728,12 @@ export function SettingsPage() {
                   title: t("settings.uiThemeObsidianSand"),
                   description: t("settings.uiThemeObsidianSandDesc"),
                   previewClassName: "theme-preview theme-preview--obsidian-sand",
+                },
+                {
+                  value: "cloudrift",
+                  title: t("settings.uiThemeCloudrift"),
+                  description: t("settings.uiThemeCloudriftDesc"),
+                  previewClassName: "theme-preview theme-preview--cloudrift",
                 },
               ] as const).map((option) => {
                 const active = uiTheme === option.value;
