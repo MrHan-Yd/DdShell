@@ -242,6 +242,7 @@
   position: relative;
   z-index: 1;
   background: transparent;
+  white-space: nowrap;
 }
 
 [data-ui-theme="lumenreef"] .seg-control > .seg.is-active {
@@ -251,32 +252,6 @@
 [data-ui-theme="lumenreef"] .seg-control > .seg.is-active svg {
   color: currentColor;
   filter: none;
-}
-
-[data-ui-theme="lumenreef"] .settings-page--aurora .settings-row__control {
-  --settings-control-width: 300px;
-  justify-content: flex-end;
-}
-
-[data-ui-theme="lumenreef"] .settings-page--aurora .settings-row__control > .seg-control,
-[data-ui-theme="lumenreef"] .settings-page--aurora .settings-row__control > .select-wrapper {
-  width: min(var(--settings-control-width), 100%);
-}
-
-[data-ui-theme="lumenreef"] .settings-page--aurora .settings-row__control > .seg-control {
-  justify-content: stretch;
-}
-
-[data-ui-theme="lumenreef"] .settings-page--aurora .settings-row__control > .seg-control > .seg {
-  flex: 1 1 0;
-  min-width: 0;
-  padding: 0 var(--space-2);
-}
-
-[data-ui-theme="lumenreef"] .settings-page--aurora .settings-row__control > .select-wrapper > .select {
-  width: 100%;
-  min-width: 0;
-  text-align: left;
 }
 
 [data-ui-theme="lumenreef"] .toggle-switch,
