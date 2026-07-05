@@ -472,3 +472,37 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 71: 新增珊光主题
+
+**Date**: 2026-07-05
+**Task**: 新增珊光主题
+**Branch**: `main`
+
+### Summary
+
+新增珊光主题并修正设置控件、连接管理、终端、SFTP 等真实组件样式对齐问题。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7b940d8` | (see git log) |
+| `12e7ad5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
