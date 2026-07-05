@@ -162,8 +162,7 @@
 
 [data-ui-theme="draftgrid"] .theme-option-card__check--active {
   border-color: var(--accent);
-  background: var(--accent);
-  color: var(--fg-on-accent);
+  background: transparent;
 }
 
 [data-ui-theme="draftgrid"] .lang-chip {

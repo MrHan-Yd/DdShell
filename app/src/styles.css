@@ -1232,7 +1232,7 @@ body {
 }
 
 .theme-option-card:hover {
-  transform: translateY(-1px);
+  transform: none;
   border-color: var(--color-text-muted);
   box-shadow: var(--shadow-floating);
 }
@@ -1249,15 +1249,29 @@ body {
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  border: 1px solid var(--color-border);
+  border: 2px solid var(--color-border);
   color: transparent;
   background: transparent;
+  padding: 0;
+  overflow: hidden;
   transition: all var(--duration-base) var(--ease-smooth);
+}
+
+.theme-option-card__check svg {
+  display: none;
 }
 
 .theme-option-card__check--active {
   border-color: var(--color-accent);
-  color: white;
+  background: transparent;
+}
+
+.theme-option-card__check--active::after {
+  content: "";
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   background: var(--color-accent);
 }
 
@@ -1309,8 +1323,11 @@ body {
 
 [data-ui-theme="classic"] .theme-option-card__check--active {
   border-color: var(--accent);
+  background: transparent;
+}
+
+[data-ui-theme="classic"] .theme-option-card__check--active::after {
   background: var(--accent);
-  color: var(--fg-on-accent);
 }
 
 [data-ui-theme="classic"] .theme-option-grid {

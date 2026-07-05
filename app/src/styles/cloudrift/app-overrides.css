@@ -187,8 +187,7 @@
 
 [data-ui-theme="cloudrift"] .theme-option-card__check--active {
   border-color: var(--accent);
-  background: var(--accent);
-  color: var(--fg-on-accent);
+  background: transparent;
 }
 
 [data-ui-theme="cloudrift"] .lang-chip {
