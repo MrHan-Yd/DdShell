@@ -1,0 +1,5 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend task entry point and guideline index for terminal split UI changes."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Contains terminal split pane contracts, overlay/picker guidance, and theme reset pitfalls relevant to TerminalPage UI changes."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Frontend state-management conventions for store-backed UI behavior and persisted app state boundaries."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Frontend quality rules, including terminal resize/layout side-effect constraints and required verification patterns."}
+{"file":".trellis/spec/frontend/type-safety.md","reason":"Type-safety baseline for TypeScript changes in terminal store/page code."}
