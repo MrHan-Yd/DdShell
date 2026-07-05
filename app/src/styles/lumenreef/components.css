@@ -1,0 +1,382 @@
+/* Auto-scoped Lumenreef CSS mapped from ui/ui-lumenreef/styles/components.css. Do not edit ui/styles sources. */
+/*
+ * components.css — 通用组件样式
+ * 按钮、输入框、卡片、徽章、tag、popover、表单等
+ */
+
+/* ─────────────────────────── Button ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 30px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  user-select: none;
+  transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth), border-color var(--d-fast) var(--ease-smooth), box-shadow var(--d-fast) var(--ease-smooth), transform var(--d-fast) var(--ease-smooth);
+}
+[data-ui-theme="lumenreef"] .btn:active{ transform: scale(0.97); }
+[data-ui-theme="lumenreef"] .btn:disabled{ opacity: 0.5; cursor: not-allowed; }
+[data-ui-theme="lumenreef"] .btn svg,
+[data-ui-theme="lumenreef"] .theme-toggle svg,
+[data-ui-theme="lumenreef"] .input-icon svg,
+[data-ui-theme="lumenreef"] .list-item .icon svg,
+[data-ui-theme="lumenreef"] .avatar svg{
+  flex-shrink: 0;
+  stroke-width: 1.9;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 3px rgba(143, 231, 223, 0.12));
+}
+[data-ui-theme="lumenreef"] .btn:not(.btn-primary):not(.btn-danger) svg,
+[data-ui-theme="lumenreef"] .input-icon svg,
+[data-ui-theme="lumenreef"] .list-item .icon svg{
+  color: var(--icon-stroke-muted);
+}
+[data-ui-theme="lumenreef"] .btn:not(.btn-primary):not(.btn-danger):hover svg,
+[data-ui-theme="lumenreef"] .list-item:hover .icon svg,
+[data-ui-theme="lumenreef"] .list-item.is-active .icon svg{
+  color: var(--icon-stroke);
+}
+[data-ui-theme="lumenreef"] .app svg[width="10"],
+[data-ui-theme="lumenreef"] .app svg[width="11"],
+[data-ui-theme="lumenreef"] .app svg[width="12"],
+[data-ui-theme="lumenreef"] .app svg[width="13"],
+[data-ui-theme="lumenreef"] .app svg[width="14"],
+[data-ui-theme="lumenreef"] .app svg[width="15"],
+[data-ui-theme="lumenreef"] .app svg[width="16"],
+[data-ui-theme="lumenreef"] .page-overlay svg[width="12"],
+[data-ui-theme="lumenreef"] .page-overlay svg[width="13"],
+[data-ui-theme="lumenreef"] .page-overlay svg[width="14"]{
+  stroke-width: 1.9;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 3px rgba(143, 231, 223, 0.12));
+}
+[data-ui-theme="lumenreef"] .meta-item svg,
+[data-ui-theme="lumenreef"] .pane-icon svg,
+[data-ui-theme="lumenreef"] .tab-close svg,
+[data-ui-theme="lumenreef"] .tab-new svg,
+[data-ui-theme="lumenreef"] .file-row .col-name svg,
+[data-ui-theme="lumenreef"] .breadcrumb svg,
+[data-ui-theme="lumenreef"] .td-title svg,
+[data-ui-theme="lumenreef"] .td-dir svg,
+[data-ui-theme="lumenreef"] .td-pct svg,
+[data-ui-theme="lumenreef"] .wf-group-title svg,
+[data-ui-theme="lumenreef"] .wf-step-handle svg,
+[data-ui-theme="lumenreef"] .wf-step-more svg,
+[data-ui-theme="lumenreef"] .wf-step-add-btn svg,
+[data-ui-theme="lumenreef"] .proc-act svg,
+[data-ui-theme="lumenreef"] .status-item svg,
+[data-ui-theme="lumenreef"] .badge svg,
+[data-ui-theme="lumenreef"] .seg svg,
+[data-ui-theme="lumenreef"] .chart-tab svg,
+[data-ui-theme="lumenreef"] .input-stepper-btn svg,
+[data-ui-theme="lumenreef"] .settings-row-control svg{
+  color: var(--icon-stroke-muted);
+  stroke-width: 1.9;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 3px rgba(143, 231, 223, 0.12));
+}
+[data-ui-theme="lumenreef"] .tab:hover svg,
+[data-ui-theme="lumenreef"] .tab.is-active svg,
+[data-ui-theme="lumenreef"] .tab-new:hover svg,
+[data-ui-theme="lumenreef"] .file-row:hover .col-name svg,
+[data-ui-theme="lumenreef"] .breadcrumb .crumb:hover svg,
+[data-ui-theme="lumenreef"] .td-row:hover svg,
+[data-ui-theme="lumenreef"] .wf-card:hover .meta-item svg,
+[data-ui-theme="lumenreef"] .wf-card.is-active .meta-item svg,
+[data-ui-theme="lumenreef"] .wf-step:hover svg,
+[data-ui-theme="lumenreef"] .wf-step.is-current svg,
+[data-ui-theme="lumenreef"] .proc-row:hover svg,
+[data-ui-theme="lumenreef"] .seg:hover svg,
+[data-ui-theme="lumenreef"] .seg.is-active svg,
+[data-ui-theme="lumenreef"] .input-stepper-btn:hover svg{
+  color: var(--icon-stroke);
+}
+[data-ui-theme="lumenreef"] .app svg[style*="--fg-muted"]{ color: var(--icon-stroke-muted) !important; }
+[data-ui-theme="lumenreef"] .app svg[style*="--accent"]{ color: var(--icon-stroke) !important; }
+[data-ui-theme="lumenreef"] .btn-primary{
+  background: var(--accent-gradient);
+  color: var(--fg-on-accent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.26) inset, 0 8px 22px var(--accent-glow), 0 0 18px rgba(255, 111, 97, 0.10);
+}
+[data-ui-theme="lumenreef"] .btn-primary:hover{ filter: brightness(1.08); }
+[data-ui-theme="lumenreef"] .btn-primary:focus-visible{ outline: none; box-shadow: var(--shadow-glow); }
+[data-ui-theme="lumenreef"] .btn-secondary{
+  background: var(--bg-surface);
+  color: var(--fg-primary);
+  border: 1px solid var(--border-default);
+}
+[data-ui-theme="lumenreef"] .btn-secondary:hover{ background: var(--bg-active); border-color: var(--border-strong); }
+[data-ui-theme="lumenreef"] .btn-ghost{
+  background: transparent;
+  color: var(--fg-secondary);
+}
+[data-ui-theme="lumenreef"] .btn-ghost:hover{ background: var(--bg-hover); color: var(--fg-primary); }
+[data-ui-theme="lumenreef"] .btn-danger{
+  background: var(--danger-subtle);
+  color: var(--danger);
+}
+[data-ui-theme="lumenreef"] .btn-danger:hover{ background: var(--danger); color: var(--fg-on-accent); }
+[data-ui-theme="lumenreef"] .btn-icon{
+  position: relative;
+  overflow: hidden;
+  width: 28px; height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  background-image: var(--icon-plate);
+  border: 1px solid var(--border-subtle);
+  box-shadow: inset 0 1px 0 rgba(232, 255, 249, 0.10);
+}
+[data-ui-theme="lumenreef"] .btn-icon::before,
+[data-ui-theme="lumenreef"] .avatar::before{
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--icon-shine), transparent 36%);
+  opacity: 0.22;
+  pointer-events: none;
+}
+[data-ui-theme="lumenreef"] .btn-icon svg,
+[data-ui-theme="lumenreef"] .avatar svg{
+  position: relative;
+  z-index: 1;
+}
+[data-ui-theme="lumenreef"] .btn-icon.btn-ghost{ color: var(--icon-stroke-muted); }
+[data-ui-theme="lumenreef"] .btn-icon.btn-ghost:hover{
+  color: var(--icon-stroke);
+  border-color: var(--border-strong);
+  box-shadow: inset 0 1px 0 rgba(232, 255, 249, 0.14), 0 0 0 1px var(--accent-subtle), 0 8px 18px rgba(0, 0, 0, 0.16), 0 0 16px rgba(255, 111, 97, 0.08);
+}
+[data-ui-theme="lumenreef"] .btn-sm{ height: 26px; font-size: var(--fs-xs); padding: 0 var(--space-2); }
+[data-ui-theme="lumenreef"] .btn-lg{ height: 38px; font-size: var(--fs-md); padding: 0 var(--space-5); }
+
+/* ─────────────────────────── Input ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .input{
+  width: 100%;
+  height: 30px;
+  padding: 0 var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--fg-primary);
+  font-size: var(--fs-sm);
+  outline: none;
+  transition: border-color var(--d-fast) var(--ease-smooth), box-shadow var(--d-fast) var(--ease-smooth);
+}
+[data-ui-theme="lumenreef"] .input::placeholder{ color: var(--fg-muted); }
+[data-ui-theme="lumenreef"] .input:hover{ border-color: var(--border-strong); }
+[data-ui-theme="lumenreef"] .input:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+[data-ui-theme="lumenreef"] .input-with-icon{
+  position: relative;
+}
+[data-ui-theme="lumenreef"] .input-with-icon .input{ padding-left: 32px; }
+[data-ui-theme="lumenreef"] .input-with-icon .input-icon{
+  position: absolute;
+  left: 10px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-muted);
+  pointer-events: none;
+  display: inline-flex;
+}
+[data-ui-theme="lumenreef"] .label{
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--fg-secondary);
+  margin-bottom: var(--space-2);
+  letter-spacing: 0.02em;
+}
+[data-ui-theme="lumenreef"] .field{ display: flex; flex-direction: column; gap: var(--space-1); }
+
+/* ─────────────────────────── Card ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .card{
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+[data-ui-theme="lumenreef"] .card-padded{ padding: var(--space-5); }
+
+/* Glow card：用渐变描边的特殊卡片 */
+
+[data-ui-theme="lumenreef"] .card-glow{
+  position: relative;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 1px;
+  background-image: var(--accent-gradient-soft);
+}
+[data-ui-theme="lumenreef"] .card-glow > .inner{
+  background: var(--bg-surface);
+  border-radius: calc(var(--radius-lg) - 1px);
+  padding: var(--space-5);
+}
+
+/* ─────────────────────────── Badge / Tag / Pill ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .badge{
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 18px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  background: var(--bg-active);
+  color: var(--fg-secondary);
+}
+[data-ui-theme="lumenreef"] .badge-success{ background: var(--success-subtle); color: var(--success); }
+[data-ui-theme="lumenreef"] .badge-warning{ background: var(--warning-subtle); color: var(--warning); }
+[data-ui-theme="lumenreef"] .badge-danger{ background: var(--danger-subtle);  color: var(--danger); }
+[data-ui-theme="lumenreef"] .badge-info{ background: var(--info-subtle);    color: var(--info); }
+[data-ui-theme="lumenreef"] .badge-accent{ background: var(--accent-subtle);  color: var(--accent); }
+[data-ui-theme="lumenreef"] .dot{
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+}
+[data-ui-theme="lumenreef"] .dot-success{ background: var(--success); box-shadow: 0 0 8px var(--success); }
+[data-ui-theme="lumenreef"] .dot-warning{ background: var(--warning); }
+[data-ui-theme="lumenreef"] .dot-danger{ background: var(--danger); }
+[data-ui-theme="lumenreef"] .dot-accent{ background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+[data-ui-theme="lumenreef"] .tag{
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  font-size: var(--fs-xs);
+  color: var(--fg-secondary);
+}
+
+/* ─────────────────────────── Toolbar ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .toolbar{
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* ─────────────────────────── Section ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .section-title{
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  font-weight: var(--fw-medium);
+}
+
+/* ─────────────────────────── List item ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .list-item{
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--fg-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
+}
+[data-ui-theme="lumenreef"] .list-item:hover{ background: var(--bg-hover); color: var(--fg-primary); }
+[data-ui-theme="lumenreef"] .list-item.is-active{ background: var(--accent-subtle); color: var(--fg-primary); }
+[data-ui-theme="lumenreef"] .list-item .icon{ color: var(--icon-stroke-muted); flex-shrink: 0; }
+[data-ui-theme="lumenreef"] .list-item.is-active .icon{ color: var(--accent); }
+
+/* ─────────────────────────── Popover / floating panel ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .popover{
+  position: absolute;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popover);
+  overflow: hidden;
+  min-width: 240px;
+}
+
+/* ─────────────────────────── Avatar/Icon container ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .avatar{
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--accent-gradient-soft);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+[data-ui-theme="lumenreef"] .avatar-sm{ width: 24px; height: 24px; border-radius: var(--radius-sm); }
+[data-ui-theme="lumenreef"] .avatar-lg{ width: 44px; height: 44px; border-radius: var(--radius-lg); }
+
+/* ─────────────────────────── Form row ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .form-grid{
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* ─────────────────────────── KBD ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .kbd{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  color: var(--fg-secondary);
+  box-shadow: 0 1px 0 var(--border-default);
+}
+
+/* ─────────────────────────── Theme toggle (used on every page) ─────────────────────────── */
+
+[data-ui-theme="lumenreef"] .theme-toggle{
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  gap: 0;
+}
+[data-ui-theme="lumenreef"] .theme-toggle button{
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+[data-ui-theme="lumenreef"] .theme-toggle button svg{ color: currentColor; filter: none; }
+[data-ui-theme="lumenreef"] .theme-toggle button.is-active{
+  background: var(--accent-gradient);
+  color: var(--fg-on-accent);
+}

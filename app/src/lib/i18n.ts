@@ -485,6 +485,8 @@ const dict = {
   "settings.uiThemeGraphiteForgeDesc": { zh: "采用石墨黑灰、焊弧青、信号蓝与安全黄刻线的工业控制台工具视觉。", en: "Use graphite greys, arc cyan, signal blue, and safety-yellow scoring for an industrial console tool theme." },
   "settings.uiThemeInkpaper": { zh: "墨纸", en: "Inkpaper" },
   "settings.uiThemeInkpaperDesc": { zh: "采用宣纸白、墨黑文字、朱砂红印记与矿物蓝辅助的浅色工具视觉。", en: "Use paper-white surfaces, ink-black text, cinnabar accents, and mineral-blue support tones for a light tool theme." },
+  "settings.uiThemeLumenReef": { zh: "珊光", en: "Lumen Reef" },
+  "settings.uiThemeLumenReefDesc": { zh: "采用深海蓝绿、贝母白、浅水青与珊瑚粉橙点睛的清透工具视觉。", en: "Use deep reef blue-greens, nacre highlights, shallow-water cyan, and coral accents for a clear tool theme." },
   "settings.theme": { zh: "主题", en: "Theme" },
   "settings.themeDesc": { zh: "选择应用的配色方案", en: "Choose the application color scheme" },
   "settings.colorMode": { zh: "颜色模式", en: "Color Mode" },

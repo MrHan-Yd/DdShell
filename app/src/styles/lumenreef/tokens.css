@@ -1,0 +1,271 @@
+/*
+ * Lumenreef tokens mapped from ui/ui-lumenreef/styles/tokens.css.
+ * The theme keeps the existing app layout and applies the Lumen Reef
+ * design-system colors, reef-glass surfaces, coral accents, and light/dark modes.
+ */
+
+[data-ui-theme="lumenreef"],
+[data-ui-theme="lumenreef"] body.theme-dark,
+body.theme-dark [data-ui-theme="lumenreef"] {
+  /* ── Background layers ── */
+  --bg-app: #031014;            /* 应用最底层（窗口背景） */
+  --bg-base: #061C22;           /* 主区域背景 */
+  --bg-elevated: #082832;       /* 次级面板（侧栏、状态栏、tab 栏） */
+  --bg-surface: #0B323B;        /* 卡片、下拉、popover */
+  --bg-overlay: rgba(3, 12, 15, 0.78); /* 遮罩 */
+  --bg-hover: rgba(143, 231, 223, 0.075);
+  --bg-active: rgba(255, 111, 97, 0.13);
+
+  /* ── Foreground / text ── */
+  --fg-primary: #F5FFFC;
+  --fg-secondary: #CBEAE5;
+  --fg-muted: #8FB8B4;
+  --fg-disabled: #557477;
+  --fg-on-accent: #031014;
+
+  /* ── Accent (珊光礁核心色) ── */
+  --accent-violet: #FF6F61;     /* 珊瑚端，保留变量名兼容页面 CSS */
+  --accent-cyan: #8FE7DF;       /* 浅水荧光端，保留变量名兼容页面 CSS */
+  --accent: #FF7E72;
+  --accent-hover: #FF9A8E;
+  --accent-subtle: rgba(255, 111, 97, 0.14);
+  --accent-glow: rgba(143, 231, 223, 0.30);
+  --accent-gradient: linear-gradient(135deg, #8FE7DF 0%, #E8FFF9 38%, #FFB199 66%, #FF6F61 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(143, 231, 223, 0.16) 0%, rgba(232, 255, 249, 0.10) 46%, rgba(255, 111, 97, 0.12) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(232, 255, 249, 0.13), rgba(143, 231, 223, 0.09) 46%, rgba(255, 111, 97, 0.075));
+  --icon-stroke: #DDFDF7;
+  --icon-stroke-muted: #92C4C0;
+  --icon-shine: rgba(232, 255, 249, 0.58);
+
+  /* ── Border ── */
+  --border-subtle: rgba(221, 253, 247, 0.075);
+  --border-default: rgba(221, 253, 247, 0.13);
+  --border-strong: rgba(221, 253, 247, 0.22);
+  --border-focus: var(--accent);
+
+  /* ── Status colors ── */
+  --success: #4ADE80;
+  --success-subtle: rgba(74, 222, 128, 0.14);
+  --warning: #FFD166;
+  --warning-subtle: rgba(255, 209, 102, 0.15);
+  --danger: #FF6B6B;
+  --danger-subtle: rgba(255, 107, 107, 0.15);
+  --info: #8FE7DF;
+  --info-subtle: rgba(143, 231, 223, 0.15);
+
+  /* Health: GOOD / FAIR / POOR */
+  --health-good: #4ADE80;
+  --health-fair: #FFD166;
+  --health-poor: #FF6B6B;
+
+  /* ── Terminal ANSI（在 .terminal-window 内使用） ── */
+  --term-bg: #031014;
+  --term-fg: #EFFFFA;
+  --term-cursor: #FF7E72;
+  --term-selection: rgba(143, 231, 223, 0.24);
+  --ansi-black: #08232A;
+  --ansi-red: #FF6B6B;
+  --ansi-green: #5AE3A2;
+  --ansi-yellow: #FFD166;
+  --ansi-blue: #75B9FF;
+  --ansi-magenta: #D69BFF;
+  --ansi-cyan: #8FE7DF;
+  --ansi-white: #F5FFFC;
+
+  /* ── Shadows / glow ── */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.34), 0 4px 14px rgba(0, 0, 0, 0.22);
+  --shadow-popover: 0 4px 8px rgba(0, 0, 0, 0.30), 0 18px 44px rgba(0, 0, 0, 0.48);
+  --shadow-glow: 0 0 0 1px rgba(255, 111, 97, 0.22), 0 0 24px rgba(143, 231, 223, 0.18), 0 0 34px rgba(255, 126, 114, 0.10);
+
+  /* ── Glass 效果（用于 Sidebar / Titlebar / StatusBar） ── */
+  --glass-bg: rgba(5, 25, 31, 0.86);
+  --glass-blur: 10px;
+
+  color-scheme: dark;
+}
+
+/* ─────────────────────────── Light theme ─────────────────────────── */
+[data-theme="light"][data-ui-theme="lumenreef"],
+[data-ui-theme="lumenreef"] body.theme-light,
+body.theme-light [data-ui-theme="lumenreef"] {
+  --bg-app: #EAF8F5;
+  --bg-base: #F8FFFC;
+  --bg-elevated: #DFF3EF;
+  --bg-surface: #FFFFFF;
+  --bg-overlay: rgba(241, 250, 247, 0.78);
+  --bg-hover: rgba(4, 52, 62, 0.055);
+  --bg-active: rgba(255, 111, 97, 0.115);
+
+  --fg-primary: #102A2F;
+  --fg-secondary: #375A60;
+  --fg-muted: #526F74;
+  --fg-disabled: #A9C5C6;
+  --fg-on-accent: #031014;
+
+  --accent-violet: #D94F48;
+  --accent-cyan: #0E8D93;
+  --accent: #D94F48;
+  --accent-hover: #B9403B;
+  --accent-subtle: rgba(255, 111, 97, 0.12);
+  --accent-glow: rgba(14, 141, 147, 0.20);
+  --accent-gradient: linear-gradient(135deg, #0E8D93 0%, #8FE7DF 36%, #FFF3E8 58%, #FF6F61 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(14, 141, 147, 0.12) 0%, rgba(143, 231, 223, 0.16) 48%, rgba(255, 111, 97, 0.10) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(143, 231, 223, 0.13) 48%, rgba(255, 111, 97, 0.09));
+  --icon-stroke: #0D7279;
+  --icon-stroke-muted: #526F74;
+  --icon-shine: rgba(255, 255, 255, 0.78);
+
+  --border-subtle: rgba(16, 42, 47, 0.08);
+  --border-default: rgba(16, 42, 47, 0.13);
+  --border-strong: rgba(16, 42, 47, 0.22);
+
+  --success: #16A34A;
+  --success-subtle: rgba(22, 163, 74, 0.10);
+  --warning: #A46A00;
+  --warning-subtle: rgba(255, 193, 84, 0.16);
+  --danger: #D33D3D;
+  --danger-subtle: rgba(211, 61, 61, 0.10);
+  --info: #0E8D93;
+  --info-subtle: rgba(14, 141, 147, 0.11);
+
+  --health-good: #16A34A;
+  --health-fair: #A46A00;
+  --health-poor: #D33D3D;
+
+  --term-bg: #031014;          /* 终端始终保持深色（即使在亮色主题下） */
+  --term-fg: #EFFFFA;
+  --term-cursor: #FF7E72;
+  --term-selection: rgba(143, 231, 223, 0.24);
+
+  --shadow-card: 0 1px 2px rgba(10, 35, 40, 0.05), 0 4px 16px rgba(10, 35, 40, 0.08);
+  --shadow-popover: 0 4px 12px rgba(10, 35, 40, 0.12), 0 24px 48px rgba(10, 35, 40, 0.14);
+  --shadow-glow: 0 0 0 1px rgba(255, 111, 97, 0.18), 0 0 24px rgba(14, 141, 147, 0.13), 0 0 30px rgba(255, 111, 97, 0.08);
+
+  --glass-bg: rgba(255, 255, 255, 0.76);
+  --glass-blur: 14px;
+
+  color-scheme: light;
+}
+
+/* ─────────────────────────── Sizing tokens ─────────────────────────── */
+[data-ui-theme="lumenreef"] {
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Type scale */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h: 36px;
+  --tabbar-h: 38px;
+  --statusbar-h: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
+}
+
+
+/* Bridge the existing React/Tailwind token names to the prototype token names. */
+[data-ui-theme="lumenreef"] {
+  --height-titlebar: var(--titlebar-h);
+  --width-sidebar: var(--sidebar-w);
+  --width-sidebar-collapsed: var(--sidebar-w-collapsed);
+  --height-tabbar: var(--tabbar-h);
+  --height-statusbar: var(--statusbar-h);
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --font-size-xs: var(--fs-xs);
+  --font-size-sm: var(--fs-sm);
+  --font-size-base: var(--fs-base);
+  --font-size-lg: var(--fs-lg);
+  --font-size-xl: var(--fs-xl);
+  --duration-fast: var(--d-fast);
+  --duration-base: var(--d-base);
+  --duration-panel: var(--d-panel);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+  --color-text-primary: var(--fg-primary);
+  --color-text-secondary: var(--fg-secondary);
+  --color-text-muted: var(--fg-muted);
+  --color-text-inverse: var(--fg-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-gradient: var(--accent-gradient);
+  --color-accent-glow: var(--accent-glow);
+  --color-fg-on-accent: var(--fg-on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: var(--info);
+  --color-good: var(--health-good);
+  --color-fair: var(--health-fair);
+  --color-poor: var(--health-poor);
+  --surface-window: var(--glass-bg);
+  --surface-card: var(--bg-surface);
+  --app-bg-image:
+    radial-gradient(ellipse 74% 42% at 50% -18%, rgba(143, 231, 223, 0.12), transparent 68%),
+    radial-gradient(ellipse 48% 30% at 86% 8%, rgba(255, 111, 97, 0.075), transparent 72%),
+    linear-gradient(180deg, rgba(232, 255, 249, 0.030), transparent 34%),
+    linear-gradient(180deg, var(--bg-app) 0%, var(--bg-base) 58%, var(--bg-app) 100%);
+  --app-shell-overlay:
+    linear-gradient(128deg, rgba(232, 255, 249, 0.040) 0%, transparent 18%),
+    linear-gradient(180deg, rgba(143, 231, 223, 0.070), transparent 44%),
+    linear-gradient(112deg, transparent 0%, rgba(255, 111, 97, 0.055) 50%, transparent 78%);
+  --app-shell-overlay-opacity: 1;
+  --shadow-floating: var(--shadow-popover);
+  --shadow-focus-ring: 0 0 0 3px var(--accent-subtle);
+  --shadow-accent-glow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 20px var(--accent-glow);
+}
+
+[data-theme="light"][data-ui-theme="lumenreef"] {
+  --app-bg-image:
+    radial-gradient(ellipse 82% 42% at 50% -18%, rgba(14, 141, 147, 0.12), transparent 68%),
+    radial-gradient(ellipse 48% 32% at 86% 8%, rgba(255, 111, 97, 0.10), transparent 72%),
+    linear-gradient(180deg, #FFFFFF 0%, var(--bg-app) 48%, var(--bg-elevated) 100%);
+  --app-shell-overlay:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.30), transparent 28%),
+    linear-gradient(112deg, transparent 0%, rgba(14, 141, 147, 0.055) 50%, transparent 78%),
+    linear-gradient(135deg, transparent 0 48%, rgba(255, 111, 97, 0.050) 48% 49%, transparent 49%);
+}
