@@ -1,11 +1,12 @@
 /*
- * tokens.css — DdShell 设计令牌（双主题）
- * 风格：锻墨 / Graphite Forge
- * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
+ * Graphite Forge tokens mapped from ui/ui-graphite-forge/styles/tokens.css.
+ * The theme keeps the existing app layout and applies the Graphite Forge
+ * design-system colors, surfaces, icon treatment, and light/dark modes.
  */
 
-:root,
-.theme-dark {
+[data-ui-theme="graphite-forge"],
+[data-ui-theme="graphite-forge"] body.theme-dark,
+body.theme-dark [data-ui-theme="graphite-forge"] {
   /* ── Background layers ── */
   --bg-app: #090B0C;            /* 应用最底层（窗口背景） */
   --bg-base: #101315;           /* 主区域背景 */
@@ -84,7 +85,9 @@
 }
 
 /* ─────────────────────────── Light theme ─────────────────────────── */
-.theme-light {
+[data-theme="light"][data-ui-theme="graphite-forge"],
+[data-ui-theme="graphite-forge"] body.theme-light,
+body.theme-light [data-ui-theme="graphite-forge"] {
   --bg-app: #E5E8E5;
   --bg-base: #F6F7F3;
   --bg-elevated: #E7EBE8;
@@ -145,7 +148,7 @@
 }
 
 /* ─────────────────────────── Sizing tokens ─────────────────────────── */
-:root {
+[data-ui-theme="graphite-forge"] {
   /* Spacing (4px scale) */
   --space-1: 4px;
   --space-2: 8px;
@@ -194,4 +197,74 @@
   --d-fast: 120ms;
   --d-base: 180ms;
   --d-panel: 280ms;
+}
+
+/* Bridge the existing React/Tailwind token names to the prototype token names. */
+[data-ui-theme="graphite-forge"] {
+  --height-titlebar: var(--titlebar-h);
+  --width-sidebar: var(--sidebar-w);
+  --width-sidebar-collapsed: var(--sidebar-w-collapsed);
+  --height-tabbar: var(--tabbar-h);
+  --height-statusbar: var(--statusbar-h);
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --font-size-xs: var(--fs-xs);
+  --font-size-sm: var(--fs-sm);
+  --font-size-base: var(--fs-base);
+  --font-size-lg: var(--fs-lg);
+  --font-size-xl: var(--fs-xl);
+  --duration-fast: var(--d-fast);
+  --duration-base: var(--d-base);
+  --duration-panel: var(--d-panel);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+  --color-text-primary: var(--fg-primary);
+  --color-text-secondary: var(--fg-secondary);
+  --color-text-muted: var(--fg-muted);
+  --color-text-inverse: var(--fg-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-gradient: var(--accent-gradient);
+  --color-accent-glow: var(--accent-glow);
+  --color-fg-on-accent: var(--fg-on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: var(--info);
+  --color-good: var(--health-good);
+  --color-fair: var(--health-fair);
+  --color-poor: var(--health-poor);
+  --surface-window: var(--glass-bg);
+  --surface-card: var(--bg-surface);
+  --app-bg-image:
+    repeating-linear-gradient(90deg, rgba(241, 244, 240, 0.018) 0 1px, transparent 1px 18px),
+    repeating-linear-gradient(0deg, rgba(54, 224, 194, 0.018) 0 1px, transparent 1px 28px),
+    linear-gradient(180deg, rgba(54, 224, 194, 0.038), transparent 30%),
+    linear-gradient(180deg, var(--bg-app) 0%, var(--bg-base) 58%, var(--bg-app) 100%);
+  --app-shell-overlay:
+    linear-gradient(128deg, rgba(241, 244, 240, 0.038) 0%, transparent 18%),
+    linear-gradient(180deg, rgba(54, 224, 194, 0.070), transparent 44%),
+    linear-gradient(112deg, transparent 0%, rgba(94, 167, 255, 0.055) 50%, transparent 78%);
+  --app-shell-overlay-opacity: 1;
+  --shadow-floating: var(--shadow-popover);
+  --shadow-focus-ring: 0 0 0 3px var(--accent-subtle);
+  --shadow-accent-glow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 20px var(--accent-glow);
+}
+
+[data-theme="light"][data-ui-theme="graphite-forge"] {
+  --app-bg-image:
+    repeating-linear-gradient(90deg, rgba(4, 126, 112, 0.055) 0 1px, transparent 1px 18px),
+    repeating-linear-gradient(0deg, rgba(29, 111, 211, 0.040) 0 1px, transparent 1px 28px),
+    linear-gradient(180deg, #FFFFFF 0%, var(--bg-app) 48%, var(--bg-elevated) 100%);
+  --app-shell-overlay:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 28%),
+    linear-gradient(112deg, transparent 0%, rgba(29, 111, 211, 0.070) 50%, transparent 78%),
+    linear-gradient(135deg, transparent 0 48%, rgba(178, 135, 0, 0.052) 48% 49%, transparent 49%);
 }

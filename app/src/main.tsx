@@ -9,6 +9,7 @@ import "./styles/obsidian-sand-index.css";
 import "./styles/cloudrift-index.css";
 import "./styles/draftgrid-index.css";
 import "./styles/frostplain-index.css";
+import "./styles/graphite-forge-index.css";
 
 // Disable default webview context menu to prevent opening browser actions.
 document.addEventListener("contextmenu", (event) => {

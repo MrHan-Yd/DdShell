@@ -1527,6 +1527,28 @@ body {
   backdrop-filter: blur(14px);
 }
 
+.theme-preview--graphite-forge {
+  background:
+    repeating-linear-gradient(90deg, rgba(241, 244, 240, 0.050) 0 1px, transparent 1px 18px),
+    repeating-linear-gradient(0deg, rgba(54, 224, 194, 0.050) 0 1px, transparent 1px 28px),
+    linear-gradient(180deg, #090B0C, #101315 58%, #22282C);
+}
+
+.theme-preview--graphite-forge .theme-preview__sidebar {
+  background: rgba(13, 16, 18, 0.84);
+  box-shadow: inset 0 0 0 1px rgba(219, 228, 224, 0.10);
+  backdrop-filter: blur(12px);
+}
+
+.theme-preview--graphite-forge .theme-preview__panel {
+  background:
+    linear-gradient(135deg, rgba(54, 224, 194, 0.16), rgba(94, 167, 255, 0.12) 52%, rgba(242, 201, 76, 0.10));
+  box-shadow:
+    inset 0 0 0 1px rgba(219, 228, 224, 0.08),
+    0 10px 24px rgba(7, 9, 10, 0.30);
+  backdrop-filter: blur(14px);
+}
+
 .aurora-shell-orb {
   position: absolute;
   z-index: 0;

@@ -1562,19 +1562,21 @@ export function SettingsPage() {
 
   const activeTabMeta = tabItems.find((item) => item.value === activeTab) ?? tabItems[0];
   const hasFilteredTabs = filteredTabItems.length > 0;
-  const currentUiThemeLabel = committedUiTheme === "frostplain"
-    ? t("settings.uiThemeFrostplain")
-    : committedUiTheme === "draftgrid"
-      ? t("settings.uiThemeDraftgrid")
-      : committedUiTheme === "cloudrift"
-        ? t("settings.uiThemeCloudrift")
-        : committedUiTheme === "obsidian-sand"
-          ? t("settings.uiThemeObsidianSand")
-          : committedUiTheme === "abyssal-vent"
-            ? t("settings.uiThemeAbyssalVent")
-            : committedUiTheme === "aurora"
-              ? t("settings.uiThemeAurora")
-              : t("settings.uiThemeClassic");
+  const currentUiThemeLabel = committedUiTheme === "graphite-forge"
+    ? t("settings.uiThemeGraphiteForge")
+    : committedUiTheme === "frostplain"
+      ? t("settings.uiThemeFrostplain")
+      : committedUiTheme === "draftgrid"
+        ? t("settings.uiThemeDraftgrid")
+        : committedUiTheme === "cloudrift"
+          ? t("settings.uiThemeCloudrift")
+          : committedUiTheme === "obsidian-sand"
+            ? t("settings.uiThemeObsidianSand")
+            : committedUiTheme === "abyssal-vent"
+              ? t("settings.uiThemeAbyssalVent")
+              : committedUiTheme === "aurora"
+                ? t("settings.uiThemeAurora")
+                : t("settings.uiThemeClassic");
   const currentModeLabel = committedTheme === "dark" ? t("settings.dark") : committedTheme === "light" ? t("settings.light") : t("settings.system");
   const activePanelId = `settings-panel-${activeTab}`;
   const activeTabId = `settings-tab-${activeTab}`;
@@ -1750,6 +1752,12 @@ export function SettingsPage() {
                   title: t("settings.uiThemeFrostplain"),
                   description: t("settings.uiThemeFrostplainDesc"),
                   previewClassName: "theme-preview theme-preview--frostplain",
+                },
+                {
+                  value: "graphite-forge",
+                  title: t("settings.uiThemeGraphiteForge"),
+                  description: t("settings.uiThemeGraphiteForgeDesc"),
+                  previewClassName: "theme-preview theme-preview--graphite-forge",
                 },
               ] as const).map((option) => {
                 const active = uiTheme === option.value;
