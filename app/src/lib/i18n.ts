@@ -477,6 +477,8 @@ const dict = {
   "settings.uiThemeObsidianSandDesc": { zh: "采用曜石黑、铂砂灰与冷青反射的克制工具型视觉。", en: "Use an obsidian-black, platinum-sand, and cool-cyan reflective tool theme." },
   "settings.uiThemeCloudrift": { zh: "云岚", en: "Cloudrift" },
   "settings.uiThemeCloudriftDesc": { zh: "采用高空蓝、云白米色与柔灰阴影的清透浅色工具视觉。", en: "Use an airy sky-blue, cloud-white, and soft-shadow tool theme." },
+  "settings.uiThemeDraftgrid": { zh: "蓝栅", en: "Draftgrid" },
+  "settings.uiThemeDraftgridDesc": { zh: "采用深钴蓝图纸、电青制图线、蓝紫操作色与洋红校审线的工程工具视觉。", en: "Use deep blueprint paper, electric-cyan drafting lines, blue-violet actions, and magenta review marks." },
   "settings.theme": { zh: "主题", en: "Theme" },
   "settings.themeDesc": { zh: "选择应用的配色方案", en: "Choose the application color scheme" },
   "settings.colorMode": { zh: "颜色模式", en: "Color Mode" },

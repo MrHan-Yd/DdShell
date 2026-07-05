@@ -1,0 +1,196 @@
+/* Auto-scoped Draftgrid CSS mapped from ui/draftgrid/styles/base.css. Do not edit ui/styles sources. */
+/*
+ * base.css — 全局基础样式 + 字体加载
+ */
+
+[data-ui-theme="draftgrid"] *,
+[data-ui-theme="draftgrid"] *::before,
+[data-ui-theme="draftgrid"] *::after {
+  box-sizing: border-box;
+}
+
+[data-ui-theme="draftgrid"] html,
+body:has([data-ui-theme="draftgrid"]),
+[data-ui-theme="draftgrid"] {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body:has([data-ui-theme="draftgrid"]),
+[data-ui-theme="draftgrid"] {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-regular);
+  line-height: 1.5;
+  color: var(--fg-primary);
+  background: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+[data-ui-theme="draftgrid"] button,
+[data-ui-theme="draftgrid"] input,
+[data-ui-theme="draftgrid"] textarea,
+[data-ui-theme="draftgrid"] select {
+  font: inherit;
+  color: inherit;
+}
+
+[data-ui-theme="draftgrid"] button:not([class]) {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+[data-ui-theme="draftgrid"] button.mon-chart-tab {
+  padding: 6px 14px;
+  line-height: 1.2;
+}
+[data-ui-theme="draftgrid"] button.mon-seg-btn.is-active {
+  color: var(--fg-on-accent);
+}
+[data-ui-theme="draftgrid"] button.mon-session-pick-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--fg-primary);
+  padding: 8px 22px 8px 18px;
+  transition: background var(--d-fast) var(--ease-smooth),
+              border-color var(--d-fast) var(--ease-smooth),
+              box-shadow var(--d-fast) var(--ease-smooth),
+              transform var(--d-fast) var(--ease-smooth);
+}
+[data-ui-theme="draftgrid"] button.mon-session-pick-card:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  box-shadow: 0 0 12px rgba(85, 216, 255, 0.10);
+}
+[data-ui-theme="draftgrid"] button.mon-session-pick-card:active {
+  transform: scale(0.99);
+}
+[data-ui-theme="draftgrid"] button.mon-session-pick-card:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+[data-ui-theme="draftgrid"] .mon-session-pick-glyph {
+  background: var(--accent-gradient-soft);
+  color: var(--accent);
+}
+[data-ui-theme="draftgrid"] .mon-session-pick-name { color: var(--fg-primary); }
+[data-ui-theme="draftgrid"] .mon-session-pick-meta {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+}
+[data-ui-theme="draftgrid"] .mon-session-pick-status-dot {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+[data-ui-theme="draftgrid"] .mon-session-pick-header-icon {
+  background: var(--accent-gradient-soft);
+  color: var(--accent);
+}
+
+[data-ui-theme="draftgrid"] .mon-session-pick-grid {
+  display: inline-grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  min-width: 280px;
+}
+
+[data-ui-theme="draftgrid"] .mon-session-pick-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+[data-ui-theme="draftgrid"] a {
+  color: var(--accent);
+  text-decoration: none;
+}
+[data-ui-theme="draftgrid"] a:hover { text-decoration: underline; }
+
+[data-ui-theme="draftgrid"] p { margin: 0; }
+[data-ui-theme="draftgrid"] h1,
+[data-ui-theme="draftgrid"] h2,
+[data-ui-theme="draftgrid"] h3,
+[data-ui-theme="draftgrid"] h4,
+[data-ui-theme="draftgrid"] h5,
+[data-ui-theme="draftgrid"] h6 { margin: 0; font-weight: var(--fw-semibold); }
+
+[data-ui-theme="draftgrid"] ul,
+[data-ui-theme="draftgrid"] ol { margin: 0; padding: 0; list-style: none; }
+
+[data-ui-theme="draftgrid"] ::selection {
+  background: var(--accent-subtle);
+  color: var(--fg-primary);
+}
+
+/* Scrollbar */
+[data-ui-theme="draftgrid"] ::-webkit-scrollbar { width: 10px; height: 10px; }
+[data-ui-theme="draftgrid"] ::-webkit-scrollbar-track { background: transparent; }
+[data-ui-theme="draftgrid"] ::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+[data-ui-theme="draftgrid"] ::-webkit-scrollbar-thumb:hover { background-color: var(--border-strong); background-clip: padding-box; }
+
+/* App shell */
+[data-ui-theme="draftgrid"] .app {
+  display: grid;
+  grid-template-rows: var(--titlebar-h) 1fr var(--statusbar-h);
+  height: 100vh;
+  background: var(--bg-app);
+}
+
+[data-ui-theme="draftgrid"] .app-body {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: 0;
+}
+
+[data-ui-theme="draftgrid"] .app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-base);
+  overflow: hidden;
+}
+
+/* Glass surface */
+[data-ui-theme="draftgrid"] .glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+}
+
+/* Utility */
+[data-ui-theme="draftgrid"] .muted { color: var(--fg-muted); }
+[data-ui-theme="draftgrid"] .secondary { color: var(--fg-secondary); }
+[data-ui-theme="draftgrid"] .mono { font-family: var(--font-mono); }
+[data-ui-theme="draftgrid"] .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+[data-ui-theme="draftgrid"] .row { display: flex; align-items: center; }
+[data-ui-theme="draftgrid"] .col { display: flex; flex-direction: column; }
+[data-ui-theme="draftgrid"] .gap-1 { gap: var(--space-1); }
+[data-ui-theme="draftgrid"] .gap-2 { gap: var(--space-2); }
+[data-ui-theme="draftgrid"] .gap-3 { gap: var(--space-3); }
+[data-ui-theme="draftgrid"] .gap-4 { gap: var(--space-4); }
+[data-ui-theme="draftgrid"] .flex-1 { flex: 1; min-width: 0; min-height: 0; }
+[data-ui-theme="draftgrid"] .divider {
+  height: 14px; width: 1px;
+  background: var(--border-default);
+  margin: 0 var(--space-2);
+}

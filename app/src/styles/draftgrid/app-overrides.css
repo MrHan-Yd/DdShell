@@ -1,0 +1,312 @@
+/*
+ * App-specific Draftgrid color layer.
+ * Layout stays owned by the existing app/Aurora rules; this file only changes
+ * theme color, background, border color, and shadow treatment.
+ */
+
+[data-ui-theme="draftgrid"] .glass-surface,
+[data-ui-theme="draftgrid"] .glass-card {
+  border-color: var(--border-default);
+}
+
+[data-ui-theme="draftgrid"] body {
+  background-size: 24px 24px, 24px 24px, auto, auto, auto;
+}
+
+[data-ui-theme="draftgrid"] .app-titlebar,
+[data-ui-theme="draftgrid"] .app-sidebar,
+[data-ui-theme="draftgrid"] .app-statusbar {
+  border-color: var(--border-default);
+  background:
+    repeating-linear-gradient(90deg, rgba(85, 216, 255, 0.035) 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(180deg, rgba(85, 216, 255, 0.026) 0 1px, transparent 1px 24px),
+    linear-gradient(180deg, rgba(242, 246, 255, 0.055), rgba(242, 246, 255, 0.016)),
+    var(--glass-bg);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(242, 246, 255, 0.07);
+}
+
+[data-ui-theme="draftgrid"] .app-main-frame,
+[data-ui-theme="draftgrid"] .settings-pane-frame {
+  border-color: var(--border-default);
+  background:
+    repeating-linear-gradient(90deg, rgba(85, 216, 255, 0.026) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(180deg, rgba(85, 216, 255, 0.02) 0 1px, transparent 1px 28px),
+    linear-gradient(180deg, rgba(242, 246, 255, 0.038), rgba(242, 246, 255, 0.012)),
+    rgba(6, 18, 37, 0.52);
+  box-shadow: var(--shadow-popover), inset 0 1px 0 rgba(242, 246, 255, 0.055);
+}
+
+[data-theme="light"][data-ui-theme="draftgrid"] .app-titlebar,
+[data-theme="light"][data-ui-theme="draftgrid"] .app-sidebar,
+[data-theme="light"][data-ui-theme="draftgrid"] .app-statusbar {
+  background:
+    repeating-linear-gradient(90deg, rgba(6, 127, 159, 0.035) 0 1px, transparent 1px 24px),
+    repeating-linear-gradient(180deg, rgba(6, 127, 159, 0.026) 0 1px, transparent 1px 24px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.68)),
+    var(--glass-bg);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+[data-theme="light"][data-ui-theme="draftgrid"] .app-main-frame,
+[data-theme="light"][data-ui-theme="draftgrid"] .settings-pane-frame {
+  background:
+    repeating-linear-gradient(90deg, rgba(6, 127, 159, 0.032) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(180deg, rgba(6, 127, 159, 0.024) 0 1px, transparent 1px 28px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.70)),
+    rgba(244, 248, 255, 0.58);
+}
+
+[data-ui-theme="draftgrid"] .app-sidebar__brand,
+[data-ui-theme="draftgrid"] .settings-nav-button[data-active="true"] {
+  background:
+    linear-gradient(135deg, rgba(85, 216, 255, 0.14), rgba(242, 246, 255, 0.10) 48%, rgba(228, 71, 140, 0.09)),
+    rgba(242, 246, 255, 0.026);
+}
+
+[data-theme="light"][data-ui-theme="draftgrid"] .app-sidebar__brand,
+[data-theme="light"][data-ui-theme="draftgrid"] .settings-nav-button[data-active="true"] {
+  background:
+    linear-gradient(135deg, rgba(6, 127, 159, 0.12), rgba(255, 255, 255, 0.16) 48%, rgba(201, 38, 114, 0.10)),
+    rgba(255, 255, 255, 0.66);
+}
+
+[data-ui-theme="draftgrid"] .app-sidebar__footer,
+[data-ui-theme="draftgrid"] .settings-nav-empty,
+[data-ui-theme="draftgrid"] .settings-hero-card {
+  border-color: rgba(85, 216, 255, 0.22);
+}
+
+[data-theme="light"][data-ui-theme="draftgrid"] .app-sidebar__footer,
+[data-theme="light"][data-ui-theme="draftgrid"] .settings-nav-empty,
+[data-theme="light"][data-ui-theme="draftgrid"] .settings-hero-card {
+  border-color: rgba(6, 127, 159, 0.22);
+}
+
+[data-ui-theme="draftgrid"] .settings-nav-stat,
+[data-ui-theme="draftgrid"] .settings-nav-button:hover,
+[data-ui-theme="draftgrid"] .settings-nav-empty {
+  background:
+    linear-gradient(135deg, rgba(85, 216, 255, 0.09), rgba(242, 246, 255, 0.07) 48%, rgba(228, 71, 140, 0.055)),
+    rgba(242, 246, 255, 0.024);
+}
+
+[data-theme="light"][data-ui-theme="draftgrid"] .settings-nav-stat,
+[data-theme="light"][data-ui-theme="draftgrid"] .settings-nav-button:hover,
+[data-theme="light"][data-ui-theme="draftgrid"] .settings-nav-empty {
+  background:
+    linear-gradient(135deg, rgba(6, 127, 159, 0.09), rgba(255, 255, 255, 0.18) 48%, rgba(201, 38, 114, 0.08)),
+    rgba(255, 255, 255, 0.72);
+}
+
+[data-ui-theme="draftgrid"] .settings-nav-button__icon {
+  background:
+    linear-gradient(180deg, rgba(242, 246, 255, 0.08), rgba(242, 246, 255, 0.02)),
+    var(--bg-elevated);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
+[data-ui-theme="draftgrid"] .settings-nav-button[data-active="true"] .settings-nav-button__icon {
+  background:
+    linear-gradient(135deg, rgba(85, 216, 255, 0.22), rgba(228, 71, 140, 0.14)),
+    var(--bg-elevated);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="draftgrid"] .settings-account-card__avatar {
+  box-shadow: 0 12px 26px var(--accent-glow);
+}
+
+[data-ui-theme="draftgrid"] .settings-floatbar > div {
+  border-color: rgba(85, 216, 255, 0.24);
+  background:
+    linear-gradient(180deg, rgba(242, 246, 255, 0.07), rgba(242, 246, 255, 0.025)),
+    rgba(6, 18, 37, 0.82);
+}
+
+[data-theme="light"][data-ui-theme="draftgrid"] .settings-floatbar > div {
+  border-color: rgba(6, 127, 159, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.74)),
+    rgba(244, 248, 255, 0.78);
+}
+
+[data-ui-theme="draftgrid"] .theme-option-card {
+  background: var(--bg-base);
+  border-color: var(--border-strong);
+}
+
+[data-theme="dark"][data-ui-theme="draftgrid"] .theme-option-card {
+  border-color: rgba(242, 246, 255, 0.28);
+}
+
+[data-theme="light"][data-ui-theme="draftgrid"] .theme-option-card {
+  background: var(--bg-surface);
+  border-color: rgba(11, 29, 58, 0.18);
+}
+
+[data-ui-theme="draftgrid"] .theme-option-card:hover,
+[data-ui-theme="draftgrid"] .theme-option-card[data-active="true"] {
+  border-color: var(--accent);
+}
+
+[data-ui-theme="draftgrid"] .theme-option-card[data-active="true"] {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+[data-ui-theme="draftgrid"] .theme-option-card__check {
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  border-color: var(--border-strong);
+}
+
+[data-ui-theme="draftgrid"] .theme-option-card__check--active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--fg-on-accent);
+}
+
+[data-ui-theme="draftgrid"] .lang-chip {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+  color: var(--fg-secondary);
+}
+
+[data-ui-theme="draftgrid"] .lang-chip:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="draftgrid"] .lang-chip--active {
+  background:
+    linear-gradient(135deg, rgba(85, 216, 255, 0.18), rgba(242, 246, 255, 0.12) 48%, rgba(228, 71, 140, 0.12)),
+    var(--bg-elevated);
+  border-color: rgba(85, 216, 255, 0.48);
+  color: var(--fg-primary);
+  box-shadow: 0 0 0 1px rgba(85, 216, 255, 0.18),
+              0 0 14px rgba(85, 216, 255, 0.14);
+}
+
+[data-theme="light"][data-ui-theme="draftgrid"] .lang-chip--active {
+  background:
+    linear-gradient(135deg, rgba(6, 127, 159, 0.12), rgba(255, 255, 255, 0.18) 48%, rgba(201, 38, 114, 0.10)),
+    var(--bg-elevated);
+  border-color: rgba(6, 127, 159, 0.44);
+  color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(6, 127, 159, 0.16);
+}
+
+[data-ui-theme="draftgrid"] .toggle-switch,
+[data-ui-theme="draftgrid"] .segmented-control {
+  border-color: var(--border-default);
+  background: var(--bg-elevated);
+}
+
+[data-ui-theme="draftgrid"] .toggle-switch[data-state="on"],
+[data-ui-theme="draftgrid"] .segmented-control .seg-pill {
+  background: var(--accent-gradient);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+[data-ui-theme="draftgrid"] .toggle-switch[data-state="off"],
+[data-ui-theme="draftgrid"] .range-mac {
+  background: var(--bg-active);
+}
+
+[data-ui-theme="draftgrid"] .range-mac::-webkit-slider-thumb,
+[data-ui-theme="draftgrid"] .range-mac::-moz-range-thumb {
+  background: var(--accent-gradient);
+  border-color: var(--bg-app);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+[data-ui-theme="draftgrid"] .terminal-disconnect-card {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-bg-surface) 92%, transparent), color-mix(in srgb, var(--color-bg-surface) 92%, transparent)),
+    var(--accent-gradient);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  border-color: transparent;
+}
+
+[data-ui-theme="draftgrid"] .btn-icon,
+[data-ui-theme="draftgrid"] .nav-item .icon,
+[data-ui-theme="draftgrid"] .settings-cat .icon,
+[data-ui-theme="draftgrid"] .settings-nav-button__icon,
+[data-ui-theme="draftgrid"] .host-item .server-glyph,
+[data-ui-theme="draftgrid"] .avatar {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(var(--icon-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--icon-grid-line) 1px, transparent 1px),
+    linear-gradient(145deg, var(--icon-grid-shine), transparent 36%),
+    var(--icon-plate);
+  background-size: 8px 8px, 8px 8px, auto, auto;
+}
+
+[data-ui-theme="draftgrid"] .settings-nav-button__icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  color: var(--icon-stroke-muted);
+  box-shadow: inset 0 1px 0 rgba(242, 246, 255, 0.10);
+}
+
+[data-ui-theme="draftgrid"] .settings-nav-button:hover .settings-nav-button__icon,
+[data-ui-theme="draftgrid"] .settings-nav-button[data-active="true"] .settings-nav-button__icon {
+  color: var(--icon-stroke);
+  border-color: var(--border-default);
+}
+
+[data-ui-theme="draftgrid"] .settings-nav-button[data-active="true"] .settings-nav-button__icon,
+[data-ui-theme="draftgrid"] .host-item.is-active .server-glyph {
+  background:
+    linear-gradient(var(--icon-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--icon-grid-line) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(85, 216, 255, 0.22), rgba(124, 146, 255, 0.16) 48%, rgba(228, 71, 140, 0.13)),
+    var(--bg-elevated);
+  background-size: 8px 8px, 8px 8px, auto, auto;
+  color: var(--icon-stroke);
+}
+
+[data-theme="light"][data-ui-theme="draftgrid"] .settings-nav-button[data-active="true"] .settings-nav-button__icon,
+[data-theme="light"][data-ui-theme="draftgrid"] .host-item.is-active .server-glyph {
+  background:
+    linear-gradient(var(--icon-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--icon-grid-line) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(6, 127, 159, 0.12), rgba(111, 141, 255, 0.10) 48%, rgba(201, 38, 114, 0.09)),
+    var(--bg-surface);
+  background-size: 8px 8px, 8px 8px, auto, auto;
+}
+
+[data-ui-theme="draftgrid"] .btn-icon::after,
+[data-ui-theme="draftgrid"] .nav-item .icon::after,
+[data-ui-theme="draftgrid"] .settings-cat .icon::after,
+[data-ui-theme="draftgrid"] .settings-nav-button__icon::after,
+[data-ui-theme="draftgrid"] .host-item .server-glyph::after,
+[data-ui-theme="draftgrid"] .avatar::after {
+  content: "";
+  position: absolute;
+  inset: auto 5px 4px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--icon-shine), rgba(228, 71, 140, 0.40), transparent);
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+[data-ui-theme="draftgrid"] .btn-icon svg,
+[data-ui-theme="draftgrid"] .nav-item .icon svg,
+[data-ui-theme="draftgrid"] .settings-cat .icon svg,
+[data-ui-theme="draftgrid"] .settings-nav-button__icon svg,
+[data-ui-theme="draftgrid"] .host-item .server-glyph svg,
+[data-ui-theme="draftgrid"] .avatar svg {
+  position: relative;
+  z-index: 1;
+}

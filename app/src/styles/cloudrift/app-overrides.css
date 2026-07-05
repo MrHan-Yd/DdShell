@@ -87,17 +87,54 @@
 }
 
 [data-ui-theme="cloudrift"] .settings-nav-button__icon {
-  background:
-    linear-gradient(180deg, rgba(238, 242, 232, 0.08), rgba(238, 242, 232, 0.02)),
-    var(--bg-elevated);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background-image: var(--icon-plate);
+  color: var(--icon-stroke-muted);
+  box-shadow: none;
+}
+
+[data-ui-theme="cloudrift"] .settings-nav-button__icon::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--icon-shine), transparent 38%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-ui-theme="cloudrift"] .settings-nav-button__icon svg {
+  position: relative;
+  z-index: 1;
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.9;
+}
+
+[data-ui-theme="cloudrift"] .settings-nav-button:hover .settings-nav-button__icon {
+  color: var(--icon-stroke);
+  border-color: var(--border-subtle);
+}
+
+[data-ui-theme="cloudrift"] .settings-nav-button:hover .settings-nav-button__icon::before,
+[data-ui-theme="cloudrift"] .settings-nav-button[data-active="true"] .settings-nav-button__icon::before {
+  opacity: 0.28;
 }
 
 [data-ui-theme="cloudrift"] .settings-nav-button[data-active="true"] .settings-nav-button__icon {
-  background:
-    linear-gradient(135deg, rgba(191, 214, 234, 0.22), rgba(220, 211, 190, 0.14)),
-    var(--bg-elevated);
-  color: var(--fg-primary);
+  background-image: var(--icon-plate);
+  color: var(--accent);
+  border-color: var(--border-default);
+  box-shadow: 0 0 12px var(--accent-glow);
 }
 
 [data-ui-theme="cloudrift"] .settings-account-card__avatar {

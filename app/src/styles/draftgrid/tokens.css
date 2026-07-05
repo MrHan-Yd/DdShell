@@ -1,17 +1,18 @@
 /*
- * tokens.css — DdShell 设计令牌（双主题）
- * 风格：蓝栅 / Draftgrid
- * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
+ * Draftgrid tokens mapped from ui/draftgrid/styles/tokens.css.
+ * The theme keeps the existing app layout and only changes color/material
+ * treatment through CSS variables.
  */
 
-:root,
-.theme-dark {
+[data-ui-theme="draftgrid"],
+[data-ui-theme="draftgrid"] body.theme-dark,
+body.theme-dark [data-ui-theme="draftgrid"] {
   /* ── Background layers ── */
-  --bg-app: #030B1C;            /* 应用最底层（窗口背景） */
-  --bg-base: #071735;           /* 主区域背景 */
-  --bg-elevated: #0C2550;       /* 次级面板（侧栏、状态栏、tab 栏） */
-  --bg-surface: #123269;        /* 卡片、下拉、popover */
-  --bg-overlay: rgba(3, 9, 19, 0.80); /* 遮罩 */
+  --bg-app: #030B1C;
+  --bg-base: #071735;
+  --bg-elevated: #0C2550;
+  --bg-surface: #123269;
+  --bg-overlay: rgba(3, 9, 19, 0.80);
   --bg-hover: rgba(85, 216, 255, 0.080);
   --bg-active: rgba(124, 146, 255, 0.15);
 
@@ -23,8 +24,8 @@
   --fg-on-accent: #030B1C;
 
   /* ── Accent (蓝栅核心色；变量名保留用于兼容页面 CSS) ── */
-  --accent-violet: #E4478C;     /* 洋红校审 */
-  --accent-cyan: #55D8FF;       /* 电青制图线 */
+  --accent-violet: #E4478C;
+  --accent-cyan: #55D8FF;
   --accent: #7C92FF;
   --accent-hover: #9EAEFF;
   --accent-subtle: rgba(124, 146, 255, 0.15);
@@ -35,6 +36,8 @@
   --icon-stroke: #BDF2FF;
   --icon-stroke-muted: #8DB9C9;
   --icon-shine: rgba(242, 246, 255, 0.56);
+  --icon-grid-line: rgba(85, 216, 255, 0.070);
+  --icon-grid-shine: rgba(242, 246, 255, 0.16);
 
   /* ── Border ── */
   --border-subtle: rgba(189, 242, 255, 0.075);
@@ -81,10 +84,12 @@
   --glass-blur: 10px;
 
   color-scheme: dark;
+
 }
 
-/* ─────────────────────────── Light theme ─────────────────────────── */
-.theme-light {
+[data-theme="light"][data-ui-theme="draftgrid"],
+[data-ui-theme="draftgrid"] body.theme-light,
+body.theme-light [data-ui-theme="draftgrid"] {
   --bg-app: #DCE8F8;
   --bg-base: #F4F8FF;
   --bg-elevated: #E4EEFF;
@@ -111,6 +116,8 @@
   --icon-stroke: #056F8D;
   --icon-stroke-muted: #60789A;
   --icon-shine: rgba(255, 255, 255, 0.78);
+  --icon-grid-line: rgba(6, 127, 159, 0.095);
+  --icon-grid-shine: rgba(255, 255, 255, 0.66);
 
   --border-subtle: rgba(11, 29, 58, 0.08);
   --border-default: rgba(11, 29, 58, 0.14);
@@ -129,7 +136,7 @@
   --health-fair: #A46A00;
   --health-poor: #C92672;
 
-  --term-bg: #050D18;          /* 终端始终保持深色（即使在亮色主题下） */
+  --term-bg: #050D18;
   --term-fg: #F2F6FF;
   --term-cursor: #7C92FF;
   --term-selection: rgba(85, 216, 255, 0.24);
@@ -142,10 +149,18 @@
   --glass-blur: 14px;
 
   color-scheme: light;
+
+  --app-bg-image:
+    linear-gradient(rgba(6, 127, 159, 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 127, 159, 0.060) 1px, transparent 1px),
+    linear-gradient(180deg, #FFFFFF 0%, var(--bg-app) 48%, var(--bg-elevated) 100%);
+  --app-shell-overlay:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 28%),
+    radial-gradient(ellipse 86% 52% at 50% -24%, rgba(6, 127, 159, 0.12), transparent 72%),
+    linear-gradient(135deg, transparent 0 48%, rgba(201, 38, 114, 0.052) 48% 49%, transparent 49%);
 }
 
-/* ─────────────────────────── Sizing tokens ─────────────────────────── */
-:root {
+[data-ui-theme="draftgrid"] {
   /* Spacing (4px scale) */
   --space-1: 4px;
   --space-2: 8px;
@@ -194,4 +209,66 @@
   --d-fast: 120ms;
   --d-base: 180ms;
   --d-panel: 280ms;
+
+}
+
+/* Bridge the existing React/Tailwind token names to the prototype token names. */
+[data-ui-theme="draftgrid"] {
+  --height-titlebar: var(--titlebar-h);
+  --width-sidebar: var(--sidebar-w);
+  --width-sidebar-collapsed: var(--sidebar-w-collapsed);
+  --height-tabbar: var(--tabbar-h);
+  --height-statusbar: var(--statusbar-h);
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --font-size-xs: var(--fs-xs);
+  --font-size-sm: var(--fs-sm);
+  --font-size-base: var(--fs-base);
+  --font-size-lg: var(--fs-lg);
+  --font-size-xl: var(--fs-xl);
+  --duration-fast: var(--d-fast);
+  --duration-base: var(--d-base);
+  --duration-panel: var(--d-panel);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+  --color-text-primary: var(--fg-primary);
+  --color-text-secondary: var(--fg-secondary);
+  --color-text-muted: var(--fg-muted);
+  --color-text-inverse: var(--fg-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-gradient: var(--accent-gradient);
+  --color-accent-glow: var(--accent-glow);
+  --color-fg-on-accent: var(--fg-on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: var(--info);
+  --color-good: var(--health-good);
+  --color-fair: var(--health-fair);
+  --color-poor: var(--health-poor);
+  --surface-window: var(--glass-bg);
+  --surface-card: var(--bg-surface);
+  --app-bg-image:
+    linear-gradient(rgba(85, 216, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(85, 216, 255, 0.022) 1px, transparent 1px),
+    radial-gradient(ellipse 82% 42% at 50% -18%, rgba(85, 216, 255, 0.070), transparent 68%),
+    radial-gradient(ellipse 46% 32% at 84% 4%, rgba(124, 146, 255, 0.052), transparent 72%),
+    linear-gradient(180deg, var(--bg-app) 0%, var(--bg-base) 58%, var(--bg-app) 100%);
+  --app-shell-overlay:
+    linear-gradient(rgba(85, 216, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(85, 216, 255, 0.042) 1px, transparent 1px),
+    radial-gradient(ellipse 82% 48% at 48% -24%, rgba(85, 216, 255, 0.080), transparent 70%),
+    linear-gradient(135deg, transparent 0 48%, rgba(228, 71, 140, 0.055) 48% 49%, transparent 49%);
+  --app-shell-overlay-opacity: 1;
+  --shadow-floating: var(--shadow-popover);
+  --shadow-focus-ring: 0 0 0 3px var(--accent-subtle);
+  --shadow-accent-glow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 20px var(--accent-glow);
 }

@@ -1562,15 +1562,17 @@ export function SettingsPage() {
 
   const activeTabMeta = tabItems.find((item) => item.value === activeTab) ?? tabItems[0];
   const hasFilteredTabs = filteredTabItems.length > 0;
-  const currentUiThemeLabel = committedUiTheme === "cloudrift"
-    ? t("settings.uiThemeCloudrift")
-    : committedUiTheme === "obsidian-sand"
-      ? t("settings.uiThemeObsidianSand")
-      : committedUiTheme === "abyssal-vent"
-        ? t("settings.uiThemeAbyssalVent")
-        : committedUiTheme === "aurora"
-          ? t("settings.uiThemeAurora")
-          : t("settings.uiThemeClassic");
+  const currentUiThemeLabel = committedUiTheme === "draftgrid"
+    ? t("settings.uiThemeDraftgrid")
+    : committedUiTheme === "cloudrift"
+      ? t("settings.uiThemeCloudrift")
+      : committedUiTheme === "obsidian-sand"
+        ? t("settings.uiThemeObsidianSand")
+        : committedUiTheme === "abyssal-vent"
+          ? t("settings.uiThemeAbyssalVent")
+          : committedUiTheme === "aurora"
+            ? t("settings.uiThemeAurora")
+            : t("settings.uiThemeClassic");
   const currentModeLabel = committedTheme === "dark" ? t("settings.dark") : committedTheme === "light" ? t("settings.light") : t("settings.system");
   const activePanelId = `settings-panel-${activeTab}`;
   const activeTabId = `settings-tab-${activeTab}`;
@@ -1701,7 +1703,7 @@ export function SettingsPage() {
                 className={`tab-slide-in-${slideDir}`}
               >
         {activeTab === "general" && (<>
-        <Section title={t("settings.uiThemeSection")} description={t("settings.uiThemeDesc")}>
+        <Section title={t("settings.uiThemeSection")} description={t("settings.uiThemeDesc")} className="settings-theme-section">
           <div className="space-y-3">
             <div className="theme-option-grid grid gap-3 md:grid-cols-2">
               {([
@@ -1734,6 +1736,12 @@ export function SettingsPage() {
                   title: t("settings.uiThemeCloudrift"),
                   description: t("settings.uiThemeCloudriftDesc"),
                   previewClassName: "theme-preview theme-preview--cloudrift",
+                },
+                {
+                  value: "draftgrid",
+                  title: t("settings.uiThemeDraftgrid"),
+                  description: t("settings.uiThemeDraftgridDesc"),
+                  previewClassName: "theme-preview theme-preview--draftgrid",
                 },
               ] as const).map((option) => {
                 const active = uiTheme === option.value;

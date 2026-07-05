@@ -337,7 +337,7 @@
 [data-ui-theme="obsidian-sand"] .term-window .c-magenta { color: var(--ansi-magenta); }
 [data-ui-theme="obsidian-sand"] .term-window .c-cyan { color: var(--ansi-cyan); }
 [data-ui-theme="obsidian-sand"] .term-window .c-violet { color: var(--accent-violet); }
-[data-ui-theme="obsidian-sand"] .term-window .c-muted { color: rgba(248, 244, 234, 0.42); }
+[data-ui-theme="obsidian-sand"] .term-window .c-muted { color: rgba(245, 239, 226, 0.42); }
 
 /* 闪烁光标 */
 [data-ui-theme="obsidian-sand"] .caret {
@@ -475,7 +475,7 @@
   word-break: break-all;
 }
 [data-ui-theme="obsidian-sand"] .ai-cmd .c-violet { color: var(--accent-violet); }
-[data-ui-theme="obsidian-sand"] .ai-cmd .c-muted { color: rgba(248, 244, 234, 0.42); }
+[data-ui-theme="obsidian-sand"] .ai-cmd .c-muted { color: rgba(245, 239, 226, 0.42); }
 [data-ui-theme="obsidian-sand"] .ai-copy {
   position: absolute;
   top: 6px; right: 6px;

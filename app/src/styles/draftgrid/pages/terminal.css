@@ -1,4 +1,4 @@
-/* Auto-scoped Cloudrift CSS mapped from ui/ui-cloudrift/styles/pages/terminal.css. Do not edit ui/styles sources. */
+/* Auto-scoped Draftgrid CSS mapped from ui/draftgrid/styles/pages/terminal.css. Do not edit ui/styles sources. */
 /*
  * pages/terminal.css — Terminal 页特有样式
  * 仅放本页样式（tab bar / pane / 终端文字 / AI 浮层 / 状态栏内特定项）
@@ -6,7 +6,7 @@
  */
 
 /* ─────────────────────────── Page overlay (全局浮层位置) ─────────────────────────── */
-[data-ui-theme="cloudrift"] .page-overlay {
+[data-ui-theme="draftgrid"] .page-overlay {
   position: fixed;
   top: var(--space-3);
   right: var(--space-4);
@@ -17,7 +17,7 @@
 }
 
 /* ─────────────────────────── Main 布局 ─────────────────────────── */
-[data-ui-theme="cloudrift"] .term-main {
+[data-ui-theme="draftgrid"] .term-main {
   display: grid;
   grid-template-rows: var(--tabbar-h) 1fr;
   position: relative;
@@ -25,7 +25,7 @@
 }
 
 /* ─────────────────────────── Tab bar ─────────────────────────── */
-[data-ui-theme="cloudrift"] .term-tabbar {
+[data-ui-theme="draftgrid"] .term-tabbar {
   display: flex;
   align-items: stretch;
   background: var(--bg-elevated);
@@ -34,7 +34,7 @@
   min-height: 0;
 }
 
-[data-ui-theme="cloudrift"] .term-tabbar .tabs {
+[data-ui-theme="draftgrid"] .term-tabbar .tabs {
   display: flex;
   align-items: stretch;
   flex: 1;
@@ -42,9 +42,9 @@
   overflow-x: auto;
   scrollbar-width: none;
 }
-[data-ui-theme="cloudrift"] .term-tabbar .tabs::-webkit-scrollbar { display: none; }
+[data-ui-theme="draftgrid"] .term-tabbar .tabs::-webkit-scrollbar { display: none; }
 
-[data-ui-theme="cloudrift"] .tab {
+[data-ui-theme="draftgrid"] .tab {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -60,12 +60,12 @@
   white-space: nowrap;
   transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
 }
-[data-ui-theme="cloudrift"] .tab:hover { background: var(--bg-hover); color: var(--fg-primary); }
-[data-ui-theme="cloudrift"] .tab.is-active {
+[data-ui-theme="draftgrid"] .tab:hover { background: var(--bg-hover); color: var(--fg-primary); }
+[data-ui-theme="draftgrid"] .tab.is-active {
   background: var(--bg-base);
   color: var(--fg-primary);
 }
-[data-ui-theme="cloudrift"] .tab.is-active::before {
+[data-ui-theme="draftgrid"] .tab.is-active::before {
   content: "";
   position: absolute;
   left: 0; right: 0; top: 0;
@@ -73,18 +73,18 @@
   background: var(--accent-gradient);
   box-shadow: 0 0 10px var(--accent-glow);
 }
-[data-ui-theme="cloudrift"] .tab .tab-label {
+[data-ui-theme="draftgrid"] .tab .tab-label {
   font-weight: var(--fw-medium);
   overflow: hidden;
   text-overflow: ellipsis;
 }
-[data-ui-theme="cloudrift"] .tab .tab-host {
+[data-ui-theme="draftgrid"] .tab .tab-host {
   font-size: var(--fs-xs);
   color: var(--fg-muted);
 }
-[data-ui-theme="cloudrift"] .tab.is-active .tab-host { color: var(--fg-secondary); }
+[data-ui-theme="draftgrid"] .tab.is-active .tab-host { color: var(--fg-secondary); }
 
-[data-ui-theme="cloudrift"] .tab .tab-close {
+[data-ui-theme="draftgrid"] .tab .tab-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -93,12 +93,12 @@
   color: var(--fg-muted);
   transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
 }
-[data-ui-theme="cloudrift"] .tab .tab-close:hover {
+[data-ui-theme="draftgrid"] .tab .tab-close:hover {
   background: var(--bg-active);
   color: var(--fg-primary);
 }
 
-[data-ui-theme="cloudrift"] .tab-new {
+[data-ui-theme="draftgrid"] .tab-new {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -106,9 +106,9 @@
   color: var(--fg-muted);
   transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
 }
-[data-ui-theme="cloudrift"] .tab-new:hover { background: var(--bg-hover); color: var(--accent); }
+[data-ui-theme="draftgrid"] .tab-new:hover { background: var(--bg-hover); color: var(--accent); }
 
-[data-ui-theme="cloudrift"] .tabbar-actions {
+[data-ui-theme="draftgrid"] .tabbar-actions {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
@@ -117,57 +117,57 @@
   margin-left: var(--space-2);
 }
 
-[data-ui-theme="cloudrift"] .terminal-split-picker {
+[data-ui-theme="draftgrid"] .terminal-split-picker {
   border: 1px solid var(--border-default);
   background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
   box-shadow: var(--shadow-popover);
   color: var(--fg-primary);
 }
 
-[data-ui-theme="cloudrift"] .terminal-split-picker-title {
+[data-ui-theme="draftgrid"] .terminal-split-picker-title {
   color: var(--fg-muted);
   font-size: var(--fs-xs);
 }
 
-[data-ui-theme="cloudrift"] button.terminal-split-target {
+[data-ui-theme="draftgrid"] button.terminal-split-target {
   border: 1px solid transparent;
   background: transparent;
   color: var(--fg-secondary);
   padding: 7px 8px;
 }
 
-[data-ui-theme="cloudrift"] button.terminal-split-target:hover {
+[data-ui-theme="draftgrid"] button.terminal-split-target:hover {
   border-color: var(--border-default);
   background: var(--bg-hover);
   color: var(--fg-primary);
 }
 
-[data-ui-theme="cloudrift"] button.terminal-split-target:focus-visible {
+[data-ui-theme="draftgrid"] button.terminal-split-target:focus-visible {
   outline: none;
   box-shadow: var(--shadow-focus-ring);
 }
 
-[data-ui-theme="cloudrift"] button.terminal-split-target svg {
+[data-ui-theme="draftgrid"] button.terminal-split-target svg {
   color: var(--accent);
 }
 
 /* ──────────── Tab bar (React styled tabs — design spec alignment) ──────────── */
 
 /* Tab dot (connection status indicator) */
-[data-ui-theme="cloudrift"] .tab-dot {
+[data-ui-theme="draftgrid"] .tab-dot {
   display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-[data-ui-theme="cloudrift"] .tab-dot.dot-success { background: var(--success); box-shadow: 0 0 8px var(--success); }
-[data-ui-theme="cloudrift"] .tab-dot.dot-warning { background: var(--warning); }
-[data-ui-theme="cloudrift"] .tab-dot.dot-danger  { background: var(--danger);  }
-[data-ui-theme="cloudrift"] .tab-dot.dot-idle    { background: var(--fg-muted); }
+[data-ui-theme="draftgrid"] .tab-dot.dot-success { background: var(--success); box-shadow: 0 0 8px var(--success); }
+[data-ui-theme="draftgrid"] .tab-dot.dot-warning { background: var(--warning); }
+[data-ui-theme="draftgrid"] .tab-dot.dot-danger  { background: var(--danger);  }
+[data-ui-theme="draftgrid"] .tab-dot.dot-idle    { background: var(--fg-muted); }
 
 /* ─────────────────────────── Pane area (分屏) ─────────────────────────── */
-[data-ui-theme="cloudrift"] .term-panes {
+[data-ui-theme="draftgrid"] .term-panes {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -175,25 +175,25 @@
   position: relative;
 }
 /* 不分屏时，单面板占满 */
-[data-ui-theme="cloudrift"] .term-panes:not(.is-split) .term-pane {
+[data-ui-theme="draftgrid"] .term-panes:not(.is-split) .term-pane {
   flex: 1;
 }
 
 /* 分屏时用 CSS grid（ratio 通过 inline style 的 gridTemplateRows/Columns 控制） */
-[data-ui-theme="cloudrift"] .term-panes.is-split {
+[data-ui-theme="draftgrid"] .term-panes.is-split {
   display: grid;
   gap: 0;
 }
-[data-ui-theme="cloudrift"] .term-panes.is-split-vertical {
+[data-ui-theme="draftgrid"] .term-panes.is-split-vertical {
   grid-template-columns: 1fr 1px 1fr;
   grid-template-rows: 1fr;
 }
-[data-ui-theme="cloudrift"] .term-panes.is-split-horizontal {
+[data-ui-theme="draftgrid"] .term-panes.is-split-horizontal {
   grid-template-columns: 1fr;
   grid-template-rows: 1fr 1px 1fr;
 }
 
-[data-ui-theme="cloudrift"] .term-pane {
+[data-ui-theme="draftgrid"] .term-pane {
   display: flex;
   flex-direction: column;
   background: var(--term-bg);
@@ -201,7 +201,7 @@
   min-height: 0;
   position: relative;
 }
-[data-ui-theme="cloudrift"] .term-pane.is-active::after {
+[data-ui-theme="draftgrid"] .term-pane.is-active::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -212,7 +212,7 @@
 }
 
 /* Pane 顶部小条（host 标识 + 路径 + 延迟） */
-[data-ui-theme="cloudrift"] .pane-bar {
+[data-ui-theme="draftgrid"] .pane-bar {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -224,18 +224,18 @@
   height: 28px;
   line-height: 28px;
 }
-[data-ui-theme="cloudrift"] .pane-bar .pane-host {
+[data-ui-theme="draftgrid"] .pane-bar .pane-host {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   color: var(--fg-secondary);
 }
-[data-ui-theme="cloudrift"] .pane-bar .pane-host svg {
+[data-ui-theme="draftgrid"] .pane-bar .pane-host svg {
   flex-shrink: 0;
 }
-[data-ui-theme="cloudrift"] .pane-bar .pane-meta { color: var(--fg-muted); }
-[data-ui-theme="cloudrift"] .pane-bar .pane-spacer { flex: 1; }
-[data-ui-theme="cloudrift"] .pane-bar .pane-tag {
+[data-ui-theme="draftgrid"] .pane-bar .pane-meta { color: var(--fg-muted); }
+[data-ui-theme="draftgrid"] .pane-bar .pane-spacer { flex: 1; }
+[data-ui-theme="draftgrid"] .pane-bar .pane-tag {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -243,7 +243,7 @@
 }
 
 /* ─────────────────────────── 终端文字区 ─────────────────────────── */
-[data-ui-theme="cloudrift"] .term-window {
+[data-ui-theme="draftgrid"] .term-window {
   flex: 1;
   min-height: 0;
   background: var(--term-bg);
@@ -251,7 +251,7 @@
   overflow: hidden;
 }
 
-[data-ui-theme="cloudrift"] .terminal-selection-actions {
+[data-ui-theme="draftgrid"] .terminal-selection-actions {
   position: absolute;
   z-index: 18;
   box-sizing: border-box;
@@ -272,7 +272,7 @@
   -webkit-backdrop-filter: blur(18px) saturate(160%);
 }
 
-[data-ui-theme="cloudrift"] button.terminal-selection-action {
+[data-ui-theme="draftgrid"] button.terminal-selection-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -295,52 +295,52 @@
     color var(--d-fast) var(--ease-smooth);
 }
 
-[data-ui-theme="cloudrift"] button.terminal-selection-action:hover {
+[data-ui-theme="draftgrid"] button.terminal-selection-action:hover {
   background: var(--bg-hover);
   color: var(--fg-primary);
 }
 
-[data-ui-theme="cloudrift"] button.terminal-selection-action:focus-visible {
+[data-ui-theme="draftgrid"] button.terminal-selection-action:focus-visible {
   outline: none;
   box-shadow: var(--shadow-focus-ring);
 }
 
-[data-ui-theme="cloudrift"] button.terminal-selection-action svg {
+[data-ui-theme="draftgrid"] button.terminal-selection-action svg {
   flex-shrink: 0;
   color: var(--accent);
 }
 
-[data-ui-theme="cloudrift"] .term-line {
+[data-ui-theme="draftgrid"] .term-line {
   white-space: pre-wrap;
   word-break: break-word;
 }
-[data-ui-theme="cloudrift"] .term-line.out { color: var(--term-fg); }
-[data-ui-theme="cloudrift"] .term-line.out.err { color: var(--ansi-red); }
+[data-ui-theme="draftgrid"] .term-line.out { color: var(--term-fg); }
+[data-ui-theme="draftgrid"] .term-line.out.err { color: var(--ansi-red); }
 
 /* PS1 prompt 配色（参考 zsh/oh-my-zsh agnoster 配色） */
-[data-ui-theme="cloudrift"] .ps1 { user-select: none; }
-[data-ui-theme="cloudrift"] .ps1-user { color: var(--ansi-magenta); font-weight: var(--fw-medium); }
-[data-ui-theme="cloudrift"] .ps1-at { color: var(--fg-muted); }
-[data-ui-theme="cloudrift"] .ps1-host { color: var(--ansi-cyan); }
-[data-ui-theme="cloudrift"] .ps1-colon { color: var(--fg-muted); }
-[data-ui-theme="cloudrift"] .ps1-path { color: var(--ansi-blue); }
-[data-ui-theme="cloudrift"] .ps1-sigil { color: var(--accent-violet); margin: 0 6px 0 4px; font-weight: var(--fw-semibold); }
+[data-ui-theme="draftgrid"] .ps1 { user-select: none; }
+[data-ui-theme="draftgrid"] .ps1-user { color: var(--ansi-magenta); font-weight: var(--fw-medium); }
+[data-ui-theme="draftgrid"] .ps1-at { color: var(--fg-muted); }
+[data-ui-theme="draftgrid"] .ps1-host { color: var(--ansi-cyan); }
+[data-ui-theme="draftgrid"] .ps1-colon { color: var(--fg-muted); }
+[data-ui-theme="draftgrid"] .ps1-path { color: var(--ansi-blue); }
+[data-ui-theme="draftgrid"] .ps1-sigil { color: var(--accent-violet); margin: 0 6px 0 4px; font-weight: var(--fw-semibold); }
 
-[data-ui-theme="cloudrift"] .cmd { color: var(--term-fg); }
-[data-ui-theme="cloudrift"] .cmd-typed { color: var(--term-fg); }
+[data-ui-theme="draftgrid"] .cmd { color: var(--term-fg); }
+[data-ui-theme="draftgrid"] .cmd-typed { color: var(--term-fg); }
 
 /* ANSI 快捷着色类（在 term-window 内使用） */
-[data-ui-theme="cloudrift"] .term-window .c-red { color: var(--ansi-red); }
-[data-ui-theme="cloudrift"] .term-window .c-green { color: var(--ansi-green); }
-[data-ui-theme="cloudrift"] .term-window .c-yellow { color: var(--ansi-yellow); }
-[data-ui-theme="cloudrift"] .term-window .c-blue { color: var(--ansi-blue); }
-[data-ui-theme="cloudrift"] .term-window .c-magenta { color: var(--ansi-magenta); }
-[data-ui-theme="cloudrift"] .term-window .c-cyan { color: var(--ansi-cyan); }
-[data-ui-theme="cloudrift"] .term-window .c-violet { color: var(--accent-violet); }
-[data-ui-theme="cloudrift"] .term-window .c-muted { color: rgba(245, 247, 242, 0.42); }
+[data-ui-theme="draftgrid"] .term-window .c-red { color: var(--ansi-red); }
+[data-ui-theme="draftgrid"] .term-window .c-green { color: var(--ansi-green); }
+[data-ui-theme="draftgrid"] .term-window .c-yellow { color: var(--ansi-yellow); }
+[data-ui-theme="draftgrid"] .term-window .c-blue { color: var(--ansi-blue); }
+[data-ui-theme="draftgrid"] .term-window .c-magenta { color: var(--ansi-magenta); }
+[data-ui-theme="draftgrid"] .term-window .c-cyan { color: var(--ansi-cyan); }
+[data-ui-theme="draftgrid"] .term-window .c-violet { color: var(--accent-violet); }
+[data-ui-theme="draftgrid"] .term-window .c-muted { color: color-mix(in srgb, var(--fg-muted) 72%, transparent); }
 
 /* 闪烁光标 */
-[data-ui-theme="cloudrift"] .caret {
+[data-ui-theme="draftgrid"] .caret {
   display: inline-block;
   width: 7px;
   height: 1em;
@@ -356,7 +356,7 @@
 }
 
 /* ─────────────────────────── AI Assist popover ─────────────────────────── */
-[data-ui-theme="cloudrift"] .term-ai-popover {
+[data-ui-theme="draftgrid"] .term-ai-popover {
   position: absolute;
   right: var(--space-5);
   bottom: var(--space-5);
@@ -378,13 +378,13 @@
   border: 1px solid transparent;
 }
 
-[data-ui-theme="cloudrift"] .ai-head {
+[data-ui-theme="draftgrid"] .ai-head {
   display: flex;
   align-items: center;
   padding: var(--space-3) var(--space-3) var(--space-2);
   border-bottom: 1px solid var(--border-subtle);
 }
-[data-ui-theme="cloudrift"] .ai-title {
+[data-ui-theme="draftgrid"] .ai-title {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -393,8 +393,8 @@
   color: var(--fg-primary);
   position: relative;
 }
-[data-ui-theme="cloudrift"] .ai-title svg { color: var(--accent); }
-[data-ui-theme="cloudrift"] .ai-title .ai-glow {
+[data-ui-theme="draftgrid"] .ai-title svg { color: var(--accent); }
+[data-ui-theme="draftgrid"] .ai-title .ai-glow {
   position: absolute;
   left: -4px; top: 50%;
   transform: translateY(-50%);
@@ -404,44 +404,44 @@
   filter: blur(8px);
   pointer-events: none;
 }
-[data-ui-theme="cloudrift"] .ai-actions {
+[data-ui-theme="draftgrid"] .ai-actions {
   display: inline-flex;
   align-items: center;
   gap: 2px;
   margin-left: auto;
 }
 
-[data-ui-theme="cloudrift"] .ai-question {
+[data-ui-theme="draftgrid"] .ai-question {
   display: flex;
   gap: var(--space-3);
   padding: var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
 }
-[data-ui-theme="cloudrift"] .ai-question .who {
+[data-ui-theme="draftgrid"] .ai-question .who {
   font-size: var(--fs-xs);
   color: var(--fg-muted);
   flex-shrink: 0;
   padding-top: 1px;
 }
-[data-ui-theme="cloudrift"] .ai-question p {
+[data-ui-theme="draftgrid"] .ai-question p {
   font-size: var(--fs-sm);
   color: var(--fg-primary);
   line-height: 1.45;
 }
 
-[data-ui-theme="cloudrift"] .ai-suggestion {
+[data-ui-theme="draftgrid"] .ai-suggestion {
   padding: var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   background: linear-gradient(180deg, var(--accent-subtle), transparent 60%);
 }
-[data-ui-theme="cloudrift"] .ai-suggestion-head {
+[data-ui-theme="draftgrid"] .ai-suggestion-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-[data-ui-theme="cloudrift"] .ai-step-tag {
+[data-ui-theme="draftgrid"] .ai-step-tag {
   display: inline-flex;
   align-items: center;
   height: 18px;
@@ -452,7 +452,7 @@
   color: var(--accent);
   font-weight: var(--fw-medium);
 }
-[data-ui-theme="cloudrift"] .ai-confidence {
+[data-ui-theme="draftgrid"] .ai-confidence {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -460,35 +460,35 @@
   color: var(--success);
 }
 
-[data-ui-theme="cloudrift"] .ai-cmd-block {
+[data-ui-theme="draftgrid"] .ai-cmd-block {
   position: relative;
   background: var(--term-bg);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
 }
-[data-ui-theme="cloudrift"] .ai-cmd {
+[data-ui-theme="draftgrid"] .ai-cmd {
   margin: 0;
   font-size: var(--fs-sm);
   color: var(--term-fg);
   white-space: pre-wrap;
   word-break: break-all;
 }
-[data-ui-theme="cloudrift"] .ai-cmd .c-violet { color: var(--accent-violet); }
-[data-ui-theme="cloudrift"] .ai-cmd .c-muted { color: rgba(245, 247, 242, 0.42); }
-[data-ui-theme="cloudrift"] .ai-copy {
+[data-ui-theme="draftgrid"] .ai-cmd .c-violet { color: var(--accent-violet); }
+[data-ui-theme="draftgrid"] .ai-cmd .c-muted { color: color-mix(in srgb, var(--fg-muted) 72%, transparent); }
+[data-ui-theme="draftgrid"] .ai-copy {
   position: absolute;
   top: 6px; right: 6px;
   width: 22px; height: 22px;
   border-radius: var(--radius-xs);
 }
 
-[data-ui-theme="cloudrift"] .ai-explain {
+[data-ui-theme="draftgrid"] .ai-explain {
   font-size: var(--fs-sm);
   color: var(--fg-secondary);
   line-height: 1.5;
 }
-[data-ui-theme="cloudrift"] .ai-explain code {
+[data-ui-theme="draftgrid"] .ai-explain code {
   background: var(--bg-elevated);
   padding: 1px 6px;
   border-radius: var(--radius-xs);
@@ -497,14 +497,14 @@
   border: 1px solid var(--border-subtle);
 }
 
-[data-ui-theme="cloudrift"] .ai-cta {
+[data-ui-theme="draftgrid"] .ai-cta {
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
-[data-ui-theme="cloudrift"] .ai-cta-spacer { flex: 1; }
+[data-ui-theme="draftgrid"] .ai-cta-spacer { flex: 1; }
 
-[data-ui-theme="cloudrift"] .ai-input-bar {
+[data-ui-theme="draftgrid"] .ai-input-bar {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -512,12 +512,12 @@
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
 }
-[data-ui-theme="cloudrift"] .ai-input-icon {
+[data-ui-theme="draftgrid"] .ai-input-icon {
   display: inline-flex;
   color: var(--accent);
   flex-shrink: 0;
 }
-[data-ui-theme="cloudrift"] .ai-input {
+[data-ui-theme="draftgrid"] .ai-input {
   flex: 1;
   height: 24px;
   background: transparent;
@@ -526,8 +526,8 @@
   color: var(--fg-primary);
   font-size: var(--fs-sm);
 }
-[data-ui-theme="cloudrift"] .ai-input::placeholder { color: var(--fg-muted); }
-[data-ui-theme="cloudrift"] .ai-input-kbd {
+[data-ui-theme="draftgrid"] .ai-input::placeholder { color: var(--fg-muted); }
+[data-ui-theme="draftgrid"] .ai-input-kbd {
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -535,7 +535,7 @@
 }
 
 /* ─────────────────────────── Terminal status bar 中的高亮项 ─────────────────────────── */
-[data-ui-theme="cloudrift"] .statusbar .status-item.accent {
+[data-ui-theme="draftgrid"] .statusbar .status-item.accent {
   color: var(--accent);
 }
-[data-ui-theme="cloudrift"] .statusbar .status-item.accent svg { color: var(--accent); }
+[data-ui-theme="draftgrid"] .statusbar .status-item.accent svg { color: var(--accent); }
