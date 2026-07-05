@@ -1,0 +1,271 @@
+/*
+ * Inkpaper tokens mapped from ui/ui-inkpaper/styles/tokens.css.
+ * The theme keeps the existing app layout and applies the Inkpaper
+ * design-system colors, paper surfaces, cinnabar accents, and light/dark modes.
+ */
+
+[data-ui-theme="inkpaper"],
+[data-ui-theme="inkpaper"] body.theme-dark,
+body.theme-dark [data-ui-theme="inkpaper"] {
+  /* ── Background layers ── */
+  --bg-app: #0D0D0C;            /* 应用最底层（窗口背景） */
+  --bg-base: #151412;           /* 主区域背景 */
+  --bg-elevated: #1D1B18;       /* 次级面板（侧栏、状态栏、tab 栏） */
+  --bg-surface: #25221E;        /* 卡片、下拉、popover */
+  --bg-overlay: rgba(13, 13, 12, 0.78); /* 遮罩 */
+  --bg-hover: rgba(247, 241, 228, 0.055);
+  --bg-active: rgba(66, 106, 122, 0.105);
+
+  /* ── Foreground / text ── */
+  --fg-primary: #F7F1E4;
+  --fg-secondary: #D8CFBF;
+  --fg-muted: #A49A8B;
+  --fg-disabled: #675F55;
+  --fg-on-accent: #1E1D1A;
+
+  /* ── Accent (墨纸核心色) ── */
+  --accent-violet: #E8E0CF;     /* 宣纸端，保留变量名兼容页面 CSS */
+  --accent-cyan: #426A7A;       /* 矿物蓝端，保留变量名兼容页面 CSS */
+  --accent: #B94135;
+  --accent-hover: #F07A5F;
+  --accent-subtle: rgba(185, 65, 53, 0.120);
+  --accent-glow: rgba(185, 65, 53, 0.24);
+  --accent-gradient: linear-gradient(135deg, #D96E5F 0%, #F7EBDD 45%, #6A9FB1 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(185, 65, 53, 0.13) 0%, rgba(247, 235, 221, 0.12) 46%, rgba(66, 106, 122, 0.10) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(247, 235, 221, 0.12), rgba(185, 65, 53, 0.085) 46%, rgba(66, 106, 122, 0.06));
+  --icon-stroke: #F07A5F;
+  --icon-stroke-muted: #A49A8B;
+  --icon-shine: rgba(255, 248, 232, 0.48);
+
+  /* ── Border ── */
+  --border-subtle: rgba(247, 241, 228, 0.07);
+  --border-default: rgba(247, 241, 228, 0.12);
+  --border-strong: rgba(247, 241, 228, 0.20);
+  --border-focus: var(--accent);
+
+  /* ── Status colors ── */
+  --success: #5EBA76;
+  --success-subtle: rgba(94, 186, 118, 0.14);
+  --warning: #D2A24D;
+  --warning-subtle: rgba(210, 162, 77, 0.14);
+  --danger: #E16A57;
+  --danger-subtle: rgba(225, 106, 87, 0.14);
+  --info: #426A7A;
+  --info-subtle: rgba(66, 106, 122, 0.14);
+
+  /* Health: GOOD / FAIR / POOR */
+  --health-good: #5EBA76;
+  --health-fair: #D2A24D;
+  --health-poor: #F87171;
+
+  /* ── Terminal ANSI（在 .terminal-window 内使用） ── */
+  --term-bg: #0D0D0C;
+  --term-fg: #F7F1E4;
+  --term-cursor: #B94135;
+  --term-selection: rgba(185, 65, 53, 0.24);
+  --ansi-black: #1D1B18;
+  --ansi-red: #E16A57;
+  --ansi-green: #5EBA76;
+  --ansi-yellow: #D2A24D;
+  --ansi-blue: #6A9FB1;
+  --ansi-magenta: #B889C7;
+  --ansi-cyan: #6DA8A0;
+  --ansi-white: #F7F1E4;
+
+  /* ── Shadows / glow ── */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.34), 0 4px 14px rgba(0, 0, 0, 0.22);
+  --shadow-popover: 0 4px 8px rgba(0, 0, 0, 0.30), 0 18px 44px rgba(0, 0, 0, 0.48);
+  --shadow-glow: 0 0 0 1px rgba(247, 235, 221, 0.20), 0 0 24px rgba(185, 65, 53, 0.14), 0 0 30px rgba(66, 106, 122, 0.10);
+
+  /* ── Glass 效果（用于 Sidebar / Titlebar / StatusBar） ── */
+  --glass-bg: rgba(21, 20, 18, 0.88);
+  --glass-blur: 12px;
+
+  color-scheme: dark;
+}
+
+/* ─────────────────────────── Light theme ─────────────────────────── */
+[data-theme="light"][data-ui-theme="inkpaper"],
+[data-ui-theme="inkpaper"] body.theme-light,
+body.theme-light [data-ui-theme="inkpaper"] {
+  --bg-app: #F2EBDD;
+  --bg-base: #FFFDF7;
+  --bg-elevated: #F6F0E5;
+  --bg-surface: #FFFFFB;
+  --bg-overlay: rgba(248, 244, 235, 0.76);
+  --bg-hover: rgba(30, 29, 26, 0.05);
+  --bg-active: rgba(185, 65, 53, 0.10);
+
+  --fg-primary: #1E1D1A;
+  --fg-secondary: #4A4540;
+  --fg-muted: #756D63;
+  --fg-disabled: #B4A99B;
+  --fg-on-accent: #FFF8E8;
+
+  --accent-violet: #2A2824;
+  --accent-cyan: #366E80;
+  --accent: #B94135;
+  --accent-hover: #9F3027;
+  --accent-subtle: rgba(185, 65, 53, 0.105);
+  --accent-glow: rgba(185, 65, 53, 0.20);
+  --accent-gradient: linear-gradient(135deg, #B94135 0%, #2A2824 58%, #366E80 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(185, 65, 53, 0.12) 0%, rgba(247, 235, 221, 0.22) 48%, rgba(54, 110, 128, 0.10) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(185, 65, 53, 0.085) 48%, rgba(54, 110, 128, 0.08));
+  --icon-stroke: #B94135;
+  --icon-stroke-muted: #756D63;
+  --icon-shine: rgba(255, 255, 255, 0.78);
+
+  --border-subtle: rgba(30, 29, 26, 0.08);
+  --border-default: rgba(30, 29, 26, 0.13);
+  --border-strong: rgba(30, 29, 26, 0.22);
+
+  --success: #16A34A;
+  --success-subtle: rgba(22, 163, 74, 0.10);
+  --warning: #B8862F;
+  --warning-subtle: rgba(184, 134, 47, 0.11);
+  --danger: #DC2626;
+  --danger-subtle: rgba(220, 38, 38, 0.10);
+  --info: #366E80;
+  --info-subtle: rgba(54, 110, 128, 0.10);
+
+  --health-good: #16A34A;
+  --health-fair: #B8862F;
+  --health-poor: #DC2626;
+
+  --term-bg: #0D0D0C;          /* 终端始终保持深色（即使在亮色主题下） */
+  --term-fg: #F7F1E4;
+  --term-cursor: #B94135;
+  --term-selection: rgba(185, 65, 53, 0.24);
+
+  --shadow-card: 0 1px 2px rgba(34, 31, 27, 0.05), 0 4px 16px rgba(34, 31, 27, 0.08);
+  --shadow-popover: 0 4px 12px rgba(34, 31, 27, 0.12), 0 24px 48px rgba(34, 31, 27, 0.14);
+  --shadow-glow: 0 0 0 1px rgba(185, 65, 53, 0.20), 0 0 24px rgba(185, 65, 53, 0.13), 0 0 30px rgba(54, 110, 128, 0.07);
+
+  --glass-bg: rgba(255, 253, 247, 0.76);
+  --glass-blur: 18px;
+
+  color-scheme: light;
+}
+
+/* ─────────────────────────── Sizing tokens ─────────────────────────── */
+[data-ui-theme="inkpaper"] {
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Type scale */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h: 36px;
+  --tabbar-h: 38px;
+  --statusbar-h: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
+}
+
+
+/* Bridge the existing React/Tailwind token names to the prototype token names. */
+[data-ui-theme="inkpaper"] {
+  --height-titlebar: var(--titlebar-h);
+  --width-sidebar: var(--sidebar-w);
+  --width-sidebar-collapsed: var(--sidebar-w-collapsed);
+  --height-tabbar: var(--tabbar-h);
+  --height-statusbar: var(--statusbar-h);
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --font-size-xs: var(--fs-xs);
+  --font-size-sm: var(--fs-sm);
+  --font-size-base: var(--fs-base);
+  --font-size-lg: var(--fs-lg);
+  --font-size-xl: var(--fs-xl);
+  --duration-fast: var(--d-fast);
+  --duration-base: var(--d-base);
+  --duration-panel: var(--d-panel);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+  --color-text-primary: var(--fg-primary);
+  --color-text-secondary: var(--fg-secondary);
+  --color-text-muted: var(--fg-muted);
+  --color-text-inverse: var(--fg-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-gradient: var(--accent-gradient);
+  --color-accent-glow: var(--accent-glow);
+  --color-fg-on-accent: var(--fg-on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: var(--info);
+  --color-good: var(--health-good);
+  --color-fair: var(--health-fair);
+  --color-poor: var(--health-poor);
+  --surface-window: var(--glass-bg);
+  --surface-card: var(--bg-surface);
+  --app-bg-image:
+    repeating-linear-gradient(90deg, rgba(247, 241, 228, 0.020) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(0deg, rgba(185, 65, 53, 0.018) 0 1px, transparent 1px 34px),
+    linear-gradient(180deg, rgba(185, 65, 53, 0.035), transparent 30%),
+    linear-gradient(180deg, var(--bg-app) 0%, var(--bg-base) 58%, var(--bg-app) 100%);
+  --app-shell-overlay:
+    linear-gradient(128deg, rgba(247, 241, 228, 0.040) 0%, transparent 18%),
+    linear-gradient(180deg, rgba(185, 65, 53, 0.060), transparent 44%),
+    linear-gradient(112deg, transparent 0%, rgba(66, 106, 122, 0.060) 50%, transparent 78%);
+  --app-shell-overlay-opacity: 1;
+  --shadow-floating: var(--shadow-popover);
+  --shadow-focus-ring: 0 0 0 3px var(--accent-subtle);
+  --shadow-accent-glow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 20px var(--accent-glow);
+}
+
+[data-theme="light"][data-ui-theme="inkpaper"] {
+  --app-bg-image:
+    repeating-linear-gradient(90deg, rgba(185, 65, 53, 0.034) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(0deg, rgba(54, 110, 128, 0.032) 0 1px, transparent 1px 34px),
+    linear-gradient(180deg, #FFFFFB 0%, var(--bg-app) 46%, var(--bg-elevated) 100%);
+  --app-shell-overlay:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.30), transparent 28%),
+    linear-gradient(112deg, transparent 0%, rgba(54, 110, 128, 0.060) 50%, transparent 78%),
+    linear-gradient(135deg, transparent 0 48%, rgba(185, 65, 53, 0.044) 48% 49%, transparent 49%);
+}
