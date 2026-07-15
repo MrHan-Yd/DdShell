@@ -506,3 +506,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 72: 新增竹影主题（mossline）
+
+**Date**: 2026-07-15
+**Task**: 新增竹影主题（mossline）
+**Branch**: `main`
+
+### Summary
+
+从 ui/ui-mossline 设计稿落地竹影主题：接入层 5 文件（UI_THEMES/i18n/SettingsPage/预览卡/main 导入），样式层 10 文件（设计稿加作用域移植 + lumenreef 应用桥接层换色移植：tokens Bridge 块、mon-* 规则、settings 对齐段）。修复泛光雾刺眼：高光色相由竹叶露光校正为中性冷白，shell-overlay opacity 降至 0.55、bg-image 光晕减半。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `707e88b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
