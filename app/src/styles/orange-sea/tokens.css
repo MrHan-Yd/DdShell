@@ -1,7 +1,7 @@
 /* Auto-scoped Orange Sea CSS mapped from ui/ui-orange-sea/styles/tokens.css. Do not edit ui/styles sources. */
 /*
  * tokens.css - DdShell 设计令牌（双主题）
- * 风格：橘子海 / Orange Tide
+ * 风格：橙汐 / Orange Tide
  * 暗色 + 亮色，CSS 变量 + body 类名切换
  */
 
@@ -24,7 +24,7 @@ body.theme-dark [data-ui-theme="orange-sea"] {
   --fg-disabled: #5D7778;
   --fg-on-accent: #10233A;
 
-  /* -- Accent (橘子海核心色) -- */
+  /* -- Accent (橙汐核心色) -- */
   --accent-violet: #F47C3C;     /* 日落橘，保留变量名兼容页面 CSS */
   --accent-cyan: #35A7A3;       /* 海面青，保留变量名兼容页面 CSS */
   --accent: #F47C3C;

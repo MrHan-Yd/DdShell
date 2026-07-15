@@ -1683,6 +1683,28 @@ body {
   backdrop-filter: blur(16px);
 }
 
+.theme-preview--umbra {
+  background:
+    radial-gradient(circle at 78% 24%, rgba(240, 236, 230, 0.08) 0 6%, rgba(197, 114, 76, 0.28) 7% 9%, rgba(142, 47, 44, 0.18) 10% 17%, transparent 29%),
+    radial-gradient(ellipse 58% 32% at 50% 104%, rgba(142, 47, 44, 0.12), transparent 70%),
+    linear-gradient(180deg, #050406, #0B090C 58%, #20171B);
+}
+
+.theme-preview--umbra .theme-preview__sidebar {
+  background: rgba(21, 17, 22, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(240, 236, 230, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.theme-preview--umbra .theme-preview__panel {
+  background:
+    linear-gradient(135deg, rgba(50, 16, 20, 0.28), rgba(142, 47, 44, 0.18) 48%, rgba(197, 114, 76, 0.15));
+  box-shadow:
+    inset 0 0 0 1px rgba(240, 236, 230, 0.07),
+    0 10px 24px rgba(5, 4, 6, 0.40);
+  backdrop-filter: blur(16px);
+}
+
 .aurora-shell-orb {
   position: absolute;
   z-index: 0;

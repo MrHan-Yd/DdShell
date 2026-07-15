@@ -1,0 +1,271 @@
+/* Auto-scoped Umbra CSS mapped from ui/ui-umbra/styles/tokens.css. Do not edit ui/styles sources. */
+/*
+ * tokens.css - DdShell 设计令牌（双主题）
+ * 风格：月蚀 / Umbra
+ * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
+ */
+
+[data-ui-theme="umbra"],
+[data-ui-theme="umbra"] body.theme-dark,
+body.theme-dark [data-ui-theme="umbra"] {
+  /* -- Background layers -- */
+  --bg-app: #050406;
+  --bg-base: #0B090C;
+  --bg-elevated: #151116;
+  --bg-surface: #20171B;
+  --bg-overlay: rgba(5, 4, 6, 0.76);
+  --bg-hover: rgba(197, 114, 76, 0.055);
+  --bg-active: rgba(197, 114, 76, 0.11);
+
+  /* -- Foreground / text -- */
+  --fg-primary: #F0ECE6;
+  --fg-secondary: #C9BDB4;
+  --fg-muted: #766A66;
+  --fg-disabled: #4D4443;
+  --fg-on-accent: #130807;
+
+  /* -- Accent (月蚀核心色) -- */
+  --accent-violet: #8E2F2C;     /* 本影暗红，保留变量名兼容页面 CSS */
+  --accent-cyan: #C5724C;       /* 月铜边缘光，保留变量名兼容页面 CSS */
+  --accent: #C5724C;
+  --accent-hover: #E09A6C;
+  --accent-subtle: rgba(197, 114, 76, 0.14);
+  --accent-glow: rgba(197, 114, 76, 0.26);
+  --accent-gradient: linear-gradient(135deg, #321014 0%, #8E2F2C 45%, #C5724C 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(142, 47, 44, 0.18) 0%, rgba(197, 114, 76, 0.14) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(197, 114, 76, 0.12), rgba(142, 47, 44, 0.08));
+  --icon-stroke: #D48A5F;
+  --icon-stroke-muted: #9B8075;
+  --icon-shine: rgba(255, 220, 190, 0.50);
+
+  /* -- Border -- */
+  --border-subtle: rgba(240, 236, 230, 0.06);
+  --border-default: rgba(240, 236, 230, 0.10);
+  --border-strong: rgba(240, 236, 230, 0.18);
+  --border-focus: var(--accent);
+
+  /* -- Status colors -- */
+  --success: #6FD18D;
+  --success-subtle: rgba(111, 209, 141, 0.14);
+  --warning: #DCA768;
+  --warning-subtle: rgba(220, 167, 104, 0.14);
+  --danger: #E06C6C;
+  --danger-subtle: rgba(224, 108, 108, 0.14);
+  --info: #B98A78;
+  --info-subtle: rgba(185, 138, 120, 0.14);
+
+  /* Health: GOOD / FAIR / POOR */
+  --health-good: #6FD18D;
+  --health-fair: #DCA768;
+  --health-poor: #E06C6C;
+
+  /* -- Terminal ANSI（在 .terminal-window 内使用） -- */
+  --term-bg: #030204;
+  --term-fg: #F0ECE6;
+  --term-cursor: #C5724C;
+  --term-selection: rgba(197, 114, 76, 0.28);
+  --ansi-black: #151116;
+  --ansi-red: #E06C6C;
+  --ansi-green: #6FD18D;
+  --ansi-yellow: #DCA768;
+  --ansi-blue: #9FA6C4;
+  --ansi-magenta: #B78BAA;
+  --ansi-cyan: #B98A78;
+  --ansi-white: #F0ECE6;
+
+  /* -- Shadows / glow -- */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.38), 0 4px 14px rgba(0, 0, 0, 0.26);
+  --shadow-popover: 0 4px 8px rgba(0, 0, 0, 0.34), 0 18px 44px rgba(0, 0, 0, 0.54);
+  --shadow-glow: 0 0 0 1px rgba(197, 114, 76, 0.28), 0 0 28px rgba(142, 47, 44, 0.18);
+
+  /* -- Glass 效果（用于 Sidebar / Titlebar / StatusBar） -- */
+  --glass-bg: rgba(21, 17, 22, 0.74);
+  --glass-blur: 18px;
+
+  color-scheme: dark;
+}
+
+/* --------------------------- Light theme --------------------------- */
+[data-theme="light"][data-ui-theme="umbra"],
+[data-ui-theme="umbra"] body.theme-light,
+body.theme-light [data-ui-theme="umbra"] {
+  --bg-app: #F4EFEB;
+  --bg-base: #FEFBF8;
+  --bg-elevated: #EDE3DC;
+  --bg-surface: #FFFFFF;
+  --bg-overlay: rgba(244, 239, 235, 0.74);
+  --bg-hover: rgba(19, 8, 7, 0.05);
+  --bg-active: rgba(150, 62, 49, 0.10);
+
+  --fg-primary: #130807;
+  --fg-secondary: #5C4D49;
+  --fg-muted: #8A7C75;
+  --fg-disabled: #BEB1AA;
+  --fg-on-accent: #130807;
+
+  --accent-violet: #963E31;
+  --accent-cyan: #B46A45;
+  --accent: #A95538;
+  --accent-hover: #843324;
+  --accent-subtle: rgba(169, 85, 56, 0.11);
+  --accent-glow: rgba(169, 85, 56, 0.18);
+  --accent-gradient: linear-gradient(135deg, #3A1515 0%, #963E31 48%, #B46A45 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(150, 62, 49, 0.10) 0%, rgba(180, 106, 69, 0.12) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(169, 85, 56, 0.10));
+  --icon-stroke: #963E31;
+  --icon-stroke-muted: #796762;
+  --icon-shine: rgba(255, 255, 255, 0.84);
+
+  --border-subtle: rgba(19, 8, 7, 0.06);
+  --border-default: rgba(19, 8, 7, 0.10);
+  --border-strong: rgba(19, 8, 7, 0.18);
+
+  --success: #15803D;
+  --success-subtle: rgba(21, 128, 61, 0.10);
+  --warning: #A6652A;
+  --warning-subtle: rgba(166, 101, 42, 0.10);
+  --danger: #C73B3B;
+  --danger-subtle: rgba(199, 59, 59, 0.10);
+  --info: #8E5B4A;
+  --info-subtle: rgba(142, 91, 74, 0.10);
+
+  --health-good: #15803D;
+  --health-fair: #A6652A;
+  --health-poor: #C73B3B;
+
+  --term-bg: #030204;
+  --term-fg: #F0ECE6;
+  --term-cursor: #C5724C;
+  --term-selection: rgba(197, 114, 76, 0.28);
+
+  --shadow-card: 0 1px 2px rgba(19, 8, 7, 0.05), 0 4px 16px rgba(19, 8, 7, 0.07);
+  --shadow-popover: 0 4px 12px rgba(19, 8, 7, 0.10), 0 24px 48px rgba(19, 8, 7, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(169, 85, 56, 0.22), 0 0 24px rgba(169, 85, 56, 0.10);
+
+  --glass-bg: rgba(254, 251, 248, 0.74);
+  --glass-blur: 18px;
+
+  color-scheme: light;
+}
+
+/* --------------------------- Sizing tokens --------------------------- */
+[data-ui-theme="umbra"] {
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Type scale */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h: 36px;
+  --tabbar-h: 38px;
+  --statusbar-h: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
+}
+
+/* Bridge the existing React/Tailwind token names to the prototype token names. */
+[data-ui-theme="umbra"] {
+  --height-titlebar: var(--titlebar-h);
+  --width-sidebar: var(--sidebar-w);
+  --width-sidebar-collapsed: var(--sidebar-w-collapsed);
+  --height-tabbar: var(--tabbar-h);
+  --height-statusbar: var(--statusbar-h);
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --font-size-xs: var(--fs-xs);
+  --font-size-sm: var(--fs-sm);
+  --font-size-base: var(--fs-base);
+  --font-size-lg: var(--fs-lg);
+  --font-size-xl: var(--fs-xl);
+  --duration-fast: var(--d-fast);
+  --duration-base: var(--d-base);
+  --duration-panel: var(--d-panel);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+  --color-text-primary: var(--fg-primary);
+  --color-text-secondary: var(--fg-secondary);
+  --color-text-muted: var(--fg-muted);
+  --color-text-inverse: var(--fg-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-gradient: var(--accent-gradient);
+  --color-accent-glow: var(--accent-glow);
+  --color-fg-on-accent: var(--fg-on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: var(--info);
+  --color-good: var(--health-good);
+  --color-fair: var(--health-fair);
+  --color-poor: var(--health-poor);
+  --surface-window: var(--glass-bg);
+  --surface-card: var(--bg-surface);
+  --app-bg-image:
+    radial-gradient(circle at 84% 14%, rgba(240, 236, 230, 0.028) 0 4%, rgba(197, 114, 76, 0.060) 5% 8%, rgba(142, 47, 44, 0.055) 9% 15%, transparent 27%),
+    radial-gradient(ellipse 58% 32% at 50% 104%, rgba(142, 47, 44, 0.060), transparent 70%),
+    radial-gradient(ellipse 76% 42% at 50% -18%, rgba(197, 114, 76, 0.050), transparent 68%),
+    linear-gradient(180deg, var(--bg-app) 0%, var(--bg-base) 58%, var(--bg-app) 100%);
+  --app-shell-overlay:
+    radial-gradient(circle at 84% 14%, transparent 0 8%, rgba(197, 114, 76, 0.045) 9%, transparent 20%),
+    linear-gradient(128deg, rgba(142, 47, 44, 0.040), transparent 24%),
+    linear-gradient(180deg, rgba(240, 236, 230, 0.018), transparent 38%);
+  --app-shell-overlay-opacity: 0.58;
+  --shadow-floating: var(--shadow-popover);
+  --shadow-focus-ring: 0 0 0 3px var(--accent-subtle);
+  --shadow-accent-glow: 0 1px 0 rgba(255, 255, 255, 0.16) inset, 0 6px 20px var(--accent-glow);
+}
+
+[data-theme="light"][data-ui-theme="umbra"] {
+  --app-bg-image:
+    radial-gradient(circle at 84% 14%, rgba(255, 255, 255, 0.34) 0 4%, rgba(180, 106, 69, 0.12) 5% 8%, rgba(150, 62, 49, 0.08) 9% 15%, transparent 27%),
+    radial-gradient(ellipse 58% 32% at 50% 104%, rgba(150, 62, 49, 0.075), transparent 70%),
+    radial-gradient(ellipse 76% 42% at 50% -18%, rgba(180, 106, 69, 0.085), transparent 68%),
+    linear-gradient(180deg, #FFFFFF 0%, var(--bg-app) 48%, var(--bg-elevated) 100%);
+  --app-shell-overlay:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.30), transparent 28%),
+    radial-gradient(circle at 84% 14%, transparent 0 8%, rgba(169, 85, 56, 0.050) 9%, transparent 20%);
+}

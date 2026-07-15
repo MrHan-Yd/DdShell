@@ -1,7 +1,7 @@
 /* Auto-scoped Nebula Dust CSS mapped from ui/ui-nebula-dust/styles/tokens.css. Do not edit ui/styles sources. */
 /*
  * tokens.css - DdShell 设计令牌（双主题）
- * 风格：星云尘埃 / Nebula Dust
+ * 风格：星尘 / Nebula Dust
  * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
  */
 
@@ -24,7 +24,7 @@ body.theme-dark [data-ui-theme="nebula-dust"]{
   --fg-disabled: #51475F;
   --fg-on-accent: #140B10;
 
-  /* -- Accent (星云尘埃核心色) -- */
+  /* -- Accent (星尘核心色) -- */
   --accent-violet: #9A7CFF;     /* 暗雾紫，保留变量名兼容页面 CSS */
   --accent-cyan: #ECA68B;       /* 粉橙星尘，保留变量名兼容页面 CSS */
   --accent: #ECA68B;

@@ -1,7 +1,7 @@
 /* Auto-scoped Rainlake CSS mapped from ui/ui-rainlake/styles/tokens.css. Do not edit ui/styles sources. */
 /*
  * tokens.css - DdShell 设计令牌（双主题）
- * 风格：夜雨霓湖 / Rainlake
+ * 风格：霓湖 / Rainlake
  * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
  */
 
@@ -24,7 +24,7 @@ body.theme-dark [data-ui-theme="rainlake"] {
   --fg-disabled: #46576A;
   --fg-on-accent: #061018;
 
-  /* -- Accent (夜雨霓湖核心色) -- */
+  /* -- Accent (霓湖核心色) -- */
   --accent-violet: #A27CFF;     /* 青紫霓光，保留变量名兼容页面 CSS */
   --accent-cyan: #62CDE0;       /* 雨夜冷青，保留变量名兼容页面 CSS */
   --accent: #62CDE0;
