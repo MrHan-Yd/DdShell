@@ -539,3 +539,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 73: 新增星云尘埃主题
+
+**Date**: 2026-07-15
+**Task**: 新增星云尘埃主题
+**Branch**: `main`
+
+### Summary
+
+按 707e88bb 的主题接入结构，将 ui-nebula-dust 落地为支持暗亮模式的 Nebula Dust 主题，完成设置入口、预览、分层 CSS、应用覆盖与质量验证。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f84b8c1` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
