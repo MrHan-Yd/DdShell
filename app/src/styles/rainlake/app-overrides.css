@@ -14,6 +14,7 @@
 [data-ui-theme="rainlake"] .app-statusbar {
   border-color: var(--border-default);
   background:
+    repeating-linear-gradient(105deg, rgba(238, 246, 250, 0.045) 0 1px, transparent 1px 24px),
     linear-gradient(180deg, rgba(238, 246, 250, 0.055), rgba(238, 246, 250, 0.016)),
     var(--glass-bg);
   box-shadow: var(--shadow-card), inset 0 1px 0 rgba(238, 246, 250, 0.07);
@@ -23,6 +24,7 @@
 [data-ui-theme="rainlake"] .settings-pane-frame {
   border-color: var(--border-default);
   background:
+    repeating-linear-gradient(105deg, rgba(98, 205, 224, 0.032) 0 1px, transparent 1px 30px),
     linear-gradient(180deg, rgba(238, 246, 250, 0.038), rgba(238, 246, 250, 0.012)),
     rgba(10, 18, 32, 0.52);
   box-shadow: var(--shadow-popover), inset 0 1px 0 rgba(238, 246, 250, 0.055);
@@ -32,6 +34,7 @@
 [data-theme="light"][data-ui-theme="rainlake"] .app-sidebar,
 [data-theme="light"][data-ui-theme="rainlake"] .app-statusbar {
   background:
+    repeating-linear-gradient(105deg, rgba(7, 25, 42, 0.040) 0 1px, transparent 1px 24px),
     linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.68)),
     var(--glass-bg);
   box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.78);
@@ -40,6 +43,7 @@
 [data-theme="light"][data-ui-theme="rainlake"] .app-main-frame,
 [data-theme="light"][data-ui-theme="rainlake"] .settings-pane-frame {
   background:
+    repeating-linear-gradient(105deg, rgba(42, 139, 165, 0.034) 0 1px, transparent 1px 30px),
     linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.70)),
     rgba(255, 255, 255, 0.58);
 }
