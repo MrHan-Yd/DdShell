@@ -1,0 +1,52 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="celadonBg" x1="18" y1="12" x2="184" y2="190" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FAFBF7"/>
+      <stop offset="0.56" stop-color="#E8EFEB"/>
+      <stop offset="1" stop-color="#D5E3DB"/>
+    </linearGradient>
+    <linearGradient id="celadonPaint" x1="18" y1="22" x2="184" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#214C4A"/>
+      <stop offset="0.34" stop-color="#4F8579"/>
+      <stop offset="0.68" stop-color="#9BC1B3"/>
+      <stop offset="0.88" stop-color="#DDE8E1"/>
+      <stop offset="1" stop-color="#B79A62"/>
+    </linearGradient>
+    <linearGradient id="glazeSweep" x1="44" y1="22" x2="154" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0.18" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.46" stop-color="#FFFFFF" stop-opacity="0.72"/>
+      <stop offset="0.58" stop-color="#DDE8E1" stop-opacity="0.18"/>
+      <stop offset="0.82" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="porcelainShadow" x="-24%" y="-24%" width="148%" height="156%">
+      <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#214C4A" flood-opacity="0.18"/>
+    </filter>
+    <clipPath id="markClip">
+      <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z"/>
+      <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z"/>
+    </clipPath>
+  </defs>
+  <rect x="10" y="10" width="180" height="180" rx="40" fill="url(#celadonBg)"/>
+  <circle cx="46" cy="42" r="66" fill="#FFFFFF" fill-opacity="0.38"/>
+  <circle cx="158" cy="154" r="58" fill="#4F8579" fill-opacity="0.08"/>
+  <rect x="10.5" y="10.5" width="179" height="179" rx="39.5" stroke="#214C4A" stroke-opacity="0.12"/>
+  <g filter="url(#porcelainShadow)">
+    <path d="M98 20V70C98 78 86 86 86 100C86 114 98 122 98 130V180C30 180 12 145 12 100C12 55 30 20 98 20Z" fill="url(#celadonPaint)"/>
+    <path d="M102 20V70C102 78 114 86 114 100C114 114 102 122 102 130V180C170 180 188 145 188 100C188 55 170 20 102 20Z" fill="url(#celadonPaint)"/>
+  </g>
+  <g clip-path="url(#markClip)" stroke="#173B3A" stroke-opacity="0.34" stroke-width="1.2" stroke-linecap="round">
+    <path d="M24 62L55 79L76 68L98 88"/>
+    <path d="M55 79L48 109L67 126L58 158"/>
+    <path d="M67 126L88 114L98 122"/>
+    <path d="M176 54L145 73L126 64L102 84"/>
+    <path d="M145 73L153 103L132 122L142 156"/>
+    <path d="M132 122L112 112L102 124"/>
+  </g>
+  <g clip-path="url(#markClip)" stroke="#FAFBF7" stroke-opacity="0.42" stroke-width="0.8" stroke-linecap="round" transform="translate(0 1)">
+    <path d="M24 62L55 79L76 68L98 88"/>
+    <path d="M176 54L145 73L126 64L102 84"/>
+  </g>
+  <rect x="99.35" y="25" width="1.3" height="150" fill="url(#glazeSweep)"/>
+  <path d="M43 49C78 34 122 34 157 49" stroke="#FAFBF7" stroke-opacity="0.28" stroke-width="5" stroke-linecap="round"/>
+  <path d="M61 151C86 162 114 162 139 151" stroke="#B79A62" stroke-opacity="0.48" stroke-width="1.4" stroke-linecap="round"/>
+</svg>

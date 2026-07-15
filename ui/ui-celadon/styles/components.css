@@ -1,0 +1,391 @@
+/*
+ * components.css — 通用组件样式
+ * 按钮、输入框、卡片、徽章、tag、popover、表单等
+ */
+
+/* ─────────────────────────── Button ─────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 30px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  user-select: none;
+  transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth), border-color var(--d-fast) var(--ease-smooth), box-shadow var(--d-fast) var(--ease-smooth), transform var(--d-fast) var(--ease-smooth);
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn svg,
+.theme-toggle svg,
+.input-icon svg,
+.list-item .icon svg,
+.avatar svg {
+  flex-shrink: 0;
+  stroke-width: 1.9;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px rgba(79, 133, 121, 0.16));
+}
+
+.btn:not(.btn-primary):not(.btn-danger) svg,
+.input-icon svg,
+.list-item .icon svg {
+  color: var(--icon-stroke-muted);
+}
+
+.btn:not(.btn-primary):not(.btn-danger):hover svg,
+.list-item:hover .icon svg,
+.list-item.is-active .icon svg {
+  color: var(--icon-stroke);
+}
+
+.app svg[width="10"],
+.app svg[width="11"],
+.app svg[width="12"],
+.app svg[width="13"],
+.app svg[width="14"],
+.app svg[width="15"],
+.app svg[width="16"],
+.page-overlay svg[width="12"],
+.page-overlay svg[width="13"],
+.page-overlay svg[width="14"] {
+  stroke-width: 1.9;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px rgba(79, 133, 121, 0.16));
+}
+
+.meta-item svg,
+.pane-icon svg,
+.tab-close svg,
+.tab-new svg,
+.file-row .col-name svg,
+.breadcrumb svg,
+.td-title svg,
+.td-dir svg,
+.td-pct svg,
+.wf-group-title svg,
+.wf-step-handle svg,
+.wf-step-more svg,
+.wf-step-add-btn svg,
+.proc-act svg,
+.status-item svg,
+.badge svg,
+.seg svg,
+.chart-tab svg,
+.input-stepper-btn svg,
+.settings-row-control svg {
+  color: var(--icon-stroke-muted);
+  stroke-width: 1.9;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px rgba(79, 133, 121, 0.16));
+}
+
+.tab:hover svg,
+.tab.is-active svg,
+.tab-new:hover svg,
+.file-row:hover .col-name svg,
+.breadcrumb .crumb:hover svg,
+.td-row:hover svg,
+.wf-card:hover .meta-item svg,
+.wf-card.is-active .meta-item svg,
+.wf-step:hover svg,
+.wf-step.is-current svg,
+.proc-row:hover svg,
+.seg:hover svg,
+.seg.is-active svg,
+.input-stepper-btn:hover svg {
+  color: var(--icon-stroke);
+}
+
+.app svg[style*="--fg-muted"] { color: var(--icon-stroke-muted) !important; }
+.app svg[style*="--accent"] { color: var(--icon-stroke) !important; }
+
+.btn-primary {
+  background: var(--accent-gradient);
+  color: var(--fg-on-accent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 20px var(--accent-glow);
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
+.btn-primary:focus-visible { outline: none; box-shadow: var(--shadow-glow); }
+.btn-primary:disabled {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  filter: none;
+}
+
+.btn-secondary {
+  background: var(--bg-surface);
+  color: var(--fg-primary);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 1px 0 rgba(250, 251, 247, 0.54) inset;
+}
+.btn-secondary:hover { background: var(--bg-active); border-color: var(--border-strong); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--fg-secondary);
+}
+.btn-ghost:hover { background: var(--bg-hover); color: var(--fg-primary); }
+
+.btn-danger {
+  background: var(--danger-subtle);
+  color: var(--danger);
+}
+.btn-danger:hover { background: var(--danger); color: var(--fg-on-accent); }
+
+.btn-icon {
+  position: relative;
+  overflow: hidden;
+  width: 28px; height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  background-image: var(--icon-plate);
+  border: 1px solid var(--border-subtle);
+}
+.btn-icon::before,
+.avatar::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--icon-shine), transparent 36%);
+  opacity: 0.24;
+  pointer-events: none;
+}
+.btn-icon svg,
+.avatar svg {
+  position: relative;
+  z-index: 1;
+}
+.btn-icon.btn-ghost { color: var(--icon-stroke-muted); }
+.btn-icon.btn-ghost:hover {
+  color: var(--icon-stroke);
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 1px var(--accent-subtle), 0 8px 18px rgba(0, 0, 0, 0.16);
+}
+
+.btn-sm { height: 26px; font-size: var(--fs-xs); padding: 0 var(--space-2); }
+.btn-lg { height: 38px; font-size: var(--fs-md); padding: 0 var(--space-5); }
+
+/* ─────────────────────────── Input ─────────────────────────── */
+.input {
+  width: 100%;
+  height: 30px;
+  padding: 0 var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--fg-primary);
+  font-size: var(--fs-sm);
+  outline: none;
+  transition: border-color var(--d-fast) var(--ease-smooth), box-shadow var(--d-fast) var(--ease-smooth);
+  box-shadow: 0 1px 0 rgba(250, 251, 247, 0.48) inset;
+}
+.input::placeholder { color: var(--fg-muted); }
+.input:hover { border-color: var(--border-strong); }
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.input-with-icon {
+  position: relative;
+}
+.input-with-icon .input { padding-left: 32px; }
+.input-with-icon .input-icon {
+  position: absolute;
+  left: 10px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-muted);
+  pointer-events: none;
+  display: inline-flex;
+}
+
+.label {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--fg-secondary);
+  margin-bottom: var(--space-2);
+  letter-spacing: 0.02em;
+}
+
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+
+/* ─────────────────────────── Card ─────────────────────────── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 0 rgba(250, 251, 247, 0.62) inset, var(--shadow-card);
+}
+.card-padded { padding: var(--space-5); }
+
+/* Glow card：用渐变描边的特殊卡片 */
+.card-glow {
+  position: relative;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 1px;
+  background-image: var(--accent-gradient-soft);
+}
+.card-glow > .inner {
+  background: var(--bg-surface);
+  border-radius: calc(var(--radius-lg) - 1px);
+  padding: var(--space-5);
+}
+
+/* ─────────────────────────── Badge / Tag / Pill ─────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 18px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  background: var(--bg-active);
+  color: var(--fg-secondary);
+}
+.badge-success { background: var(--success-subtle); color: var(--success); }
+.badge-warning { background: var(--warning-subtle); color: var(--warning); }
+.badge-danger  { background: var(--danger-subtle);  color: var(--danger); }
+.badge-info    { background: var(--info-subtle);    color: var(--info); }
+.badge-accent  { background: var(--accent-subtle);  color: var(--accent); }
+
+.dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+}
+.dot-success { background: var(--success); box-shadow: 0 0 8px var(--success); }
+.dot-warning { background: var(--warning); }
+.dot-danger  { background: var(--danger); }
+.dot-accent  { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  font-size: var(--fs-xs);
+  color: var(--fg-secondary);
+}
+
+/* ─────────────────────────── Toolbar ─────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* ─────────────────────────── Section ─────────────────────────── */
+.section-title {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  font-weight: var(--fw-medium);
+}
+
+/* ─────────────────────────── List item ─────────────────────────── */
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--fg-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
+}
+.list-item:hover { background: var(--bg-hover); color: var(--fg-primary); }
+.list-item.is-active { background: var(--accent-subtle); color: var(--fg-primary); }
+.list-item .icon { color: var(--icon-stroke-muted); flex-shrink: 0; }
+.list-item.is-active .icon { color: var(--accent); }
+
+/* ─────────────────────────── Popover / floating panel ─────────────────────────── */
+.popover {
+  position: absolute;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popover);
+  overflow: hidden;
+  min-width: 240px;
+}
+
+/* ─────────────────────────── Avatar/Icon container ─────────────────────────── */
+.avatar {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--accent-gradient-soft);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.avatar-sm { width: 24px; height: 24px; border-radius: var(--radius-sm); }
+.avatar-lg { width: 44px; height: 44px; border-radius: var(--radius-lg); }
+
+/* ─────────────────────────── Form row ─────────────────────────── */
+.form-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* ─────────────────────────── KBD ─────────────────────────── */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  color: var(--fg-secondary);
+  box-shadow: 0 1px 0 var(--border-default);
+}
+
+/* ─────────────────────────── Theme toggle (used on every page) ─────────────────────────── */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  gap: 0;
+}
+.theme-toggle button {
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.theme-toggle button svg { color: currentColor; filter: none; }
+.theme-toggle button.is-active {
+  background: var(--accent-gradient);
+  color: var(--fg-on-accent);
+}
