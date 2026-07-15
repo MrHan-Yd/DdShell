@@ -120,14 +120,21 @@ Every rendered window must apply the same boundary contract. This includes detac
 5. Replace any loading guard that enumerates old theme ids with `isUiTheme(saved)`.
 6. Verify the main window and secondary windows load the same saved `ui.theme`.
 
-When the theme comes from a static prototype under `ui/ui-<id>/styles/`, keep the prototype and application adaptation as separate layers:
+When the theme comes from a static prototype under `ui/ui-<id>/styles/`, the raw prototype is the visual source but is **not** a complete application-integration template. Use a completed app theme from the same prototype generation (for example commit `afef4487`) as the structural authority:
 
-- Convert `base.css`, `components.css`, `layout.css`, and supported page CSS by adding `[data-ui-theme="<id>"]` to ordinary selectors. Preserve declaration values/order and keep `@keyframes` bodies unchanged.
-- Map `:root` / `.theme-dark` and `.theme-light` token blocks to the document boundary contract above, then add the existing React/Tailwind `--color-*`, sizing, surface, and shadow token bridge.
-- Put selectors needed only because the real React class structure differs from the static prototype in `app-overrides.css`; use an existing completed theme as the coverage template, but replace both the theme id and palette-specific literal colors.
+- Start from the completed theme's `base.css`, `components.css`, `layout.css`, supported page files, and `app-overrides.css`. Replace the theme scope and palette-specific literals while preserving its mappings to the real React DOM.
+- Keep application-only selectors in the same layer as the reference theme. Real mappings may live inside page files, not only in `app-overrides.css`; examples include `settings-nav-panel`, `settings-section`, `file-pane.has-mkdir-editor`, path-tools rows, transfer drawers, terminal split/selection controls, and monitor session-pick controls.
+- Map `:root` / `.theme-dark` and `.theme-light` token blocks to the document boundary contract above, then add the React/Tailwind `--color-*`, sizing, surface, and shadow token bridge.
+- Preserve intentionally shared unscoped settings-layout rules exactly as they appear in the reference theme. Do not independently rescope or redesign them for the new theme.
 - Keep the theme index import order as tokens → base → components → layout → supported pages → app overrides.
 
-For mechanically scoped files, compare source/target rule-block counts (tokens may have additional bridge blocks), search the new theme directory for old theme ids and palette literals, and run the production build so Vite parses the complete CSS bundle.
+Directly scoping the raw prototype and comparing source/target rule-block counts is insufficient: it can compile while silently omitting real application states. Compare the new theme's complete class-selector set with the structural reference, search for old theme ids and palette literals, assert critical application selectors exist, and run the production build so Vite parses the complete CSS bundle.
+
+**Critical selector check**:
+
+```bash
+rg 'settings-nav-panel|settings-section|file-pane\.has-mkdir-editor|path-tools-recent-row|transfer-drawer|terminal-selection-actions|mon-session-pick-card' app/src/styles/<id>/
+```
 
 **Required check**:
 
