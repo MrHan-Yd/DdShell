@@ -487,6 +487,8 @@ const dict = {
   "settings.uiThemeInkpaperDesc": { zh: "采用宣纸白、墨黑文字、朱砂红印记与矿物蓝辅助的浅色工具视觉。", en: "Use paper-white surfaces, ink-black text, cinnabar accents, and mineral-blue support tones for a light tool theme." },
   "settings.uiThemeLumenReef": { zh: "珊光", en: "Lumen Reef" },
   "settings.uiThemeLumenReefDesc": { zh: "采用深海蓝绿、贝母白、浅水青与珊瑚粉橙点睛的清透工具视觉。", en: "Use deep reef blue-greens, nacre highlights, shallow-water cyan, and coral accents for a clear tool theme." },
+  "settings.uiThemeMossline": { zh: "竹影", en: "Mossline" },
+  "settings.uiThemeMosslineDesc": { zh: "采用深墨绿底色、竹叶绿交互、苔藓露光与冷白高光的自然绿色工具视觉。", en: "Use ink-green depths, bamboo-leaf accents, mossy dew light, and cool-white highlights for a natural green tool theme." },
   "settings.theme": { zh: "主题", en: "Theme" },
   "settings.themeDesc": { zh: "选择应用的配色方案", en: "Choose the application color scheme" },
   "settings.colorMode": { zh: "颜色模式", en: "Color Mode" },

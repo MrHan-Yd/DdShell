@@ -1593,6 +1593,28 @@ body {
   backdrop-filter: blur(14px);
 }
 
+.theme-preview--mossline {
+  background:
+    radial-gradient(ellipse 76% 46% at 50% -18%, rgba(94, 211, 151, 0.20), transparent 68%),
+    radial-gradient(circle at 82% 80%, rgba(181, 230, 132, 0.18), transparent 32%),
+    linear-gradient(180deg, #051109, #091A10 58%, #12311F);
+}
+
+.theme-preview--mossline .theme-preview__sidebar {
+  background: rgba(13, 36, 23, 0.84);
+  box-shadow: inset 0 0 0 1px rgba(211, 244, 194, 0.10);
+  backdrop-filter: blur(12px);
+}
+
+.theme-preview--mossline .theme-preview__panel {
+  background:
+    linear-gradient(135deg, rgba(94, 211, 151, 0.16), rgba(228, 255, 191, 0.12) 46%, rgba(181, 230, 132, 0.14));
+  box-shadow:
+    inset 0 0 0 1px rgba(211, 244, 194, 0.08),
+    0 10px 24px rgba(5, 17, 9, 0.30);
+  backdrop-filter: blur(14px);
+}
+
 .aurora-shell-orb {
   position: absolute;
   z-index: 0;

@@ -1562,25 +1562,27 @@ export function SettingsPage() {
 
   const activeTabMeta = tabItems.find((item) => item.value === activeTab) ?? tabItems[0];
   const hasFilteredTabs = filteredTabItems.length > 0;
-  const currentUiThemeLabel = committedUiTheme === "lumenreef"
-    ? t("settings.uiThemeLumenReef")
-    : committedUiTheme === "inkpaper"
-      ? t("settings.uiThemeInkpaper")
-      : committedUiTheme === "graphite-forge"
-        ? t("settings.uiThemeGraphiteForge")
-        : committedUiTheme === "frostplain"
-          ? t("settings.uiThemeFrostplain")
-          : committedUiTheme === "draftgrid"
-            ? t("settings.uiThemeDraftgrid")
-            : committedUiTheme === "cloudrift"
-              ? t("settings.uiThemeCloudrift")
-              : committedUiTheme === "obsidian-sand"
-                ? t("settings.uiThemeObsidianSand")
-                : committedUiTheme === "abyssal-vent"
-                  ? t("settings.uiThemeAbyssalVent")
-                  : committedUiTheme === "aurora"
-                    ? t("settings.uiThemeAurora")
-                    : t("settings.uiThemeClassic");
+  const currentUiThemeLabel = committedUiTheme === "mossline"
+    ? t("settings.uiThemeMossline")
+    : committedUiTheme === "lumenreef"
+      ? t("settings.uiThemeLumenReef")
+      : committedUiTheme === "inkpaper"
+        ? t("settings.uiThemeInkpaper")
+        : committedUiTheme === "graphite-forge"
+          ? t("settings.uiThemeGraphiteForge")
+          : committedUiTheme === "frostplain"
+            ? t("settings.uiThemeFrostplain")
+            : committedUiTheme === "draftgrid"
+              ? t("settings.uiThemeDraftgrid")
+              : committedUiTheme === "cloudrift"
+                ? t("settings.uiThemeCloudrift")
+                : committedUiTheme === "obsidian-sand"
+                  ? t("settings.uiThemeObsidianSand")
+                  : committedUiTheme === "abyssal-vent"
+                    ? t("settings.uiThemeAbyssalVent")
+                    : committedUiTheme === "aurora"
+                      ? t("settings.uiThemeAurora")
+                      : t("settings.uiThemeClassic");
   const currentModeLabel = committedTheme === "dark" ? t("settings.dark") : committedTheme === "light" ? t("settings.light") : t("settings.system");
   const activePanelId = `settings-panel-${activeTab}`;
   const activeTabId = `settings-tab-${activeTab}`;
@@ -1774,6 +1776,12 @@ export function SettingsPage() {
                   title: t("settings.uiThemeLumenReef"),
                   description: t("settings.uiThemeLumenReefDesc"),
                   previewClassName: "theme-preview theme-preview--lumenreef",
+                },
+                {
+                  value: "mossline",
+                  title: t("settings.uiThemeMossline"),
+                  description: t("settings.uiThemeMosslineDesc"),
+                  previewClassName: "theme-preview theme-preview--mossline",
                 },
               ] as const).map((option) => {
                 const active = uiTheme === option.value;

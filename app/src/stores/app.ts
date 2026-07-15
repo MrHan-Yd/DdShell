@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { Page } from "@/types";
 import type { Locale } from "@/lib/i18n";
 
-export const UI_THEMES = ["classic", "aurora", "abyssal-vent", "obsidian-sand", "cloudrift", "draftgrid", "frostplain", "graphite-forge", "inkpaper", "lumenreef"] as const;
+export const UI_THEMES = ["classic", "aurora", "abyssal-vent", "obsidian-sand", "cloudrift", "draftgrid", "frostplain", "graphite-forge", "inkpaper", "lumenreef", "mossline"] as const;
 export type UiTheme = typeof UI_THEMES[number];
 
 export function isUiTheme(value: string | null): value is UiTheme {
@@ -10,7 +10,7 @@ export function isUiTheme(value: string | null): value is UiTheme {
 }
 
 export function usesDesignSystemTheme(uiTheme: UiTheme): boolean {
-  return uiTheme === "aurora" || uiTheme === "abyssal-vent" || uiTheme === "obsidian-sand" || uiTheme === "cloudrift" || uiTheme === "draftgrid" || uiTheme === "frostplain" || uiTheme === "graphite-forge" || uiTheme === "inkpaper" || uiTheme === "lumenreef";
+  return uiTheme === "aurora" || uiTheme === "abyssal-vent" || uiTheme === "obsidian-sand" || uiTheme === "cloudrift" || uiTheme === "draftgrid" || uiTheme === "frostplain" || uiTheme === "graphite-forge" || uiTheme === "inkpaper" || uiTheme === "lumenreef" || uiTheme === "mossline";
 }
 
 interface AppState {
