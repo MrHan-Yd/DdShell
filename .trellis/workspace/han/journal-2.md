@@ -671,3 +671,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 77: Rainlake 斜线纹理
+
+**Date**: 2026-07-15
+**Task**: Rainlake 斜线纹理
+**Branch**: `main`
+
+### Summary
+
+参考蓝栅主题的结构表面纹理做法，为夜雨霓湖主题的深浅模式标题栏、侧栏、状态栏、主内容框与设置框补充单向稀疏斜线，并通过前端生产构建与 diff 检查。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `484e241` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
