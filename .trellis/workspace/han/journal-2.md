@@ -737,3 +737,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 79: 设计青瓷主题原型
+
+**Date**: 2026-07-16
+**Task**: 设计青瓷主题原型
+**Branch**: `main`
+
+### Summary
+
+在 ui/ui-celadon 中完成青瓷 Celadon 静态主题设计：浅色优先的瓷白、淡青釉、墨青与釉金体系，窑夜暗色模式、稀疏开片首页装饰、双版本 Logo 及九个完整页面；补充静态主题原型目录契约并通过构建、引用、CSS、SVG 和残留校验。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3ab6e9c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
