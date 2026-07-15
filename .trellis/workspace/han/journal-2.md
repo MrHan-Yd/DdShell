@@ -704,3 +704,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 78: 新增月蚀主题
+
+**Date**: 2026-07-16
+**Task**: 新增月蚀主题
+**Branch**: `main`
+
+### Summary
+
+完整接入月蚀 Umbra 主题，支持深浅色与全部应用状态；将橘子海、星云尘埃、夜雨霓湖的中文展示名调整为橙汐、星尘、霓湖，并完成构建、325 条前端断言和主题结构校验。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e48adba` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
