@@ -572,3 +572,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 74: 补齐星云尘埃主题
+
+**Date**: 2026-07-15
+**Task**: 补齐星云尘埃主题
+**Branch**: `main`
+
+### Summary
+
+对照 afef4487 的墨纸主题成品结构，补齐 Nebula Dust 的设置页、SFTP、终端和 Monitor 真实 React 样式映射，并修正主题移植规范与验证方式。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `175963c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
