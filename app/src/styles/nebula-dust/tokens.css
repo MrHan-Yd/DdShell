@@ -1,0 +1,274 @@
+/* Auto-scoped Nebula Dust CSS mapped from ui/ui-nebula-dust/styles/tokens.css. Do not edit ui/styles sources. */
+/*
+ * tokens.css - DdShell 设计令牌（双主题）
+ * 风格：星云尘埃 / Nebula Dust
+ * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
+ */
+
+[data-ui-theme="nebula-dust"],
+[data-ui-theme="nebula-dust"] body.theme-dark,
+body.theme-dark [data-ui-theme="nebula-dust"]{
+  /* -- Background layers -- */
+  --bg-app: #07050E;
+  --bg-base: #0D0B18;
+  --bg-elevated: #151225;
+  --bg-surface: #1F1A33;
+  --bg-overlay: rgba(7, 5, 14, 0.76);
+  --bg-hover: rgba(236, 166, 139, 0.055);
+  --bg-active: rgba(236, 166, 139, 0.11);
+
+  /* -- Foreground / text -- */
+  --fg-primary: #F4F0F7;
+  --fg-secondary: #CFC4DD;
+  --fg-muted: #817391;
+  --fg-disabled: #51475F;
+  --fg-on-accent: #140B10;
+
+  /* -- Accent (星云尘埃核心色) -- */
+  --accent-violet: #9A7CFF;     /* 暗雾紫，保留变量名兼容页面 CSS */
+  --accent-cyan: #ECA68B;       /* 粉橙星尘，保留变量名兼容页面 CSS */
+  --accent: #ECA68B;
+  --accent-hover: #F6BCA5;
+  --accent-subtle: rgba(236, 166, 139, 0.14);
+  --accent-glow: rgba(236, 166, 139, 0.26);
+  --accent-gradient: linear-gradient(135deg, #4B3D83 0%, #9A7CFF 42%, #ECA68B 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(75, 61, 131, 0.18) 0%, rgba(154, 124, 255, 0.14) 42%, rgba(236, 166, 139, 0.13) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(236, 166, 139, 0.11), rgba(154, 124, 255, 0.08));
+  --icon-stroke: #ECA68B;
+  --icon-stroke-muted: #A99AB7;
+  --icon-shine: rgba(255, 239, 228, 0.46);
+
+  /* -- Border -- */
+  --border-subtle: rgba(244, 240, 247, 0.06);
+  --border-default: rgba(244, 240, 247, 0.10);
+  --border-strong: rgba(244, 240, 247, 0.18);
+  --border-focus: var(--accent);
+
+  /* -- Status colors -- */
+  --success: #74D8A6;
+  --success-subtle: rgba(116, 216, 166, 0.14);
+  --warning: #E8C78A;
+  --warning-subtle: rgba(232, 199, 138, 0.14);
+  --danger: #F07A8A;
+  --danger-subtle: rgba(240, 122, 138, 0.14);
+  --info: #9FB7FF;
+  --info-subtle: rgba(159, 183, 255, 0.14);
+
+  /* Health: GOOD / FAIR / POOR */
+  --health-good: #74D8A6;
+  --health-fair: #E8C78A;
+  --health-poor: #F07A8A;
+
+  /* -- Terminal ANSI（在 .terminal-window 内使用） -- */
+  --term-bg: #05040B;
+  --term-fg: #F4F0F7;
+  --term-cursor: #ECA68B;
+  --term-selection: rgba(236, 166, 139, 0.28);
+  --ansi-black: #151225;
+  --ansi-red: #F07A8A;
+  --ansi-green: #74D8A6;
+  --ansi-yellow: #E8C78A;
+  --ansi-blue: #88A7FF;
+  --ansi-magenta: #B99BFF;
+  --ansi-cyan: #9FB7FF;
+  --ansi-white: #F4F0F7;
+
+  /* -- Shadows / glow -- */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.38), 0 4px 14px rgba(0, 0, 0, 0.26);
+  --shadow-popover: 0 4px 8px rgba(0, 0, 0, 0.34), 0 18px 44px rgba(0, 0, 0, 0.54);
+  --shadow-glow: 0 0 0 1px rgba(236, 166, 139, 0.26), 0 0 28px rgba(154, 124, 255, 0.16);
+
+  /* -- Glass 效果（用于 Sidebar / Titlebar / StatusBar） -- */
+  --glass-bg: rgba(21, 18, 37, 0.72);
+  --glass-blur: 18px;
+
+  color-scheme: dark;
+}
+
+/* --------------------------- Light theme --------------------------- */
+[data-theme="light"][data-ui-theme="nebula-dust"],
+[data-ui-theme="nebula-dust"] body.theme-light,
+body.theme-light [data-ui-theme="nebula-dust"]{
+  --bg-app: #F5F1F6;
+  --bg-base: #FFFCFD;
+  --bg-elevated: #EEE8F2;
+  --bg-surface: #FFFFFF;
+  --bg-overlay: rgba(245, 241, 246, 0.74);
+  --bg-hover: rgba(26, 19, 45, 0.05);
+  --bg-active: rgba(157, 105, 178, 0.10);
+
+  --fg-primary: #1A132D;
+  --fg-secondary: #554A67;
+  --fg-muted: #857A92;
+  --fg-disabled: #C1B7CA;
+  --fg-on-accent: #140B10;
+
+  --accent-violet: #6F55D8;
+  --accent-cyan: #C36F5C;
+  --accent: #C36F5C;
+  --accent-hover: #9F4F40;
+  --accent-subtle: rgba(195, 111, 92, 0.11);
+  --accent-glow: rgba(195, 111, 92, 0.18);
+  --accent-gradient: linear-gradient(135deg, #6F55D8 0%, #B98AD8 44%, #E7A17F 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(111, 85, 216, 0.10) 0%, rgba(185, 138, 216, 0.12) 44%, rgba(231, 161, 127, 0.14) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(231, 161, 127, 0.12));
+  --icon-stroke: #C36F5C;
+  --icon-stroke-muted: #7B6F8B;
+  --icon-shine: rgba(255, 255, 255, 0.84);
+
+  --border-subtle: rgba(26, 19, 45, 0.06);
+  --border-default: rgba(26, 19, 45, 0.10);
+  --border-strong: rgba(26, 19, 45, 0.18);
+
+  --success: #15803D;
+  --success-subtle: rgba(21, 128, 61, 0.10);
+  --warning: #A86F20;
+  --warning-subtle: rgba(168, 111, 32, 0.10);
+  --danger: #DC2626;
+  --danger-subtle: rgba(220, 38, 38, 0.10);
+  --info: #536FC8;
+  --info-subtle: rgba(83, 111, 200, 0.10);
+
+  --health-good: #15803D;
+  --health-fair: #A86F20;
+  --health-poor: #DC2626;
+
+  --term-bg: #05040B;
+  --term-fg: #F4F0F7;
+  --term-cursor: #ECA68B;
+  --term-selection: rgba(236, 166, 139, 0.28);
+
+  --shadow-card: 0 1px 2px rgba(26, 19, 45, 0.05), 0 4px 16px rgba(26, 19, 45, 0.07);
+  --shadow-popover: 0 4px 12px rgba(26, 19, 45, 0.10), 0 24px 48px rgba(26, 19, 45, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(195, 111, 92, 0.22), 0 0 24px rgba(111, 85, 216, 0.10);
+
+  --glass-bg: rgba(255, 252, 253, 0.74);
+  --glass-blur: 18px;
+
+  color-scheme: light;
+}
+
+/* --------------------------- Sizing tokens --------------------------- */
+[data-ui-theme="nebula-dust"]{
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Type scale */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h: 36px;
+  --tabbar-h: 38px;
+  --statusbar-h: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
+}
+
+/* Bridge the existing React/Tailwind token names to the prototype token names. */
+[data-ui-theme="nebula-dust"] {
+  --height-titlebar: var(--titlebar-h);
+  --width-sidebar: var(--sidebar-w);
+  --width-sidebar-collapsed: var(--sidebar-w-collapsed);
+  --height-tabbar: var(--tabbar-h);
+  --height-statusbar: var(--statusbar-h);
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --font-size-xs: var(--fs-xs);
+  --font-size-sm: var(--fs-sm);
+  --font-size-base: var(--fs-base);
+  --font-size-lg: var(--fs-lg);
+  --font-size-xl: var(--fs-xl);
+  --duration-fast: var(--d-fast);
+  --duration-base: var(--d-base);
+  --duration-panel: var(--d-panel);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+  --color-text-primary: var(--fg-primary);
+  --color-text-secondary: var(--fg-secondary);
+  --color-text-muted: var(--fg-muted);
+  --color-text-inverse: var(--fg-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-gradient: var(--accent-gradient);
+  --color-accent-glow: var(--accent-glow);
+  --color-fg-on-accent: var(--fg-on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: var(--info);
+  --color-good: var(--health-good);
+  --color-fair: var(--health-fair);
+  --color-poor: var(--health-poor);
+  --surface-window: var(--glass-bg);
+  --surface-card: var(--bg-surface);
+  --app-bg-image:
+    radial-gradient(circle at 16% 18%, rgba(244, 240, 247, 0.11) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 74% 12%, rgba(159, 183, 255, 0.10) 0 1px, transparent 1.8px),
+    radial-gradient(ellipse 58% 36% at 92% 86%, rgba(236, 166, 139, 0.065), transparent 72%),
+    radial-gradient(ellipse 70% 38% at 4% 0%, rgba(154, 124, 255, 0.075), transparent 72%),
+    linear-gradient(180deg, var(--bg-app) 0%, var(--bg-base) 58%, var(--bg-app) 100%);
+  --app-shell-overlay:
+    radial-gradient(circle at 38% 22%, rgba(244, 240, 247, 0.075) 0 0.8px, transparent 1.5px),
+    radial-gradient(circle at 68% 62%, rgba(236, 166, 139, 0.070) 0 0.9px, transparent 1.6px),
+    linear-gradient(128deg, rgba(154, 124, 255, 0.055), transparent 24%),
+    linear-gradient(112deg, transparent 0%, rgba(236, 166, 139, 0.040) 54%, transparent 82%);
+  --app-shell-overlay-opacity: 0.62;
+  --shadow-floating: var(--shadow-popover);
+  --shadow-focus-ring: 0 0 0 3px var(--accent-subtle);
+  --shadow-accent-glow: 0 1px 0 rgba(255, 255, 255, 0.16) inset, 0 6px 20px var(--accent-glow);
+}
+
+[data-theme="light"][data-ui-theme="nebula-dust"] {
+  --app-bg-image:
+    radial-gradient(circle at 18% 16%, rgba(111, 85, 216, 0.13) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 78% 22%, rgba(195, 111, 92, 0.12) 0 1px, transparent 1.8px),
+    radial-gradient(ellipse 62% 34% at 92% 86%, rgba(231, 161, 127, 0.13), transparent 72%),
+    radial-gradient(ellipse 72% 38% at 4% 0%, rgba(185, 138, 216, 0.13), transparent 72%),
+    linear-gradient(180deg, #FFFFFF 0%, var(--bg-app) 48%, var(--bg-elevated) 100%);
+  --app-shell-overlay:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.30), transparent 28%),
+    linear-gradient(112deg, transparent 0%, rgba(195, 111, 92, 0.055) 50%, transparent 78%);
+}

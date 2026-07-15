@@ -120,6 +120,15 @@ Every rendered window must apply the same boundary contract. This includes detac
 5. Replace any loading guard that enumerates old theme ids with `isUiTheme(saved)`.
 6. Verify the main window and secondary windows load the same saved `ui.theme`.
 
+When the theme comes from a static prototype under `ui/ui-<id>/styles/`, keep the prototype and application adaptation as separate layers:
+
+- Convert `base.css`, `components.css`, `layout.css`, and supported page CSS by adding `[data-ui-theme="<id>"]` to ordinary selectors. Preserve declaration values/order and keep `@keyframes` bodies unchanged.
+- Map `:root` / `.theme-dark` and `.theme-light` token blocks to the document boundary contract above, then add the existing React/Tailwind `--color-*`, sizing, surface, and shadow token bridge.
+- Put selectors needed only because the real React class structure differs from the static prototype in `app-overrides.css`; use an existing completed theme as the coverage template, but replace both the theme id and palette-specific literal colors.
+- Keep the theme index import order as tokens → base → components → layout → supported pages → app overrides.
+
+For mechanically scoped files, compare source/target rule-block counts (tokens may have additional bridge blocks), search the new theme directory for old theme ids and palette literals, and run the production build so Vite parses the complete CSS bundle.
+
 **Required check**:
 
 ```bash

@@ -1,0 +1,417 @@
+/* Auto-scoped Nebula Dust CSS mapped from ui/ui-nebula-dust/styles/pages/terminal.css. Do not edit ui/styles sources. */
+/*
+ * pages/terminal.css — Terminal 页特有样式
+ * 仅放本页样式（tab bar / pane / 终端文字 / AI 浮层 / 状态栏内特定项）
+ * 通用按钮/输入/卡片/popover 复用 components.css
+ */
+
+/* ─────────────────────────── Page overlay (全局浮层位置) ─────────────────────────── */
+[data-ui-theme="nebula-dust"] .page-overlay{
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  z-index: 60;
+}
+
+/* ─────────────────────────── Main 布局 ─────────────────────────── */
+[data-ui-theme="nebula-dust"] .term-main{
+  display: grid;
+  grid-template-rows: var(--tabbar-h) 1fr;
+  position: relative;
+  background: var(--bg-base);
+}
+
+/* ─────────────────────────── Tab bar ─────────────────────────── */
+[data-ui-theme="nebula-dust"] .term-tabbar{
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-right: var(--space-2);
+  min-height: 0;
+}
+
+[data-ui-theme="nebula-dust"] .term-tabbar .tabs{
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+[data-ui-theme="nebula-dust"] .term-tabbar .tabs::-webkit-scrollbar{ display: none; }
+
+[data-ui-theme="nebula-dust"] .tab{
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  height: var(--tabbar-h);
+  max-width: 240px;
+  border-right: 1px solid var(--border-subtle);
+  font-size: var(--fs-sm);
+  color: var(--fg-secondary);
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
+}
+[data-ui-theme="nebula-dust"] .tab:hover{ background: var(--bg-hover); color: var(--fg-primary); }
+[data-ui-theme="nebula-dust"] .tab.is-active{
+  background: var(--bg-base);
+  color: var(--fg-primary);
+}
+[data-ui-theme="nebula-dust"] .tab.is-active::before{
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: var(--accent-gradient);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+[data-ui-theme="nebula-dust"] .tab .tab-label{
+  font-weight: var(--fw-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-ui-theme="nebula-dust"] .tab .tab-host{
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+}
+[data-ui-theme="nebula-dust"] .tab.is-active .tab-host{ color: var(--fg-secondary); }
+
+[data-ui-theme="nebula-dust"] .tab .tab-close{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px; height: 16px;
+  border-radius: var(--radius-xs);
+  color: var(--fg-muted);
+  transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
+}
+[data-ui-theme="nebula-dust"] .tab .tab-close:hover{
+  background: var(--bg-active);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="nebula-dust"] .tab-new{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: var(--tabbar-h);
+  color: var(--fg-muted);
+  transition: background var(--d-fast) var(--ease-smooth), color var(--d-fast) var(--ease-smooth);
+}
+[data-ui-theme="nebula-dust"] .tab-new:hover{ background: var(--bg-hover); color: var(--accent); }
+
+[data-ui-theme="nebula-dust"] .tabbar-actions{
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--border-subtle);
+  margin-left: var(--space-2);
+}
+
+/* ─────────────────────────── Pane area (分屏) ─────────────────────────── */
+[data-ui-theme="nebula-dust"] .term-panes{
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 0;
+  background: var(--bg-base);
+  position: relative;
+}
+[data-ui-theme="nebula-dust"] .term-panes.is-split{
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border-subtle); /* 用 gap 背景模拟分隔线 */
+}
+
+[data-ui-theme="nebula-dust"] .term-pane{
+  display: grid;
+  grid-template-rows: 28px 1fr;
+  background: var(--term-bg);
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+[data-ui-theme="nebula-dust"] .term-pane.is-active::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-glow);
+}
+
+/* Pane 顶部小条（host 标识 + 路径 + 延迟） */
+[data-ui-theme="nebula-dust"] .pane-bar{
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+}
+[data-ui-theme="nebula-dust"] .pane-bar .pane-host{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-secondary);
+}
+[data-ui-theme="nebula-dust"] .pane-bar .pane-meta{ color: var(--fg-muted); }
+[data-ui-theme="nebula-dust"] .pane-bar .pane-spacer{ flex: 1; }
+[data-ui-theme="nebula-dust"] .pane-bar .pane-tag{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--fg-secondary);
+}
+
+/* ─────────────────────────── 终端文字区 ─────────────────────────── */
+[data-ui-theme="nebula-dust"] .term-window{
+  padding: var(--space-3) var(--space-4);
+  background: var(--term-bg);
+  color: var(--term-fg);
+  font-size: var(--fs-base);
+  line-height: 1.55;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+[data-ui-theme="nebula-dust"] .term-line{
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+[data-ui-theme="nebula-dust"] .term-line.out{ color: var(--term-fg); }
+[data-ui-theme="nebula-dust"] .term-line.out.err{ color: var(--ansi-red); }
+
+/* PS1 prompt 配色（参考 zsh/oh-my-zsh agnoster 配色） */
+[data-ui-theme="nebula-dust"] .ps1{ user-select: none; }
+[data-ui-theme="nebula-dust"] .ps1-user{ color: var(--ansi-magenta); font-weight: var(--fw-medium); }
+[data-ui-theme="nebula-dust"] .ps1-at{ color: var(--fg-muted); }
+[data-ui-theme="nebula-dust"] .ps1-host{ color: var(--ansi-cyan); }
+[data-ui-theme="nebula-dust"] .ps1-colon{ color: var(--fg-muted); }
+[data-ui-theme="nebula-dust"] .ps1-path{ color: var(--ansi-blue); }
+[data-ui-theme="nebula-dust"] .ps1-sigil{ color: var(--accent-violet); margin: 0 6px 0 4px; font-weight: var(--fw-semibold); }
+
+[data-ui-theme="nebula-dust"] .cmd{ color: var(--term-fg); }
+[data-ui-theme="nebula-dust"] .cmd-typed{ color: var(--term-fg); }
+
+/* ANSI 快捷着色类（在 term-window 内使用） */
+[data-ui-theme="nebula-dust"] .term-window .c-red{ color: var(--ansi-red); }
+[data-ui-theme="nebula-dust"] .term-window .c-green{ color: var(--ansi-green); }
+[data-ui-theme="nebula-dust"] .term-window .c-yellow{ color: var(--ansi-yellow); }
+[data-ui-theme="nebula-dust"] .term-window .c-blue{ color: var(--ansi-blue); }
+[data-ui-theme="nebula-dust"] .term-window .c-magenta{ color: var(--ansi-magenta); }
+[data-ui-theme="nebula-dust"] .term-window .c-cyan{ color: var(--ansi-cyan); }
+[data-ui-theme="nebula-dust"] .term-window .c-violet{ color: var(--accent-violet); }
+[data-ui-theme="nebula-dust"] .term-window .c-muted{ color: rgba(244, 240, 247, 0.42); }
+
+/* 闪烁光标 */
+[data-ui-theme="nebula-dust"] .caret{
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  background: var(--term-cursor);
+  margin-left: 2px;
+  vertical-align: -2px;
+  animation: term-caret 1s steps(2) infinite;
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+@keyframes term-caret{
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* ─────────────────────────── AI Assist popover ─────────────────────────── */
+[data-ui-theme="nebula-dust"] .term-ai-popover{
+  position: absolute;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  width: 380px;
+  max-height: calc(100% - var(--tabbar-h) - var(--space-5) * 2);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-popover);
+  overflow: hidden;
+  z-index: 30;
+  /* 渐变描边强调 */
+  background-image: linear-gradient(var(--bg-surface), var(--bg-surface)),
+                    var(--accent-gradient);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  border: 1px solid transparent;
+}
+
+[data-ui-theme="nebula-dust"] .ai-head{
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+[data-ui-theme="nebula-dust"] .ai-title{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--fg-primary);
+  position: relative;
+}
+[data-ui-theme="nebula-dust"] .ai-title svg{ color: var(--accent); }
+[data-ui-theme="nebula-dust"] .ai-title .ai-glow{
+  position: absolute;
+  left: -4px; top: 50%;
+  transform: translateY(-50%);
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  filter: blur(8px);
+  pointer-events: none;
+}
+[data-ui-theme="nebula-dust"] .ai-actions{
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+[data-ui-theme="nebula-dust"] .ai-question{
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+[data-ui-theme="nebula-dust"] .ai-question .who{
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+[data-ui-theme="nebula-dust"] .ai-question p{
+  font-size: var(--fs-sm);
+  color: var(--fg-primary);
+  line-height: 1.45;
+}
+
+[data-ui-theme="nebula-dust"] .ai-suggestion{
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: linear-gradient(180deg, var(--accent-subtle), transparent 60%);
+}
+[data-ui-theme="nebula-dust"] .ai-suggestion-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+[data-ui-theme="nebula-dust"] .ai-step-tag{
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: var(--fw-medium);
+}
+[data-ui-theme="nebula-dust"] .ai-confidence{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  color: var(--success);
+}
+
+[data-ui-theme="nebula-dust"] .ai-cmd-block{
+  position: relative;
+  background: var(--term-bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+[data-ui-theme="nebula-dust"] .ai-cmd{
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--term-fg);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+[data-ui-theme="nebula-dust"] .ai-cmd .c-violet{ color: var(--accent-violet); }
+[data-ui-theme="nebula-dust"] .ai-cmd .c-muted{ color: rgba(244, 240, 247, 0.42); }
+[data-ui-theme="nebula-dust"] .ai-copy{
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 22px; height: 22px;
+  border-radius: var(--radius-xs);
+}
+
+[data-ui-theme="nebula-dust"] .ai-explain{
+  font-size: var(--fs-sm);
+  color: var(--fg-secondary);
+  line-height: 1.5;
+}
+[data-ui-theme="nebula-dust"] .ai-explain code{
+  background: var(--bg-elevated);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-size: var(--fs-xs);
+  color: var(--fg-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+[data-ui-theme="nebula-dust"] .ai-cta{
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+[data-ui-theme="nebula-dust"] .ai-cta-spacer{ flex: 1; }
+
+[data-ui-theme="nebula-dust"] .ai-input-bar{
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+[data-ui-theme="nebula-dust"] .ai-input-icon{
+  display: inline-flex;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+[data-ui-theme="nebula-dust"] .ai-input{
+  flex: 1;
+  height: 24px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--fg-primary);
+  font-size: var(--fs-sm);
+}
+[data-ui-theme="nebula-dust"] .ai-input::placeholder{ color: var(--fg-muted); }
+[data-ui-theme="nebula-dust"] .ai-input-kbd{
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────── Terminal status bar 中的高亮项 ─────────────────────────── */
+[data-ui-theme="nebula-dust"] .statusbar .status-item.accent{
+  color: var(--accent);
+}
+[data-ui-theme="nebula-dust"] .statusbar .status-item.accent svg{ color: var(--accent); }
+

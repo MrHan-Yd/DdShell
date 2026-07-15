@@ -1615,6 +1615,30 @@ body {
   backdrop-filter: blur(14px);
 }
 
+.theme-preview--nebula-dust {
+  background:
+    radial-gradient(circle at 18% 24%, rgba(244, 240, 247, 0.20) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 76% 18%, rgba(159, 183, 255, 0.20) 0 1px, transparent 1.8px),
+    radial-gradient(ellipse 72% 46% at 84% 86%, rgba(236, 166, 139, 0.18), transparent 68%),
+    radial-gradient(ellipse 78% 54% at 12% 8%, rgba(154, 124, 255, 0.18), transparent 70%),
+    linear-gradient(180deg, #07050E, #0D0B18 58%, #151225);
+}
+
+.theme-preview--nebula-dust .theme-preview__sidebar {
+  background: rgba(21, 18, 37, 0.84);
+  box-shadow: inset 0 0 0 1px rgba(244, 240, 247, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.theme-preview--nebula-dust .theme-preview__panel {
+  background:
+    linear-gradient(135deg, rgba(75, 61, 131, 0.22), rgba(154, 124, 255, 0.14) 46%, rgba(236, 166, 139, 0.16));
+  box-shadow:
+    inset 0 0 0 1px rgba(244, 240, 247, 0.08),
+    0 10px 24px rgba(7, 5, 14, 0.34);
+  backdrop-filter: blur(16px);
+}
+
 .aurora-shell-orb {
   position: absolute;
   z-index: 0;
