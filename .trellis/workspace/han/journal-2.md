@@ -605,3 +605,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 75: 新增橘子海主题
+
+**Date**: 2026-07-15
+**Task**: 新增橘子海主题
+**Branch**: `main`
+
+### Summary
+
+将 ui-orange-sea 按 afef4487 的完整 React 主题映射落地为橘子海 / Orange Tide，支持暗亮模式，补齐设置、SFTP、终端与 Monitor 状态并通过构建测试。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ad77581` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
