@@ -638,3 +638,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 76: 新增夜雨霓湖主题
+
+**Date**: 2026-07-15
+**Task**: 新增夜雨霓湖主题
+**Branch**: `main`
+
+### Summary
+
+根据 ui-rainlake 设计稿新增 Rainlake 主题，按完整主题结构模板接入注册、国际化、设置预览、暗亮 tokens 与各页面样式，并完成构建、测试和 CSS 完整性验证。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `68abbb7` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
