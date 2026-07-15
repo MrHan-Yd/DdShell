@@ -491,6 +491,8 @@ const dict = {
   "settings.uiThemeMosslineDesc": { zh: "采用深墨绿底色、竹叶绿交互、苔藓露光与冷白高光的自然绿色工具视觉。", en: "Use ink-green depths, bamboo-leaf accents, mossy dew light, and cool-white highlights for a natural green tool theme." },
   "settings.uiThemeNebulaDust": { zh: "星云尘埃", en: "Nebula Dust" },
   "settings.uiThemeNebulaDustDesc": { zh: "采用深空黑紫、暗蓝、雾紫与低亮粉橙星尘的克制深空工具视觉。", en: "Use deep-space black-violet, dark blue, misty purple, and low-glow coral dust for a restrained cosmic tool theme." },
+  "settings.uiThemeOrangeSea": { zh: "橘子海", en: "Orange Tide" },
+  "settings.uiThemeOrangeSeaDesc": { zh: "采用深海蓝、海面青、暖白反光与日落橘高光的轻暖工具视觉。", en: "Use deep-sea blue, ocean teal, warm-white reflections, and sunset-orange highlights for a gently warm tool theme." },
   "settings.theme": { zh: "主题", en: "Theme" },
   "settings.themeDesc": { zh: "选择应用的配色方案", en: "Choose the application color scheme" },
   "settings.colorMode": { zh: "颜色模式", en: "Color Mode" },

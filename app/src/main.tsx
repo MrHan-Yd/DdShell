@@ -14,6 +14,7 @@ import "./styles/inkpaper-index.css";
 import "./styles/lumenreef-index.css";
 import "./styles/mossline-index.css";
 import "./styles/nebula-dust-index.css";
+import "./styles/orange-sea-index.css";
 
 // Disable default webview context menu to prevent opening browser actions.
 document.addEventListener("contextmenu", (event) => {
