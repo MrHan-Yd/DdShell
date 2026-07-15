@@ -1,0 +1,271 @@
+/* Auto-scoped Rainlake CSS mapped from ui/ui-rainlake/styles/tokens.css. Do not edit ui/styles sources. */
+/*
+ * tokens.css - DdShell 设计令牌（双主题）
+ * 风格：夜雨霓湖 / Rainlake
+ * 暗色（默认） + 亮色，CSS 变量 + body 类名切换
+ */
+
+[data-ui-theme="rainlake"],
+[data-ui-theme="rainlake"] body.theme-dark,
+body.theme-dark [data-ui-theme="rainlake"] {
+  /* -- Background layers -- */
+  --bg-app: #050A12;
+  --bg-base: #0A1220;
+  --bg-elevated: #101B2D;
+  --bg-surface: #17253A;
+  --bg-overlay: rgba(5, 10, 18, 0.78);
+  --bg-hover: rgba(98, 205, 224, 0.055);
+  --bg-active: rgba(162, 124, 255, 0.10);
+
+  /* -- Foreground / text -- */
+  --fg-primary: #EEF6FA;
+  --fg-secondary: #BFD0DD;
+  --fg-muted: #71869A;
+  --fg-disabled: #46576A;
+  --fg-on-accent: #061018;
+
+  /* -- Accent (夜雨霓湖核心色) -- */
+  --accent-violet: #A27CFF;     /* 青紫霓光，保留变量名兼容页面 CSS */
+  --accent-cyan: #62CDE0;       /* 雨夜冷青，保留变量名兼容页面 CSS */
+  --accent: #62CDE0;
+  --accent-hover: #8FE4F1;
+  --accent-subtle: rgba(98, 205, 224, 0.14);
+  --accent-glow: rgba(98, 205, 224, 0.26);
+  --accent-gradient: linear-gradient(135deg, #3F5FA8 0%, #62CDE0 52%, #D06C9F 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(63, 95, 168, 0.18) 0%, rgba(98, 205, 224, 0.14) 52%, rgba(208, 108, 159, 0.12) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(98, 205, 224, 0.11), rgba(208, 108, 159, 0.07));
+  --icon-stroke: #62CDE0;
+  --icon-stroke-muted: #8EA4B9;
+  --icon-shine: rgba(225, 244, 250, 0.46);
+
+  /* -- Border -- */
+  --border-subtle: rgba(238, 246, 250, 0.06);
+  --border-default: rgba(238, 246, 250, 0.10);
+  --border-strong: rgba(238, 246, 250, 0.18);
+  --border-focus: var(--accent);
+
+  /* -- Status colors -- */
+  --success: #72D6A3;
+  --success-subtle: rgba(114, 214, 163, 0.14);
+  --warning: #D9B979;
+  --warning-subtle: rgba(217, 185, 121, 0.14);
+  --danger: #F0708D;
+  --danger-subtle: rgba(240, 112, 141, 0.14);
+  --info: #62CDE0;
+  --info-subtle: rgba(98, 205, 224, 0.14);
+
+  /* Health: GOOD / FAIR / POOR */
+  --health-good: #72D6A3;
+  --health-fair: #D9B979;
+  --health-poor: #F0708D;
+
+  /* -- Terminal ANSI（在 .terminal-window 内使用） -- */
+  --term-bg: #040911;
+  --term-fg: #EEF6FA;
+  --term-cursor: #62CDE0;
+  --term-selection: rgba(98, 205, 224, 0.28);
+  --ansi-black: #101B2D;
+  --ansi-red: #F0708D;
+  --ansi-green: #72D6A3;
+  --ansi-yellow: #D9B979;
+  --ansi-blue: #76A9FF;
+  --ansi-magenta: #C491FF;
+  --ansi-cyan: #62CDE0;
+  --ansi-white: #EEF6FA;
+
+  /* -- Shadows / glow -- */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.38), 0 4px 14px rgba(0, 0, 0, 0.26);
+  --shadow-popover: 0 4px 8px rgba(0, 0, 0, 0.34), 0 18px 44px rgba(0, 0, 0, 0.54);
+  --shadow-glow: 0 0 0 1px rgba(98, 205, 224, 0.26), 0 0 28px rgba(162, 124, 255, 0.14);
+
+  /* -- Glass 效果（用于 Sidebar / Titlebar / StatusBar） -- */
+  --glass-bg: rgba(16, 27, 45, 0.74);
+  --glass-blur: 18px;
+
+  color-scheme: dark;
+}
+
+/* --------------------------- Light theme --------------------------- */
+[data-theme="light"][data-ui-theme="rainlake"],
+[data-ui-theme="rainlake"] body.theme-light,
+body.theme-light [data-ui-theme="rainlake"] {
+  --bg-app: #EFF5F7;
+  --bg-base: #FBFEFF;
+  --bg-elevated: #E8F0F4;
+  --bg-surface: #FFFFFF;
+  --bg-overlay: rgba(239, 245, 247, 0.74);
+  --bg-hover: rgba(7, 25, 42, 0.05);
+  --bg-active: rgba(42, 139, 165, 0.10);
+
+  --fg-primary: #07192A;
+  --fg-secondary: #40586D;
+  --fg-muted: #74899A;
+  --fg-disabled: #B8C6CF;
+  --fg-on-accent: #061018;
+
+  --accent-violet: #7759D8;
+  --accent-cyan: #2A8BA5;
+  --accent: #2A8BA5;
+  --accent-hover: #1F6B80;
+  --accent-subtle: rgba(42, 139, 165, 0.11);
+  --accent-glow: rgba(42, 139, 165, 0.18);
+  --accent-gradient: linear-gradient(135deg, #516FC6 0%, #66C7D6 52%, #C85D8B 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(81, 111, 198, 0.10) 0%, rgba(102, 199, 214, 0.12) 52%, rgba(200, 93, 139, 0.12) 100%);
+  --icon-plate: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(102, 199, 214, 0.12));
+  --icon-stroke: #2A8BA5;
+  --icon-stroke-muted: #687D90;
+  --icon-shine: rgba(255, 255, 255, 0.84);
+
+  --border-subtle: rgba(7, 25, 42, 0.06);
+  --border-default: rgba(7, 25, 42, 0.10);
+  --border-strong: rgba(7, 25, 42, 0.18);
+
+  --success: #15803D;
+  --success-subtle: rgba(21, 128, 61, 0.10);
+  --warning: #9A6B1D;
+  --warning-subtle: rgba(154, 107, 29, 0.10);
+  --danger: #DC2626;
+  --danger-subtle: rgba(220, 38, 38, 0.10);
+  --info: #2A8BA5;
+  --info-subtle: rgba(42, 139, 165, 0.10);
+
+  --health-good: #15803D;
+  --health-fair: #9A6B1D;
+  --health-poor: #DC2626;
+
+  --term-bg: #040911;
+  --term-fg: #EEF6FA;
+  --term-cursor: #62CDE0;
+  --term-selection: rgba(98, 205, 224, 0.28);
+
+  --shadow-card: 0 1px 2px rgba(7, 25, 42, 0.05), 0 4px 16px rgba(7, 25, 42, 0.07);
+  --shadow-popover: 0 4px 12px rgba(7, 25, 42, 0.10), 0 24px 48px rgba(7, 25, 42, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(42, 139, 165, 0.22), 0 0 24px rgba(119, 89, 216, 0.10);
+
+  --glass-bg: rgba(251, 254, 255, 0.74);
+  --glass-blur: 18px;
+
+  color-scheme: light;
+}
+
+/* --------------------------- Sizing tokens --------------------------- */
+[data-ui-theme="rainlake"] {
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Type scale */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h: 36px;
+  --tabbar-h: 38px;
+  --statusbar-h: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
+}
+
+/* Bridge the existing React/Tailwind token names to the prototype token names. */
+[data-ui-theme="rainlake"] {
+  --height-titlebar: var(--titlebar-h);
+  --width-sidebar: var(--sidebar-w);
+  --width-sidebar-collapsed: var(--sidebar-w-collapsed);
+  --height-tabbar: var(--tabbar-h);
+  --height-statusbar: var(--statusbar-h);
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --font-size-xs: var(--fs-xs);
+  --font-size-sm: var(--fs-sm);
+  --font-size-base: var(--fs-base);
+  --font-size-lg: var(--fs-lg);
+  --font-size-xl: var(--fs-xl);
+  --duration-fast: var(--d-fast);
+  --duration-base: var(--d-base);
+  --duration-panel: var(--d-panel);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+  --color-text-primary: var(--fg-primary);
+  --color-text-secondary: var(--fg-secondary);
+  --color-text-muted: var(--fg-muted);
+  --color-text-inverse: var(--fg-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-gradient: var(--accent-gradient);
+  --color-accent-glow: var(--accent-glow);
+  --color-fg-on-accent: var(--fg-on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: var(--info);
+  --color-good: var(--health-good);
+  --color-fair: var(--health-fair);
+  --color-poor: var(--health-poor);
+  --surface-window: var(--glass-bg);
+  --surface-card: var(--bg-surface);
+  --app-bg-image:
+    repeating-linear-gradient(105deg, rgba(238, 246, 250, 0.018) 0 1px, transparent 1px 34px),
+    radial-gradient(ellipse 66% 38% at 86% 92%, rgba(208, 108, 159, 0.055), transparent 72%),
+    radial-gradient(ellipse 70% 38% at 6% -8%, rgba(98, 205, 224, 0.070), transparent 72%),
+    linear-gradient(180deg, var(--bg-app) 0%, var(--bg-base) 58%, var(--bg-app) 100%);
+  --app-shell-overlay:
+    repeating-linear-gradient(102deg, rgba(238, 246, 250, 0.030) 0 1px, transparent 1px 48px),
+    linear-gradient(128deg, rgba(162, 124, 255, 0.050), transparent 22%),
+    linear-gradient(112deg, transparent 0%, rgba(98, 205, 224, 0.048) 50%, transparent 80%);
+  --app-shell-overlay-opacity: 0.62;
+  --shadow-floating: var(--shadow-popover);
+  --shadow-focus-ring: 0 0 0 3px var(--accent-subtle);
+  --shadow-accent-glow: 0 1px 0 rgba(255, 255, 255, 0.16) inset, 0 6px 20px var(--accent-glow);
+}
+
+[data-theme="light"][data-ui-theme="rainlake"] {
+  --app-bg-image:
+    repeating-linear-gradient(105deg, rgba(7, 25, 42, 0.025) 0 1px, transparent 1px 34px),
+    radial-gradient(ellipse 66% 38% at 86% 92%, rgba(200, 93, 139, 0.075), transparent 72%),
+    radial-gradient(ellipse 70% 38% at 6% -8%, rgba(42, 139, 165, 0.095), transparent 72%),
+    linear-gradient(180deg, #FFFFFF 0%, var(--bg-app) 48%, var(--bg-elevated) 100%);
+  --app-shell-overlay:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.30), transparent 28%),
+    linear-gradient(112deg, transparent 0%, rgba(42, 139, 165, 0.050) 50%, transparent 78%);
+}
