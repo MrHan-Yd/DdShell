@@ -869,3 +869,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 83: 补发 GitHub Release v0.3.0
+
+**Date**: 2026-07-16
+**Task**: 补发 GitHub Release v0.3.0
+**Branch**: `main`
+
+### Summary
+
+核对发现 main 已推送但 v0.3.0 标签未到远端，导致 GitHub Release 未触发；补推 v0.3.0 标签后确认远端标签指向 67eaf42，Release workflow 已进入运行状态，未等待后续构建。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `67eaf42` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
