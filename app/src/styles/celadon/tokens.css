@@ -1,0 +1,270 @@
+/* Auto-scoped Celadon CSS mapped from ui/ui-celadon/styles/tokens.css. Do not edit ui/styles sources. */
+/*
+ * tokens.css — DdShell 设计令牌（双主题）
+ * 风格：青瓷 / Celadon
+ * 窑夜暗色 + 青瓷浅色，CSS 变量 + body 类名切换
+ */
+
+[data-ui-theme="celadon"],
+[data-ui-theme="celadon"] body.theme-dark,
+body.theme-dark [data-ui-theme="celadon"] {
+  /* -- Background layers -- */
+  --bg-app: #081311;
+  --bg-base: #0D1D1A;
+  --bg-elevated: #142824;
+  --bg-surface: #1A312C;
+  --bg-overlay: rgba(8, 19, 17, 0.76);
+  --bg-hover: rgba(134, 185, 169, 0.065);
+  --bg-active: rgba(134, 185, 169, 0.13);
+
+  /* -- Foreground / text -- */
+  --fg-primary: #E8EFE9;
+  --fg-secondary: #B7CBC2;
+  --fg-muted: #78958A;
+  --fg-disabled: #4F6C63;
+  --fg-on-accent: #0C2925;
+
+  /* -- Accent (青瓷核心色) -- */
+  --accent-violet: #C2A66C;     /* 釉金，保留变量名兼容页面 CSS */
+  --accent-cyan: #86B9A9;       /* 亮青釉 */
+  --accent: #86B9A9;
+  --accent-hover: #A4CBBB;
+  --accent-subtle: rgba(134, 185, 169, 0.16);
+  --accent-glow: rgba(134, 185, 169, 0.24);
+  --accent-gradient: linear-gradient(135deg, #3F776C 0%, #86B9A9 38%, #DCE8DF 66%, #C2A66C 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(63, 119, 108, 0.22), rgba(134, 185, 169, 0.15) 52%, rgba(194, 166, 108, 0.10));
+  --icon-plate: linear-gradient(145deg, rgba(134, 185, 169, 0.15), rgba(194, 166, 108, 0.05));
+  --icon-stroke: #A4CBBB;
+  --icon-stroke-muted: #78958A;
+  --icon-shine: rgba(232, 239, 233, 0.48);
+
+  /* -- Border -- */
+  --border-subtle: rgba(190, 216, 205, 0.07);
+  --border-default: rgba(190, 216, 205, 0.13);
+  --border-strong: rgba(190, 216, 205, 0.22);
+  --border-focus: var(--accent);
+
+  /* -- Status colors -- */
+  --success: #65B88C;
+  --success-subtle: rgba(101, 184, 140, 0.14);
+  --warning: #C2A66C;
+  --warning-subtle: rgba(194, 166, 108, 0.16);
+  --danger: #E57E76;
+  --danger-subtle: rgba(229, 126, 118, 0.14);
+  --info: #75AEB0;
+  --info-subtle: rgba(117, 174, 176, 0.14);
+
+  /* Health: GOOD / FAIR / POOR */
+  --health-good: #65B88C;
+  --health-fair: #C2A66C;
+  --health-poor: #E57E76;
+
+  /* -- Terminal ANSI（在 .terminal-window 内使用） -- */
+  --term-bg: #07110F;
+  --term-fg: #E8EFE9;
+  --term-cursor: #86B9A9;
+  --term-selection: rgba(134, 185, 169, 0.28);
+  --ansi-black: #142824;
+  --ansi-red: #E57E76;
+  --ansi-green: #65B88C;
+  --ansi-yellow: #C2A66C;
+  --ansi-blue: #75AEB0;
+  --ansi-magenta: #B594B0;
+  --ansi-cyan: #86B9A9;
+  --ansi-white: #E8EFE9;
+
+  /* -- Shadows / glow -- */
+  --shadow-card: 0 1px 0 rgba(232, 239, 233, 0.04) inset, 0 5px 16px rgba(0, 0, 0, 0.26);
+  --shadow-popover: 0 1px 0 rgba(232, 239, 233, 0.05) inset, 0 20px 48px rgba(0, 0, 0, 0.48);
+  --shadow-glow: 0 0 0 1px rgba(134, 185, 169, 0.26), 0 0 24px rgba(134, 185, 169, 0.13);
+
+  /* -- Glass 效果（用于 Sidebar / Titlebar / StatusBar） -- */
+  --glass-bg: rgba(13, 29, 26, 0.88);
+  --glass-blur: 14px;
+
+  color-scheme: dark;
+}
+
+/* --------------------------- Light theme --------------------------- */
+[data-theme="light"][data-ui-theme="celadon"],
+[data-ui-theme="celadon"] body.theme-light,
+body.theme-light [data-ui-theme="celadon"] {
+  --bg-app: #E8EFEB;
+  --bg-base: #F3F6F1;
+  --bg-elevated: #DDE8E1;
+  --bg-surface: #FAFBF7;
+  --bg-overlay: rgba(232, 239, 235, 0.82);
+  --bg-hover: rgba(79, 133, 121, 0.07);
+  --bg-active: rgba(79, 133, 121, 0.14);
+
+  --fg-primary: #173B3A;
+  --fg-secondary: #4D6D66;
+  --fg-muted: #7B9189;
+  --fg-disabled: #AFBEB7;
+  --fg-on-accent: #F6FAF6;
+
+  --accent-violet: #B79A62;
+  --accent-cyan: #4F8579;
+  --accent: #4F8579;
+  --accent-hover: #3F756A;
+  --accent-subtle: rgba(79, 133, 121, 0.14);
+  --accent-glow: rgba(79, 133, 121, 0.18);
+  --accent-gradient: linear-gradient(135deg, #214C4A 0%, #4F8579 34%, #BFD6C9 66%, #B79A62 100%);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(33, 76, 74, 0.10), rgba(79, 133, 121, 0.14) 50%, rgba(183, 154, 98, 0.10));
+  --icon-plate: linear-gradient(145deg, rgba(255, 255, 251, 0.78), rgba(181, 207, 194, 0.30));
+  --icon-stroke: #3F756A;
+  --icon-stroke-muted: #68877E;
+  --icon-shine: rgba(255, 255, 255, 0.82);
+
+  --border-subtle: rgba(33, 76, 74, 0.08);
+  --border-default: rgba(33, 76, 74, 0.14);
+  --border-strong: rgba(33, 76, 74, 0.24);
+
+  --success: #2F8A61;
+  --success-subtle: rgba(47, 138, 97, 0.10);
+  --warning: #A78645;
+  --warning-subtle: rgba(167, 134, 69, 0.12);
+  --danger: #C95750;
+  --danger-subtle: rgba(201, 87, 80, 0.10);
+  --info: #3E8588;
+  --info-subtle: rgba(62, 133, 136, 0.10);
+
+  --health-good: #2F8A61;
+  --health-fair: #A78645;
+  --health-poor: #C95750;
+
+  --term-bg: #07110F;
+  --term-fg: #E8EFE9;
+  --term-cursor: #86B9A9;
+  --term-selection: rgba(134, 185, 169, 0.28);
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 251, 0.92) inset, 0 4px 16px rgba(33, 76, 74, 0.09);
+  --shadow-popover: 0 1px 0 rgba(255, 255, 251, 0.92) inset, 0 22px 48px rgba(33, 76, 74, 0.15);
+  --shadow-glow: 0 0 0 1px rgba(79, 133, 121, 0.22), 0 0 22px rgba(79, 133, 121, 0.11);
+
+  --glass-bg: rgba(243, 246, 241, 0.90);
+  --glass-blur: 14px;
+
+  color-scheme: light;
+}
+
+/* --------------------------- Sizing tokens --------------------------- */
+[data-ui-theme="celadon"] {
+  /* Spacing (4px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+  --space-10: 72px;
+
+  /* Type scale */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+  --fs-3xl: 34px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --sidebar-w-collapsed: 56px;
+  --titlebar-h: 36px;
+  --tabbar-h: 38px;
+  --statusbar-h: 24px;
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-panel: 280ms;
+}
+
+/* Bridge the existing React/Tailwind token names to the prototype token names. */
+[data-ui-theme="celadon"] {
+  --height-titlebar: var(--titlebar-h);
+  --width-sidebar: var(--sidebar-w);
+  --width-sidebar-collapsed: var(--sidebar-w-collapsed);
+  --height-tabbar: var(--tabbar-h);
+  --height-statusbar: var(--statusbar-h);
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-lg);
+  --font-size-xs: var(--fs-xs);
+  --font-size-sm: var(--fs-sm);
+  --font-size-base: var(--fs-base);
+  --font-size-lg: var(--fs-lg);
+  --font-size-xl: var(--fs-xl);
+  --duration-fast: var(--d-fast);
+  --duration-base: var(--d-base);
+  --duration-panel: var(--d-panel);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --color-border: var(--border-default);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+  --color-text-primary: var(--fg-primary);
+  --color-text-secondary: var(--fg-secondary);
+  --color-text-muted: var(--fg-muted);
+  --color-text-inverse: var(--fg-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-gradient: var(--accent-gradient);
+  --color-accent-glow: var(--accent-glow);
+  --color-fg-on-accent: var(--fg-on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: var(--info);
+  --color-good: var(--health-good);
+  --color-fair: var(--health-fair);
+  --color-poor: var(--health-poor);
+  --surface-window: var(--glass-bg);
+  --surface-card: var(--bg-surface);
+  --app-bg-image:
+    linear-gradient(122deg, transparent 0 18%, rgba(134, 185, 169, 0.032) 18.15% 18.32%, transparent 18.48% 47%, rgba(194, 166, 108, 0.026) 47.12% 47.26%, transparent 47.42%),
+    linear-gradient(56deg, transparent 0 66%, rgba(232, 239, 233, 0.024) 66.12% 66.28%, transparent 66.44%),
+    radial-gradient(ellipse 74% 44% at 50% -18%, rgba(134, 185, 169, 0.10), transparent 70%),
+    linear-gradient(180deg, var(--bg-app) 0%, var(--bg-base) 58%, var(--bg-app) 100%);
+  --app-shell-overlay:
+    linear-gradient(138deg, transparent 0 27%, rgba(134, 185, 169, 0.035) 27.12% 27.28%, transparent 27.44% 72%, rgba(194, 166, 108, 0.026) 72.12% 72.28%, transparent 72.44%),
+    linear-gradient(180deg, rgba(232, 239, 233, 0.024), transparent 38%);
+  --app-shell-overlay-opacity: 0.72;
+  --shadow-floating: var(--shadow-popover);
+  --shadow-focus-ring: 0 0 0 3px var(--accent-subtle);
+  --shadow-accent-glow: 0 1px 0 rgba(255, 255, 255, 0.16) inset, 0 6px 20px var(--accent-glow);
+}
+
+[data-theme="light"][data-ui-theme="celadon"] {
+  --app-bg-image:
+    linear-gradient(122deg, transparent 0 18%, rgba(79, 133, 121, 0.055) 18.15% 18.32%, transparent 18.48% 47%, rgba(183, 154, 98, 0.045) 47.12% 47.26%, transparent 47.42%),
+    linear-gradient(56deg, transparent 0 66%, rgba(33, 76, 74, 0.038) 66.12% 66.28%, transparent 66.44%),
+    radial-gradient(ellipse 78% 46% at 50% -18%, rgba(181, 207, 194, 0.26), transparent 70%),
+    linear-gradient(180deg, #FFFFFF 0%, var(--bg-app) 48%, var(--bg-elevated) 100%);
+  --app-shell-overlay:
+    linear-gradient(180deg, rgba(255, 255, 251, 0.36), transparent 28%),
+    linear-gradient(138deg, transparent 0 27%, rgba(79, 133, 121, 0.045) 27.12% 27.28%, transparent 27.44% 72%, rgba(183, 154, 98, 0.035) 72.12% 72.28%, transparent 72.44%);
+}

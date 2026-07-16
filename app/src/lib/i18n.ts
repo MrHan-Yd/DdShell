@@ -497,6 +497,8 @@ const dict = {
   "settings.uiThemeRainlakeDesc": { zh: "采用深蓝黑湖面、冷青、青紫与少量玫红碎光的低饱和雨夜工具视觉。", en: "Use a deep blue-black lake surface, cool cyan, blue-violet, and sparse rose reflections for a subdued rainy-night tool theme." },
   "settings.uiThemeUmbra": { zh: "月蚀", en: "Umbra" },
   "settings.uiThemeUmbraDesc": { zh: "采用近黑夜空、暗红本影与月铜边缘光的克制月蚀工具视觉。", en: "Use near-black night, dark-red umbra, and moon-copper rim light for a restrained eclipse tool theme." },
+  "settings.uiThemeCeladon": { zh: "青瓷", en: "Celadon" },
+  "settings.uiThemeCeladonDesc": { zh: "采用瓷白空间、青釉层级、墨青细边与少量釉金点睛的东方瓷面工具视觉。", en: "Use porcelain-white space, celadon glaze layers, ink-teal edges, and restrained glaze-gold accents for an Eastern ceramic tool theme." },
   "settings.theme": { zh: "主题", en: "Theme" },
   "settings.themeDesc": { zh: "选择应用的配色方案", en: "Choose the application color scheme" },
   "settings.colorMode": { zh: "颜色模式", en: "Color Mode" },

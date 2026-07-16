@@ -1,0 +1,259 @@
+/*
+ * App-specific Celadon color layer.
+ * Keeps the existing React layout while applying the Celadon material,
+ * icon, settings, and control color treatment.
+ */
+
+[data-ui-theme="celadon"] .glass-surface,
+[data-ui-theme="celadon"] .glass-card {
+  border-color: var(--border-default);
+}
+
+[data-ui-theme="celadon"] .app-titlebar,
+[data-ui-theme="celadon"] .app-sidebar,
+[data-ui-theme="celadon"] .app-statusbar {
+  border-color: var(--border-default);
+  background:
+    linear-gradient(128deg, transparent 0 31%, rgba(134, 185, 169, 0.028) 31.12% 31.26%, transparent 31.40% 76%, rgba(194, 166, 108, 0.020) 76.12% 76.24%, transparent 76.38%),
+    linear-gradient(180deg, rgba(232, 239, 233, 0.055), rgba(232, 239, 233, 0.016)),
+    var(--glass-bg);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(232, 239, 233, 0.07);
+}
+
+[data-ui-theme="celadon"] .app-main-frame,
+[data-ui-theme="celadon"] .settings-pane-frame {
+  border-color: var(--border-default);
+  background:
+    linear-gradient(54deg, transparent 0 68%, rgba(134, 185, 169, 0.020) 68.12% 68.24%, transparent 68.38%),
+    linear-gradient(180deg, rgba(232, 239, 233, 0.038), rgba(232, 239, 233, 0.012)),
+    rgba(13, 29, 26, 0.52);
+  box-shadow: var(--shadow-popover), inset 0 1px 0 rgba(232, 239, 233, 0.055);
+}
+
+[data-theme="light"][data-ui-theme="celadon"] .app-titlebar,
+[data-theme="light"][data-ui-theme="celadon"] .app-sidebar,
+[data-theme="light"][data-ui-theme="celadon"] .app-statusbar {
+  background:
+    linear-gradient(128deg, transparent 0 31%, rgba(79, 133, 121, 0.042) 31.12% 31.26%, transparent 31.40% 76%, rgba(183, 154, 98, 0.032) 76.12% 76.24%, transparent 76.38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.68)),
+    var(--glass-bg);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+[data-theme="light"][data-ui-theme="celadon"] .app-main-frame,
+[data-theme="light"][data-ui-theme="celadon"] .settings-pane-frame {
+  background:
+    linear-gradient(54deg, transparent 0 68%, rgba(79, 133, 121, 0.032) 68.12% 68.24%, transparent 68.38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.70)),
+    rgba(255, 255, 255, 0.58);
+}
+
+[data-ui-theme="celadon"] .app-sidebar__brand,
+[data-ui-theme="celadon"] .settings-nav-button[data-active="true"] {
+  background:
+    linear-gradient(135deg, rgba(134, 185, 169, 0.14), rgba(232, 239, 233, 0.10) 48%, rgba(194, 166, 108, 0.09)),
+    rgba(232, 239, 233, 0.026);
+}
+
+[data-theme="light"][data-ui-theme="celadon"] .app-sidebar__brand,
+[data-theme="light"][data-ui-theme="celadon"] .settings-nav-button[data-active="true"] {
+  background:
+    linear-gradient(135deg, rgba(79, 133, 121, 0.12), rgba(255, 255, 255, 0.16) 48%, rgba(183, 154, 98, 0.10)),
+    rgba(255, 255, 255, 0.66);
+}
+
+[data-ui-theme="celadon"] .app-sidebar__footer,
+[data-ui-theme="celadon"] .settings-nav-empty,
+[data-ui-theme="celadon"] .settings-hero-card {
+  border-color: rgba(134, 185, 169, 0.22);
+}
+
+[data-theme="light"][data-ui-theme="celadon"] .app-sidebar__footer,
+[data-theme="light"][data-ui-theme="celadon"] .settings-nav-empty,
+[data-theme="light"][data-ui-theme="celadon"] .settings-hero-card {
+  border-color: rgba(79, 133, 121, 0.22);
+}
+
+[data-ui-theme="celadon"] .settings-nav-stat,
+[data-ui-theme="celadon"] .settings-nav-button:hover,
+[data-ui-theme="celadon"] .settings-nav-empty {
+  background:
+    linear-gradient(135deg, rgba(134, 185, 169, 0.09), rgba(232, 239, 233, 0.07) 48%, rgba(194, 166, 108, 0.055)),
+    rgba(232, 239, 233, 0.024);
+}
+
+[data-theme="light"][data-ui-theme="celadon"] .settings-nav-stat,
+[data-theme="light"][data-ui-theme="celadon"] .settings-nav-button:hover,
+[data-theme="light"][data-ui-theme="celadon"] .settings-nav-empty {
+  background:
+    linear-gradient(135deg, rgba(79, 133, 121, 0.09), rgba(255, 255, 255, 0.18) 48%, rgba(183, 154, 98, 0.08)),
+    rgba(255, 255, 255, 0.72);
+}
+
+[data-ui-theme="celadon"] .settings-nav-button__icon {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background-image: var(--icon-plate);
+  color: var(--icon-stroke-muted);
+  box-shadow: none;
+}
+
+[data-ui-theme="celadon"] .settings-nav-button__icon::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--icon-shine), transparent 38%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-ui-theme="celadon"] .settings-nav-button__icon svg {
+  position: relative;
+  z-index: 1;
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.9;
+}
+
+[data-ui-theme="celadon"] .settings-nav-button:hover .settings-nav-button__icon {
+  color: var(--icon-stroke);
+  border-color: var(--border-subtle);
+}
+
+[data-ui-theme="celadon"] .settings-nav-button:hover .settings-nav-button__icon::before,
+[data-ui-theme="celadon"] .settings-nav-button[data-active="true"] .settings-nav-button__icon::before {
+  opacity: 0.28;
+}
+
+[data-ui-theme="celadon"] .settings-nav-button[data-active="true"] .settings-nav-button__icon {
+  background-image: var(--icon-plate);
+  color: var(--accent);
+  border-color: var(--border-default);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+[data-ui-theme="celadon"] .settings-account-card__avatar {
+  box-shadow: 0 12px 26px var(--accent-glow);
+}
+
+[data-ui-theme="celadon"] .settings-floatbar > div {
+  border-color: rgba(134, 185, 169, 0.24);
+  background:
+    linear-gradient(180deg, rgba(232, 239, 233, 0.07), rgba(232, 239, 233, 0.025)),
+    rgba(13, 29, 26, 0.82);
+}
+
+[data-theme="light"][data-ui-theme="celadon"] .settings-floatbar > div {
+  border-color: rgba(79, 133, 121, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.74)),
+    rgba(255, 255, 255, 0.78);
+}
+
+[data-ui-theme="celadon"] .theme-option-card {
+  background: var(--bg-base);
+  border-color: var(--border-strong);
+}
+
+[data-theme="dark"][data-ui-theme="celadon"] .theme-option-card {
+  border-color: rgba(232, 239, 233, 0.28);
+}
+
+[data-theme="light"][data-ui-theme="celadon"] .theme-option-card {
+  background: var(--bg-surface);
+  border-color: rgba(33, 76, 74, 0.18);
+}
+
+[data-ui-theme="celadon"] .theme-option-card:hover,
+[data-ui-theme="celadon"] .theme-option-card[data-active="true"] {
+  border-color: var(--accent);
+}
+
+[data-ui-theme="celadon"] .theme-option-card[data-active="true"] {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+[data-ui-theme="celadon"] .theme-option-card__check {
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  border-color: var(--border-strong);
+}
+
+[data-ui-theme="celadon"] .theme-option-card__check--active {
+  border-color: var(--accent);
+  background: transparent;
+}
+
+[data-ui-theme="celadon"] .lang-chip {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+  color: var(--fg-secondary);
+}
+
+[data-ui-theme="celadon"] .lang-chip:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--fg-primary);
+}
+
+[data-ui-theme="celadon"] .lang-chip--active {
+  background:
+    linear-gradient(135deg, rgba(134, 185, 169, 0.18), rgba(232, 239, 233, 0.12) 48%, rgba(194, 166, 108, 0.12)),
+    var(--bg-elevated);
+  border-color: rgba(134, 185, 169, 0.48);
+  color: var(--fg-primary);
+  box-shadow: 0 0 0 1px rgba(134, 185, 169, 0.18),
+              0 0 14px rgba(134, 185, 169, 0.14);
+}
+
+[data-theme="light"][data-ui-theme="celadon"] .lang-chip--active {
+  background:
+    linear-gradient(135deg, rgba(79, 133, 121, 0.12), rgba(255, 255, 255, 0.18) 48%, rgba(183, 154, 98, 0.10)),
+    var(--bg-elevated);
+  border-color: rgba(79, 133, 121, 0.44);
+  color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(79, 133, 121, 0.16);
+}
+
+[data-ui-theme="celadon"] .toggle-switch,
+[data-ui-theme="celadon"] .segmented-control {
+  border-color: var(--border-default);
+  background: var(--bg-elevated);
+}
+
+[data-ui-theme="celadon"] .toggle-switch[data-state="on"],
+[data-ui-theme="celadon"] .segmented-control .seg-pill {
+  background: var(--accent-gradient);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+[data-ui-theme="celadon"] .toggle-switch[data-state="off"],
+[data-ui-theme="celadon"] .range-mac {
+  background: var(--bg-active);
+}
+
+[data-ui-theme="celadon"] .range-mac::-webkit-slider-thumb,
+[data-ui-theme="celadon"] .range-mac::-moz-range-thumb {
+  background: var(--accent-gradient);
+  border-color: var(--bg-app);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+[data-ui-theme="celadon"] .terminal-disconnect-card {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-bg-surface) 92%, transparent), color-mix(in srgb, var(--color-bg-surface) 92%, transparent)),
+    var(--accent-gradient);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  border-color: transparent;
+}

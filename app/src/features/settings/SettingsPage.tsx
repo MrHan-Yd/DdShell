@@ -1562,9 +1562,11 @@ export function SettingsPage() {
 
   const activeTabMeta = tabItems.find((item) => item.value === activeTab) ?? tabItems[0];
   const hasFilteredTabs = filteredTabItems.length > 0;
-  const currentUiThemeLabel = committedUiTheme === "umbra"
-    ? t("settings.uiThemeUmbra")
-    : committedUiTheme === "rainlake"
+  const currentUiThemeLabel = committedUiTheme === "celadon"
+    ? t("settings.uiThemeCeladon")
+    : committedUiTheme === "umbra"
+      ? t("settings.uiThemeUmbra")
+      : committedUiTheme === "rainlake"
       ? t("settings.uiThemeRainlake")
       : committedUiTheme === "orange-sea"
       ? t("settings.uiThemeOrangeSea")
@@ -1814,6 +1816,12 @@ export function SettingsPage() {
                   title: t("settings.uiThemeUmbra"),
                   description: t("settings.uiThemeUmbraDesc"),
                   previewClassName: "theme-preview theme-preview--umbra",
+                },
+                {
+                  value: "celadon",
+                  title: t("settings.uiThemeCeladon"),
+                  description: t("settings.uiThemeCeladonDesc"),
+                  previewClassName: "theme-preview theme-preview--celadon",
                 },
               ] as const).map((option) => {
                 const active = uiTheme === option.value;

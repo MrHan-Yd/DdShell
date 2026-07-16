@@ -126,7 +126,20 @@ When the theme comes from a static prototype under `ui/ui-<id>/styles/`, the raw
 - Keep application-only selectors in the same layer as the reference theme. Real mappings may live inside page files, not only in `app-overrides.css`; examples include `settings-nav-panel`, `settings-section`, `file-pane.has-mkdir-editor`, path-tools rows, transfer drawers, terminal split/selection controls, and monitor session-pick controls.
 - Map `:root` / `.theme-dark` and `.theme-light` token blocks to the document boundary contract above, then add the React/Tailwind `--color-*`, sizing, surface, and shadow token bridge.
 - Preserve intentionally shared unscoped settings-layout rules exactly as they appear in the reference theme. Do not independently rescope or redesign them for the new theme.
+- Because every theme index is imported into the same bundle, never apply prototype-specific styling by changing one of those shared unscoped rules. Add a theme-scoped override beside it; otherwise the last imported theme silently changes every other theme.
 - Keep the theme index import order as tokens → base → components → layout → supported pages → app overrides.
+
+```css
+/* Wrong: imported globally and wins for every theme. */
+.settings-cat .icon {
+  background-image: var(--icon-plate);
+}
+
+/* Correct: keep the shared rule intact and add the theme material separately. */
+[data-ui-theme="celadon"] .settings-cat .icon {
+  background-image: var(--icon-plate);
+}
+```
 
 Directly scoping the raw prototype and comparing source/target rule-block counts is insufficient: it can compile while silently omitting real application states. Compare the new theme's complete class-selector set with the structural reference, search for old theme ids and palette literals, assert critical application selectors exist, and run the production build so Vite parses the complete CSS bundle.
 

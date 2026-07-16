@@ -1705,6 +1705,30 @@ body {
   backdrop-filter: blur(16px);
 }
 
+.theme-preview--celadon {
+  background:
+    linear-gradient(122deg, transparent 0 18%, rgba(79, 133, 121, 0.10) 18.2% 18.5%, transparent 18.7% 48%, rgba(183, 154, 98, 0.08) 48.2% 48.5%, transparent 48.7%),
+    linear-gradient(58deg, transparent 0 66%, rgba(33, 76, 74, 0.08) 66.2% 66.5%, transparent 66.7%),
+    radial-gradient(ellipse 80% 48% at 18% 8%, rgba(181, 207, 194, 0.34), transparent 70%),
+    linear-gradient(180deg, #FAFBF7, #E8EFEB 58%, #DDE8E1);
+}
+
+.theme-preview--celadon .theme-preview__sidebar {
+  background: rgba(221, 232, 225, 0.90);
+  box-shadow: inset 0 0 0 1px rgba(33, 76, 74, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.theme-preview--celadon .theme-preview__panel {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 251, 0.82), rgba(181, 207, 194, 0.32) 54%, rgba(183, 154, 98, 0.12));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 251, 0.92),
+    inset 0 0 0 1px rgba(33, 76, 74, 0.10),
+    0 10px 24px rgba(33, 76, 74, 0.14);
+  backdrop-filter: blur(12px);
+}
+
 .aurora-shell-orb {
   position: absolute;
   z-index: 0;

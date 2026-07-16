@@ -17,6 +17,7 @@ import "./styles/nebula-dust-index.css";
 import "./styles/orange-sea-index.css";
 import "./styles/rainlake-index.css";
 import "./styles/umbra-index.css";
+import "./styles/celadon-index.css";
 
 // Disable default webview context menu to prevent opening browser actions.
 document.addEventListener("contextmenu", (event) => {
