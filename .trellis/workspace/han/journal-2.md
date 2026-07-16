@@ -902,3 +902,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 84: 修复主题选择卡片边框裁切
+
+**Date**: 2026-07-17
+**Task**: 修复主题选择卡片边框裁切
+**Branch**: `main`
+
+### Summary
+
+为主题选择滚动网格增加上下边缘内距并同步调整两行可视高度，修复首尾卡片选中边框裁切；构建、325 项 predictive-echo 测试和 diff 检查均通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `42d1930` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

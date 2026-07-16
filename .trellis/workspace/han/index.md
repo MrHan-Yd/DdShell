@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 83
-- **Last Active**: 2026-07-16
+- **Total Sessions**: 84
+- **Last Active**: 2026-07-17
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~904 | Active |
+| `journal-2.md` | ~937 | Active |
 | `journal-1.md` | ~1985 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 84 | 2026-07-17 | 修复主题选择卡片边框裁切 | `42d1930` | `main` |
 | 83 | 2026-07-16 | 补发 GitHub Release v0.3.0 | `67eaf42` | `main` |
 | 82 | 2026-07-16 | 发布 DdShell v0.3.0 | `67eaf42` | `main` |
 | 81 | 2026-07-16 | 修复连接名称过长布局 | `072889a` | `main` |
