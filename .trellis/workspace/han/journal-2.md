@@ -770,3 +770,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 80: 实现青瓷应用主题
+
+**Date**: 2026-07-16
+**Task**: 实现青瓷应用主题
+**Branch**: `main`
+
+### Summary
+
+将 ui/ui-celadon 青瓷原型完整接入应用，覆盖主题注册、持久化、i18n、设置预览、深浅模式及设置、连接、终端、SFTP 页面，并补充共享未作用域规则的主题隔离规范；构建与测试通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `83ebe5a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
