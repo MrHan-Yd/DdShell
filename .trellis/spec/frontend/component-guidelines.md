@@ -91,6 +91,29 @@ Questions to answer:
 - `app/src/styles/aurora/pages/sftp.css`
 - `app/src/styles.css`
 
+### Flex rows with long text must protect fixed trailing controls
+
+**What**: In a horizontal flex row that combines user-controlled text with status badges or action buttons, make the text region `flex: 1; min-width: 0`, apply single-line truncation to the text itself, and set badges/actions to `flex-shrink: 0`.
+
+**Why**: Flex items default to `min-width: auto`, so a long server, file, workflow, or snippet name can preserve its intrinsic width and squeeze fixed controls. A `truncate` class on the text alone is not enough unless every flex ancestor up to the constrained row can shrink below its content width.
+
+**Example**:
+
+```tsx
+<header className="flex items-center gap-3">
+  <div className="flex min-w-0 flex-1 items-center gap-3">
+    <h2 className="min-w-0 flex-1 truncate" title={name}>{name}</h2>
+    <span className="shrink-0 whitespace-nowrap">Connected</span>
+  </div>
+  <div className="flex shrink-0">...</div>
+</header>
+```
+
+**Required check**: Test with a long unbroken ASCII name and a long CJK name. The text must ellipsize while badges and every trailing action remain visible on one line.
+
+**Related**:
+- `app/src/features/connections/ConnectionsPage.tsx`
+
 ### Theme button resets can override Tailwind padding on popover rows
 
 **What**: Button-like rows inside themed popovers must use a semantic class and a theme-scoped compound selector when their spacing matters.

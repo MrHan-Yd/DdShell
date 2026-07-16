@@ -1341,14 +1341,14 @@ function HostDetail({
   return (
     <div className={`detail-wrap ${animClass}`}>
       <header className="detail-head">
-        <div className="title-block">
-          <h2 className="detail-title">{host.name}</h2>
-          <span className="badge badge-success">
+        <div className="title-block min-w-0 flex-1">
+          <h2 className="detail-title min-w-0 flex-1 truncate" title={host.name}>{host.name}</h2>
+          <span className="badge badge-success shrink-0 whitespace-nowrap">
             <span className="dot dot-success" />
             {t("conn.connected")}
           </span>
         </div>
-        <div className="detail-actions">
+        <div className="detail-actions shrink-0">
           <Button size="icon" variant="ghost" onClick={onToggleFavorite}>
             {host.isFavorite ? (
               <span className="animate-star-pop">
