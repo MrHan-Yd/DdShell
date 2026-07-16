@@ -803,3 +803,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 81: 修复连接名称过长布局
+
+**Date**: 2026-07-16
+**Task**: 修复连接名称过长布局
+**Branch**: `main`
+
+### Summary
+
+修复连接管理详情头部长名称挤压状态徽章和操作按钮的问题，为文本区域补充可收缩与省略约束，并固定状态和操作区；构建、测试和 diff 检查通过。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `072889a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
