@@ -914,3 +914,34 @@ rg '<(p|h[1-6]|ul|ol)\b[^>]*className="[^"]*\b(mt|mb|my)-' app/src/
 **Related**:
 - `app/src/styles/aurora/base.css:102-108` — Aurora typography reset block
 - Aurora button reset convention above — same specificity pattern, different element scope
+
+---
+
+## Convention: Scrollable card grids must reserve space for edge outlines
+
+**What**: A scroll container whose first or last child can render an outer border, outline, focus ring, or shadow must have enough leading and trailing padding to keep that visual state inside the scrollport. If the container height is calculated to show a fixed number of rows, include the edge padding in the height calculation.
+
+**Why**: `overflow-y: auto` clips child painting at the scrollport boundary. When the first row is flush with the top or the last row is flush with the bottom, a selected or focused card can look as if its outer edge is missing. Adding padding without updating a border-box `max-height` can fix the outline but partially hide the last visible row.
+
+**Example**:
+
+```css
+.selectable-card-grid {
+  --grid-gap: 12px;
+  --grid-edge-padding: 2px;
+  --card-row-height: 226px;
+  grid-auto-rows: var(--card-row-height);
+  max-height: calc(
+    (var(--card-row-height) * 2)
+    + var(--grid-gap)
+    + (var(--grid-edge-padding) * 2)
+  );
+  overflow-y: auto;
+  padding-block: var(--grid-edge-padding);
+}
+```
+
+**Required check**: Scroll to both extremes with a first-row and last-row card selected or keyboard-focused. Verify the top and bottom visual edges are complete, and verify the intended number of rows remains fully visible at every responsive row height.
+
+**Related**:
+- `app/src/styles.css` — `.theme-option-grid`

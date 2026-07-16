@@ -1178,14 +1178,21 @@ body {
 
 .theme-option-grid {
   --theme-option-grid-gap: 12px;
+  --theme-option-grid-edge-padding: 2px;
   --theme-option-card-row-height: 226px;
   gap: var(--theme-option-grid-gap);
   grid-auto-rows: var(--theme-option-card-row-height);
-  max-height: calc((var(--theme-option-card-row-height) * 2) + var(--theme-option-grid-gap));
+  max-height: calc(
+    (var(--theme-option-card-row-height) * 2)
+    + var(--theme-option-grid-gap)
+    + (var(--theme-option-grid-edge-padding) * 2)
+  );
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  padding-top: var(--theme-option-grid-edge-padding);
   padding-right: 6px;
+  padding-bottom: var(--theme-option-grid-edge-padding);
   margin-right: -6px;
 }
 
