@@ -170,7 +170,7 @@ pnpm tauri build
 - 功能状态: [docs/shell/01-PRODUCT/FEATURE-STATUS.md](docs/shell/01-PRODUCT/FEATURE-STATUS.md)
 - FR 索引: [docs/shell/01-PRODUCT/FR-INDEX.md](docs/shell/01-PRODUCT/FR-INDEX.md)
 - 应用开发说明: [docs/app/README.md](docs/app/README.md)
-- 最新版本介绍: [docs/发布/v0.2.9-版本介绍.md](docs/发布/v0.2.9-版本介绍.md)
+- 最新版本介绍: [docs/发布/v0.3.0-版本介绍.md](docs/发布/v0.3.0-版本介绍.md)
 
 ## 开发约定
 
