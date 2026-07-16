@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 81
+- **Total Sessions**: 82
 - **Last Active**: 2026-07-16
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~838 | Active |
+| `journal-2.md` | ~871 | Active |
 | `journal-1.md` | ~1985 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 82 | 2026-07-16 | 发布 DdShell v0.3.0 | `67eaf42` | `main` |
 | 81 | 2026-07-16 | 修复连接名称过长布局 | `072889a` | `main` |
 | 80 | 2026-07-16 | 实现青瓷应用主题 | `83ebe5a` | `main` |
 | 79 | 2026-07-16 | 设计青瓷主题原型 | `3ab6e9c` | `main` |

@@ -836,3 +836,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 82: 发布 DdShell v0.3.0
+
+**Date**: 2026-07-16
+**Task**: 发布 DdShell v0.3.0
+**Branch**: `main`
+
+### Summary
+
+按发布文档完成 v0.3.0 发布准备：同步四处版本号、更新 GitHub Release 文案、README 最新版本链接和版本介绍，前端构建、预测回显测试、Rust cargo check 与 diff 检查通过；创建并推送 v0.3.0 标签触发发布流程。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `67eaf42` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
