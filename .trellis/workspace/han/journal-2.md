@@ -935,3 +935,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 85: 修复 Windows MSI 安装 2503 与自动更新失败
+
+**Date**: 2026-07-19
+**Task**: 修复 Windows MSI 安装 2503 与自动更新失败
+**Branch**: `main`
+
+### Summary
+
+源码级定位 v0.3.0 Windows 两问题共因：wix-preserve-install-dir.wxs 内嵌 VBScript custom action 致 MSI 交互安装报 2503；updater installMode=quiet 下 msiexec 非提权静默安装 per-machine MSI 必败且应用已退出。修复：删除 VBScript fragment；更新流程按安装类型分流（bundle_type）——NSIS 保持静默自动更新，MSI 改为下载完成后用户点击唤起完整安装向导自行安装（新终态 downloadedManualInstall + launchInstaller，复用既有 download_update/open_installer）。trellis-check 修复双击竞态与安装类型缓存污染两问题。spec 同步更新 Updater Release Contract（禁止 MSI 静默安装与脚本类 custom action）。待办：发 v0.3.1 后需 Windows 实测两条链路。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0b58cd3` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
