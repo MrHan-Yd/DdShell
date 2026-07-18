@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "updater.ts 是 zustand store，MSI 分流新增状态需遵循 store 规范"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "MSI 下载完成提示卡片涉及 SettingsPage/StatusBar 组件改动"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Rust 端打开 .msi 的 command 需按规范处理错误"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "改动跨 Rust command / store / UI 三层，需保证数据流一致"}

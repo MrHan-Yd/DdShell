@@ -381,10 +381,11 @@ window.setInterval(() => {
 
 #### 2. Signatures
 - Tauri config: `app/src-tauri/tauri.conf.json` `plugins.updater.pubkey` and `plugins.updater.endpoints`.
-- Tauri config: `bundle.windows.wix.upgradeCode` and `bundle.windows.wix.fragmentPaths`.
+- Tauri config: `bundle.windows.wix.upgradeCode` (pinned; no `fragmentPaths` — see MSI contract below).
 - Runtime updater helper: `configure_windows_updater_builder(builder: tauri_plugin_updater::Builder) -> tauri_plugin_updater::Builder`.
 - MSI arg helper: `msi_install_location_args(install_dir: &Path) -> Vec<String>`.
-- WiX custom actions: `DdShellPreserveMsiInstallLocation` before `CostFinalize`, `DdShellSetArpInstallLocation` before `RegisterProduct`.
+- Install-type detection: `get_install_type` command → `current_package_type()` → `tauri::utils::platform::bundle_type()` (build-time stamp) with exe-path fallback.
+- MSI manual-install chain: `check_update` → `download_update` (emits `update:download_progress/completed/failed`) → `open_installer`.
 - GitHub Actions secrets: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 - Manifest endpoint: `https://github.com/MrHan-Yd/DdShell/releases/latest/download/latest.json`.
 - Frontend APIs: `@tauri-apps/plugin-updater` `check()` / `downloadAndInstall()` and `@tauri-apps/plugin-process` `relaunch()`.
@@ -400,10 +401,14 @@ window.setInterval(() => {
 - Do not include a broad `windows-x86_64` fallback when both MSI and NSIS are shipped; it can route an installed MSI app to an NSIS updater payload and reset install/uninstall behavior.
 - Windows installed-app runtime data intentionally lives in the install directory. NSIS hooks and MSI upgrade metadata must preserve `shell.db`, `shell.db-wal`, and `shell.db-shm`.
 - NSIS `/UPDATE` can invoke the currently installed uninstaller before the new installer writes files. Do not rely on newly added NSIS hooks as the only protection for first-time upgrades from older builds; matching the installer family and preserving the registered install path are the primary safety boundary.
-- MSI updater installs must preserve custom install paths in two layers: the MSI package must include the WiX preserve-install-dir fragment that sets `APPLICATIONFOLDER` / `INSTALLDIR` from the related product's Windows Installer `InstallLocation` or uninstall registry fallback before `CostFinalize`, then writes `ARPINSTALLLOCATION` before `RegisterProduct`; new app versions must pass the current executable directory to `msiexec` as runtime installer args (`APPLICATIONFOLDER="<current exe dir>"` and `INSTALLDIR="<current exe dir>"`). `upgradeCode` preserves product identity, but it is not sufficient by itself to guarantee custom install path reuse.
-- Windows updater install mode must stay non-interactive (`quiet` or stricter) for verified in-app updates. User confirmation belongs in the app UI before install/relaunch, not in the native uninstall/install wizard.
+- Windows in-app update flow is split by installer family (detected via `get_install_type` / `bundle_type()`):
+  - NSIS: official updater `downloadAndInstall()` with `installMode: "quiet"` — silent, no elevation needed, auto-relaunch after user-confirmed restart. This is the only fully-automatic Windows path.
+  - MSI: NEVER silent-install. `msiexec /quiet` runs unelevated via `ShellExecuteW` and per-machine MSI requires elevation, so quiet mode fails silently after the app has already exited. Instead: download the `.msi` via `download_update` to the user's Downloads dir, stop at the `downloadedManualInstall` terminal state, and let the user click to `open_installer` (full interactive wizard + UAC; user picks the install dir in the wizard).
+- MSI packages must NOT embed script custom actions. The former `wix-preserve-install-dir.wxs` (inline VBScript, ~170 lines) caused Windows Installer error 2503 ("Setup Wizard ended prematurely") on Windows 11 — script CAs are blocked/broken by script-engine policy and are deprecated by Microsoft. Custom install-path preservation is now delegated to the interactive wizard (user re-picks the dir on manual update). If path preservation is ever re-added, use declarative WiX (`RegistrySearch`/`Property`), never `Script="vbscript"`.
+- Windows NSIS updater install mode must stay non-interactive (`quiet`); only the NSIS family reaches the official updater install step. User confirmation belongs in the app UI before install/relaunch.
 - WiX `upgradeCode` must be explicitly pinned so MSI upgrades keep product identity across releases.
 - Restart is a user-confirmed frontend action. The updater may install silently/passively, but the app must not relaunch without explicit confirmation.
+- Frontend install-type cache: cache only successful `get_install_type` results; a failed IPC probe must return `"unknown"` uncached, otherwise an MSI user can be permanently misrouted onto the silent path.
 
 #### 4. Validation & Error Matrix
 - Missing updater signing secret -> release workflow must fail before Tauri build with a clear secret name.
@@ -413,23 +418,27 @@ window.setInterval(() => {
 - Signature/private key mismatch -> official updater fails verification and UI must expose the GitHub Releases fallback.
 - Missing `.msi.sig` while shipping MSI -> release workflow must fail before manifest generation.
 - Broad `windows-x86_64` appears while both MSI and NSIS are shipped -> release workflow must fail before uploading `latest.json`.
-- MSI updater builder lacks current-install-directory installer args, or `bundle.windows.wix.fragmentPaths` omits `wix-preserve-install-dir.wxs` -> Windows MSI smoke must fail because non-default install paths are not guaranteed.
+- MSI bundle contains any script custom action (`Script="vbscript"`/`"jscript"`) -> interactive install risks error 2503; must fail Windows MSI smoke (inspect CustomAction table).
+- MSI user triggers in-app update -> flow must stop at `downloadedManualInstall` with the installer path; silent install of an `.msi` is a defect.
 - NSIS hook missing runtime-data preservation -> release workflow/build must fail or manual release verification must block publication.
 
 #### 5. Good/Base/Bad Cases
 - Good: Windows manifest `windows-x86_64-nsis` points to `DdShell-vX.Y.Z-windows-x64.exe` and `windows-x86_64-msi` points to `DdShell-vX.Y.Z-windows-x64.msi`; each signature signs the exact payload URL.
-- Good: NSIS update preserves `shell.db*` in the install directory; MSI uses the pinned UpgradeCode, includes the WiX preserve-install-dir fragment for first upgrades, and receives `APPLICATIONFOLDER` / `INSTALLDIR` from `current_exe().parent()` for future updater runs.
+- Good: NSIS update preserves `shell.db*` in the install directory and installs silently with auto-relaunch; MSI update downloads to the user's Downloads dir, shows `downloadedManualInstall`, and the user completes the interactive wizard (picking their own install dir).
 - Bad: `windows-x86_64` fallback points to NSIS while MSI is also shipped.
+- Bad: MSI update path calls the official updater's silent install, or the MSI embeds a VBScript custom action to preserve install paths (2503 regression).
 - Bad: workflow expects `*.zip` when the Tauri Windows build only produced `.exe`, `.msi`, and their `.sig` files.
 
 #### 6. Tests Required
 - `cd app && pnpm build` verifies frontend updater API types and i18n keys.
 - `cd app/src-tauri && cargo check` verifies plugin registration and Rust integration.
-- `cargo test --manifest-path app/src-tauri/Cargo.toml msi_install` verifies MSI install-directory installer args remain quoted and stable.
+- `cargo test --manifest-path app/src-tauri/Cargo.toml msi_install` verifies MSI install-directory installer args remain quoted and stable (Windows-cfg-gated; used by the NSIS-family `configure_windows_updater_builder` path).
+- Windows MSI smoke: inspect the built MSI's CustomAction table (Orca or `msiexec /l*v`) — no script custom actions; interactive install completes without 2503.
+- Windows MSI in-app update smoke: old MSI build → in-app update → download completes → `downloadedManualInstall` prompt → wizard installs new version.
 - `pnpm -C app tauri build --no-bundle` verifies Tauri config parsing and updater plugin integration on the local platform.
 - A signed local or CI bundle build must produce `.app.tar.gz` plus `.sig` on macOS, NSIS `.exe` plus `.exe.sig` on Windows, and MSI `.msi` plus `.msi.sig` on Windows.
 - Release verification must check `latest.json` platform keys, URLs, and signatures before announcing the release.
-- Windows manual smoke must install an old version to a non-C path, create `shell.db` data, run in-app update, and verify the install path and data survive.
+- Windows NSIS manual smoke must install an old version to a non-C path, create `shell.db` data, run in-app update, and verify the install path and data survive. (MSI path preservation is user-driven via the wizard; only verify data survives if the user reinstalls to the same dir.)
 
 #### 7. Wrong vs Correct
 
@@ -453,6 +462,22 @@ Correct:
 "windows-x86_64-msi": {
   "signature": "<signature of DdShell-vX.Y.Z-windows-x64.msi>",
   "url": "https://github.com/MrHan-Yd/DdShell/releases/download/vX.Y.Z/DdShell-vX.Y.Z-windows-x64.msi"
+}
+```
+
+Wrong (MSI silent install — fails unelevated after the app exits):
+
+```typescript
+// installType === "msi" still falls through to the official updater
+await pendingUpdate.downloadAndInstall(onEvent); // msiexec /quiet dies silently
+```
+
+Correct (MSI stops at a user-driven terminal state):
+
+```typescript
+if ((await currentInstallType()) === "msi") {
+  await downloadMsiForManualInstall(set, get); // → status: "downloadedManualInstall"
+  return; // user clicks → openInstaller(path) → interactive wizard + UAC
 }
 ```
 

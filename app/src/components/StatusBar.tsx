@@ -61,6 +61,7 @@ export function StatusBar() {
   const checkUpdate = useUpdaterStore((s) => s.checkForUpdate);
   const downloadAndInstall = useUpdaterStore((s) => s.downloadAndInstall);
   const restartApp = useUpdaterStore((s) => s.restartApp);
+  const launchInstaller = useUpdaterStore((s) => s.launchInstaller);
   const openFallback = useUpdaterStore((s) => s.openFallback);
   const t = useT();
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -163,6 +164,18 @@ export function StatusBar() {
               onClick={confirmRestart}
             >
               {t("update.restartNow")}
+            </button>
+          </span>
+        );
+      case "downloadedManualInstall":
+        return (
+          <span className="flex items-center gap-1.5">
+            <span className="text-[var(--font-size-xs)] text-[var(--color-success)]">✓ {t("update.manualInstallReady")}</span>
+            <button
+              className="text-[var(--font-size-xs)] text-[var(--color-accent)] hover:underline cursor-pointer"
+              onClick={launchInstaller}
+            >
+              {t("update.launchInstaller")}
             </button>
           </span>
         );

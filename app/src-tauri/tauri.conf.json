@@ -58,8 +58,7 @@
         "installerHooks": "nsis-hooks.nsh"
       },
       "wix": {
-        "upgradeCode": "1d44d0f1-f4a7-53ec-b373-2aa28614a169",
-        "fragmentPaths": ["wix-preserve-install-dir.wxs"]
+        "upgradeCode": "1d44d0f1-f4a7-53ec-b373-2aa28614a169"
       }
     }
   },

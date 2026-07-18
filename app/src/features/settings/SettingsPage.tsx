@@ -989,6 +989,7 @@ export function SettingsPage() {
   const checkForUpdate = useUpdaterStore((s) => s.checkForUpdate);
   const downloadAndInstallUpdate = useUpdaterStore((s) => s.downloadAndInstall);
   const restartUpdatedApp = useUpdaterStore((s) => s.restartApp);
+  const launchUpdateInstaller = useUpdaterStore((s) => s.launchInstaller);
   const openUpdateFallback = useUpdaterStore((s) => s.openFallback);
   const t = useT();
 
@@ -1460,6 +1461,15 @@ export function SettingsPage() {
         <Button size="sm" onClick={confirmUpdateRestart}>
           <RefreshCw size={13} />
           {t("update.restartNow")}
+        </Button>
+      );
+    }
+
+    if (updateStatus === "downloadedManualInstall") {
+      return (
+        <Button size="sm" onClick={launchUpdateInstaller}>
+          <RefreshCw size={13} />
+          {t("update.launchInstaller")}
         </Button>
       );
     }
@@ -2750,13 +2760,14 @@ export function SettingsPage() {
                 />
               </div>
             )}
-            {(updateStatus === "available" || updateStatus === "upToDate" || updateStatus === "checkFailed" || updateStatus === "readyToRestart") && (
+            {(updateStatus === "available" || updateStatus === "upToDate" || updateStatus === "checkFailed" || updateStatus === "readyToRestart" || updateStatus === "downloadedManualInstall") && (
               <div className="mt-3">
                 <p className="text-[var(--font-size-xs)] text-[var(--color-text-secondary)]">
                   {updateStatus === "available" && t("update.available").replace("{v}", updateLatestVersion)}
                   {updateStatus === "upToDate" && t("update.latest")}
                   {updateStatus === "checkFailed" && t("update.failed")}
                   {updateStatus === "readyToRestart" && t("update.readyToRestart")}
+                  {updateStatus === "downloadedManualInstall" && t("update.manualInstallHint")}
                 </p>
               </div>
             )}

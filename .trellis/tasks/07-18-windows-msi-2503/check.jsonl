@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "前端改动质量检查基线"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Rust 改动质量检查基线"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "updater store 新增状态/action 的类型完备性检查"}
