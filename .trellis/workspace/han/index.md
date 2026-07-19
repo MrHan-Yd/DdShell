@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 85
+- **Total Sessions**: 86
 - **Last Active**: 2026-07-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~970 | Active |
+| `journal-2.md` | ~1003 | Active |
 | `journal-1.md` | ~1985 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 86 | 2026-07-19 | 发布 v0.3.1（Windows MSI 修复版） | `1d440fb` | `main` |
 | 85 | 2026-07-19 | 修复 Windows MSI 安装 2503 与自动更新失败 | `0b58cd3` | `main` |
 | 84 | 2026-07-17 | 修复主题选择卡片边框裁切 | `42d1930` | `main` |
 | 83 | 2026-07-16 | 补发 GitHub Release v0.3.0 | `67eaf42` | `main` |

@@ -968,3 +968,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 86: 发布 v0.3.1（Windows MSI 修复版）
+
+**Date**: 2026-07-19
+**Task**: 发布 v0.3.1（Windows MSI 修复版）
+**Branch**: `main`
+
+### Summary
+
+按发布 SOP 完成 v0.3.1：版本号三处同步、release.yml 版本介绍（含 v0.3.0 MSI 用户手动升级引导）、v0.3.1-版本介绍.md、tag 推送。CI 构建成功，产物自动化验证全通过：13 个资产齐全、latest.json 四平台 key 正确且无 windows-x86_64 fallback、下载实物 MSI 确认 VBScript custom action 特征串零命中（2503 根源已移除）。待办：han 在 Windows 真机验证 MSI 安装与更新流程。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1d440fb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
