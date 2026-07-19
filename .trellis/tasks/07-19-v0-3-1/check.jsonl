@@ -1,0 +1,2 @@
+{"file": "docs/发布/发布文档.md", "reason": "对照发布验证清单检查产物完整性"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "核对 latest.json 平台 key 与签名要求"}
