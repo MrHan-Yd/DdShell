@@ -183,6 +183,48 @@ rg "@tauri-apps/plugin-clipboard-manager" app/src
 
 The only allowed hits should be inside `app/src/lib/clipboard.ts`.
 
+### Don't: Rely on Tailwind utility classes to override theme CSS
+
+```tsx
+// Don't do this
+<div className={cn("term-pane", !visible && "hidden")} />
+```
+
+**Why it's bad**: Tailwind v4 compiles utilities into `@layer utilities`, but the 15 theme stylesheets are imported directly in `main.tsx` and belong to **no layer at all**. Per the CSS Cascade Layers spec, unlayered styles outrank every layered style regardless of selector specificity. So `[data-ui-theme="aurora"] .term-pane { display: flex }` silently defeats `.hidden { display: none }`.
+
+This shipped as a real bug: every terminal pane stayed visible, which looked like an unclosable auto-split. The close-split button appeared broken because no split state ever existed — the panes were merely never hidden.
+
+**Instead**: use an inline style. Inline styles do not participate in layer cascade and outrank both layered and unlayered rules:
+
+```tsx
+// Do this instead
+<div className="term-pane" style={visible ? undefined : { display: "none" }} />
+```
+
+This applies to **any** Tailwind utility that a theme stylesheet also sets — `display`, `background`, `border`, `flex`, etc. When a utility class appears to have no effect, check whether a theme rule sets the same property before assuming a specificity problem.
+
+### Don't: Let progress events overwrite terminal states
+
+```ts
+// Don't do this
+transfers: s.transfers.map((t) =>
+  t.id === taskId ? { ...t, transferredBytes, state: "running" as const } : t,
+)
+```
+
+**Why it's bad**: the Rust side emits a final 100% `transfer:progress` **before** marking the task `Completed` (`app/src-tauri/src/core/sftp.rs`). An unconditional write back to `running` resurrects a finished task, leaving the UI stuck at "1 transferring" forever.
+
+**Instead**: treat `completed` / `failed` / `canceled` as absorbing states — progress events may update byte counters but must never move a task out of a terminal state.
+
+```ts
+// Do this instead
+const isTerminal =
+  task?.state === "completed" || task?.state === "failed" || task?.state === "canceled";
+const nextState = isTerminal ? task.state : ("running" as const);
+```
+
+Additionally, any surface that displays live transfer state must poll as a fallback while tasks are in flight. `SftpPage` polls every 500ms; `TerminalFileManagerDrawer` originally did not, which is why the bug only surfaced in the terminal drawer. Event-only state sync has no recovery path when an event is dropped.
+
 ---
 
 ## Testing Requirements
