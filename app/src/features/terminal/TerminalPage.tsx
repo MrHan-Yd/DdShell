@@ -100,7 +100,11 @@ function getSensitivePromptTail(previousTail: string, remoteText: string): strin
 }
 
 function getTerminalPaneStyle(role: TerminalPaneRole, direction: ConcreteSplitDirection | null): CSSProperties | undefined {
-  if (role === "hidden" || !direction) return undefined;
+  // Hide inline rather than via Tailwind's `.hidden`: theme CSS is imported
+  // outside any @layer, so it outranks the layered utility and would leave
+  // every pane visible — which reads as an unclosable auto-split.
+  if (role === "hidden") return { display: "none" };
+  if (!direction) return undefined;
   if (direction === "horizontal") {
     return { gridColumn: "1", gridRow: role === "primary" ? "1" : "3" };
   }
@@ -3213,7 +3217,6 @@ export function TerminalPage() {
                 : splitDirection && splitTab?.id === tab.id
                   ? "split"
                   : "hidden";
-            const isVisiblePane = paneRole !== "hidden";
 
             return (
               <div
@@ -3221,7 +3224,6 @@ export function TerminalPage() {
                 className={cn(
                   "term-pane relative z-10 overflow-hidden",
                   paneRole === "primary" && "is-active",
-                  !isVisiblePane && "hidden",
                 )}
                 style={getTerminalPaneStyle(paneRole, splitDirection)}
               >
