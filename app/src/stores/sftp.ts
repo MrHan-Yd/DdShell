@@ -352,6 +352,13 @@ export const useSftpStore = create<SftpState>((set, get) => ({
         ? Math.min(Math.max(0, transferred), safeTotal)
         : Math.max(0, transferred);
       const task = s.transfers.find((t) => t.id === taskId);
+      // The backend emits a final 100% progress event just before marking the
+      // task Completed, so a late-arriving progress event must never resurrect
+      // a task that already reached a terminal state — that would leave the
+      // last transfer stuck at "1 transferring" forever.
+      const isTerminal =
+        task?.state === "completed" || task?.state === "failed" || task?.state === "canceled";
+      const nextState = isTerminal ? task.state : ("running" as const);
       // Look up the upload path directly from taskId; fall back to refreshed transfer data.
       const uploadPath = s.taskIdToRemotePath.get(taskId) || (task?.direction === "upload" ? task.remotePath : undefined);
       let newUploading = s.uploadingFiles;
@@ -367,7 +374,7 @@ export const useSftpStore = create<SftpState>((set, get) => ({
         return {
           transfers: s.transfers.map((t) =>
             t.id === taskId
-              ? { ...t, transferredBytes: safeTransferred, totalBytes: safeTotal, speedBytesPerSec: speed, state: "running" as const }
+              ? { ...t, transferredBytes: safeTransferred, totalBytes: safeTotal, speedBytesPerSec: speed, state: nextState }
               : t,
           ),
           remoteEntries: s.remoteEntries.map((e) =>
@@ -381,7 +388,7 @@ export const useSftpStore = create<SftpState>((set, get) => ({
       return {
         transfers: s.transfers.map((t) =>
           t.id === taskId
-            ? { ...t, transferredBytes: safeTransferred, totalBytes: safeTotal, speedBytesPerSec: speed, state: "running" as const }
+            ? { ...t, transferredBytes: safeTransferred, totalBytes: safeTotal, speedBytesPerSec: speed, state: nextState }
             : t,
         ),
       };
