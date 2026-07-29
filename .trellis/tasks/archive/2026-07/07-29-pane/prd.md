@@ -41,6 +41,26 @@
 - 不修改 `splitPane` / `closeSplit` 的状态机逻辑。
 - 不改版本号或发布流程。
 
-## 开放问题
+## 追加范围：SFTP 传输状态卡在「1 个传输中」
 
-无。
+同一会话中发现并修复的第二个缺陷，已随本任务一并交付。
+
+### 已确认事实
+
+- 现象：终端内置文件管理器批量传输全部结束后，摘要栏长期显示「1 个传输中」，需重开抽屉才恢复。
+- 后端 `app/src-tauri/src/core/sftp.rs:1050` 在 `update_task_state(Completed)` **之前**发送最后一次 100% 进度事件。
+- 前端 `updateTransferProgress`（`app/src/stores/sftp.ts`）无条件将任务状态写为 `running`，晚到的进度事件会把已完成任务复活。
+- `features/sftp/SftpPage.tsx:2018` 存在 500ms 轮询兜底，可自愈该竞态；而 `TerminalFileManagerDrawer.tsx` **完全没有轮询**，仅依赖事件，故问题只在终端抽屉暴露。
+
+### 修复
+
+- `stores/sftp.ts`：任务处于 `completed` / `failed` / `canceled` 终态时，进度事件不再回写状态。
+- `TerminalFileManagerDrawer.tsx`：补上与 SFTP 页一致的 500ms 轮询兜底，事件丢失时状态可自愈。
+
+### 验收标准
+
+- 批量传输结束后摘要栏立即归位，不残留「1 个传输中」。
+- 传输过程中进度与速率仍实时更新。
+- 失败与取消的任务状态不被进度事件覆盖。
+- 轮询仅在存在进行中任务时运行，传输结束后自动停止。
+
