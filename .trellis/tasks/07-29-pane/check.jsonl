@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "验收阶段核对前端质量标准"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核对组件渲染层改动是否符合规范"}
