@@ -1001,3 +1001,81 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 87: 修复假分屏与传输状态卡死并发布 v0.3.2
+
+**Date**: 2026-08-04
+**Task**: 修复假分屏与传输状态卡死并发布 v0.3.2
+**Branch**: `main`
+
+### Summary
+
+修复两个界面缺陷并发布 v0.3.2。假分屏根因是主题 CSS 未纳入 @layer、优先级压过 Tailwind 的 .hidden，改用内联 display:none 一处覆盖 15 套主题；传输状态卡死根因是后端在标记完成前补发 100% 进度事件、前端无条件写回 running，改为终态不再回写并给终端抽屉补上轮询兜底。CI 构建成功，13 个资产齐全、latest.json 四平台 key 正确、6 个安装包下载实测均 200。
+
+### Main Changes
+
+### Main Changes
+
+**1. 修复非活动终端 pane 隐藏失效导致的假分屏（`5a93c0b`）**
+
+- 现象：连接 2 个及以上终端时全部 pane 同时铺开，形似自动分屏且关闭分屏按钮无响应。
+- 排查结论：代码中**不存在自动分屏逻辑**。`splitDirection` 初值为 `null`，唯一写入方 `splitPane()` 仅由分屏按钮与快捷键触发，`openSession()` 不涉及分屏状态。
+- 根因：CSS Cascade Layers 优先级冲突。Tailwind v4 将 `.hidden{display:none}` 编译进 `@layer utilities`，而 15 套主题 CSS 经 `main.tsx` 直接 import、**不属于任何 layer**；按规范无层样式优先级高于所有分层样式，故 `[data-ui-theme=*] .term-pane{display:flex}` 覆盖了隐藏。已用脚本对 `dist/assets/index-*.css` 做括号平衡验证坐实。
+- 「关不掉」的解释：`closeSplit()` 只把已是 `null` 的 `splitDirection` 再设为 `null`，操作无实际效果。
+- 修复：`getTerminalPaneStyle()` 改用内联 `display: none`（内联样式不参与 layer 级联），一处覆盖全部 15 套主题；同步删除失效的 `hidden` 类，避免两套矛盾的隐藏机制。
+
+**2. 修复 SFTP 传输完成后状态卡在「1 个传输中」（`659920f`）**
+
+- 根因：后端 `core/sftp.rs:1050` 在 `update_task_state(Completed)` **之前**发送最后一次 100% 进度事件，前端 `updateTransferProgress` 无条件将状态写回 `running`，把已完成任务复活。
+- 为何只在终端抽屉暴露：`SftpPage.tsx:2018` 有 500ms 轮询可自愈该竞态，而 `TerminalFileManagerDrawer` 仅依赖事件、**无任何轮询**。
+- 修复：终态（`completed`/`failed`/`canceled`）不再被进度事件回写；并为终端抽屉补上与 SFTP 页一致的 500ms 轮询兜底。
+
+**3. 发布 v0.3.2（`bbe9971`）**
+
+- 三处版本号同步（`package.json` / `Cargo.toml` / `tauri.conf.json`），`Cargo.lock` 自动同步。
+- 按 SOP 替换 `release.yml` 版本介绍段（保留固定发布说明），新增 `docs/发布/v0.3.2-版本介绍.md`。
+
+**4. 沉淀 spec 防复发**
+
+- 在 `.trellis/spec/frontend/quality-guidelines.md` 追加两条禁止模式：不得依赖 Tailwind 工具类覆盖主题 CSS；进度事件不得覆写终态，且展示实时传输状态的界面须有轮询兜底。
+
+### Testing
+
+- [OK] `npx tsc --noEmit` 通过
+- [OK] `pnpm build` 通过
+- [OK] `git diff --check` 无格式错误
+- [OK] CI Release 构建成功（run 30470904254）
+- [OK] 13 个 Release 资产齐全，状态均为 `uploaded`
+- [OK] `latest.json` 四平台 key 正确，无跨安装器 fallback 的 `windows-x86_64`
+- [OK] 6 个安装包下载实测均返回 200，大小与 GitHub 记录吻合（Windows `.exe` 首次 `000` 为本地网络抖动，重试即 200）
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- han 在真机验证两处修复：连多个终端默认不分屏、分屏按钮可正常开关、批量传输结束后状态立即归位
+- **遗留隐患（未处理）**：主题 CSS 全部游离在 `@layer` 之外，意味着项目中任何 Tailwind 工具类都可能被主题静默覆盖。本次仅 `hidden` 暴露，同类问题大概率仍潜伏。根治需将主题 CSS 纳入 layer 体系，属独立重构、风险面大，建议单开任务评估。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5a93c0b` | (see git log) |
+| `659920f` | (see git log) |
+| `bbe9971` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
