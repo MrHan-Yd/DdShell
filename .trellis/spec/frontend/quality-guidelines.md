@@ -183,25 +183,24 @@ rg "@tauri-apps/plugin-clipboard-manager" app/src
 
 The only allowed hits should be inside `app/src/lib/clipboard.ts`.
 
-### Don't: Rely on Tailwind utility classes to override theme CSS
+### Don't: Add CSS outside the established cascade layers
 
-```tsx
-// Don't do this
-<div className={cn("term-pane", !visible && "hidden")} />
+**Why it matters**: All app stylesheet code lives in explicit cascade layers. `src/styles.css` is the only orchestration entry: it imports Tailwind, the xterm vendor CSS (`layer(vendor)`), the app body (`styles/app.css`, `layer(app)`), and the 15 theme indexes (also `layer(app)`). The precedence order is fixed as:
+
+```
+properties < vendor < theme < base < components < utilities < app
 ```
 
-**Why it's bad**: Tailwind v4 compiles utilities into `@layer utilities`, but the 15 theme stylesheets are imported directly in `main.tsx` and belong to **no layer at all**. Per the CSS Cascade Layers spec, unlayered styles outrank every layered style regardless of selector specificity. So `[data-ui-theme="aurora"] .term-pane { display: flex }` silently defeats `.hidden { display: none }`.
+`app` sits **above** `utilities` on purpose: app + theme rules historically outranked Tailwind utilities, and the migration that introduced this order verified the bundled CSS rule-for-rule against the pre-migration build. Within a single layer, specificity and source order behave normally; across layers they do not.
 
-This shipped as a real bug: every terminal pane stayed visible, which looked like an unclosable auto-split. The close-split button appeared broken because no split state ever existed — the panes were merely never hidden.
+Implications:
 
-**Instead**: use an inline style. Inline styles do not participate in layer cascade and outrank both layered and unlayered rules:
-
-```tsx
-// Do this instead
-<div className="term-pane" style={visible ? undefined : { display: "none" }} />
-```
-
-This applies to **any** Tailwind utility that a theme stylesheet also sets — `display`, `background`, `border`, `flex`, etc. When a utility class appears to have no effect, check whether a theme rule sets the same property before assuming a specificity problem.
+- **State visibility** (`hidden`, conditional `flex`/`grid`/`block`) must use inline styles — utilities live below `app`, so a `display` utility cannot hide a theme-styled element:
+  ```tsx
+  <div className="term-pane" style={visible ? undefined : { display: "none" }} />
+  ```
+- **One-off overrides** of an app/theme rule from JSX must use `!` important utilities (`!px-6`, `!bg-[…]`). The important cascade inverts layer order, so an important utility beats an un-important app-layer rule.
+- **New stylesheet files** must be imported through `src/styles.css` with an explicit `layer(...)`. A bare `@import` (or a JS-side `import "./x.css"`) produces **unlayered** rules that outrank every layered rule regardless of specificity — the exact defect class that shipped as the v0.3.2 fake-split-pane bug (a theme `display:flex` silently defeating Tailwind's `.hidden`). The build guard `scripts/check-css-layers.mjs` fails the build if any rule escapes the layers or the order drifts.
 
 ### Don't: Let progress events overwrite terminal states
 

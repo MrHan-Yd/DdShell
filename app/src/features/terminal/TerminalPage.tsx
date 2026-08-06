@@ -32,7 +32,6 @@ import { cleanSelectedPath, extractAbsolutePathFromSelection, inferCwdFromBuffer
 import { openQuickEditWindow } from "@/lib/quickEditWindow";
 import { getRemoteDirPath, readQuickEditPickerDir, recordQuickEditPickerDir } from "@/lib/quickEditPickerDir";
 import { recordQuickEditRecent } from "@/lib/quickEditRecent";
-import "@xterm/xterm/css/xterm.css";
 
 // Module-level TextEncoder singleton. TextEncoder is stateless and safe to
 // share; constructing one per keystroke / per IPC write is wasted work on the
