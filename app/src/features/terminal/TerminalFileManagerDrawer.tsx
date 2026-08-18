@@ -32,6 +32,7 @@ import { confirm, useConfirmStore } from "@/stores/confirm";
 import { toast } from "@/stores/toast";
 import { openQuickEditWindow } from "@/lib/quickEditWindow";
 import { recordQuickEditRecent } from "@/lib/quickEditRecent";
+import { isLikelyQuickEditFile } from "@/features/quick-edit/utils";
 import {
   collectExistingLocalTargets,
   collectExistingRemoteUploadTargets,
@@ -64,76 +65,10 @@ type DownloadTask = {
   subPath?: string;
 };
 
-const QUICK_EDIT_MAX_BYTES = 1024 * 1024;
-const QUICK_EDIT_TEXT_EXTENSIONS = new Set([
-  ".conf",
-  ".config",
-  ".cfg",
-  ".cnf",
-  ".css",
-  ".csv",
-  ".env",
-  ".gitignore",
-  ".h",
-  ".html",
-  ".ini",
-  ".java",
-  ".js",
-  ".json",
-  ".jsx",
-  ".log",
-  ".lua",
-  ".md",
-  ".mjs",
-  ".properties",
-  ".py",
-  ".rs",
-  ".scss",
-  ".service",
-  ".sh",
-  ".sql",
-  ".svg",
-  ".toml",
-  ".ts",
-  ".tsx",
-  ".txt",
-  ".xml",
-  ".yaml",
-  ".yml",
-  ".zsh",
-]);
-const QUICK_EDIT_TEXT_FILENAMES = new Set([
-  ".bash_profile",
-  ".bashrc",
-  ".dockerignore",
-  ".editorconfig",
-  ".env",
-  ".gitconfig",
-  ".npmrc",
-  ".profile",
-  ".zprofile",
-  ".zshrc",
-  "dockerfile",
-  "hosts",
-  "makefile",
-  "nginx.conf",
-]);
-
 function FileIcon({ entry }: { entry: FileEntry }) {
   if (entry.fileType === "dir") return <Folder size={16} className="text-[var(--color-accent)]" />;
   if (entry.fileType === "symlink") return <FileSymlink size={16} className="text-[var(--color-text-muted)]" />;
   return <File size={16} className="text-[var(--color-text-muted)]" />;
-}
-
-function isLikelyQuickEditFile(entry: FileEntry): boolean {
-  if (entry.fileType !== "file") return false;
-  if (entry.size > QUICK_EDIT_MAX_BYTES) return false;
-  const lowerName = entry.name.toLowerCase();
-  if (QUICK_EDIT_TEXT_FILENAMES.has(lowerName)) return true;
-  if (lowerName.startsWith(".env")) return true;
-  const lastDotIndex = lowerName.lastIndexOf(".");
-  if (lastDotIndex === -1) return false;
-  return QUICK_EDIT_TEXT_EXTENSIONS.has(lowerName.slice(lastDotIndex));
 }
 
 function fileNameFromTransfer(task: TransferTask): string {
@@ -761,11 +696,10 @@ export function TerminalFileManagerDrawer({
           onClick: () => navigateRemoteWithRecent(joinRemotePath(remotePath, entry.name)),
         });
       }
-      if (entry.fileType === "file") {
+      if (isLikelyQuickEditFile(entry)) {
         items.push({
           icon: <Pencil size={14} />,
           label: t("sftp.quickEdit"),
-          disabled: !isLikelyQuickEditFile(entry),
           onClick: () => openQuickEdit(joinRemotePath(remotePath, entry.name)),
         });
       }

@@ -1,0 +1,3 @@
+{"file": ".trellis/tasks/08-17-quick-edit-enhance/prd.md", "reason": "对照 Acceptance Criteria 验收：菜单过滤、语法着色、彩虹括号、亮暗可读性、双入口一致"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "检查 CSS 是否落在既有 cascade layer 内（scripts/check-css-layers.mjs 是硬门槛）"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "两入口（SftpPage/TerminalFileManagerDrawer）+ 双窗口共用组件的行为一致性检查"}

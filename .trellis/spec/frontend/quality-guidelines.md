@@ -202,6 +202,55 @@ Implications:
 - **One-off overrides** of an app/theme rule from JSX must use `!` important utilities (`!px-6`, `!bg-[…]`). The important cascade inverts layer order, so an important utility beats an un-important app-layer rule.
 - **New stylesheet files** must be imported through `src/styles.css` with an explicit `layer(...)`. A bare `@import` (or a JS-side `import "./x.css"`) produces **unlayered** rules that outrank every layered rule regardless of specificity — the exact defect class that shipped as the v0.3.2 fake-split-pane bug (a theme `display:flex` silently defeating Tailwind's `.hidden`). The build guard `scripts/check-css-layers.mjs` fails the build if any rule escapes the layers or the order drifts.
 
+### Don't: Ship persistent error visuals built on strict-syntax assumptions across languages
+
+**Problem**:
+
+```ts
+// rainbowBrackets.ts（初版）：配对不上的右括号常驻标红
+} else {
+  builder.add(pos, pos + 1, unmatchedDecoration); // 红色 + 波浪线，全文档常驻
+}
+```
+
+**Why it's bad**: QuickEditor 服务 17 种语言，"括号必须严格配对"只在部分语言成立。shell 的 `case x) ... ;;` 每个分支都有合法的单侧 `)`——本项目是 SSH 工具，编辑 `.sh`/`.bashrc` 是核心高频场景，这个"错误标记"变成大面积常驻误报。同类陷阱：任何基于单一语言语法直觉的常驻 error/warning 视觉（未闭合引号、缩进"错误"等），跨语言应用前都要先问：**这个假设在全部支持的语言里都成立吗？**
+
+**Instead**: 默认只做被动信号——配不上的括号保持 token 原色，光标停靠时由官方 `bracketMatching` 的 `.cm-nonmatchingBracket` 提示（已拍板决策，见 tasks/08-17-quick-edit-enhance/prd.md ADR）。若产品要常驻错误视觉，必须按语言白名单启用（如 JSON/JS 开、shell 关），不做全局假设。
+
+```ts
+// 配对不上的右括号不装饰：shell `case x)`、正文里的半括号都是合法场景。
+if (stack.length > 0 && stack[stack.length - 1] === CLOSE_TO_OPEN[code]) {
+  stack.pop();
+  builder.add(pos, pos + 1, bracketDecorations[stack.length % BRACKET_COLOR_CYCLE]);
+}
+```
+
+### Convention: Semantic token groups follow the `:root` + `[data-theme="light"]` dual-block pattern
+
+**What**: 新增一组语义 CSS 变量（如 QuickEditor 语法色板 `--color-syntax-*`）时，在 `styles/app.css` 中写两个同构块：暗色默认值挂 `:root`，亮色整套挂 `[data-theme="light"]`，紧邻放置、变量一一对应。不要只写一套再零散补另一套。
+
+**Why**: 与全局 token 体系同构（`styles.css` `@theme` 暗色默认 + `app.css` light 块覆盖），主题切换零 JS 参与。放在 app.css 意味着自动进 `layer(app)`；15 套 ui-theme 的 index 文件在 `styles.css` 中 import 于 app.css **之后**（同层内源顺序靠后），因此任何主题可用 `[data-ui-theme="x"]` 无条件覆盖单个变量做逐主题微调，无需动基础色板。
+
+**Example**（app.css，v0.3.x quick-edit 语法色板）:
+
+```css
+/* 暗色默认 */
+:root {
+  --color-syntax-keyword: #C678DD;
+  --color-syntax-bracket-match-bg: color-mix(in srgb, var(--color-accent) 28%, transparent);
+  /* ... 全部变量 ... */
+}
+
+/* 亮色整套覆盖（变量集合与 :root 块一一对应） */
+[data-theme="light"] {
+  --color-syntax-keyword: #A626A4;
+  --color-syntax-bracket-match-bg: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  /* ... */
+}
+```
+
+**Related**: 消费侧若在 CodeMirror `EditorView.theme`（CSS-in-JS 运行时注入，不受 layer 管辖）中引用这些变量，与同为 inline span 装饰的 token 色叠加时需 `!important`（如彩虹括号 class 压 HighlightStyle 的 token 色）。独立窗口（quick-edit window）与主窗口共用 `main.tsx` → `styles.css` 入口且自行设置 `data-theme`，变量天然可解析，无需额外接线。
+
 ### Don't: Let progress events overwrite terminal states
 
 ```ts

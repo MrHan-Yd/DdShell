@@ -1,5 +1,5 @@
 import type { useT } from "@/lib/i18n";
-import type { QuickEditRiskNotice, QuickEditSuggestedAction, RemoteTextFile } from "@/types";
+import type { FileEntry, QuickEditRiskNotice, QuickEditSuggestedAction, RemoteTextFile } from "@/types";
 import type {
   QuickEditorIndentStyle,
   QuickEditorLineEnding,
@@ -7,6 +7,77 @@ import type {
 } from "../sftp/components/QuickEditor";
 
 export const QUICK_EDIT_MAX_BYTES = 1024 * 1024;
+
+const QUICK_EDIT_TEXT_EXTENSIONS = new Set([
+  ".conf",
+  ".config",
+  ".cfg",
+  ".cnf",
+  ".css",
+  ".csv",
+  ".env",
+  ".gitignore",
+  ".graphql",
+  ".h",
+  ".hpp",
+  ".html",
+  ".ini",
+  ".java",
+  ".js",
+  ".json",
+  ".jsx",
+  ".log",
+  ".lua",
+  ".md",
+  ".mjs",
+  ".properties",
+  ".py",
+  ".rs",
+  ".scss",
+  ".service",
+  ".sh",
+  ".sql",
+  ".svg",
+  ".toml",
+  ".ts",
+  ".tsx",
+  ".txt",
+  ".xml",
+  ".yaml",
+  ".yml",
+  ".zsh",
+]);
+
+const QUICK_EDIT_TEXT_FILENAMES = new Set([
+  ".bash_profile",
+  ".bashrc",
+  ".dockerignore",
+  ".editorconfig",
+  ".env",
+  ".env.example",
+  ".gitconfig",
+  ".npmrc",
+  ".profile",
+  ".zprofile",
+  ".zshrc",
+  "dockerfile",
+  "hosts",
+  "makefile",
+  "nginx.conf",
+]);
+
+export function isLikelyQuickEditFile(entry: FileEntry): boolean {
+  if (entry.fileType !== "file") return false;
+  if (entry.size > QUICK_EDIT_MAX_BYTES) return false;
+
+  const lowerName = entry.name.toLowerCase();
+  if (QUICK_EDIT_TEXT_FILENAMES.has(lowerName)) return true;
+  if (lowerName.startsWith(".env")) return true;
+
+  const lastDotIndex = lowerName.lastIndexOf(".");
+  if (lastDotIndex === -1) return false;
+  return QUICK_EDIT_TEXT_EXTENSIONS.has(lowerName.slice(lastDotIndex));
+}
 
 export const DEFAULT_EDITOR_STATUS: QuickEditorStatus = {
   line: 1,

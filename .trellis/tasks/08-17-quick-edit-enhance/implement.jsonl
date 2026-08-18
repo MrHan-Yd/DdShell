@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/08-17-quick-edit-enhance/prd.md", "reason": "任务需求、三项已拍板决策（隐藏菜单/CSS 变量配色/彩虹括号）、实现步骤"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "CSS cascade layer 规范：新增 --color-syntax-* 变量必须写在既有 layer 内，禁止裸 @import；build guard 会拦截违规"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "模块组织约定：共享 isLikelyQuickEditFile 提取位置需符合目录规范"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "本任务含去重（两份 isLikelyQuickEditFile 合一），需按复用指南操作"}

@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { json } from "@codemirror/lang-json";
 import { markdown } from "@codemirror/lang-markdown";
-import { StreamLanguage } from "@codemirror/language";
+import { HighlightStyle, StreamLanguage, bracketMatching, syntaxHighlighting } from "@codemirror/language";
 import { css } from "@codemirror/legacy-modes/mode/css";
 import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
 import { javascript } from "@codemirror/legacy-modes/mode/javascript";
@@ -33,8 +33,10 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { yaml } from "@codemirror/lang-yaml";
+import { tags } from "@lezer/highlight";
 import { readClipboardText, writeClipboardText } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
+import { rainbowBrackets } from "./rainbowBrackets";
 
 export type QuickEditorLineEnding = "LF" | "CRLF" | "mixed" | "unknown";
 export type QuickEditorIndentStyle = "tab" | "spaces-2" | "spaces-4" | "unknown";
@@ -127,6 +129,34 @@ function focusSearchPanelReplaceInput(view: EditorView) {
   input?.select();
 }
 
+/**
+ * 语法高亮：颜色全部走 --color-syntax-* CSS 变量（app.css 定义，亮暗两套，
+ * ui-theme 可逐主题覆盖）。legacy StreamLanguage 的 token 名（keyword/string/
+ * comment/def/variable-2…）由 @codemirror/language 映射到同一套 lezer tags，
+ * 因此现代 lang 包与 legacy modes 共用这一份配色。
+ */
+const quickEditorHighlightStyle = HighlightStyle.define([
+  { tag: [tags.keyword, tags.modifier, tags.operatorKeyword, tags.self], color: "var(--color-syntax-keyword)" },
+  { tag: [tags.string, tags.special(tags.string), tags.character, tags.docString], color: "var(--color-syntax-string)" },
+  { tag: [tags.comment, tags.lineComment, tags.blockComment], color: "var(--color-syntax-comment)", fontStyle: "italic" },
+  { tag: [tags.number, tags.integer, tags.float, tags.bool, tags.atom, tags.null], color: "var(--color-syntax-number)" },
+  { tag: [tags.typeName, tags.className, tags.namespace], color: "var(--color-syntax-type)" },
+  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName), tags.macroName], color: "var(--color-syntax-function)" },
+  { tag: [tags.definition(tags.variableName), tags.special(tags.variableName)], color: "var(--color-syntax-variable)" },
+  { tag: [tags.propertyName, tags.definition(tags.propertyName)], color: "var(--color-syntax-property)" },
+  { tag: [tags.operator, tags.compareOperator, tags.arithmeticOperator, tags.logicOperator, tags.bitwiseOperator, tags.derefOperator, tags.updateOperator], color: "var(--color-syntax-operator)" },
+  { tag: [tags.tagName, tags.angleBracket], color: "var(--color-syntax-tag)" },
+  { tag: [tags.attributeName, tags.attributeValue], color: "var(--color-syntax-attribute)" },
+  { tag: [tags.meta, tags.processingInstruction, tags.labelName], color: "var(--color-syntax-operator)" },
+  { tag: [tags.url, tags.link], color: "var(--color-syntax-function)", textDecoration: "underline" },
+  { tag: tags.heading, color: "var(--color-syntax-keyword)", fontWeight: "600" },
+  { tag: tags.strong, fontWeight: "600" },
+  { tag: tags.emphasis, fontStyle: "italic" },
+  { tag: tags.strikethrough, textDecoration: "line-through" },
+  { tag: [tags.regexp, tags.escape], color: "var(--color-syntax-attribute)" },
+  { tag: tags.invalid, color: "var(--color-syntax-invalid)" },
+]);
+
 const quickEditorTheme = EditorView.theme({
   "&": {
     height: "100%",
@@ -148,6 +178,21 @@ const quickEditorTheme = EditorView.theme({
   },
   ".cm-line": {
     padding: "0 18px 0 10px",
+  },
+  /* 彩虹括号：!important 压过 HighlightStyle 的 token 色（两者同为 inline span，
+   * 彩虹 class 在外层 token 色在内层时会被内层覆盖，须强制生效）。 */
+  ".qe-bracket-1": { color: "var(--color-syntax-bracket-1) !important" },
+  ".qe-bracket-2": { color: "var(--color-syntax-bracket-2) !important" },
+  ".qe-bracket-3": { color: "var(--color-syntax-bracket-3) !important" },
+  ".qe-bracket-4": { color: "var(--color-syntax-bracket-4) !important" },
+  /* bracketMatching 配对高亮：底色标注光标处括号与其配对 */
+  "&.cm-focused .cm-matchingBracket": {
+    background: "var(--color-syntax-bracket-match-bg)",
+    borderRadius: "2px",
+  },
+  "&.cm-focused .cm-nonmatchingBracket": {
+    background: "color-mix(in srgb, var(--color-syntax-invalid) 25%, transparent)",
+    borderRadius: "2px",
   },
   ".cm-cursor, .cm-dropCursor": {
     borderLeftColor: "var(--color-accent)",
@@ -679,6 +724,9 @@ export const QuickEditor = forwardRef<QuickEditorHandle, QuickEditorProps>(funct
       search({ top: true }),
       highlightSelectionMatches(),
       quickEditorTheme,
+      syntaxHighlighting(quickEditorHighlightStyle),
+      bracketMatching(),
+      rainbowBrackets,
       phrasesCompartment.of(EditorState.phrases.of(phrases)),
       languageCompartment.of(resolveLanguage(remotePath).extension),
       editableCompartment.of(EditorView.editable.of(!readOnly)),
