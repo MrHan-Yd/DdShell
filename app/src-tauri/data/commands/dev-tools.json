@@ -1630,5 +1630,2021 @@
     "desc_zh": "在crates.io搜索Rust包",
     "desc_en": "Search Rust packages on crates.io",
     "distro": "common"
+  },
+  {
+    "title_zh": "Cargo初始化项目",
+    "title_en": "Cargo init",
+    "command": "cargo init",
+    "desc_zh": "在当前目录初始化Rust项目",
+    "desc_en": "Initialize Rust project in current directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo自动修复",
+    "title_en": "Cargo fix",
+    "command": "cargo fix",
+    "desc_zh": "自动修复编译器警告",
+    "desc_en": "Automatically fix compiler warnings",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo下载依赖",
+    "title_en": "Cargo fetch",
+    "command": "cargo fetch",
+    "desc_zh": "下载依赖但不编译",
+    "desc_en": "Download dependencies without building",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo生成锁文件",
+    "title_en": "Cargo generate-lockfile",
+    "command": "cargo generate-lockfile",
+    "desc_zh": "生成或更新Cargo.lock文件",
+    "desc_en": "Generate or update Cargo.lock file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo项目元数据",
+    "title_en": "Cargo metadata",
+    "command": "cargo metadata --format-version 1",
+    "desc_zh": "以JSON输出项目结构与依赖元数据",
+    "desc_en": "Output project metadata as JSON",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo定位项目",
+    "title_en": "Cargo locate-project",
+    "command": "cargo locate-project",
+    "desc_zh": "显示当前项目Cargo.toml路径",
+    "desc_en": "Show path to current Cargo.toml",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo登录",
+    "title_en": "Cargo login",
+    "command": "cargo login",
+    "desc_zh": "登录crates.io保存令牌",
+    "desc_en": "Log in to crates.io and save token",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo登出",
+    "title_en": "Cargo logout",
+    "command": "cargo logout",
+    "desc_zh": "移除本地保存的crates.io令牌",
+    "desc_en": "Remove saved crates.io token",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo添加所有者",
+    "title_en": "Cargo owner add",
+    "command": "cargo owner --add ",
+    "desc_zh": "为crate添加所有者",
+    "desc_en": "Add an owner to a crate",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo打包crate",
+    "title_en": "Cargo package",
+    "command": "cargo package",
+    "desc_zh": "将crate打包为可发布的tarball",
+    "desc_en": "Package crate into publishable tarball",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo包标识符",
+    "title_en": "Cargo pkgid",
+    "command": "cargo pkgid",
+    "desc_zh": "显示当前包的完整标识符",
+    "desc_en": "Show fully qualified package ID",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo移除依赖",
+    "title_en": "Cargo remove",
+    "command": "cargo remove ",
+    "desc_zh": "从Cargo.toml移除依赖",
+    "desc_en": "Remove dependency from Cargo.toml",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo自定义编译",
+    "title_en": "Cargo rustc",
+    "command": "cargo rustc",
+    "desc_zh": "编译当前包并可传递rustc参数",
+    "desc_en": "Compile package with custom rustc options",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo自定义文档",
+    "title_en": "Cargo rustdoc",
+    "command": "cargo rustdoc",
+    "desc_zh": "生成文档并可传递rustdoc参数",
+    "desc_en": "Build docs with custom rustdoc options",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo卸载二进制",
+    "title_en": "Cargo uninstall",
+    "command": "cargo uninstall ",
+    "desc_zh": "卸载已安装的Rust二进制工具",
+    "desc_en": "Uninstall installed Rust binary",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo依赖固化",
+    "title_en": "Cargo vendor",
+    "command": "cargo vendor",
+    "desc_zh": "将所有依赖复制到vendor目录",
+    "desc_en": "Vendor all dependencies locally",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo撤回版本",
+    "title_en": "Cargo yank",
+    "command": "cargo yank --vers ",
+    "desc_zh": "从crates.io撤回已发布版本",
+    "desc_en": "Yank published version from crates.io",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo查看帮助",
+    "title_en": "Cargo help",
+    "command": "cargo help ",
+    "desc_zh": "查看指定子命令的帮助",
+    "desc_en": "Show help for a subcommand",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo不兼容报告",
+    "title_en": "Cargo report",
+    "command": "cargo report future-incompat",
+    "desc_zh": "查看未来版本不兼容报告",
+    "desc_en": "Show future incompatibility report",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo验证项目",
+    "title_en": "Cargo verify-project",
+    "command": "cargo verify-project",
+    "desc_zh": "验证Cargo.toml是否合法",
+    "desc_en": "Verify Cargo.toml correctness",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustc编译文件",
+    "title_en": "Rustc compile",
+    "command": "rustc ",
+    "desc_zh": "编译Rust源文件",
+    "desc_en": "Compile Rust source file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustc优化编译",
+    "title_en": "Rustc optimize",
+    "command": "rustc -O ",
+    "desc_zh": "以优化模式编译Rust源文件",
+    "desc_en": "Compile Rust source with optimizations",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustc解释错误码",
+    "title_en": "Rustc explain",
+    "command": "rustc --explain ",
+    "desc_zh": "查看编译错误码的详细解释",
+    "desc_en": "Explain compiler error code in detail",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustc指定版次",
+    "title_en": "Rustc edition",
+    "command": "rustc --edition 2021 ",
+    "desc_zh": "指定edition编译Rust源文件",
+    "desc_en": "Compile with specified Rust edition",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup显示概览",
+    "title_en": "Rustup show",
+    "command": "rustup show",
+    "desc_zh": "显示已安装与当前活动的工具链",
+    "desc_en": "Show installed and active toolchains",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup设置默认",
+    "title_en": "Rustup default",
+    "command": "rustup default stable",
+    "desc_zh": "设置默认工具链为stable",
+    "desc_en": "Set default toolchain to stable",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup卸载工具链",
+    "title_en": "Rustup toolchain uninstall",
+    "command": "rustup toolchain uninstall ",
+    "desc_zh": "卸载指定Rust工具链",
+    "desc_en": "Uninstall specified Rust toolchain",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup目标列表",
+    "title_en": "Rustup target list",
+    "command": "rustup target list",
+    "desc_zh": "列出所有可用编译目标",
+    "desc_en": "List all available compile targets",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup添加目标",
+    "title_en": "Rustup target add",
+    "command": "rustup target add ",
+    "desc_zh": "添加交叉编译目标",
+    "desc_en": "Add cross-compilation target",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup移除目标",
+    "title_en": "Rustup target remove",
+    "command": "rustup target remove ",
+    "desc_zh": "移除已安装的编译目标",
+    "desc_en": "Remove installed compile target",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup组件列表",
+    "title_en": "Rustup component list",
+    "command": "rustup component list",
+    "desc_zh": "列出可用的工具链组件",
+    "desc_en": "List available toolchain components",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup安装组件",
+    "title_en": "Rustup component add",
+    "command": "rustup component add ",
+    "desc_zh": "安装工具链组件（如clippy）",
+    "desc_en": "Add toolchain component (e.g. clippy)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup移除组件",
+    "title_en": "Rustup component remove",
+    "command": "rustup component remove ",
+    "desc_zh": "移除已安装的工具链组件",
+    "desc_en": "Remove installed toolchain component",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup目录覆盖",
+    "title_en": "Rustup override set",
+    "command": "rustup override set ",
+    "desc_zh": "为当前目录设置专用工具链",
+    "desc_en": "Set directory-specific toolchain override",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup取消覆盖",
+    "title_en": "Rustup override unset",
+    "command": "rustup override unset",
+    "desc_zh": "取消当前目录的工具链覆盖",
+    "desc_en": "Remove directory toolchain override",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup指定运行",
+    "title_en": "Rustup run",
+    "command": "rustup run ",
+    "desc_zh": "使用指定工具链运行命令",
+    "desc_en": "Run command with specified toolchain",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup工具路径",
+    "title_en": "Rustup which",
+    "command": "rustup which rustc",
+    "desc_zh": "显示实际使用的rustc路径",
+    "desc_en": "Show path of active rustc binary",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup离线文档",
+    "title_en": "Rustup doc",
+    "command": "rustup doc",
+    "desc_zh": "打开本地离线Rust文档",
+    "desc_en": "Open local offline Rust documentation",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup自更新",
+    "title_en": "Rustup self update",
+    "command": "rustup self update",
+    "desc_zh": "更新rustup自身",
+    "desc_en": "Update rustup itself",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup自卸载",
+    "title_en": "Rustup self uninstall",
+    "command": "rustup self uninstall",
+    "desc_zh": "卸载rustup及所有工具链",
+    "desc_en": "Uninstall rustup and all toolchains",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup检查更新",
+    "title_en": "Rustup check",
+    "command": "rustup check",
+    "desc_zh": "检查工具链是否有可用更新",
+    "desc_en": "Check for toolchain updates",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go获取依赖",
+    "title_en": "Go get",
+    "command": "go get ",
+    "desc_zh": "添加或更新模块依赖",
+    "desc_en": "Add or update module dependency",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go清理构建",
+    "title_en": "Go clean",
+    "command": "go clean",
+    "desc_zh": "清理Go构建产物",
+    "desc_en": "Clean Go build artifacts",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go清理模块缓存",
+    "title_en": "Go clean modcache",
+    "command": "go clean -modcache",
+    "desc_zh": "清空Go模块下载缓存",
+    "desc_en": "Clear Go module download cache",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go修复旧代码",
+    "title_en": "Go fix",
+    "command": "go fix ./...",
+    "desc_zh": "将代码更新为新API写法",
+    "desc_en": "Update code to newer Go APIs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go校验依赖",
+    "title_en": "Go mod verify",
+    "command": "go mod verify",
+    "desc_zh": "校验依赖内容未被篡改",
+    "desc_en": "Verify dependencies are unmodified",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go依赖来源",
+    "title_en": "Go mod why",
+    "command": "go mod why ",
+    "desc_zh": "解释为何需要某个模块",
+    "desc_en": "Explain why a module is needed",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go替换依赖",
+    "title_en": "Go mod edit replace",
+    "command": "go mod edit -replace ",
+    "desc_zh": "在go.mod中替换模块依赖",
+    "desc_en": "Replace module dependency in go.mod",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go初始化工作区",
+    "title_en": "Go work init",
+    "command": "go work init",
+    "desc_zh": "初始化Go多模块工作区",
+    "desc_en": "Initialize Go multi-module workspace",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go工作区添加模块",
+    "title_en": "Go work use",
+    "command": "go work use ",
+    "desc_zh": "将模块目录加入工作区",
+    "desc_en": "Add module directory to workspace",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go同步工作区",
+    "title_en": "Go work sync",
+    "command": "go work sync",
+    "desc_zh": "同步工作区各模块依赖",
+    "desc_en": "Sync workspace module dependencies",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go性能分析",
+    "title_en": "Go tool pprof",
+    "command": "go tool pprof ",
+    "desc_zh": "分析CPU或内存性能画像文件",
+    "desc_en": "Analyze CPU or memory profile",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go列出模块",
+    "title_en": "Go list modules",
+    "command": "go list -m all",
+    "desc_zh": "列出当前构建的所有模块依赖",
+    "desc_en": "List all module dependencies",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go设置环境变量",
+    "title_en": "Go env write",
+    "command": "go env -w ",
+    "desc_zh": "写入Go环境变量配置",
+    "desc_en": "Write Go environment variable",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM干净安装",
+    "title_en": "NPM ci",
+    "command": "npm ci",
+    "desc_zh": "按lockfile精确安装依赖（CI推荐）",
+    "desc_en": "Clean install from lockfile (CI-friendly)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM查看配置",
+    "title_en": "NPM config list",
+    "command": "npm config list",
+    "desc_zh": "列出npm配置项",
+    "desc_en": "List npm configuration",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM设置配置",
+    "title_en": "NPM config set",
+    "command": "npm config set ",
+    "desc_zh": "设置npm配置项（如registry）",
+    "desc_en": "Set npm configuration key (e.g. registry)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM去重依赖",
+    "title_en": "NPM dedupe",
+    "command": "npm dedupe",
+    "desc_zh": "简化依赖树去除重复包",
+    "desc_en": "Deduplicate packages in dependency tree",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM废弃版本",
+    "title_en": "NPM deprecate",
+    "command": "npm deprecate ",
+    "desc_zh": "将包版本标记为废弃",
+    "desc_en": "Mark package version as deprecated",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM比较差异",
+    "title_en": "NPM diff",
+    "command": "npm diff",
+    "desc_zh": "比较本地与已发布版本差异",
+    "desc_en": "Diff local package against published version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM查看标签",
+    "title_en": "NPM dist-tag ls",
+    "command": "npm dist-tag ls",
+    "desc_zh": "查看包的发布标签（latest等）",
+    "desc_en": "List package distribution tags",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM打开文档",
+    "title_en": "NPM docs",
+    "command": "npm docs ",
+    "desc_zh": "在浏览器打开包的文档页",
+    "desc_en": "Open package docs page in browser",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM环境体检",
+    "title_en": "NPM doctor",
+    "command": "npm doctor",
+    "desc_zh": "检查npm环境常见问题",
+    "desc_en": "Check npm environment for issues",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM编辑包",
+    "title_en": "NPM edit",
+    "command": "npm edit ",
+    "desc_zh": "用编辑器打开已安装的包",
+    "desc_en": "Open installed package in editor",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM执行包命令",
+    "title_en": "NPM exec",
+    "command": "npm exec ",
+    "desc_zh": "在项目上下文执行包命令",
+    "desc_en": "Execute package command in project context",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM解释依赖",
+    "title_en": "NPM explain",
+    "command": "npm explain ",
+    "desc_zh": "解释包为何被安装（反向依赖链）",
+    "desc_en": "Explain why a package is installed",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM进入包目录",
+    "title_en": "NPM explore",
+    "command": "npm explore ",
+    "desc_zh": "在已安装包目录中启动子Shell",
+    "desc_en": "Open subshell in installed package directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM查找重复",
+    "title_en": "NPM find-dupes",
+    "command": "npm find-dupes",
+    "desc_zh": "查找依赖树中的重复包",
+    "desc_en": "Find duplicate packages in tree",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM资助信息",
+    "title_en": "NPM fund",
+    "command": "npm fund",
+    "desc_zh": "查看依赖包的资助信息",
+    "desc_en": "Show funding info of dependencies",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM命令帮助",
+    "title_en": "NPM help",
+    "command": "npm help ",
+    "desc_zh": "查看npm命令的帮助文档",
+    "desc_en": "Show help for npm command",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM链接本地包",
+    "title_en": "NPM link",
+    "command": "npm link",
+    "desc_zh": "将当前包链接到全局便于本地调试",
+    "desc_en": "Symlink current package globally for dev",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM登录",
+    "title_en": "NPM login",
+    "command": "npm login",
+    "desc_zh": "登录npm仓库账号",
+    "desc_en": "Log in to npm registry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM登出",
+    "title_en": "NPM logout",
+    "command": "npm logout",
+    "desc_zh": "登出npm仓库账号",
+    "desc_en": "Log out of npm registry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM查看所有者",
+    "title_en": "NPM owner ls",
+    "command": "npm owner ls ",
+    "desc_zh": "查看包的所有者列表",
+    "desc_en": "List owners of a package",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM打包tarball",
+    "title_en": "NPM pack",
+    "command": "npm pack",
+    "desc_zh": "将包打包为tarball文件",
+    "desc_en": "Pack package into a tarball",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM测试连通",
+    "title_en": "NPM ping",
+    "command": "npm ping",
+    "desc_zh": "测试与npm仓库的连通性",
+    "desc_en": "Ping npm registry connectivity",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM读取字段",
+    "title_en": "NPM pkg get",
+    "command": "npm pkg get ",
+    "desc_zh": "读取package.json中的字段值",
+    "desc_en": "Read field value from package.json",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM项目根路径",
+    "title_en": "NPM prefix",
+    "command": "npm prefix",
+    "desc_zh": "显示最近的项目根目录路径",
+    "desc_en": "Show closest project root path",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM清理多余包",
+    "title_en": "NPM prune",
+    "command": "npm prune",
+    "desc_zh": "移除未在package.json声明的包",
+    "desc_en": "Remove extraneous packages",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM选择器查询",
+    "title_en": "NPM query",
+    "command": "npm query ",
+    "desc_zh": "用CSS风格选择器查询依赖",
+    "desc_en": "Query dependencies with CSS-like selector",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM重建模块",
+    "title_en": "NPM rebuild",
+    "command": "npm rebuild",
+    "desc_zh": "重新编译原生依赖模块",
+    "desc_en": "Rebuild native dependency modules",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM打开仓库",
+    "title_en": "NPM repo",
+    "command": "npm repo ",
+    "desc_zh": "在浏览器打开包的代码仓库",
+    "desc_en": "Open package repository in browser",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM重启脚本",
+    "title_en": "NPM restart",
+    "command": "npm restart",
+    "desc_zh": "运行package.json中的restart脚本",
+    "desc_en": "Run restart script from package.json",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM模块路径",
+    "title_en": "NPM root",
+    "command": "npm root",
+    "desc_zh": "显示node_modules目录路径",
+    "desc_en": "Show node_modules directory path",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM生成SBOM",
+    "title_en": "NPM sbom",
+    "command": "npm sbom",
+    "desc_zh": "生成依赖的软件物料清单",
+    "desc_en": "Generate software bill of materials",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM搜索包",
+    "title_en": "NPM search",
+    "command": "npm search ",
+    "desc_zh": "在npm仓库搜索包",
+    "desc_en": "Search packages in npm registry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM锁定依赖",
+    "title_en": "NPM shrinkwrap",
+    "command": "npm shrinkwrap",
+    "desc_zh": "生成npm-shrinkwrap.json锁定发布依赖",
+    "desc_en": "Create npm-shrinkwrap.json lockfile",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM收藏包",
+    "title_en": "NPM star",
+    "command": "npm star ",
+    "desc_zh": "收藏喜欢的npm包",
+    "desc_en": "Star a favorite npm package",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM已收藏列表",
+    "title_en": "NPM stars",
+    "command": "npm stars",
+    "desc_zh": "查看已收藏的npm包",
+    "desc_en": "List starred npm packages",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM停止脚本",
+    "title_en": "NPM stop",
+    "command": "npm stop",
+    "desc_zh": "运行package.json中的stop脚本",
+    "desc_en": "Run stop script from package.json",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM令牌列表",
+    "title_en": "NPM token list",
+    "command": "npm token list",
+    "desc_zh": "列出账号的访问令牌",
+    "desc_en": "List account access tokens",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM撤销发布",
+    "title_en": "NPM unpublish",
+    "command": "npm unpublish ",
+    "desc_zh": "从npm仓库撤销已发布的包",
+    "desc_en": "Unpublish package from npm registry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM升级版本号",
+    "title_en": "NPM version patch",
+    "command": "npm version patch",
+    "desc_zh": "升级补丁版本号并创建git标签",
+    "desc_en": "Bump patch version and create git tag",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM当前用户",
+    "title_en": "NPM whoami",
+    "command": "npm whoami",
+    "desc_zh": "显示当前登录的npm用户名",
+    "desc_en": "Show current logged-in npm user",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM打开问题页",
+    "title_en": "NPM bugs",
+    "command": "npm bugs ",
+    "desc_zh": "在浏览器打开包的问题追踪页",
+    "desc_en": "Open package issue tracker in browser",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM访问权限",
+    "title_en": "NPM access",
+    "command": "npm access list packages",
+    "desc_zh": "查看有权访问的包列表",
+    "desc_en": "List packages you can access",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM补全脚本",
+    "title_en": "NPM completion",
+    "command": "npm completion",
+    "desc_zh": "输出Shell命令补全脚本",
+    "desc_en": "Output shell tab-completion script",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Node交互式Shell",
+    "title_en": "Node REPL",
+    "command": "node",
+    "desc_zh": "启动Node.js交互式Shell",
+    "desc_en": "Start Node.js interactive REPL",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Node监听重启",
+    "title_en": "Node watch",
+    "command": "node --watch ",
+    "desc_zh": "文件变更时自动重启程序",
+    "desc_en": "Auto-restart on file changes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Node内置测试",
+    "title_en": "Node test",
+    "command": "node --test",
+    "desc_zh": "运行Node.js内置测试框架",
+    "desc_en": "Run built-in Node.js test runner",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Node打印表达式",
+    "title_en": "Node print eval",
+    "command": "node -p ''",
+    "desc_zh": "执行表达式并打印结果",
+    "desc_en": "Evaluate expression and print result",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NVM已安装版本",
+    "title_en": "NVM list",
+    "command": "nvm ls",
+    "desc_zh": "列出已安装的Node.js版本",
+    "desc_en": "List installed Node.js versions",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NVM远程版本",
+    "title_en": "NVM list remote",
+    "command": "nvm ls-remote",
+    "desc_zh": "列出可安装的远程Node.js版本",
+    "desc_en": "List available remote Node.js versions",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NVM当前版本",
+    "title_en": "NVM current",
+    "command": "nvm current",
+    "desc_zh": "显示当前使用的Node.js版本",
+    "desc_en": "Show currently active Node.js version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NVM设置默认",
+    "title_en": "NVM alias default",
+    "command": "nvm alias default ",
+    "desc_zh": "设置默认Node.js版本",
+    "desc_en": "Set default Node.js version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NVM卸载版本",
+    "title_en": "NVM uninstall",
+    "command": "nvm uninstall ",
+    "desc_zh": "卸载指定Node.js版本",
+    "desc_en": "Uninstall specified Node.js version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NVM指定版本执行",
+    "title_en": "NVM exec",
+    "command": "nvm exec ",
+    "desc_zh": "用指定Node.js版本执行命令",
+    "desc_en": "Run command with specified Node.js version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NVM版本路径",
+    "title_en": "NVM which",
+    "command": "nvm which ",
+    "desc_zh": "显示指定版本的安装路径",
+    "desc_en": "Show install path of a version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn移除包",
+    "title_en": "Yarn remove",
+    "command": "yarn remove ",
+    "desc_zh": "使用Yarn移除依赖包",
+    "desc_en": "Remove package with Yarn",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn升级依赖",
+    "title_en": "Yarn upgrade",
+    "command": "yarn upgrade",
+    "desc_zh": "升级所有依赖到允许的最新版本",
+    "desc_en": "Upgrade dependencies to latest allowed",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn初始化",
+    "title_en": "Yarn init",
+    "command": "yarn init",
+    "desc_zh": "初始化新的package.json",
+    "desc_en": "Initialize a new package.json",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn依赖来源",
+    "title_en": "Yarn why",
+    "command": "yarn why ",
+    "desc_zh": "解释包为何被安装",
+    "desc_en": "Explain why a package is installed",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn清理缓存",
+    "title_en": "Yarn cache clean",
+    "command": "yarn cache clean",
+    "desc_zh": "清理Yarn全局缓存",
+    "desc_en": "Clean Yarn global cache",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn全局安装",
+    "title_en": "Yarn global add",
+    "command": "yarn global add ",
+    "desc_zh": "使用Yarn全局安装包",
+    "desc_en": "Install package globally with Yarn",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn查看包信息",
+    "title_en": "Yarn info",
+    "command": "yarn info ",
+    "desc_zh": "查看npm包的详细信息（Yarn）",
+    "desc_en": "View package details with Yarn",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn创建项目",
+    "title_en": "Yarn create",
+    "command": "yarn create ",
+    "desc_zh": "使用脚手架模板创建项目",
+    "desc_en": "Create project from starter kit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn过期包检查",
+    "title_en": "Yarn outdated",
+    "command": "yarn outdated",
+    "desc_zh": "检查过期未更新的依赖",
+    "desc_en": "Check for outdated dependencies",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM移除包",
+    "title_en": "PNPM remove",
+    "command": "pnpm remove ",
+    "desc_zh": "使用PNPM移除依赖包",
+    "desc_en": "Remove package with PNPM",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM更新依赖",
+    "title_en": "PNPM update",
+    "command": "pnpm update",
+    "desc_zh": "更新依赖到允许的最新版本",
+    "desc_en": "Update dependencies to latest allowed",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM运行脚本",
+    "title_en": "PNPM run",
+    "command": "pnpm run ",
+    "desc_zh": "运行package.json中的脚本（PNPM）",
+    "desc_en": "Run script from package.json with PNPM",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM临时执行",
+    "title_en": "PNPM dlx",
+    "command": "pnpm dlx ",
+    "desc_zh": "临时下载并执行包命令",
+    "desc_en": "Fetch and run package command temporarily",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM执行命令",
+    "title_en": "PNPM exec",
+    "command": "pnpm exec ",
+    "desc_zh": "执行项目依赖中的命令",
+    "desc_en": "Execute command from project dependencies",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM已安装列表",
+    "title_en": "PNPM list",
+    "command": "pnpm list",
+    "desc_zh": "列出已安装的依赖包（PNPM）",
+    "desc_en": "List installed packages with PNPM",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM过期包检查",
+    "title_en": "PNPM outdated",
+    "command": "pnpm outdated",
+    "desc_zh": "检查过期未更新的依赖（PNPM）",
+    "desc_en": "Check outdated dependencies with PNPM",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM依赖来源",
+    "title_en": "PNPM why",
+    "command": "pnpm why ",
+    "desc_zh": "解释包为何被安装（PNPM）",
+    "desc_en": "Explain why a package is installed (PNPM)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM清理存储",
+    "title_en": "PNPM store prune",
+    "command": "pnpm store prune",
+    "desc_zh": "清理存储中未引用的包",
+    "desc_en": "Remove unreferenced packages from store",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM初始化",
+    "title_en": "PNPM init",
+    "command": "pnpm init",
+    "desc_zh": "初始化package.json（PNPM）",
+    "desc_en": "Initialize package.json with PNPM",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM安全审计",
+    "title_en": "PNPM audit",
+    "command": "pnpm audit",
+    "desc_zh": "检查依赖已知安全漏洞（PNPM）",
+    "desc_en": "Audit dependencies for vulnerabilities (PNPM)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM清理多余包",
+    "title_en": "PNPM prune",
+    "command": "pnpm prune",
+    "desc_zh": "移除不需要的依赖包（PNPM）",
+    "desc_en": "Remove extraneous packages with PNPM",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pip下载包",
+    "title_en": "Pip download",
+    "command": "pip download ",
+    "desc_zh": "下载包及依赖但不安装",
+    "desc_en": "Download packages without installing",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pip构建wheel",
+    "title_en": "Pip wheel",
+    "command": "pip wheel ",
+    "desc_zh": "为包构建wheel文件",
+    "desc_en": "Build wheel archive for package",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pip计算哈希",
+    "title_en": "Pip hash",
+    "command": "pip hash ",
+    "desc_zh": "计算包文件的哈希值",
+    "desc_en": "Compute hash of package archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pip清空缓存",
+    "title_en": "Pip cache purge",
+    "command": "pip cache purge",
+    "desc_zh": "清空pip下载缓存",
+    "desc_en": "Purge pip download cache",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pip查看配置",
+    "title_en": "Pip config list",
+    "command": "pip config list",
+    "desc_zh": "列出pip配置项",
+    "desc_en": "List pip configuration",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pip可用版本",
+    "title_en": "Pip index versions",
+    "command": "pip index versions ",
+    "desc_zh": "查看包在仓库中的可用版本",
+    "desc_en": "List available versions of a package",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pip调试信息",
+    "title_en": "Pip debug",
+    "command": "pip debug",
+    "desc_zh": "显示pip环境调试信息",
+    "desc_en": "Show pip debug information",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pip环境详情",
+    "title_en": "Pip inspect",
+    "command": "pip inspect",
+    "desc_zh": "以JSON输出Python环境详情",
+    "desc_en": "Output environment details as JSON",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Python调试运行",
+    "title_en": "Python pdb",
+    "command": "python3 -m pdb ",
+    "desc_zh": "使用pdb调试器运行脚本",
+    "desc_en": "Run script under pdb debugger",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Python编译字节码",
+    "title_en": "Python py_compile",
+    "command": "python3 -m py_compile ",
+    "desc_zh": "将Python文件编译为字节码",
+    "desc_en": "Compile Python file to bytecode",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Python计时测试",
+    "title_en": "Python timeit",
+    "command": "python3 -m timeit ''",
+    "desc_zh": "测量代码片段执行耗时",
+    "desc_en": "Measure execution time of code snippet",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Python单元测试",
+    "title_en": "Python unittest",
+    "command": "python3 -m unittest",
+    "desc_zh": "运行unittest单元测试",
+    "desc_en": "Run unittest test cases",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Python性能分析",
+    "title_en": "Python cProfile",
+    "command": "python3 -m cProfile ",
+    "desc_zh": "分析脚本各函数耗时",
+    "desc_en": "Profile function execution times",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Python运行后交互",
+    "title_en": "Python interactive run",
+    "command": "python3 -i ",
+    "desc_zh": "运行脚本后进入交互模式",
+    "desc_en": "Run script then enter interactive mode",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pytest按名过滤",
+    "title_en": "Pytest filter",
+    "command": "pytest -k ''",
+    "desc_zh": "按名称表达式过滤运行测试",
+    "desc_en": "Run tests matching name expression",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pytest失败即停",
+    "title_en": "Pytest fail fast",
+    "command": "pytest -x",
+    "desc_zh": "遇到首个失败立即停止",
+    "desc_en": "Stop at first test failure",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pytest重跑失败",
+    "title_en": "Pytest last failed",
+    "command": "pytest --lf",
+    "desc_zh": "只运行上次失败的测试",
+    "desc_en": "Rerun only previously failed tests",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pytest收集测试",
+    "title_en": "Pytest collect only",
+    "command": "pytest --collect-only",
+    "desc_zh": "仅列出将要运行的测试不执行",
+    "desc_en": "List tests without running them",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Java导入证书",
+    "title_en": "Keytool import",
+    "command": "keytool -importcert -alias mykey -file ",
+    "desc_zh": "导入证书到密钥库",
+    "desc_en": "Import certificate into keystore",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Java导出证书",
+    "title_en": "Keytool export",
+    "command": "keytool -exportcert -alias mykey -file cert.cer",
+    "desc_zh": "从密钥库导出证书",
+    "desc_en": "Export certificate from keystore",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Java删除密钥",
+    "title_en": "Keytool delete",
+    "command": "keytool -delete -alias ",
+    "desc_zh": "从密钥库删除指定条目",
+    "desc_en": "Delete entry from keystore",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Java线程打印",
+    "title_en": "JCmd thread print",
+    "command": "jcmd  Thread.print",
+    "desc_zh": "通过jcmd打印线程堆栈",
+    "desc_en": "Print thread stacks via jcmd",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Java查看VM参数",
+    "title_en": "JCmd VM flags",
+    "command": "jcmd  VM.flags",
+    "desc_zh": "通过jcmd查看JVM启动参数",
+    "desc_en": "View JVM flags via jcmd",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Java对象直方图",
+    "title_en": "JMap histogram",
+    "command": "jmap -histo:live ",
+    "desc_zh": "查看存活对象的内存直方图",
+    "desc_en": "Show live object memory histogram",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Java GC利用率",
+    "title_en": "JStat GC util",
+    "command": "jstat -gcutil  1000",
+    "desc_zh": "每秒刷新GC各区利用率",
+    "desc_en": "Refresh GC utilization every second",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Java系统属性",
+    "title_en": "JInfo sysprops",
+    "command": "jinfo -sysprops ",
+    "desc_zh": "查看Java进程的系统属性",
+    "desc_en": "Show system properties of Java process",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Maven校验项目",
+    "title_en": "Maven validate",
+    "command": "mvn validate",
+    "desc_zh": "校验项目配置是否正确",
+    "desc_en": "Validate project configuration",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Maven完整校验",
+    "title_en": "Maven verify",
+    "command": "mvn verify",
+    "desc_zh": "运行集成测试并校验打包结果",
+    "desc_en": "Run integration checks and verify package",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Maven清理",
+    "title_en": "Maven clean",
+    "command": "mvn clean",
+    "desc_zh": "清理Maven构建产物",
+    "desc_en": "Clean Maven build artifacts",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Maven生成站点",
+    "title_en": "Maven site",
+    "command": "mvn site",
+    "desc_zh": "生成项目文档站点",
+    "desc_en": "Generate project documentation site",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Maven复制依赖",
+    "title_en": "Maven copy dependencies",
+    "command": "mvn dependency:copy-dependencies",
+    "desc_zh": "将所有依赖JAR复制到target目录",
+    "desc_en": "Copy dependency JARs to target directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Maven清除本地依赖",
+    "title_en": "Maven purge local repo",
+    "command": "mvn dependency:purge-local-repository",
+    "desc_zh": "清除并重新下载本地仓库依赖",
+    "desc_en": "Purge and re-resolve local repo dependencies",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Maven设置版本",
+    "title_en": "Maven versions set",
+    "command": "mvn versions:set -DnewVersion=",
+    "desc_zh": "统一修改项目版本号",
+    "desc_en": "Set project version number",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Maven有效配置",
+    "title_en": "Maven effective settings",
+    "command": "mvn help:effective-settings",
+    "desc_zh": "查看合并后的有效settings配置",
+    "desc_en": "Show merged effective settings",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Gradle初始化项目",
+    "title_en": "Gradle init",
+    "command": "gradle init",
+    "desc_zh": "初始化新的Gradle项目",
+    "desc_en": "Initialize new Gradle project",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Gradle组装产物",
+    "title_en": "Gradle assemble",
+    "command": "gradle assemble",
+    "desc_zh": "组装构建产物但不运行测试",
+    "desc_en": "Assemble outputs without running tests",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Gradle运行检查",
+    "title_en": "Gradle check",
+    "command": "gradle check",
+    "desc_zh": "运行所有校验任务（含测试）",
+    "desc_en": "Run all verification tasks",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Gradle生成Javadoc",
+    "title_en": "Gradle javadoc",
+    "command": "gradle javadoc",
+    "desc_zh": "生成项目Javadoc文档",
+    "desc_en": "Generate project Javadoc",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Gradle停止守护进程",
+    "title_en": "Gradle stop daemon",
+    "command": "gradle --stop",
+    "desc_zh": "停止所有Gradle守护进程",
+    "desc_en": "Stop all Gradle daemons",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Gradle Wrapper测试",
+    "title_en": "Gradlew test",
+    "command": "./gradlew test",
+    "desc_zh": "使用Wrapper运行测试",
+    "desc_en": "Run tests using Gradle Wrapper",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Gradle Wrapper清理构建",
+    "title_en": "Gradlew clean build",
+    "command": "./gradlew clean build",
+    "desc_zh": "使用Wrapper清理并重新构建",
+    "desc_en": "Clean and rebuild using Gradle Wrapper",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PHP执行代码",
+    "title_en": "PHP inline",
+    "command": "php -r ''",
+    "desc_zh": "执行一行PHP代码",
+    "desc_en": "Execute inline PHP code",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PHP配置信息",
+    "title_en": "PHP info",
+    "command": "php -i",
+    "desc_zh": "显示PHP完整配置信息",
+    "desc_en": "Show full PHP configuration info",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer安全审计",
+    "title_en": "Composer audit",
+    "command": "composer audit",
+    "desc_zh": "检查依赖的已知安全漏洞",
+    "desc_en": "Audit dependencies for vulnerabilities",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer清理缓存",
+    "title_en": "Composer clear-cache",
+    "command": "composer clear-cache",
+    "desc_zh": "清理Composer下载缓存",
+    "desc_en": "Clear Composer download cache",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer查看配置",
+    "title_en": "Composer config list",
+    "command": "composer config --list",
+    "desc_zh": "列出Composer配置项",
+    "desc_en": "List Composer configuration",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer创建项目",
+    "title_en": "Composer create-project",
+    "command": "composer create-project ",
+    "desc_zh": "从模板包创建新项目",
+    "desc_en": "Create new project from package",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer依赖来源",
+    "title_en": "Composer why",
+    "command": "composer why ",
+    "desc_zh": "查看包被哪些依赖需要",
+    "desc_en": "Show which packages depend on a package",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer冲突原因",
+    "title_en": "Composer why-not",
+    "command": "composer why-not ",
+    "desc_zh": "查看包版本无法安装的原因",
+    "desc_en": "Show why a package version cannot install",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer执行命令",
+    "title_en": "Composer exec",
+    "command": "composer exec ",
+    "desc_zh": "执行vendor目录中的二进制命令",
+    "desc_en": "Run binary from vendor directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer资助信息",
+    "title_en": "Composer fund",
+    "command": "composer fund",
+    "desc_zh": "查看依赖包的资助信息",
+    "desc_en": "Show funding info of dependencies",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer全局安装",
+    "title_en": "Composer global require",
+    "command": "composer global require ",
+    "desc_zh": "全局安装PHP包",
+    "desc_en": "Install PHP package globally",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer查看许可证",
+    "title_en": "Composer licenses",
+    "command": "composer licenses",
+    "desc_zh": "列出依赖包的许可证",
+    "desc_en": "List licenses of dependencies",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer命令列表",
+    "title_en": "Composer list",
+    "command": "composer list",
+    "desc_zh": "列出所有可用的Composer命令",
+    "desc_en": "List all available Composer commands",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer运行脚本",
+    "title_en": "Composer run-script",
+    "command": "composer run-script ",
+    "desc_zh": "运行composer.json中定义的脚本",
+    "desc_en": "Run script defined in composer.json",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer搜索包",
+    "title_en": "Composer search",
+    "command": "composer search ",
+    "desc_zh": "在Packagist搜索PHP包",
+    "desc_en": "Search PHP packages on Packagist",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer本地修改",
+    "title_en": "Composer status",
+    "command": "composer status",
+    "desc_zh": "查看依赖包的本地修改状态",
+    "desc_en": "Show locally modified dependencies",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer建议包",
+    "title_en": "Composer suggests",
+    "command": "composer suggests",
+    "desc_zh": "查看依赖建议安装的包",
+    "desc_en": "Show packages suggested by dependencies",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer重新安装",
+    "title_en": "Composer reinstall",
+    "command": "composer reinstall ",
+    "desc_zh": "重新安装指定的包",
+    "desc_en": "Reinstall a specific package",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer平台检查",
+    "title_en": "Composer platform reqs",
+    "command": "composer check-platform-reqs",
+    "desc_zh": "检查PHP版本与扩展是否满足要求",
+    "desc_en": "Check PHP version and extension requirements",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer版本信息",
+    "title_en": "Composer about",
+    "command": "composer about",
+    "desc_zh": "查看Composer简介信息",
+    "desc_en": "Show Composer information",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer打开主页",
+    "title_en": "Composer browse",
+    "command": "composer browse ",
+    "desc_zh": "在浏览器打开包的主页",
+    "desc_en": "Open package homepage in browser",
+    "distro": "common"
+  },
+  {
+    "title_zh": "JQ合并输入",
+    "title_en": "JQ slurp",
+    "command": "jq -s '.' ",
+    "desc_zh": "将多个JSON输入合并为一个数组",
+    "desc_en": "Slurp multiple JSON inputs into array",
+    "distro": "common"
+  },
+  {
+    "title_zh": "JQ反转数组",
+    "title_en": "JQ reverse",
+    "command": "jq 'reverse' ",
+    "desc_zh": "反转JSON数组顺序",
+    "desc_en": "Reverse JSON array order",
+    "distro": "common"
+  },
+  {
+    "title_zh": "JQ展平数组",
+    "title_en": "JQ flatten",
+    "command": "jq 'flatten' ",
+    "desc_zh": "展平嵌套的JSON数组",
+    "desc_en": "Flatten nested JSON arrays",
+    "distro": "common"
+  },
+  {
+    "title_zh": "JQ数组求和",
+    "title_en": "JQ add",
+    "command": "jq 'add' ",
+    "desc_zh": "对数组元素求和或合并",
+    "desc_en": "Sum or merge array elements",
+    "distro": "common"
+  },
+  {
+    "title_zh": "JQ检查键存在",
+    "title_en": "JQ has",
+    "command": "jq 'has(\"field\")' ",
+    "desc_zh": "检查对象是否包含指定键",
+    "desc_en": "Check if object has specified key",
+    "distro": "common"
+  },
+  {
+    "title_zh": "JQ查看类型",
+    "title_en": "JQ type",
+    "command": "jq 'type' ",
+    "desc_zh": "查看JSON值的类型",
+    "desc_en": "Show type of JSON value",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Nginx启动",
+    "title_en": "Nginx start",
+    "command": "sudo nginx",
+    "desc_zh": "直接启动Nginx主进程",
+    "desc_en": "Start nginx master process directly",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Nginx优雅停止",
+    "title_en": "Nginx quit",
+    "command": "sudo nginx -s quit",
+    "desc_zh": "处理完当前请求后优雅停止",
+    "desc_en": "Gracefully stop after current requests",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Nginx重开日志",
+    "title_en": "Nginx reopen logs",
+    "command": "sudo nginx -s reopen",
+    "desc_zh": "重新打开日志文件（配合日志切割）",
+    "desc_en": "Reopen log files (for log rotation)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Nginx版本信息",
+    "title_en": "Nginx version",
+    "command": "nginx -V",
+    "desc_zh": "查看Nginx版本与编译参数",
+    "desc_en": "Show nginx version and build options",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Nginx完整配置",
+    "title_en": "Nginx dump config",
+    "command": "sudo nginx -T",
+    "desc_zh": "测试并输出完整生效配置",
+    "desc_en": "Test and dump full effective configuration",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Apache启动",
+    "title_en": "Apache start",
+    "command": "sudo apachectl start",
+    "desc_zh": "启动Apache服务",
+    "desc_en": "Start Apache service",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Apache停止",
+    "title_en": "Apache stop",
+    "command": "sudo apachectl stop",
+    "desc_zh": "停止Apache服务",
+    "desc_en": "Stop Apache service",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Apache平滑重启",
+    "title_en": "Apache graceful",
+    "command": "sudo apachectl graceful",
+    "desc_zh": "不中断连接平滑重启Apache",
+    "desc_en": "Gracefully restart Apache without dropping connections",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Apache直接重启",
+    "title_en": "Apachectl restart",
+    "command": "sudo apachectl restart",
+    "desc_zh": "通过apachectl重启Apache",
+    "desc_en": "Restart Apache via apachectl",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Apache版本信息",
+    "title_en": "Apache version",
+    "command": "apachectl -V",
+    "desc_zh": "查看Apache版本与编译信息",
+    "desc_en": "Show Apache version and build settings",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Certbot配置Nginx证书",
+    "title_en": "Certbot nginx",
+    "command": "sudo certbot --nginx",
+    "desc_zh": "为Nginx申请并自动配置证书",
+    "desc_en": "Obtain and configure certificate for nginx",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Certbot配置Apache证书",
+    "title_en": "Certbot apache",
+    "command": "sudo certbot --apache",
+    "desc_zh": "为Apache申请并自动配置证书",
+    "desc_en": "Obtain and configure certificate for Apache",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Certbot独立申请",
+    "title_en": "Certbot standalone",
+    "command": "sudo certbot certonly --standalone -d ",
+    "desc_zh": "独立模式仅申请证书不改配置",
+    "desc_en": "Obtain certificate only in standalone mode",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Certbot证书列表",
+    "title_en": "Certbot certificates",
+    "command": "sudo certbot certificates",
+    "desc_zh": "列出已管理的SSL证书",
+    "desc_en": "List managed SSL certificates",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Certbot演练续签",
+    "title_en": "Certbot renew dry-run",
+    "command": "sudo certbot renew --dry-run",
+    "desc_zh": "模拟续签流程验证配置",
+    "desc_en": "Simulate renewal to verify configuration",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Certbot删除证书",
+    "title_en": "Certbot delete",
+    "command": "sudo certbot delete --cert-name ",
+    "desc_zh": "删除指定的SSL证书",
+    "desc_en": "Delete specified SSL certificate",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Certbot吊销证书",
+    "title_en": "Certbot revoke",
+    "command": "sudo certbot revoke --cert-name ",
+    "desc_zh": "吊销指定的SSL证书",
+    "desc_en": "Revoke specified SSL certificate",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Cargo查看包信息",
+    "title_en": "Cargo info",
+    "command": "cargo info ",
+    "desc_zh": "查看crates.io上包的详细信息",
+    "desc_en": "Show crate details from crates.io",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup设置配置",
+    "title_en": "Rustup set profile",
+    "command": "rustup set profile minimal",
+    "desc_zh": "设置默认安装配置为minimal",
+    "desc_en": "Set default install profile to minimal",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Rustup补全脚本",
+    "title_en": "Rustup completions",
+    "command": "rustup completions bash",
+    "desc_zh": "输出Shell命令补全脚本",
+    "desc_en": "Output shell tab-completion script",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go报告问题",
+    "title_en": "Go bug",
+    "command": "go bug",
+    "desc_zh": "打开浏览器报告Go问题",
+    "desc_en": "Open browser to report a Go bug",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Go遥测设置",
+    "title_en": "Go telemetry",
+    "command": "go telemetry local",
+    "desc_zh": "将遥测模式设置为仅本地",
+    "desc_en": "Set telemetry mode to local only",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM取消收藏",
+    "title_en": "NPM unstar",
+    "command": "npm unstar ",
+    "desc_zh": "取消收藏npm包",
+    "desc_en": "Unstar an npm package",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM组织成员",
+    "title_en": "NPM org ls",
+    "command": "npm org ls ",
+    "desc_zh": "列出npm组织的成员",
+    "desc_en": "List members of an npm org",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM团队列表",
+    "title_en": "NPM team ls",
+    "command": "npm team ls ",
+    "desc_zh": "列出组织下的团队",
+    "desc_en": "List teams in an organization",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NPM账号资料",
+    "title_en": "NPM profile get",
+    "command": "npm profile get",
+    "desc_zh": "查看npm账号资料",
+    "desc_en": "Show npm account profile",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn安全审计",
+    "title_en": "Yarn audit",
+    "command": "yarn audit",
+    "desc_zh": "检查依赖已知安全漏洞（Yarn）",
+    "desc_en": "Audit dependencies for vulnerabilities (Yarn)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn许可证列表",
+    "title_en": "Yarn licenses",
+    "command": "yarn licenses list",
+    "desc_zh": "列出依赖包的许可证（Yarn）",
+    "desc_en": "List licenses of dependencies (Yarn)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn已安装列表",
+    "title_en": "Yarn list",
+    "command": "yarn list --depth=0",
+    "desc_zh": "列出顶层已安装的包（Yarn）",
+    "desc_en": "List top-level installed packages (Yarn)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn打包tarball",
+    "title_en": "Yarn pack",
+    "command": "yarn pack",
+    "desc_zh": "将包打包为tarball文件（Yarn）",
+    "desc_en": "Pack package into a tarball (Yarn)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn发布包",
+    "title_en": "Yarn publish",
+    "command": "yarn publish",
+    "desc_zh": "发布包到npm仓库（Yarn）",
+    "desc_en": "Publish package to npm registry (Yarn)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn升级版本号",
+    "title_en": "Yarn version",
+    "command": "yarn version",
+    "desc_zh": "更新包版本号（Yarn）",
+    "desc_en": "Bump package version (Yarn)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn工作区命令",
+    "title_en": "Yarn workspace",
+    "command": "yarn workspace ",
+    "desc_zh": "在指定工作区运行命令",
+    "desc_en": "Run command in a specific workspace",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn可执行目录",
+    "title_en": "Yarn bin",
+    "command": "yarn bin",
+    "desc_zh": "显示可执行文件目录路径",
+    "desc_en": "Show executable binaries directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn查看配置",
+    "title_en": "Yarn config list",
+    "command": "yarn config list",
+    "desc_zh": "列出Yarn配置项",
+    "desc_en": "List Yarn configuration",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn链接本地包",
+    "title_en": "Yarn link",
+    "command": "yarn link",
+    "desc_zh": "将当前包链接到全局便于本地调试",
+    "desc_en": "Symlink current package globally for dev",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Yarn交互式升级",
+    "title_en": "Yarn upgrade interactive",
+    "command": "yarn upgrade-interactive",
+    "desc_zh": "交互式选择要升级的依赖",
+    "desc_en": "Interactively select dependencies to upgrade",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM创建项目",
+    "title_en": "PNPM create",
+    "command": "pnpm create ",
+    "desc_zh": "使用脚手架模板创建项目（PNPM）",
+    "desc_en": "Create project from starter kit (PNPM)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM管理Node版本",
+    "title_en": "PNPM env use",
+    "command": "pnpm env use --global ",
+    "desc_zh": "安装并切换全局Node.js版本",
+    "desc_en": "Install and switch global Node.js version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM重建模块",
+    "title_en": "PNPM rebuild",
+    "command": "pnpm rebuild",
+    "desc_zh": "重新编译原生依赖模块（PNPM）",
+    "desc_en": "Rebuild native dependency modules (PNPM)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM发布包",
+    "title_en": "PNPM publish",
+    "command": "pnpm publish",
+    "desc_zh": "发布包到npm仓库（PNPM）",
+    "desc_en": "Publish package to npm registry (PNPM)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM打包tarball",
+    "title_en": "PNPM pack",
+    "command": "pnpm pack",
+    "desc_zh": "将包打包为tarball文件（PNPM）",
+    "desc_en": "Pack package into a tarball (PNPM)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM修补依赖",
+    "title_en": "PNPM patch",
+    "command": "pnpm patch ",
+    "desc_zh": "为依赖包创建补丁",
+    "desc_en": "Create a patch for a dependency",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM预取依赖",
+    "title_en": "PNPM fetch",
+    "command": "pnpm fetch",
+    "desc_zh": "按lockfile预取包到本地存储",
+    "desc_en": "Fetch packages to store from lockfile",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM链接本地包",
+    "title_en": "PNPM link",
+    "command": "pnpm link",
+    "desc_zh": "将当前包链接到全局便于本地调试（PNPM）",
+    "desc_en": "Symlink current package globally for dev (PNPM)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM去重依赖",
+    "title_en": "PNPM dedupe",
+    "command": "pnpm dedupe",
+    "desc_zh": "简化依赖树去除重复包（PNPM）",
+    "desc_en": "Deduplicate packages in tree (PNPM)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM许可证列表",
+    "title_en": "PNPM licenses",
+    "command": "pnpm licenses ls",
+    "desc_zh": "列出依赖包的许可证（PNPM）",
+    "desc_en": "List licenses of dependencies (PNPM)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM导入锁文件",
+    "title_en": "PNPM import",
+    "command": "pnpm import",
+    "desc_zh": "从其他包管理器锁文件生成pnpm-lock.yaml",
+    "desc_en": "Generate pnpm-lock.yaml from other lockfiles",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PNPM环境体检",
+    "title_en": "PNPM doctor",
+    "command": "pnpm doctor",
+    "desc_zh": "检查PNPM环境常见问题",
+    "desc_en": "Check PNPM environment for issues",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NVM指定版本运行",
+    "title_en": "NVM run",
+    "command": "nvm run ",
+    "desc_zh": "用指定Node.js版本运行node",
+    "desc_en": "Run node with specified version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NVM取消激活",
+    "title_en": "NVM deactivate",
+    "command": "nvm deactivate",
+    "desc_zh": "取消当前Shell的NVM版本激活",
+    "desc_en": "Deactivate NVM in current shell",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NVM清理缓存",
+    "title_en": "NVM cache clear",
+    "command": "nvm cache clear",
+    "desc_zh": "清空NVM下载缓存",
+    "desc_en": "Clear NVM download cache",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Pytest按标记过滤",
+    "title_en": "Pytest marker",
+    "command": "pytest -m ''",
+    "desc_zh": "按标记表达式过滤运行测试",
+    "desc_en": "Run tests matching marker expression",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer打包归档",
+    "title_en": "Composer archive",
+    "command": "composer archive",
+    "desc_zh": "将项目打包为归档文件",
+    "desc_en": "Archive project into an archive file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Composer提升约束",
+    "title_en": "Composer bump",
+    "command": "composer bump",
+    "desc_zh": "将版本约束提升到当前已装版本",
+    "desc_en": "Bump requirements to currently installed versions",
+    "distro": "common"
   }
 ]

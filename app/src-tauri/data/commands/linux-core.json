@@ -290,9 +290,9 @@
   {
     "title_zh": "同时输出到终端和文件",
     "title_en": "Tee output",
-    "command": " | tee ",
-    "desc_zh": "将输出同时发送到终端和文件",
-    "desc_en": "Pipe output to both terminal and file",
+    "command": "command | tee output.log",
+    "desc_zh": "将命令输出同时发送到终端和文件",
+    "desc_en": "Pipe command output to both terminal and a file",
     "distro": "common"
   },
   {
@@ -1821,6 +1821,1966 @@
     "command": "diff -r dir1 dir2",
     "desc_zh": "递归比较两个目录的差异",
     "desc_en": "Recursively compare two directories",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按时间倒序列出",
+    "title_en": "List files oldest first",
+    "command": "ls -ltr",
+    "desc_zh": "按修改时间排序，最新的在底部",
+    "desc_en": "List files by time, newest last",
+    "distro": "common"
+  },
+  {
+    "title_zh": "递归列出目录",
+    "title_en": "List files recursively",
+    "command": "ls -R",
+    "desc_zh": "递归列出目录及子目录内容",
+    "desc_en": "List directories and their contents recursively",
+    "distro": "common"
+  },
+  {
+    "title_zh": "仅列出目录",
+    "title_en": "List directories only",
+    "command": "ls -d */",
+    "desc_zh": "仅列出当前目录下的子目录",
+    "desc_en": "List only subdirectories in current directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "显示inode编号",
+    "title_en": "List files with inodes",
+    "command": "ls -i",
+    "desc_zh": "列出文件并显示inode编号",
+    "desc_en": "List files with their inode numbers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "每行一个文件",
+    "title_en": "List one file per line",
+    "command": "ls -1",
+    "desc_zh": "每行输出一个文件名",
+    "desc_en": "List one filename per line",
+    "distro": "common"
+  },
+  {
+    "title_zh": "归档复制",
+    "title_en": "Copy preserving attributes",
+    "command": "cp -a  dest",
+    "desc_zh": "复制并保留权限、时间戳和链接",
+    "desc_en": "Copy preserving permissions, timestamps and links",
+    "distro": "common"
+  },
+  {
+    "title_zh": "仅复制较新文件",
+    "title_en": "Copy only newer files",
+    "command": "cp -u  dest",
+    "desc_zh": "仅当源文件较新时才复制",
+    "desc_en": "Copy only when source is newer than destination",
+    "distro": "common"
+  },
+  {
+    "title_zh": "复制前确认覆盖",
+    "title_en": "Copy with confirmation",
+    "command": "cp -i  dest",
+    "desc_zh": "覆盖已有文件前进行确认",
+    "desc_en": "Prompt before overwriting existing files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "复制但不覆盖",
+    "title_en": "Copy without overwrite",
+    "command": "cp -n  dest",
+    "desc_zh": "不覆盖已存在的目标文件",
+    "desc_en": "Copy without overwriting existing files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "移动前确认覆盖",
+    "title_en": "Move with confirmation",
+    "command": "mv -i  dest",
+    "desc_zh": "覆盖已有文件前进行确认",
+    "desc_en": "Prompt before overwriting when moving",
+    "distro": "common"
+  },
+  {
+    "title_zh": "移动但不覆盖",
+    "title_en": "Move without overwrite",
+    "command": "mv -n  dest",
+    "desc_zh": "不覆盖已存在的目标文件",
+    "desc_en": "Move without overwriting existing files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除前确认",
+    "title_en": "Remove with confirmation",
+    "command": "rm -i ",
+    "desc_zh": "删除每个文件前进行确认",
+    "desc_en": "Prompt before every removal",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除横杠开头文件",
+    "title_en": "Remove dash-prefixed file",
+    "command": "rm -- ",
+    "desc_zh": "删除以横杠开头的文件名",
+    "desc_en": "Remove a file whose name starts with a dash",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建目录并指定权限",
+    "title_en": "Make directory with mode",
+    "command": "mkdir -m 700 ",
+    "desc_zh": "创建目录并设置访问权限",
+    "desc_en": "Create a directory with the given permissions",
+    "distro": "common"
+  },
+  {
+    "title_zh": "限制查找深度",
+    "title_en": "Find with max depth",
+    "command": "find . -maxdepth 1 -type f",
+    "desc_zh": "仅在当前目录查找文件，不进入子目录",
+    "desc_en": "Find files in current directory only, no recursion",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按属主查找",
+    "title_en": "Find by owner",
+    "command": "find . -user ",
+    "desc_zh": "查找属于指定用户的文件",
+    "desc_en": "Find files owned by a user",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按属组查找",
+    "title_en": "Find by group",
+    "command": "find . -group ",
+    "desc_zh": "查找属于指定用户组的文件",
+    "desc_en": "Find files owned by a group",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查找30分钟内修改",
+    "title_en": "Find recently modified",
+    "command": "find . -mmin -30",
+    "desc_zh": "查找30分钟内修改过的文件",
+    "desc_en": "Find files modified within 30 minutes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查找长期未访问文件",
+    "title_en": "Find not accessed recently",
+    "command": "find . -atime +30",
+    "desc_zh": "查找30天以上未访问的文件",
+    "desc_en": "Find files not accessed in over 30 days",
+    "distro": "common"
+  },
+  {
+    "title_zh": "忽略大小写查找",
+    "title_en": "Find case-insensitive",
+    "command": "find . -iname ''",
+    "desc_zh": "按名称查找文件，忽略大小写",
+    "desc_en": "Find files by name ignoring case",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按正则查找路径",
+    "title_en": "Find by regex",
+    "command": "find . -regex ''",
+    "desc_zh": "按正则表达式匹配完整路径",
+    "desc_en": "Find files matching a regex on the full path",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查找符号链接",
+    "title_en": "Find symbolic links",
+    "command": "find . -type l",
+    "desc_zh": "查找当前目录下的符号链接",
+    "desc_en": "Find symbolic links under current directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查找失效链接",
+    "title_en": "Find broken symlinks",
+    "command": "find . -xtype l",
+    "desc_zh": "查找指向不存在目标的失效符号链接",
+    "desc_en": "Find broken symbolic links",
+    "distro": "common"
+  },
+  {
+    "title_zh": "批量修改权限",
+    "title_en": "Find and chmod",
+    "command": "find . -type f -exec chmod 644 {} +",
+    "desc_zh": "查找文件并批量修改权限",
+    "desc_en": "Find files and change their permissions in batch",
+    "distro": "common"
+  },
+  {
+    "title_zh": "排除目录查找",
+    "title_en": "Find excluding directory",
+    "command": "find . -path ./.git -prune -o -type f -print",
+    "desc_zh": "查找文件但跳过指定目录",
+    "desc_en": "Find files while skipping a directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按修改日期查找",
+    "title_en": "Find newer than date",
+    "command": "find . -newermt ''",
+    "desc_zh": "查找在指定日期之后修改的文件",
+    "desc_en": "Find files modified after a given date",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查找setuid文件",
+    "title_en": "Find setuid files",
+    "command": "find / -perm -u+s -type f 2>/dev/null",
+    "desc_zh": "查找系统中的setuid可执行文件",
+    "desc_en": "Find setuid executables on the system",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按inode查找",
+    "title_en": "Find by inode",
+    "command": "find . -inum ",
+    "desc_zh": "按inode编号查找文件",
+    "desc_en": "Find a file by its inode number",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查找无属主文件",
+    "title_en": "Find orphaned files",
+    "command": "find / -nouser -o -nogroup 2>/dev/null",
+    "desc_zh": "查找没有有效属主或属组的文件",
+    "desc_en": "Find files without a valid owner or group",
+    "distro": "common"
+  },
+  {
+    "title_zh": "文件系统状态",
+    "title_en": "Show filesystem status",
+    "command": "stat -f ",
+    "desc_zh": "显示文件所在文件系统的状态",
+    "desc_en": "Show status of the filesystem containing a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "强制更新符号链接",
+    "title_en": "Force update symlink",
+    "command": "ln -sf  link_name",
+    "desc_zh": "强制创建或更新符号链接",
+    "desc_en": "Create or update a symbolic link forcibly",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置文件时间戳",
+    "title_en": "Touch with date",
+    "command": "touch -d '2024-01-01' ",
+    "desc_zh": "将文件修改时间设置为指定日期",
+    "desc_en": "Set file modification time to a given date",
+    "distro": "common"
+  },
+  {
+    "title_zh": "仅显示目录树",
+    "title_en": "Tree directories only",
+    "command": "tree -d",
+    "desc_zh": "以树状结构仅显示目录",
+    "desc_en": "Show directory tree without files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "目录树排除模式",
+    "title_en": "Tree with exclusion",
+    "command": "tree -I 'node_modules'",
+    "desc_zh": "显示目录树并排除匹配的目录",
+    "desc_en": "Show tree excluding matched patterns",
+    "distro": "common"
+  },
+  {
+    "title_zh": "显示MIME类型",
+    "title_en": "Show MIME type",
+    "command": "file -i ",
+    "desc_zh": "显示文件的MIME类型",
+    "desc_en": "Show the MIME type of a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "解析绝对路径",
+    "title_en": "Resolve real path",
+    "command": "realpath ",
+    "desc_zh": "解析并输出文件的绝对路径",
+    "desc_en": "Print the resolved absolute path",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建临时文件",
+    "title_en": "Make temp file",
+    "command": "mktemp",
+    "desc_zh": "创建临时文件并输出其路径",
+    "desc_en": "Create a temporary file and print its path",
+    "distro": "common"
+  },
+  {
+    "title_zh": "安装文件并设权限",
+    "title_en": "Install file with mode",
+    "command": "install -m 755  /usr/local/bin/",
+    "desc_zh": "复制文件到目标位置并设置权限",
+    "desc_en": "Copy a file to destination with given permissions",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成指定大小文件",
+    "title_en": "Allocate file of size",
+    "command": "fallocate -l 1G ",
+    "desc_zh": "快速创建指定大小的文件",
+    "desc_en": "Quickly create a file of the given size",
+    "distro": "common"
+  },
+  {
+    "title_zh": "显示不可见字符",
+    "title_en": "Show non-printing chars",
+    "command": "cat -A ",
+    "desc_zh": "显示制表符、行尾等不可见字符",
+    "desc_en": "Show tabs, line endings and non-printing characters",
+    "distro": "common"
+  },
+  {
+    "title_zh": "分页查看文件",
+    "title_en": "Page through file",
+    "command": "more ",
+    "desc_zh": "分页查看文件内容",
+    "desc_en": "View file contents page by page",
+    "distro": "common"
+  },
+  {
+    "title_zh": "跟随模式查看",
+    "title_en": "Follow file in less",
+    "command": "less +F ",
+    "desc_zh": "以跟随模式查看文件更新",
+    "desc_en": "View a file following appended data",
+    "distro": "common"
+  },
+  {
+    "title_zh": "带行号查看",
+    "title_en": "View with line numbers",
+    "command": "less -N ",
+    "desc_zh": "分页查看文件并显示行号",
+    "desc_en": "Page through a file with line numbers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看文件开头字节",
+    "title_en": "Show first bytes",
+    "command": "head -c 100 ",
+    "desc_zh": "输出文件的前100个字节",
+    "desc_en": "Output the first 100 bytes of a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "去掉末尾若干行",
+    "title_en": "Trim trailing lines",
+    "command": "head -n -5 ",
+    "desc_zh": "输出文件内容但去掉末尾5行",
+    "desc_en": "Output all but the last 5 lines",
+    "distro": "common"
+  },
+  {
+    "title_zh": "从指定行开始输出",
+    "title_en": "Output from line N",
+    "command": "tail -n +10 ",
+    "desc_zh": "从第10行开始输出到结尾",
+    "desc_en": "Output from line 10 to the end",
+    "distro": "common"
+  },
+  {
+    "title_zh": "跟随文件含轮转",
+    "title_en": "Follow file across rotation",
+    "command": "tail -F ",
+    "desc_zh": "持续跟随文件，文件轮转后自动重新打开",
+    "desc_en": "Follow a file and reopen it after rotation",
+    "distro": "common"
+  },
+  {
+    "title_zh": "统计匹配行数",
+    "title_en": "Count matching lines",
+    "command": "grep -c  file",
+    "desc_zh": "统计匹配模式的行数",
+    "desc_en": "Count lines matching a pattern",
+    "distro": "common"
+  },
+  {
+    "title_zh": "全词匹配",
+    "title_en": "Match whole words",
+    "command": "grep -w  file",
+    "desc_zh": "仅匹配完整单词",
+    "desc_en": "Match whole words only",
+    "distro": "common"
+  },
+  {
+    "title_zh": "显示匹配后几行",
+    "title_en": "Show lines after match",
+    "command": "grep -A 3  file",
+    "desc_zh": "显示匹配行及其后3行",
+    "desc_en": "Show matching lines and 3 lines after",
+    "distro": "common"
+  },
+  {
+    "title_zh": "显示匹配前几行",
+    "title_en": "Show lines before match",
+    "command": "grep -B 3  file",
+    "desc_zh": "显示匹配行及其前3行",
+    "desc_en": "Show matching lines and 3 lines before",
+    "distro": "common"
+  },
+  {
+    "title_zh": "固定字符串匹配",
+    "title_en": "Match fixed string",
+    "command": "grep -F  file",
+    "desc_zh": "按字面字符串匹配，不解释正则",
+    "desc_en": "Match a literal string without regex",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Perl正则匹配",
+    "title_en": "Match Perl regex",
+    "command": "grep -P  file",
+    "desc_zh": "使用Perl兼容正则表达式匹配",
+    "desc_en": "Match using Perl-compatible regex",
+    "distro": "common"
+  },
+  {
+    "title_zh": "列出不匹配的文件",
+    "title_en": "List files without match",
+    "command": "grep -rL '' .",
+    "desc_zh": "递归列出不包含匹配内容的文件",
+    "desc_en": "Recursively list files without a match",
+    "distro": "common"
+  },
+  {
+    "title_zh": "二进制按文本搜索",
+    "title_en": "Search binary as text",
+    "command": "grep -a  file",
+    "desc_zh": "将二进制文件当作文本搜索",
+    "desc_en": "Search a binary file as if it were text",
+    "distro": "common"
+  },
+  {
+    "title_zh": "限定类型递归搜索",
+    "title_en": "Search specific file types",
+    "command": "grep --include='*.py' -rn '' .",
+    "desc_zh": "递归搜索但仅限指定类型的文件",
+    "desc_en": "Recursively search only files matching a pattern",
+    "distro": "common"
+  },
+  {
+    "title_zh": "去除注释和空行",
+    "title_en": "Strip comments and blanks",
+    "command": "grep -v '^#'  | grep -v '^$'",
+    "desc_zh": "过滤掉注释行和空行后输出",
+    "desc_en": "Output a file without comment and blank lines",
+    "distro": "common"
+  },
+  {
+    "title_zh": "替换首个匹配",
+    "title_en": "Replace first match",
+    "command": "sed 's/old/new/' ",
+    "desc_zh": "替换每行第一处匹配并输出，不修改文件",
+    "desc_en": "Replace first match per line, print without editing",
+    "distro": "common"
+  },
+  {
+    "title_zh": "替换并备份",
+    "title_en": "Replace with backup",
+    "command": "sed -i.bak 's/old/new/g' ",
+    "desc_zh": "原地替换并保留.bak备份文件",
+    "desc_en": "Replace in place keeping a .bak backup",
+    "distro": "common"
+  },
+  {
+    "title_zh": "打印匹配行",
+    "title_en": "Print matching lines",
+    "command": "sed -n '/pattern/p' ",
+    "desc_zh": "仅打印匹配模式的行",
+    "desc_en": "Print only lines matching a pattern",
+    "distro": "common"
+  },
+  {
+    "title_zh": "首行前插入",
+    "title_en": "Insert before first line",
+    "command": "sed -i '1i text' ",
+    "desc_zh": "在文件第一行前插入文本",
+    "desc_en": "Insert text before the first line",
+    "distro": "common"
+  },
+  {
+    "title_zh": "末行后追加",
+    "title_en": "Append after last line",
+    "command": "sed -i '$a text' ",
+    "desc_zh": "在文件最后一行后追加文本",
+    "desc_en": "Append text after the last line",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除指定行",
+    "title_en": "Delete line by number",
+    "command": "sed -i '5d' ",
+    "desc_zh": "删除文件中的第5行",
+    "desc_en": "Delete line 5 from a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "打印区间内容",
+    "title_en": "Print between patterns",
+    "command": "sed -n '/start/,/end/p' ",
+    "desc_zh": "打印两个模式之间的行",
+    "desc_en": "Print lines between two patterns",
+    "distro": "common"
+  },
+  {
+    "title_zh": "打印指定行",
+    "title_en": "Print line by number",
+    "command": "awk 'NR==5' ",
+    "desc_zh": "打印文件的第5行",
+    "desc_en": "Print line 5 of a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "匹配模式打印",
+    "title_en": "Print lines matching pattern",
+    "command": "awk '/pattern/ {print}' ",
+    "desc_zh": "打印匹配模式的行",
+    "desc_en": "Print lines matching a pattern",
+    "distro": "common"
+  },
+  {
+    "title_zh": "输出添加行号",
+    "title_en": "Prefix line numbers",
+    "command": "awk '{print NR, $0}' ",
+    "desc_zh": "在每行前添加行号输出",
+    "desc_en": "Print each line prefixed with its number",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按列条件过滤",
+    "title_en": "Filter by column value",
+    "command": "awk '$3 > 100' ",
+    "desc_zh": "输出第3列大于100的行",
+    "desc_en": "Print lines where column 3 exceeds 100",
+    "distro": "common"
+  },
+  {
+    "title_zh": "不排序去重",
+    "title_en": "Deduplicate keeping order",
+    "command": "awk '!seen[$0]++' ",
+    "desc_zh": "去除重复行且保持原有顺序",
+    "desc_en": "Remove duplicate lines preserving order",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按列求平均",
+    "title_en": "Average a column",
+    "command": "awk '{s+=$1} END {print s/NR}' ",
+    "desc_zh": "计算第1列的平均值",
+    "desc_en": "Compute the average of column 1",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查找超长行",
+    "title_en": "Find long lines",
+    "command": "awk 'length > 80' ",
+    "desc_zh": "输出长度超过80个字符的行",
+    "desc_en": "Print lines longer than 80 characters",
+    "distro": "common"
+  },
+  {
+    "title_zh": "逆序排序",
+    "title_en": "Sort in reverse",
+    "command": "sort -r ",
+    "desc_zh": "按逆序排序输出",
+    "desc_en": "Sort lines in reverse order",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按可读大小排序",
+    "title_en": "Sort human-readable sizes",
+    "command": "sort -h ",
+    "desc_zh": "按人类可读大小（K/M/G）排序",
+    "desc_en": "Sort by human-readable sizes like K/M/G",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按版本号排序",
+    "title_en": "Sort version numbers",
+    "command": "sort -V ",
+    "desc_zh": "按版本号规则排序",
+    "desc_en": "Sort lines as version numbers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按字符位置截取",
+    "title_en": "Cut by character position",
+    "command": "cut -c1-10 ",
+    "desc_zh": "截取每行的第1到10个字符",
+    "desc_en": "Extract characters 1-10 of each line",
+    "distro": "common"
+  },
+  {
+    "title_zh": "压缩重复字符",
+    "title_en": "Squeeze repeated chars",
+    "command": "tr -s ' ' ",
+    "desc_zh": "将连续重复的空格压缩为一个",
+    "desc_en": "Squeeze repeated spaces into one",
+    "distro": "common"
+  },
+  {
+    "title_zh": "统计单词数",
+    "title_en": "Count words",
+    "command": "wc -w ",
+    "desc_zh": "统计文件的单词数量",
+    "desc_en": "Count words in a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "统计字节数",
+    "title_en": "Count bytes",
+    "command": "wc -c ",
+    "desc_zh": "统计文件的字节数",
+    "desc_en": "Count bytes in a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "最长行长度",
+    "title_en": "Longest line length",
+    "command": "wc -L ",
+    "desc_zh": "输出文件中最长行的长度",
+    "desc_en": "Print the length of the longest line",
+    "distro": "common"
+  },
+  {
+    "title_zh": "递归比较目录",
+    "title_en": "Compare directories briefly",
+    "command": "diff -qr dir1 dir2",
+    "desc_zh": "递归比较目录，仅列出差异文件",
+    "desc_en": "Recursively compare directories listing differing files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "并排对比文件",
+    "title_en": "Side-by-side diff",
+    "command": "diff -y  file2",
+    "desc_zh": "并排显示两个文件的差异",
+    "desc_en": "Show differences side by side",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成补丁文件",
+    "title_en": "Create a patch",
+    "command": "diff -u old new > changes.patch",
+    "desc_zh": "生成统一格式的补丁文件",
+    "desc_en": "Create a unified-format patch file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "应用补丁",
+    "title_en": "Apply a patch",
+    "command": "patch -p1 < ",
+    "desc_zh": "将补丁文件应用到当前目录",
+    "desc_en": "Apply a patch file to the current tree",
+    "distro": "common"
+  },
+  {
+    "title_zh": "仅显示不重复行",
+    "title_en": "Show unique lines only",
+    "command": "uniq -u ",
+    "desc_zh": "仅输出没有重复的行",
+    "desc_en": "Print only lines that are not repeated",
+    "distro": "common"
+  },
+  {
+    "title_zh": "行合并为一行",
+    "title_en": "Merge lines into one",
+    "command": "paste -s -d, ",
+    "desc_zh": "将多行合并为一行，以逗号分隔",
+    "desc_en": "Join all lines into one comma-separated line",
+    "distro": "common"
+  },
+  {
+    "title_zh": "左连接合并",
+    "title_en": "Join with unpaired lines",
+    "command": "join -a1 file1 file2",
+    "desc_zh": "按字段连接并保留file1中未匹配的行",
+    "desc_en": "Join files keeping unmatched lines from file1",
+    "distro": "common"
+  },
+  {
+    "title_zh": "求两文件交集",
+    "title_en": "Intersect two files",
+    "command": "comm -12 <(sort a.txt) <(sort b.txt)",
+    "desc_zh": "输出两个文件的共同行",
+    "desc_en": "Print lines common to both files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "均分为多份",
+    "title_en": "Split into N parts",
+    "command": "split -n 4  prefix_",
+    "desc_zh": "将文件均分为4份",
+    "desc_en": "Split a file into 4 equal parts",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按模式拆分",
+    "title_en": "Split by pattern",
+    "command": "csplit  '/pattern/' '{*}'",
+    "desc_zh": "按匹配模式将文件拆分为多段",
+    "desc_en": "Split a file into sections at each pattern match",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按宽度折行",
+    "title_en": "Wrap lines to width",
+    "command": "fold -w 80 ",
+    "desc_zh": "将超长行按80列宽度折行",
+    "desc_en": "Wrap long lines at 80 columns",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Tab转空格",
+    "title_en": "Convert tabs to spaces",
+    "command": "expand -t 4 ",
+    "desc_zh": "将制表符转换为4个空格",
+    "desc_en": "Convert tabs to 4 spaces",
+    "distro": "common"
+  },
+  {
+    "title_zh": "提取可打印字符串",
+    "title_en": "Extract printable strings",
+    "command": "strings ",
+    "desc_zh": "从二进制文件中提取可打印字符串",
+    "desc_en": "Extract printable strings from a binary file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "八进制转储",
+    "title_en": "Octal dump",
+    "command": "od -c ",
+    "desc_zh": "以字符形式转储文件内容",
+    "desc_en": "Dump file contents as characters",
+    "distro": "common"
+  },
+  {
+    "title_zh": "十六进制查看",
+    "title_en": "Hex dump canonical",
+    "command": "hexdump -C ",
+    "desc_zh": "以十六进制加ASCII格式查看文件",
+    "desc_en": "View a file in hex with ASCII sidebar",
+    "distro": "common"
+  },
+  {
+    "title_zh": "十六进制还原",
+    "title_en": "Reverse hex dump",
+    "command": "xxd -r ",
+    "desc_zh": "将十六进制转储还原为二进制",
+    "desc_en": "Convert a hex dump back to binary",
+    "distro": "common"
+  },
+  {
+    "title_zh": "逐字节比较",
+    "title_en": "Compare files byte-wise",
+    "command": "cmp file1 file2",
+    "desc_zh": "逐字节比较两个文件",
+    "desc_en": "Compare two files byte by byte",
+    "distro": "common"
+  },
+  {
+    "title_zh": "转Windows换行",
+    "title_en": "Convert to CRLF",
+    "command": "unix2dos ",
+    "desc_zh": "将Unix换行转换为Windows格式",
+    "desc_en": "Convert Unix line endings to Windows format",
+    "distro": "common"
+  },
+  {
+    "title_zh": "SHA512校验和",
+    "title_en": "SHA512 checksum",
+    "command": "sha512sum ",
+    "desc_zh": "计算文件的SHA512校验和",
+    "desc_en": "Compute the SHA512 checksum of a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "校验SHA256清单",
+    "title_en": "Verify SHA256 checksums",
+    "command": "sha256sum -c ",
+    "desc_zh": "根据清单文件校验SHA256值",
+    "desc_en": "Verify files against a SHA256 checksum list",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成校验清单",
+    "title_en": "Generate checksum list",
+    "command": "md5sum * > checksums.md5",
+    "desc_zh": "为当前目录文件生成MD5校验清单",
+    "desc_en": "Generate an MD5 checksum list for current files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "打包不压缩",
+    "title_en": "Create tar archive",
+    "command": "tar -cf archive.tar ",
+    "desc_zh": "打包文件为tar归档，不压缩",
+    "desc_en": "Create an uncompressed tar archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看tar内容",
+    "title_en": "List tar contents",
+    "command": "tar -tf ",
+    "desc_zh": "查看tar归档中的文件列表",
+    "desc_en": "List files inside a tar archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "zstd压缩打包",
+    "title_en": "Create tar.zst archive",
+    "command": "tar --zstd -cf archive.tar.zst ",
+    "desc_zh": "使用zstd压缩打包文件",
+    "desc_en": "Create a zstd-compressed tar archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "解压xz压缩包",
+    "title_en": "Extract tar.xz archive",
+    "command": "tar -xJf ",
+    "desc_zh": "解压xz压缩的tar归档",
+    "desc_en": "Extract an xz-compressed tar archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "解压zstd压缩包",
+    "title_en": "Extract tar.zst archive",
+    "command": "tar --zstd -xf ",
+    "desc_zh": "解压zstd压缩的tar归档",
+    "desc_en": "Extract a zstd-compressed tar archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "追加文件到tar",
+    "title_en": "Append to tar archive",
+    "command": "tar -rf archive.tar ",
+    "desc_zh": "向已有tar归档追加文件",
+    "desc_en": "Append files to an existing tar archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "解压去掉顶层目录",
+    "title_en": "Extract stripping top dir",
+    "command": "tar -xzf  --strip-components=1",
+    "desc_zh": "解压并去掉归档的顶层目录",
+    "desc_en": "Extract while stripping the top-level directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "压缩保留原文件",
+    "title_en": "Gzip keeping original",
+    "command": "gzip -k ",
+    "desc_zh": "gzip压缩并保留原始文件",
+    "desc_en": "Compress with gzip keeping the original file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看压缩信息",
+    "title_en": "Show gzip info",
+    "command": "gzip -l ",
+    "desc_zh": "查看gzip文件的压缩率信息",
+    "desc_en": "Show compression info of a gzip file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "bzip2压缩",
+    "title_en": "Compress with bzip2",
+    "command": "bzip2 -9 ",
+    "desc_zh": "以最高压缩比压缩为bz2",
+    "desc_en": "Compress a file to bz2 at maximum level",
+    "distro": "common"
+  },
+  {
+    "title_zh": "解压bz2文件",
+    "title_en": "Decompress bz2",
+    "command": "bunzip2 ",
+    "desc_zh": "解压bzip2压缩的文件",
+    "desc_en": "Decompress a bzip2-compressed file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看bz2内容",
+    "title_en": "View bz2 contents",
+    "command": "bzcat ",
+    "desc_zh": "直接查看bz2压缩文件内容",
+    "desc_en": "View bz2 file contents without extracting",
+    "distro": "common"
+  },
+  {
+    "title_zh": "xz压缩",
+    "title_en": "Compress with xz",
+    "command": "xz -9 ",
+    "desc_zh": "以最高压缩比压缩为xz",
+    "desc_en": "Compress a file to xz at maximum level",
+    "distro": "common"
+  },
+  {
+    "title_zh": "xz多线程压缩",
+    "title_en": "Compress xz multi-threaded",
+    "command": "xz -T0 ",
+    "desc_zh": "使用全部CPU核心进行xz压缩",
+    "desc_en": "Compress with xz using all CPU cores",
+    "distro": "common"
+  },
+  {
+    "title_zh": "解压xz文件",
+    "title_en": "Decompress xz",
+    "command": "unxz ",
+    "desc_zh": "解压xz压缩的文件",
+    "desc_en": "Decompress an xz-compressed file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看xz内容",
+    "title_en": "View xz contents",
+    "command": "xzcat ",
+    "desc_zh": "直接查看xz压缩文件内容",
+    "desc_en": "View xz file contents without extracting",
+    "distro": "common"
+  },
+  {
+    "title_zh": "zstd压缩",
+    "title_en": "Compress with zstd",
+    "command": "zstd ",
+    "desc_zh": "使用zstd压缩文件",
+    "desc_en": "Compress a file with zstd",
+    "distro": "common"
+  },
+  {
+    "title_zh": "zstd高压缩多线程",
+    "title_en": "Zstd max compression",
+    "command": "zstd -T0 -19 ",
+    "desc_zh": "多线程高压缩比zstd压缩",
+    "desc_en": "Compress with zstd at high level using all cores",
+    "distro": "common"
+  },
+  {
+    "title_zh": "解压zst文件",
+    "title_en": "Decompress zst",
+    "command": "unzstd ",
+    "desc_zh": "解压zstd压缩的文件",
+    "desc_en": "Decompress a zstd-compressed file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看zst内容",
+    "title_en": "View zst contents",
+    "command": "zstdcat ",
+    "desc_zh": "直接查看zstd压缩文件内容",
+    "desc_en": "View zstd file contents without extracting",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建7z压缩包",
+    "title_en": "Create 7z archive",
+    "command": "7z a archive.7z ",
+    "desc_zh": "创建7z格式压缩包",
+    "desc_en": "Create a 7z archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "解压7z压缩包",
+    "title_en": "Extract 7z archive",
+    "command": "7z x ",
+    "desc_zh": "解压7z压缩包并保留目录结构",
+    "desc_en": "Extract a 7z archive preserving paths",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看7z内容",
+    "title_en": "List 7z contents",
+    "command": "7z l ",
+    "desc_zh": "查看7z压缩包中的文件列表",
+    "desc_en": "List files inside a 7z archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "加密压缩zip",
+    "title_en": "Create encrypted zip",
+    "command": "zip -e archive.zip ",
+    "desc_zh": "创建带密码保护的zip压缩包",
+    "desc_en": "Create a password-protected zip archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "排除模式压缩",
+    "title_en": "Zip with exclusion",
+    "command": "zip -r archive.zip  -x '*.git*'",
+    "desc_zh": "压缩目录并排除匹配的文件",
+    "desc_en": "Zip a directory excluding matched files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看zip内容",
+    "title_en": "List zip contents",
+    "command": "unzip -l ",
+    "desc_zh": "查看zip压缩包中的文件列表",
+    "desc_en": "List files inside a zip archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "解压到指定目录",
+    "title_en": "Unzip to directory",
+    "command": "unzip  -d dir",
+    "desc_zh": "将zip解压到指定目录",
+    "desc_en": "Extract a zip archive into a directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "搜索压缩文件",
+    "title_en": "Grep inside gzip",
+    "command": "zgrep  file.gz",
+    "desc_zh": "直接在gzip压缩文件中搜索",
+    "desc_en": "Search inside a gzip file without extracting",
+    "distro": "common"
+  },
+  {
+    "title_zh": "符号模式设置权限",
+    "title_en": "Chmod symbolic mode",
+    "command": "chmod u+rwx,g+rx,o-rwx ",
+    "desc_zh": "使用符号模式设置文件权限",
+    "desc_en": "Set permissions using symbolic mode",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置setgid位",
+    "title_en": "Set setgid bit",
+    "command": "chmod g+s ",
+    "desc_zh": "设置目录setgid，使新文件继承属组",
+    "desc_en": "Set setgid so new files inherit the group",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置粘滞位",
+    "title_en": "Set sticky bit",
+    "command": "chmod +t ",
+    "desc_zh": "设置粘滞位，仅属主可删除目录内文件",
+    "desc_en": "Set sticky bit so only owners can delete files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "参照文件设置权限",
+    "title_en": "Chmod by reference",
+    "command": "chmod --reference=ref_file ",
+    "desc_zh": "参照另一文件设置相同权限",
+    "desc_en": "Copy permissions from a reference file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "取回目录属主",
+    "title_en": "Reclaim ownership",
+    "command": "sudo chown -R $USER:$USER ",
+    "desc_zh": "递归将目录属主改为当前用户",
+    "desc_en": "Recursively change ownership to current user",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建用户并指定shell",
+    "title_en": "Add user with shell",
+    "command": "sudo useradd -m -s /bin/bash ",
+    "desc_zh": "创建用户、主目录并指定登录shell",
+    "desc_en": "Create a user with home directory and login shell",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建系统服务账号",
+    "title_en": "Add system account",
+    "command": "sudo useradd -r -s /sbin/nologin ",
+    "desc_zh": "创建不可登录的系统服务账号",
+    "desc_en": "Create a non-login system service account",
+    "distro": "common"
+  },
+  {
+    "title_zh": "修改用户shell",
+    "title_en": "Change login shell",
+    "command": "sudo usermod -s /bin/bash ",
+    "desc_zh": "修改用户的登录shell",
+    "desc_en": "Change a user's login shell",
+    "distro": "common"
+  },
+  {
+    "title_zh": "锁定用户",
+    "title_en": "Lock user account",
+    "command": "sudo usermod -L ",
+    "desc_zh": "锁定用户账号禁止登录",
+    "desc_en": "Lock a user account",
+    "distro": "common"
+  },
+  {
+    "title_zh": "解锁用户",
+    "title_en": "Unlock user account",
+    "command": "sudo usermod -U ",
+    "desc_zh": "解锁被锁定的用户账号",
+    "desc_en": "Unlock a locked user account",
+    "distro": "common"
+  },
+  {
+    "title_zh": "修改用户主目录",
+    "title_en": "Change home directory",
+    "command": "sudo usermod -d /new/home -m ",
+    "desc_zh": "修改用户主目录并迁移文件",
+    "desc_en": "Change and move a user's home directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建用户组",
+    "title_en": "Add a group",
+    "command": "sudo groupadd ",
+    "desc_zh": "创建一个新用户组",
+    "desc_en": "Create a new group",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除用户组",
+    "title_en": "Delete a group",
+    "command": "sudo groupdel ",
+    "desc_zh": "删除一个用户组",
+    "desc_en": "Delete a group",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重命名用户组",
+    "title_en": "Rename a group",
+    "command": "sudo groupmod -n new_name old_name",
+    "desc_zh": "重命名一个用户组",
+    "desc_en": "Rename a group",
+    "distro": "common"
+  },
+  {
+    "title_zh": "从组移除用户",
+    "title_en": "Remove user from group",
+    "command": "sudo gpasswd -d user group",
+    "desc_zh": "将用户从用户组中移除",
+    "desc_en": "Remove a user from a group",
+    "distro": "common"
+  },
+  {
+    "title_zh": "切换当前用户组",
+    "title_en": "Switch active group",
+    "command": "newgrp ",
+    "desc_zh": "切换当前会话的有效用户组",
+    "desc_en": "Switch the active group for the current session",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置密码有效期",
+    "title_en": "Set password max age",
+    "command": "sudo chage -M 90 ",
+    "desc_zh": "设置密码最长有效期为90天",
+    "desc_en": "Set password maximum age to 90 days",
+    "distro": "common"
+  },
+  {
+    "title_zh": "强制下次改密",
+    "title_en": "Expire password now",
+    "command": "sudo passwd -e ",
+    "desc_zh": "强制用户下次登录时修改密码",
+    "desc_en": "Force a user to change password at next login",
+    "distro": "common"
+  },
+  {
+    "title_zh": "显示当前用户",
+    "title_en": "Show current user",
+    "command": "whoami",
+    "desc_zh": "显示当前登录的用户名",
+    "desc_en": "Print the current username",
+    "distro": "common"
+  },
+  {
+    "title_zh": "列出sudo权限",
+    "title_en": "List sudo privileges",
+    "command": "sudo -l",
+    "desc_zh": "列出当前用户可用的sudo权限",
+    "desc_en": "List sudo privileges for the current user",
+    "distro": "common"
+  },
+  {
+    "title_zh": "以指定用户执行",
+    "title_en": "Run as another user",
+    "command": "sudo -u user ",
+    "desc_zh": "以指定用户身份执行命令",
+    "desc_en": "Run a command as another user",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清除sudo缓存",
+    "title_en": "Invalidate sudo cache",
+    "command": "sudo -k",
+    "desc_zh": "清除sudo密码缓存",
+    "desc_en": "Invalidate cached sudo credentials",
+    "distro": "common"
+  },
+  {
+    "title_zh": "以root执行上条命令",
+    "title_en": "Repeat last with sudo",
+    "command": "sudo !!",
+    "desc_zh": "以sudo权限重新执行上一条命令",
+    "desc_en": "Re-run the previous command with sudo",
+    "distro": "common"
+  },
+  {
+    "title_zh": "以root启动shell",
+    "title_en": "Start root shell",
+    "command": "sudo -s",
+    "desc_zh": "以root权限启动shell，保留当前环境",
+    "desc_en": "Start a root shell keeping current environment",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查询组信息",
+    "title_en": "Query group entry",
+    "command": "getent group ",
+    "desc_zh": "查询用户组信息",
+    "desc_en": "Look up a group entry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除ACL条目",
+    "title_en": "Remove ACL entry",
+    "command": "setfacl -x u:user ",
+    "desc_zh": "删除指定用户的ACL条目",
+    "desc_en": "Remove the ACL entry for a user",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置默认ACL",
+    "title_en": "Set default ACL",
+    "command": "setfacl -d -m u:user:rwx ",
+    "desc_zh": "为目录设置默认ACL，新文件自动继承",
+    "desc_en": "Set a default ACL inherited by new files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置仅追加属性",
+    "title_en": "Set append-only attribute",
+    "command": "sudo chattr +a ",
+    "desc_zh": "设置文件仅允许追加写入",
+    "desc_en": "Make a file append-only",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置权限掩码",
+    "title_en": "Set umask value",
+    "command": "umask 022",
+    "desc_zh": "设置默认权限掩码为022",
+    "desc_en": "Set the default permission mask to 022",
+    "distro": "common"
+  },
+  {
+    "title_zh": "自定义输出列",
+    "title_en": "Custom ps columns",
+    "command": "ps -eo pid,ppid,user,cmd",
+    "desc_zh": "以自定义列格式列出进程",
+    "desc_en": "List processes with custom output columns",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按用户列出进程",
+    "title_en": "List processes by user",
+    "command": "ps -u ",
+    "desc_zh": "列出指定用户的进程",
+    "desc_en": "List processes of a specific user",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看进程线程",
+    "title_en": "Show process threads",
+    "command": "ps -T -p ",
+    "desc_zh": "查看指定进程的线程",
+    "desc_en": "Show threads of a process",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看进程运行时长",
+    "title_en": "Show process elapsed time",
+    "command": "ps -p  -o etime=",
+    "desc_zh": "查看指定进程已运行的时长",
+    "desc_en": "Show how long a process has been running",
+    "distro": "common"
+  },
+  {
+    "title_zh": "过滤进程列表",
+    "title_en": "Filter process list",
+    "command": "ps aux | grep ",
+    "desc_zh": "在进程列表中搜索关键字",
+    "desc_en": "Search the process list for a keyword",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按命令行查找进程",
+    "title_en": "Find process by cmdline",
+    "command": "pgrep -f ",
+    "desc_zh": "按完整命令行查找进程PID",
+    "desc_en": "Find process IDs by full command line",
+    "distro": "common"
+  },
+  {
+    "title_zh": "列出信号名称",
+    "title_en": "List signal names",
+    "command": "kill -l",
+    "desc_zh": "列出所有可用的信号名称",
+    "desc_en": "List all available signal names",
+    "distro": "common"
+  },
+  {
+    "title_zh": "暂停进程",
+    "title_en": "Pause a process",
+    "command": "kill -STOP ",
+    "desc_zh": "暂停指定进程的执行",
+    "desc_en": "Suspend a running process",
+    "distro": "common"
+  },
+  {
+    "title_zh": "恢复进程",
+    "title_en": "Resume a process",
+    "command": "kill -CONT ",
+    "desc_zh": "恢复被暂停的进程",
+    "desc_en": "Resume a suspended process",
+    "distro": "common"
+  },
+  {
+    "title_zh": "终止占用文件进程",
+    "title_en": "Kill file users",
+    "command": "fuser -k ",
+    "desc_zh": "终止占用指定文件的进程",
+    "desc_en": "Kill processes using a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "后台运行并记录日志",
+    "title_en": "Background with log",
+    "command": "nohup command > app.log 2>&1 &",
+    "desc_zh": "后台运行命令并将输出写入日志",
+    "desc_en": "Run in background writing output to a log",
+    "distro": "common"
+  },
+  {
+    "title_zh": "后台创建screen会话",
+    "title_en": "Detached screen session",
+    "command": "screen -dmS session_name ",
+    "desc_zh": "后台创建会话并运行命令",
+    "desc_en": "Start a detached screen session running a command",
+    "distro": "common"
+  },
+  {
+    "title_zh": "共享screen会话",
+    "title_en": "Attach shared screen",
+    "command": "screen -x session_name",
+    "desc_zh": "连接到已被占用的会话实现共享",
+    "desc_en": "Attach to an already attached session for sharing",
+    "distro": "common"
+  },
+  {
+    "title_zh": "关闭screen会话",
+    "title_en": "Quit a screen session",
+    "command": "screen -X -S session_name quit",
+    "desc_zh": "关闭指定的screen会话",
+    "desc_en": "Terminate a specific screen session",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清理死掉的会话",
+    "title_en": "Wipe dead screen sessions",
+    "command": "screen -wipe",
+    "desc_zh": "清理已经死掉的screen会话记录",
+    "desc_en": "Remove dead screen session entries",
+    "distro": "common"
+  },
+  {
+    "title_zh": "后台创建tmux会话",
+    "title_en": "Detached tmux session",
+    "command": "tmux new -d -s session_name",
+    "desc_zh": "后台创建tmux会话不进入",
+    "desc_en": "Create a detached tmux session",
+    "distro": "common"
+  },
+  {
+    "title_zh": "脱离当前会话",
+    "title_en": "Detach from tmux",
+    "command": "tmux detach",
+    "desc_zh": "脱离当前tmux会话回到终端",
+    "desc_en": "Detach from the current tmux session",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重命名tmux会话",
+    "title_en": "Rename tmux session",
+    "command": "tmux rename-session -t old_name new_name",
+    "desc_zh": "重命名tmux会话",
+    "desc_en": "Rename a tmux session",
+    "distro": "common"
+  },
+  {
+    "title_zh": "关闭全部tmux会话",
+    "title_en": "Kill tmux server",
+    "command": "tmux kill-server",
+    "desc_zh": "关闭tmux服务及全部会话",
+    "desc_en": "Kill the tmux server and all sessions",
+    "distro": "common"
+  },
+  {
+    "title_zh": "新建tmux窗口",
+    "title_en": "New tmux window",
+    "command": "tmux new-window -n ",
+    "desc_zh": "在当前会话中新建命名窗口",
+    "desc_en": "Create a named window in the current session",
+    "distro": "common"
+  },
+  {
+    "title_zh": "切换tmux窗口",
+    "title_en": "Select tmux window",
+    "command": "tmux select-window -t 1",
+    "desc_zh": "切换到指定编号的窗口",
+    "desc_en": "Switch to a window by index",
+    "distro": "common"
+  },
+  {
+    "title_zh": "列出tmux窗口",
+    "title_en": "List tmux windows",
+    "command": "tmux list-windows",
+    "desc_zh": "列出当前会话的所有窗口",
+    "desc_en": "List windows in the current session",
+    "distro": "common"
+  },
+  {
+    "title_zh": "关闭tmux窗口",
+    "title_en": "Kill tmux window",
+    "command": "tmux kill-window -t ",
+    "desc_zh": "关闭指定的tmux窗口",
+    "desc_en": "Close a specific tmux window",
+    "distro": "common"
+  },
+  {
+    "title_zh": "左右分屏",
+    "title_en": "Split pane horizontally",
+    "command": "tmux split-window -h",
+    "desc_zh": "将当前面板左右分屏",
+    "desc_en": "Split the current pane left and right",
+    "distro": "common"
+  },
+  {
+    "title_zh": "上下分屏",
+    "title_en": "Split pane vertically",
+    "command": "tmux split-window -v",
+    "desc_zh": "将当前面板上下分屏",
+    "desc_en": "Split the current pane top and bottom",
+    "distro": "common"
+  },
+  {
+    "title_zh": "切换tmux面板",
+    "title_en": "Select tmux pane",
+    "command": "tmux select-pane -t ",
+    "desc_zh": "切换到指定编号的面板",
+    "desc_en": "Switch to a pane by index",
+    "distro": "common"
+  },
+  {
+    "title_zh": "向会话发送命令",
+    "title_en": "Send keys to session",
+    "command": "tmux send-keys -t session_name '' Enter",
+    "desc_zh": "向指定会话发送命令并回车",
+    "desc_en": "Send a command with Enter to a session",
+    "distro": "common"
+  },
+  {
+    "title_zh": "高亮变化监视",
+    "title_en": "Watch highlighting changes",
+    "command": "watch -d -n 1 ",
+    "desc_zh": "每秒执行命令并高亮输出变化",
+    "desc_en": "Run a command every second highlighting changes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "统计目录排除模式",
+    "title_en": "Disk usage with exclusion",
+    "command": "du -sh --exclude='*.git' ",
+    "desc_zh": "统计目录大小并排除匹配内容",
+    "desc_en": "Show directory size excluding matched paths",
+    "distro": "common"
+  },
+  {
+    "title_zh": "挂载NFS共享",
+    "title_en": "Mount NFS share",
+    "command": "sudo mount -t nfs host:/path /mnt",
+    "desc_zh": "挂载远程NFS共享目录",
+    "desc_en": "Mount a remote NFS share",
+    "distro": "common"
+  },
+  {
+    "title_zh": "挂载ISO镜像",
+    "title_en": "Mount ISO image",
+    "command": "sudo mount -o loop image.iso /mnt",
+    "desc_zh": "以回环方式挂载ISO镜像",
+    "desc_en": "Mount an ISO image via loop device",
+    "distro": "common"
+  },
+  {
+    "title_zh": "挂载fstab全部条目",
+    "title_en": "Mount all fstab entries",
+    "command": "sudo mount -a",
+    "desc_zh": "挂载fstab中定义的全部文件系统",
+    "desc_en": "Mount all filesystems defined in fstab",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建内存文件系统",
+    "title_en": "Mount tmpfs ramdisk",
+    "command": "sudo mount -t tmpfs -o size=1G tmpfs /mnt/ram",
+    "desc_zh": "挂载1G大小的内存文件系统",
+    "desc_en": "Mount a 1G in-memory tmpfs filesystem",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看挂载表格",
+    "title_en": "Show mounts as table",
+    "command": "mount | column -t",
+    "desc_zh": "以表格形式查看已挂载的文件系统",
+    "desc_en": "Show mounted filesystems as an aligned table",
+    "distro": "common"
+  },
+  {
+    "title_zh": "树状显示挂载点",
+    "title_en": "Show mount tree",
+    "command": "findmnt",
+    "desc_zh": "以树状结构显示全部挂载点",
+    "desc_en": "Show all mount points as a tree",
+    "distro": "common"
+  },
+  {
+    "title_zh": "懒卸载文件系统",
+    "title_en": "Lazy unmount",
+    "command": "sudo umount -l /mnt",
+    "desc_zh": "懒卸载，待占用释放后完成卸载",
+    "desc_en": "Lazily unmount once no longer busy",
+    "distro": "common"
+  },
+  {
+    "title_zh": "交互式分区",
+    "title_en": "Partition a disk",
+    "command": "sudo fdisk /dev/sdX",
+    "desc_zh": "交互式管理磁盘分区",
+    "desc_en": "Interactively manage disk partitions",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建GPT分区表",
+    "title_en": "Create GPT label",
+    "command": "sudo parted /dev/sdX mklabel gpt",
+    "desc_zh": "在磁盘上创建GPT分区表",
+    "desc_en": "Create a GPT partition table on a disk",
+    "distro": "common"
+  },
+  {
+    "title_zh": "格式化为XFS",
+    "title_en": "Format as XFS",
+    "command": "sudo mkfs.xfs ",
+    "desc_zh": "将分区格式化为XFS文件系统",
+    "desc_en": "Format a partition as XFS",
+    "distro": "common"
+  },
+  {
+    "title_zh": "格式化swap分区",
+    "title_en": "Format swap partition",
+    "command": "sudo mkswap ",
+    "desc_zh": "将分区格式化为swap",
+    "desc_en": "Format a partition as swap space",
+    "distro": "common"
+  },
+  {
+    "title_zh": "关闭全部swap",
+    "title_en": "Disable all swap",
+    "command": "sudo swapoff -a",
+    "desc_zh": "关闭系统中的全部swap",
+    "desc_en": "Disable all swap devices",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看ext文件系统信息",
+    "title_en": "Show ext filesystem info",
+    "command": "sudo tune2fs -l ",
+    "desc_zh": "查看ext文件系统的详细参数",
+    "desc_en": "Show detailed parameters of an ext filesystem",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置分区卷标",
+    "title_en": "Set ext volume label",
+    "command": "sudo e2label /dev/sdXn label",
+    "desc_zh": "设置ext分区的卷标",
+    "desc_en": "Set the volume label of an ext partition",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除逻辑卷",
+    "title_en": "Remove logical volume",
+    "command": "sudo lvremove ",
+    "desc_zh": "删除指定的逻辑卷",
+    "desc_en": "Remove a logical volume",
+    "distro": "common"
+  },
+  {
+    "title_zh": "卷组添加物理卷",
+    "title_en": "Extend volume group",
+    "command": "sudo vgextend vg0 ",
+    "desc_zh": "向卷组中添加物理卷",
+    "desc_en": "Add a physical volume to a volume group",
+    "distro": "common"
+  },
+  {
+    "title_zh": "组装RAID阵列",
+    "title_en": "Assemble RAID arrays",
+    "command": "sudo mdadm --assemble --scan",
+    "desc_zh": "扫描并组装已有的RAID阵列",
+    "desc_en": "Scan for and assemble existing RAID arrays",
+    "distro": "common"
+  },
+  {
+    "title_zh": "修复XFS文件系统",
+    "title_en": "Repair XFS filesystem",
+    "command": "sudo xfs_repair ",
+    "desc_zh": "检查并修复XFS文件系统",
+    "desc_en": "Check and repair an XFS filesystem",
+    "distro": "common"
+  },
+  {
+    "title_zh": "刷写磁盘缓存",
+    "title_en": "Flush disk buffers",
+    "command": "sync",
+    "desc_zh": "将缓存数据刷写到磁盘",
+    "desc_en": "Flush filesystem buffers to disk",
+    "distro": "common"
+  },
+  {
+    "title_zh": "TRIM固态硬盘",
+    "title_en": "Trim mounted filesystems",
+    "command": "sudo fstrim -av",
+    "desc_zh": "对已挂载文件系统执行TRIM",
+    "desc_en": "Run TRIM on all mounted filesystems",
+    "distro": "common"
+  },
+  {
+    "title_zh": "写入镜像到设备",
+    "title_en": "Write image to device",
+    "command": "sudo dd if= of=/dev/sdX bs=4M status=progress",
+    "desc_zh": "将镜像文件写入磁盘设备（如U盘）",
+    "desc_en": "Write an image file to a disk device such as USB",
+    "distro": "common"
+  },
+  {
+    "title_zh": "列出全部别名",
+    "title_en": "List all aliases",
+    "command": "alias",
+    "desc_zh": "列出当前定义的全部别名",
+    "desc_en": "List all currently defined aliases",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除别名",
+    "title_en": "Remove an alias",
+    "command": "unalias ",
+    "desc_zh": "删除已定义的别名",
+    "desc_en": "Remove a defined alias",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看命令历史",
+    "title_en": "Show command history",
+    "command": "history",
+    "desc_zh": "查看命令历史记录",
+    "desc_en": "Show the command history",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清空会话历史",
+    "title_en": "Clear session history",
+    "command": "history -c",
+    "desc_zh": "清空当前会话的命令历史",
+    "desc_en": "Clear the current session's history",
+    "distro": "common"
+  },
+  {
+    "title_zh": "追加PATH路径",
+    "title_en": "Append to PATH",
+    "command": "export PATH=\"$PATH:/new/path\"",
+    "desc_zh": "向PATH追加新的搜索路径",
+    "desc_en": "Append a new directory to PATH",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除环境变量",
+    "title_en": "Unset a variable",
+    "command": "unset ",
+    "desc_zh": "删除指定的环境变量",
+    "desc_en": "Remove an environment variable",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看变量的值",
+    "title_en": "Print one variable",
+    "command": "printenv ",
+    "desc_zh": "查看指定环境变量的值",
+    "desc_en": "Print the value of an environment variable",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看命令类型",
+    "title_en": "Show command type",
+    "command": "type ",
+    "desc_zh": "查看命令是别名、内建还是外部程序",
+    "desc_en": "Show whether a command is alias, builtin or binary",
+    "distro": "common"
+  },
+  {
+    "title_zh": "检查命令是否存在",
+    "title_en": "Check command exists",
+    "command": "command -v ",
+    "desc_zh": "检查命令是否存在并输出其路径",
+    "desc_en": "Check if a command exists and print its path",
+    "distro": "common"
+  },
+  {
+    "title_zh": "格式化输出",
+    "title_en": "Formatted print",
+    "command": "printf '%s\\n' ",
+    "desc_zh": "按格式输出文本",
+    "desc_en": "Print text with a format string",
+    "distro": "common"
+  },
+  {
+    "title_zh": "输出转义序列",
+    "title_en": "Echo with escapes",
+    "command": "echo -e ",
+    "desc_zh": "输出并解释转义序列",
+    "desc_en": "Print interpreting escape sequences",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看退出状态码",
+    "title_en": "Show exit status",
+    "command": "echo $?",
+    "desc_zh": "查看上一条命令的退出状态码",
+    "desc_en": "Show the exit status of the last command",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重载bash配置",
+    "title_en": "Reload bash config",
+    "command": "source ~/.bashrc",
+    "desc_zh": "重新加载bash配置文件",
+    "desc_en": "Reload the bash configuration file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "显示昨天日期",
+    "title_en": "Show yesterday's date",
+    "command": "date -d 'yesterday' '+%Y-%m-%d'",
+    "desc_zh": "输出昨天的日期",
+    "desc_en": "Print yesterday's date",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置系统时间",
+    "title_en": "Set system time",
+    "command": "sudo date -s ''",
+    "desc_zh": "手动设置系统日期时间",
+    "desc_en": "Manually set the system date and time",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成步进序列",
+    "title_en": "Sequence with step",
+    "command": "seq 0 5 100",
+    "desc_zh": "以步长5生成0到100的序列",
+    "desc_en": "Generate 0 to 100 stepping by 5",
+    "distro": "common"
+  },
+  {
+    "title_zh": "暂停若干秒",
+    "title_en": "Sleep for seconds",
+    "command": "sleep 5",
+    "desc_zh": "暂停执行5秒",
+    "desc_en": "Pause execution for 5 seconds",
+    "distro": "common"
+  },
+  {
+    "title_zh": "自动确认执行",
+    "title_en": "Auto-confirm prompts",
+    "command": "yes | command",
+    "desc_zh": "自动向命令的确认提示回答y",
+    "desc_en": "Automatically answer y to command prompts",
+    "distro": "common"
+  },
+  {
+    "title_zh": "追加输出到文件",
+    "title_en": "Tee append mode",
+    "command": "command | tee -a output.log",
+    "desc_zh": "输出到终端并追加写入文件",
+    "desc_en": "Pipe to terminal and append to a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "搜索手册页",
+    "title_en": "Search man pages",
+    "command": "man -k ",
+    "desc_zh": "按关键字搜索手册页",
+    "desc_en": "Search man pages by keyword",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看命令简介",
+    "title_en": "One-line description",
+    "command": "whatis ",
+    "desc_zh": "查看命令的一句话简介",
+    "desc_en": "Show a one-line command description",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清空终端屏幕",
+    "title_en": "Clear the screen",
+    "command": "clear",
+    "desc_zh": "清空终端屏幕内容",
+    "desc_en": "Clear the terminal screen",
+    "distro": "common"
+  },
+  {
+    "title_zh": "物理卷详细信息",
+    "title_en": "Physical volume details",
+    "command": "sudo pvdisplay",
+    "desc_zh": "查看物理卷的详细信息",
+    "desc_en": "Show detailed physical volume information",
+    "distro": "common"
+  },
+  {
+    "title_zh": "卷组详细信息",
+    "title_en": "Volume group details",
+    "command": "sudo vgdisplay",
+    "desc_zh": "查看卷组的详细信息",
+    "desc_en": "Show detailed volume group information",
+    "distro": "common"
+  },
+  {
+    "title_zh": "逻辑卷详细信息",
+    "title_en": "Logical volume details",
+    "command": "sudo lvdisplay",
+    "desc_zh": "查看逻辑卷的详细信息",
+    "desc_en": "Show detailed logical volume information",
+    "distro": "common"
+  },
+  {
+    "title_zh": "移除物理卷",
+    "title_en": "Remove physical volume",
+    "command": "sudo pvremove ",
+    "desc_zh": "移除LVM物理卷标记",
+    "desc_en": "Remove the LVM label from a physical volume",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除卷组",
+    "title_en": "Remove volume group",
+    "command": "sudo vgremove ",
+    "desc_zh": "删除指定的卷组",
+    "desc_en": "Remove a volume group",
+    "distro": "common"
+  },
+  {
+    "title_zh": "卷组移除物理卷",
+    "title_en": "Reduce volume group",
+    "command": "sudo vgreduce vg0 ",
+    "desc_zh": "从卷组中移除物理卷",
+    "desc_en": "Remove a physical volume from a volume group",
+    "distro": "common"
+  },
+  {
+    "title_zh": "缩小逻辑卷",
+    "title_en": "Reduce logical volume",
+    "command": "sudo lvreduce -r -L -5G ",
+    "desc_zh": "缩小逻辑卷及其文件系统",
+    "desc_en": "Shrink a logical volume and its filesystem",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重命名逻辑卷",
+    "title_en": "Rename logical volume",
+    "command": "sudo lvrename vg0 old_name new_name",
+    "desc_zh": "重命名卷组中的逻辑卷",
+    "desc_en": "Rename a logical volume within a volume group",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建LVM快照",
+    "title_en": "Create LVM snapshot",
+    "command": "sudo lvcreate -s -L 5G -n snap0 /dev/vg0/lv0",
+    "desc_zh": "为逻辑卷创建快照",
+    "desc_en": "Create a snapshot of a logical volume",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建RAID阵列",
+    "title_en": "Create RAID array",
+    "command": "sudo mdadm --create /dev/md0 --level=1 --raid-devices=2 /dev/sdX1 /dev/sdY1",
+    "desc_zh": "创建RAID1软件阵列",
+    "desc_en": "Create a software RAID1 array",
+    "distro": "common"
+  },
+  {
+    "title_zh": "停止RAID阵列",
+    "title_en": "Stop RAID array",
+    "command": "sudo mdadm --stop /dev/md0",
+    "desc_zh": "停止指定的RAID阵列",
+    "desc_en": "Stop a RAID array",
+    "distro": "common"
+  },
+  {
+    "title_zh": "添加RAID成员盘",
+    "title_en": "Add disk to RAID",
+    "command": "sudo mdadm --add /dev/md0 ",
+    "desc_zh": "向RAID阵列添加成员磁盘",
+    "desc_en": "Add a disk to a RAID array",
+    "distro": "common"
+  },
+  {
+    "title_zh": "启用swap文件",
+    "title_en": "Enable a swap file",
+    "command": "sudo swapon /swapfile",
+    "desc_zh": "启用指定的swap文件",
+    "desc_en": "Enable a specific swap file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "格式化为FAT32",
+    "title_en": "Format as FAT32",
+    "command": "sudo mkfs.vfat -F 32 ",
+    "desc_zh": "将分区格式化为FAT32（适用于U盘）",
+    "desc_en": "Format a partition as FAT32, e.g. for USB drives",
+    "distro": "common"
+  },
+  {
+    "title_zh": "终止用户全部进程",
+    "title_en": "Kill all user processes",
+    "command": "sudo pkill -u ",
+    "desc_zh": "终止指定用户的全部进程",
+    "desc_en": "Kill all processes of a user",
+    "distro": "common"
+  },
+  {
+    "title_zh": "等待进程结束",
+    "title_en": "Wait for process exit",
+    "command": "tail --pid= -f /dev/null",
+    "desc_zh": "阻塞等待指定PID的进程退出",
+    "desc_en": "Block until the process with the given PID exits",
     "distro": "common"
   }
 ]

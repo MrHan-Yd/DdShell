@@ -782,5 +782,1277 @@
     "desc_zh": "将80端口流量重定向到8080",
     "desc_en": "Redirect port 80 to 8080",
     "distro": "common"
+  },
+  {
+    "title_zh": "删除IP地址",
+    "title_en": "IP addr del",
+    "command": "sudo ip addr del /24 dev ",
+    "desc_zh": "删除网卡上的IP地址",
+    "desc_en": "Delete IP address from interface",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清空网卡地址",
+    "title_en": "IP addr flush",
+    "command": "sudo ip addr flush dev ",
+    "desc_zh": "清空网卡上的所有IP地址",
+    "desc_en": "Flush all IP addresses on interface",
+    "distro": "common"
+  },
+  {
+    "title_zh": "IPv6地址",
+    "title_en": "IPv6 addresses",
+    "command": "ip -6 addr",
+    "desc_zh": "显示IPv6地址信息",
+    "desc_en": "Show IPv6 addresses",
+    "distro": "common"
+  },
+  {
+    "title_zh": "链路收发统计",
+    "title_en": "Link statistics",
+    "command": "ip -s link",
+    "desc_zh": "显示网卡收发包统计",
+    "desc_en": "Show interface packet statistics",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置MTU",
+    "title_en": "Set MTU",
+    "command": "sudo ip link set  mtu 9000",
+    "desc_zh": "设置网卡MTU大小",
+    "desc_en": "Set interface MTU size",
+    "distro": "common"
+  },
+  {
+    "title_zh": "修改MAC地址",
+    "title_en": "Set MAC address",
+    "command": "sudo ip link set  address ",
+    "desc_zh": "修改网卡MAC地址",
+    "desc_en": "Change interface MAC address",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建网桥",
+    "title_en": "Add bridge",
+    "command": "sudo ip link add br0 type bridge",
+    "desc_zh": "创建网桥设备",
+    "desc_en": "Create a bridge device",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建veth对",
+    "title_en": "Add veth pair",
+    "command": "sudo ip link add veth0 type veth peer name veth1",
+    "desc_zh": "创建虚拟以太网设备对",
+    "desc_en": "Create a virtual ethernet pair",
+    "distro": "common"
+  },
+  {
+    "title_zh": "加入网桥",
+    "title_en": "Attach to bridge",
+    "command": "sudo ip link set  master br0",
+    "desc_zh": "将网卡加入网桥",
+    "desc_en": "Attach interface to bridge",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除虚拟网卡",
+    "title_en": "Delete link",
+    "command": "sudo ip link del ",
+    "desc_zh": "删除虚拟网络设备",
+    "desc_en": "Delete virtual network device",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查询路由走向",
+    "title_en": "Route lookup",
+    "command": "ip route get ",
+    "desc_zh": "查询到目标地址实际使用的路由",
+    "desc_en": "Show route used for a destination",
+    "distro": "common"
+  },
+  {
+    "title_zh": "添加默认路由",
+    "title_en": "Add default route",
+    "command": "sudo ip route add default via ",
+    "desc_zh": "添加默认网关路由",
+    "desc_en": "Add default gateway route",
+    "distro": "common"
+  },
+  {
+    "title_zh": "替换路由",
+    "title_en": "Replace route",
+    "command": "sudo ip route replace  via ",
+    "desc_zh": "替换已有路由条目",
+    "desc_en": "Replace an existing route",
+    "distro": "common"
+  },
+  {
+    "title_zh": "全部路由表",
+    "title_en": "All route tables",
+    "command": "ip route show table all",
+    "desc_zh": "显示所有路由表内容",
+    "desc_en": "Show all routing tables",
+    "distro": "common"
+  },
+  {
+    "title_zh": "添加静态ARP",
+    "title_en": "Neigh add",
+    "command": "sudo ip neigh add  lladdr  dev ",
+    "desc_zh": "添加静态ARP条目",
+    "desc_en": "Add static ARP entry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除ARP条目",
+    "title_en": "Neigh delete",
+    "command": "sudo ip neigh del  dev ",
+    "desc_zh": "删除指定ARP条目",
+    "desc_en": "Delete an ARP entry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清空ARP表",
+    "title_en": "Neigh flush",
+    "command": "sudo ip neigh flush dev ",
+    "desc_zh": "清空网卡的ARP表",
+    "desc_en": "Flush ARP entries on interface",
+    "distro": "common"
+  },
+  {
+    "title_zh": "策略路由规则",
+    "title_en": "IP rule list",
+    "command": "ip rule list",
+    "desc_zh": "显示策略路由规则",
+    "desc_en": "Show policy routing rules",
+    "distro": "common"
+  },
+  {
+    "title_zh": "添加策略路由",
+    "title_en": "IP rule add",
+    "command": "sudo ip rule add from  table 100",
+    "desc_zh": "按源地址添加策略路由规则",
+    "desc_en": "Add policy routing rule by source",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除策略路由",
+    "title_en": "IP rule delete",
+    "command": "sudo ip rule del from  table 100",
+    "desc_zh": "删除策略路由规则",
+    "desc_en": "Delete policy routing rule",
+    "distro": "common"
+  },
+  {
+    "title_zh": "网络命名空间",
+    "title_en": "Netns list",
+    "command": "ip netns list",
+    "desc_zh": "列出网络命名空间",
+    "desc_en": "List network namespaces",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建命名空间",
+    "title_en": "Netns add",
+    "command": "sudo ip netns add ",
+    "desc_zh": "创建网络命名空间",
+    "desc_en": "Create network namespace",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除命名空间",
+    "title_en": "Netns delete",
+    "command": "sudo ip netns del ",
+    "desc_zh": "删除网络命名空间",
+    "desc_en": "Delete network namespace",
+    "distro": "common"
+  },
+  {
+    "title_zh": "命名空间执行",
+    "title_en": "Netns exec",
+    "command": "sudo ip netns exec  bash",
+    "desc_zh": "在网络命名空间中执行命令",
+    "desc_en": "Run command in a network namespace",
+    "distro": "common"
+  },
+  {
+    "title_zh": "监控网络事件",
+    "title_en": "IP monitor",
+    "command": "ip monitor all",
+    "desc_zh": "实时监控网络状态变化",
+    "desc_en": "Monitor network state changes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "已建立TCP连接",
+    "title_en": "Established TCP",
+    "command": "ss -t state established",
+    "desc_zh": "显示已建立的TCP连接",
+    "desc_en": "Show established TCP connections",
+    "distro": "common"
+  },
+  {
+    "title_zh": "TCP详细信息",
+    "title_en": "TCP internal info",
+    "command": "ss -ti",
+    "desc_zh": "显示TCP连接内部信息（RTT/窗口）",
+    "desc_en": "Show TCP internals (RTT/window)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Unix套接字",
+    "title_en": "Unix sockets",
+    "command": "ss -x",
+    "desc_zh": "显示Unix域套接字",
+    "desc_en": "Show Unix domain sockets",
+    "distro": "common"
+  },
+  {
+    "title_zh": "IPv6 TCP连接",
+    "title_en": "IPv6 TCP connections",
+    "command": "ss -6 -tn",
+    "desc_zh": "显示IPv6 TCP连接",
+    "desc_en": "Show IPv6 TCP connections",
+    "distro": "common"
+  },
+  {
+    "title_zh": "路由表（旧版）",
+    "title_en": "Netstat routes",
+    "command": "netstat -rn",
+    "desc_zh": "显示路由表（旧版命令）",
+    "desc_en": "Show routing table (legacy)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "接口统计（旧版）",
+    "title_en": "Netstat interfaces",
+    "command": "netstat -i",
+    "desc_zh": "显示网络接口统计（旧版命令）",
+    "desc_en": "Show interface statistics (legacy)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "协议统计（旧版）",
+    "title_en": "Netstat statistics",
+    "command": "netstat -s",
+    "desc_zh": "显示各协议统计信息（旧版命令）",
+    "desc_en": "Show per-protocol statistics (legacy)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "快速Ping",
+    "title_en": "Ping fast interval",
+    "command": "ping -i 0.2 ",
+    "desc_zh": "以0.2秒间隔快速Ping",
+    "desc_en": "Ping with 0.2s interval",
+    "distro": "common"
+  },
+  {
+    "title_zh": "指定包大小Ping",
+    "title_en": "Ping packet size",
+    "command": "ping -s 1400 ",
+    "desc_zh": "使用1400字节大包Ping主机",
+    "desc_en": "Ping with 1400-byte packets",
+    "distro": "common"
+  },
+  {
+    "title_zh": "指定网卡Ping",
+    "title_en": "Ping via interface",
+    "command": "ping -I eth0 ",
+    "desc_zh": "从指定网卡发出Ping",
+    "desc_en": "Ping from a specific interface",
+    "distro": "common"
+  },
+  {
+    "title_zh": "IPv6 Ping",
+    "title_en": "Ping IPv6",
+    "command": "ping -6 ",
+    "desc_zh": "Ping IPv6主机",
+    "desc_en": "Ping an IPv6 host",
+    "distro": "common"
+  },
+  {
+    "title_zh": "路由追踪（不解析）",
+    "title_en": "Traceroute numeric",
+    "command": "traceroute -n ",
+    "desc_zh": "路由追踪且不解析主机名",
+    "desc_en": "Trace route without DNS resolution",
+    "distro": "common"
+  },
+  {
+    "title_zh": "TCP路由追踪",
+    "title_en": "Traceroute TCP",
+    "command": "sudo traceroute -T -p 443 ",
+    "desc_zh": "使用TCP SYN进行路由追踪",
+    "desc_en": "Trace route using TCP SYN",
+    "distro": "common"
+  },
+  {
+    "title_zh": "ICMP路由追踪",
+    "title_en": "Traceroute ICMP",
+    "command": "sudo traceroute -I ",
+    "desc_zh": "使用ICMP进行路由追踪",
+    "desc_en": "Trace route using ICMP echo",
+    "distro": "common"
+  },
+  {
+    "title_zh": "交互式网络诊断",
+    "title_en": "MTR interactive",
+    "command": "mtr ",
+    "desc_zh": "实时交互式网络诊断",
+    "desc_en": "Interactive network diagnostics",
+    "distro": "common"
+  },
+  {
+    "title_zh": "网络诊断（不解析）",
+    "title_en": "MTR numeric",
+    "command": "mtr -n ",
+    "desc_zh": "网络诊断且不解析主机名",
+    "desc_en": "Network diagnostics without DNS",
+    "distro": "common"
+  },
+  {
+    "title_zh": "IP冲突检测",
+    "title_en": "Arping duplicate detect",
+    "command": "arping -D -c 2 ",
+    "desc_zh": "检测局域网IP地址冲突",
+    "desc_en": "Detect duplicate IP on LAN",
+    "distro": "common"
+  },
+  {
+    "title_zh": "DNS TXT记录",
+    "title_en": "DNS TXT records",
+    "command": "dig TXT ",
+    "desc_zh": "查询域名TXT记录",
+    "desc_en": "Lookup TXT records",
+    "distro": "common"
+  },
+  {
+    "title_zh": "DNS AAAA记录",
+    "title_en": "DNS AAAA records",
+    "command": "dig AAAA ",
+    "desc_zh": "查询域名IPv6地址记录",
+    "desc_en": "Lookup IPv6 address records",
+    "distro": "common"
+  },
+  {
+    "title_zh": "DNS CNAME记录",
+    "title_en": "DNS CNAME records",
+    "command": "dig CNAME ",
+    "desc_zh": "查询域名别名记录",
+    "desc_en": "Lookup CNAME records",
+    "distro": "common"
+  },
+  {
+    "title_zh": "反向DNS解析",
+    "title_en": "DNS reverse lookup",
+    "command": "dig -x ",
+    "desc_zh": "根据IP反查域名",
+    "desc_en": "Reverse DNS lookup for an IP",
+    "distro": "common"
+  },
+  {
+    "title_zh": "指定DNS服务器",
+    "title_en": "DNS custom server",
+    "command": "dig @8.8.8.8 ",
+    "desc_zh": "使用指定DNS服务器查询",
+    "desc_en": "Query via a specific DNS server",
+    "distro": "common"
+  },
+  {
+    "title_zh": "DNS解析追踪",
+    "title_en": "DNS trace",
+    "command": "dig +trace ",
+    "desc_zh": "从根服务器追踪DNS解析过程",
+    "desc_en": "Trace DNS resolution from root",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NS查询MX记录",
+    "title_en": "Nslookup MX",
+    "command": "nslookup -type=mx ",
+    "desc_zh": "使用nslookup查询MX记录",
+    "desc_en": "Lookup MX records with nslookup",
+    "distro": "common"
+  },
+  {
+    "title_zh": "主机全记录查询",
+    "title_en": "Host all records",
+    "command": "host -a ",
+    "desc_zh": "查询主机的全部DNS记录",
+    "desc_en": "Query all DNS records for a host",
+    "distro": "common"
+  },
+  {
+    "title_zh": "解析域名",
+    "title_en": "Resolvectl query",
+    "command": "resolvectl query ",
+    "desc_zh": "通过systemd-resolved解析域名",
+    "desc_en": "Resolve a domain via systemd-resolved",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清空DNS缓存",
+    "title_en": "Resolvectl flush cache",
+    "command": "sudo resolvectl flush-caches",
+    "desc_zh": "清空systemd-resolved DNS缓存",
+    "desc_en": "Flush systemd-resolved DNS cache",
+    "distro": "common"
+  },
+  {
+    "title_zh": "DNS解析统计",
+    "title_en": "Resolvectl statistics",
+    "command": "resolvectl statistics",
+    "desc_zh": "显示DNS解析统计信息",
+    "desc_en": "Show DNS resolver statistics",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按原名下载",
+    "title_en": "Curl remote name",
+    "command": "curl -O ",
+    "desc_zh": "按远程文件名下载文件",
+    "desc_en": "Download keeping remote filename",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PUT请求",
+    "title_en": "Curl PUT",
+    "command": "curl -X PUT -d '' ",
+    "desc_zh": "发送HTTP PUT请求",
+    "desc_en": "Send HTTP PUT request",
+    "distro": "common"
+  },
+  {
+    "title_zh": "DELETE请求",
+    "title_en": "Curl DELETE",
+    "command": "curl -X DELETE ",
+    "desc_zh": "发送HTTP DELETE请求",
+    "desc_en": "Send HTTP DELETE request",
+    "distro": "common"
+  },
+  {
+    "title_zh": "表单上传文件",
+    "title_en": "Curl multipart upload",
+    "command": "curl -F 'file=@' ",
+    "desc_zh": "以multipart表单上传文件",
+    "desc_en": "Upload file via multipart form",
+    "distro": "common"
+  },
+  {
+    "title_zh": "携带Cookie请求",
+    "title_en": "Curl cookies",
+    "command": "curl -b cookies.txt -c cookies.txt ",
+    "desc_zh": "读取并保存Cookie的请求",
+    "desc_en": "Request with cookie read/save",
+    "distro": "common"
+  },
+  {
+    "title_zh": "走代理请求",
+    "title_en": "Curl via proxy",
+    "command": "curl -x http://proxy:8080 ",
+    "desc_zh": "通过HTTP代理发起请求",
+    "desc_en": "Request through an HTTP proxy",
+    "distro": "common"
+  },
+  {
+    "title_zh": "失败自动重试",
+    "title_en": "Curl retry",
+    "command": "curl --retry 3 ",
+    "desc_zh": "失败时自动重试3次",
+    "desc_en": "Retry request up to 3 times",
+    "distro": "common"
+  },
+  {
+    "title_zh": "请求超时限制",
+    "title_en": "Curl max time",
+    "command": "curl --max-time 10 ",
+    "desc_zh": "限制请求最长10秒",
+    "desc_en": "Limit request to 10 seconds",
+    "distro": "common"
+  },
+  {
+    "title_zh": "自定义User-Agent",
+    "title_en": "Curl user agent",
+    "command": "curl -A 'Mozilla/5.0' ",
+    "desc_zh": "使用自定义User-Agent请求",
+    "desc_en": "Request with custom User-Agent",
+    "distro": "common"
+  },
+  {
+    "title_zh": "静默下载",
+    "title_en": "Wget quiet",
+    "command": "wget -q ",
+    "desc_zh": "静默模式下载文件",
+    "desc_en": "Download file quietly",
+    "distro": "common"
+  },
+  {
+    "title_zh": "后台下载",
+    "title_en": "Wget background",
+    "command": "wget -b ",
+    "desc_zh": "后台下载文件",
+    "desc_en": "Download file in background",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Wget限速下载",
+    "title_en": "Wget limit rate",
+    "command": "wget --limit-rate=1m ",
+    "desc_zh": "限速下载（wget）",
+    "desc_en": "Download with rate limit (wget)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "下载到目录",
+    "title_en": "Wget to directory",
+    "command": "wget -P /tmp ",
+    "desc_zh": "下载文件到指定目录",
+    "desc_en": "Download file to a directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "递归下载页面",
+    "title_en": "Wget recursive",
+    "command": "wget -r -np -k ",
+    "desc_zh": "递归下载页面及资源",
+    "desc_en": "Download pages recursively",
+    "distro": "common"
+  },
+  {
+    "title_zh": "跳过证书下载",
+    "title_en": "Wget no check cert",
+    "command": "wget --no-check-certificate ",
+    "desc_zh": "跳过SSL证书验证下载",
+    "desc_en": "Download skipping SSL verification",
+    "distro": "common"
+  },
+  {
+    "title_zh": "检测链接有效性",
+    "title_en": "Wget spider",
+    "command": "wget --spider ",
+    "desc_zh": "只检测链接是否有效不下载",
+    "desc_en": "Check URL validity without download",
+    "distro": "common"
+  },
+  {
+    "title_zh": "指定密钥连接",
+    "title_en": "SSH with identity",
+    "command": "ssh -i ~/.ssh/id_ed25519 user@host",
+    "desc_zh": "使用指定私钥SSH连接",
+    "desc_en": "SSH connect with specific key",
+    "distro": "common"
+  },
+  {
+    "title_zh": "X11转发",
+    "title_en": "SSH X11 forward",
+    "command": "ssh -X user@host",
+    "desc_zh": "启用X11图形转发连接",
+    "desc_en": "SSH connect with X11 forwarding",
+    "distro": "common"
+  },
+  {
+    "title_zh": "后台端口转发",
+    "title_en": "SSH background tunnel",
+    "command": "ssh -fN -L 3306:localhost:3306 user@host",
+    "desc_zh": "后台运行SSH端口转发",
+    "desc_en": "Run SSH port forward in background",
+    "distro": "common"
+  },
+  {
+    "title_zh": "SSH调试连接",
+    "title_en": "SSH verbose",
+    "command": "ssh -v user@host",
+    "desc_zh": "显示详细调试信息的SSH连接",
+    "desc_en": "SSH connect with debug output",
+    "distro": "common"
+  },
+  {
+    "title_zh": "跳过主机验证",
+    "title_en": "SSH skip host check",
+    "command": "ssh -o StrictHostKeyChecking=no user@host",
+    "desc_zh": "跳过主机密钥验证连接",
+    "desc_en": "SSH connect skipping host key check",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Agent转发连接",
+    "title_en": "SSH agent forward",
+    "command": "ssh -A user@host",
+    "desc_zh": "启用Agent转发的SSH连接",
+    "desc_en": "SSH connect with agent forwarding",
+    "distro": "common"
+  },
+  {
+    "title_zh": "保持连接活跃",
+    "title_en": "SSH keep alive",
+    "command": "ssh -o ServerAliveInterval=60 user@host",
+    "desc_zh": "定期发送保活包防止断连",
+    "desc_en": "SSH connect with keep-alive packets",
+    "distro": "common"
+  },
+  {
+    "title_zh": "远程间复制",
+    "title_en": "SCP remote to remote",
+    "command": "scp user@host1:/path/file user@host2:/path/",
+    "desc_zh": "在两台远程主机间复制文件",
+    "desc_en": "Copy file between remote hosts",
+    "distro": "common"
+  },
+  {
+    "title_zh": "压缩传输",
+    "title_en": "SCP compressed",
+    "command": "scp -C  user@host:/path/",
+    "desc_zh": "启用压缩上传文件",
+    "desc_en": "Copy file with compression",
+    "distro": "common"
+  },
+  {
+    "title_zh": "SFTP连接",
+    "title_en": "SFTP connect",
+    "command": "sftp user@host",
+    "desc_zh": "建立SFTP交互会话",
+    "desc_en": "Start interactive SFTP session",
+    "distro": "common"
+  },
+  {
+    "title_zh": "SFTP指定端口",
+    "title_en": "SFTP with port",
+    "command": "sftp -P 2222 user@host",
+    "desc_zh": "使用自定义端口SFTP连接",
+    "desc_en": "SFTP connect with custom port",
+    "distro": "common"
+  },
+  {
+    "title_zh": "SFTP批处理",
+    "title_en": "SFTP batch mode",
+    "command": "sftp -b batch.txt user@host",
+    "desc_zh": "按批处理文件执行SFTP命令",
+    "desc_en": "Run SFTP commands from batch file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "修改密钥口令",
+    "title_en": "SSH key passphrase",
+    "command": "ssh-keygen -p -f ~/.ssh/id_ed25519",
+    "desc_zh": "修改SSH私钥口令",
+    "desc_en": "Change SSH key passphrase",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看密钥指纹",
+    "title_en": "SSH key fingerprint",
+    "command": "ssh-keygen -lf ~/.ssh/id_ed25519.pub",
+    "desc_zh": "查看SSH密钥指纹",
+    "desc_en": "Show SSH key fingerprint",
+    "distro": "common"
+  },
+  {
+    "title_zh": "导出公钥",
+    "title_en": "SSH key export public",
+    "command": "ssh-keygen -y -f ~/.ssh/id_ed25519",
+    "desc_zh": "从私钥导出公钥",
+    "desc_en": "Derive public key from private key",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清空Agent密钥",
+    "title_en": "SSH agent clear keys",
+    "command": "ssh-add -D",
+    "desc_zh": "删除Agent中所有密钥",
+    "desc_en": "Remove all keys from agent",
+    "distro": "common"
+  },
+  {
+    "title_zh": "启动SSH Agent",
+    "title_en": "SSH agent start",
+    "command": "eval \"$(ssh-agent -s)\"",
+    "desc_zh": "启动SSH Agent并导入环境变量",
+    "desc_en": "Start SSH agent and export env",
+    "distro": "common"
+  },
+  {
+    "title_zh": "停止SSH Agent",
+    "title_en": "SSH agent kill",
+    "command": "ssh-agent -k",
+    "desc_zh": "停止当前SSH Agent进程",
+    "desc_en": "Kill the current SSH agent",
+    "distro": "common"
+  },
+  {
+    "title_zh": "复制指定公钥",
+    "title_en": "SSH copy specific key",
+    "command": "ssh-copy-id -i ~/.ssh/id_ed25519.pub user@host",
+    "desc_zh": "将指定公钥复制到远程主机",
+    "desc_en": "Copy a specific key to remote host",
+    "distro": "common"
+  },
+  {
+    "title_zh": "同步预演",
+    "title_en": "Rsync dry run",
+    "command": "rsync -avzn --delete ",
+    "desc_zh": "预演同步操作不实际执行",
+    "desc_en": "Preview sync without changes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "本地目录同步",
+    "title_en": "Rsync local",
+    "command": "rsync -av /src/ /dest/",
+    "desc_zh": "同步本地目录内容",
+    "desc_en": "Sync local directories",
+    "distro": "common"
+  },
+  {
+    "title_zh": "从远程拉取",
+    "title_en": "Rsync pull",
+    "command": "rsync -avz user@host:/path/ ./",
+    "desc_zh": "从远程主机拉取文件",
+    "desc_en": "Pull files from remote host",
+    "distro": "common"
+  },
+  {
+    "title_zh": "断点续传同步",
+    "title_en": "Rsync partial",
+    "command": "rsync -avz --partial --progress ",
+    "desc_zh": "支持断点续传的同步",
+    "desc_en": "Sync with resumable transfers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "限速同步",
+    "title_en": "Rsync bandwidth limit",
+    "command": "rsync -avz --bwlimit=1m ",
+    "desc_zh": "限制同步带宽",
+    "desc_en": "Sync with bandwidth limit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "UDP端口测试",
+    "title_en": "Netcat UDP test",
+    "command": "nc -zvu  ",
+    "desc_zh": "测试UDP端口是否开放",
+    "desc_en": "Test if a UDP port is open",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Netcat接收文件",
+    "title_en": "Netcat receive file",
+    "command": "nc -l 9999 > received.file",
+    "desc_zh": "监听端口接收文件",
+    "desc_en": "Receive a file over netcat",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Netcat发送文件",
+    "title_en": "Netcat send file",
+    "command": "nc  9999 < file",
+    "desc_zh": "通过netcat发送文件",
+    "desc_en": "Send a file over netcat",
+    "distro": "common"
+  },
+  {
+    "title_zh": "连接远程端口",
+    "title_en": "Netcat connect",
+    "command": "nc -v  ",
+    "desc_zh": "连接远程主机端口交互",
+    "desc_en": "Connect to a remote port",
+    "distro": "common"
+  },
+  {
+    "title_zh": "UDP端口转发",
+    "title_en": "Socat UDP forward",
+    "command": "socat UDP-LISTEN:5353,fork UDP:8.8.8.8:53",
+    "desc_zh": "将UDP流量转发到远端",
+    "desc_en": "Forward UDP traffic to remote",
+    "distro": "common"
+  },
+  {
+    "title_zh": "连接Unix套接字",
+    "title_en": "Socat unix socket",
+    "command": "socat - UNIX-CONNECT:/var/run/docker.sock",
+    "desc_zh": "连接Unix域套接字交互",
+    "desc_en": "Connect to a Unix domain socket",
+    "distro": "common"
+  },
+  {
+    "title_zh": "主机发现",
+    "title_en": "Nmap ping scan",
+    "command": "nmap -sn 192.168.1.0/24",
+    "desc_zh": "扫描网段内在线主机",
+    "desc_en": "Discover live hosts on subnet",
+    "distro": "common"
+  },
+  {
+    "title_zh": "SYN隐蔽扫描",
+    "title_en": "Nmap SYN scan",
+    "command": "sudo nmap -sS ",
+    "desc_zh": "TCP SYN半开放扫描",
+    "desc_en": "TCP SYN stealth scan",
+    "distro": "common"
+  },
+  {
+    "title_zh": "UDP端口扫描",
+    "title_en": "Nmap UDP scan",
+    "command": "sudo nmap -sU ",
+    "desc_zh": "扫描UDP端口",
+    "desc_en": "Scan UDP ports",
+    "distro": "common"
+  },
+  {
+    "title_zh": "操作系统识别",
+    "title_en": "Nmap OS detect",
+    "command": "sudo nmap -O ",
+    "desc_zh": "探测目标操作系统类型",
+    "desc_en": "Detect target operating system",
+    "distro": "common"
+  },
+  {
+    "title_zh": "综合扫描",
+    "title_en": "Nmap aggressive",
+    "command": "nmap -A ",
+    "desc_zh": "综合扫描（系统/版本/脚本/路由）",
+    "desc_en": "Aggressive scan (OS/version/scripts)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "指定端口扫描",
+    "title_en": "Nmap specific ports",
+    "command": "nmap -p 22,80,443 ",
+    "desc_zh": "扫描指定端口",
+    "desc_en": "Scan specific ports",
+    "distro": "common"
+  },
+  {
+    "title_zh": "快速扫描",
+    "title_en": "Nmap fast scan",
+    "command": "nmap -F ",
+    "desc_zh": "快速扫描常见100个端口",
+    "desc_en": "Fast scan of top 100 ports",
+    "distro": "common"
+  },
+  {
+    "title_zh": "漏洞脚本扫描",
+    "title_en": "Nmap vuln scripts",
+    "command": "nmap --script vuln ",
+    "desc_zh": "使用漏洞检测脚本扫描",
+    "desc_en": "Scan with vulnerability scripts",
+    "distro": "common"
+  },
+  {
+    "title_zh": "读取抓包文件",
+    "title_en": "TCP dump read pcap",
+    "command": "tcpdump -r capture.pcap",
+    "desc_zh": "读取并解析pcap抓包文件",
+    "desc_en": "Read packets from pcap file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按源地址抓包",
+    "title_en": "TCP dump by source",
+    "command": "sudo tcpdump -i any src ",
+    "desc_zh": "抓取指定源地址的数据包",
+    "desc_en": "Capture packets from a source",
+    "distro": "common"
+  },
+  {
+    "title_zh": "抓ICMP包",
+    "title_en": "TCP dump ICMP",
+    "command": "sudo tcpdump -i any icmp",
+    "desc_zh": "抓取ICMP协议数据包",
+    "desc_en": "Capture ICMP packets",
+    "distro": "common"
+  },
+  {
+    "title_zh": "抓DNS查询包",
+    "title_en": "TCP dump DNS",
+    "command": "sudo tcpdump -i any udp port 53",
+    "desc_zh": "抓取DNS查询数据包",
+    "desc_en": "Capture DNS query packets",
+    "distro": "common"
+  },
+  {
+    "title_zh": "ASCII显示内容",
+    "title_en": "TCP dump ASCII",
+    "command": "sudo tcpdump -i any -A port 80",
+    "desc_zh": "以ASCII显示数据包内容",
+    "desc_en": "Show packet payload as ASCII",
+    "distro": "common"
+  },
+  {
+    "title_zh": "限制抓包数量",
+    "title_en": "TCP dump count",
+    "command": "sudo tcpdump -i eth0 -c 100 -nn",
+    "desc_zh": "抓取100个包后自动停止",
+    "desc_en": "Capture 100 packets then stop",
+    "distro": "common"
+  },
+  {
+    "title_zh": "带行号列出规则",
+    "title_en": "Iptables line numbers",
+    "command": "sudo iptables -L --line-numbers",
+    "desc_zh": "带行号列出防火墙规则",
+    "desc_en": "List rules with line numbers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按行号删除规则",
+    "title_en": "Iptables delete rule",
+    "command": "sudo iptables -D INPUT ",
+    "desc_zh": "按行号删除INPUT链规则",
+    "desc_en": "Delete INPUT rule by number",
+    "distro": "common"
+  },
+  {
+    "title_zh": "插入规则到最前",
+    "title_en": "Iptables insert rule",
+    "command": "sudo iptables -I INPUT 1 -p tcp --dport 22 -j ACCEPT",
+    "desc_zh": "在链首插入允许规则",
+    "desc_en": "Insert rule at top of chain",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置默认策略",
+    "title_en": "Iptables default policy",
+    "command": "sudo iptables -P INPUT DROP",
+    "desc_zh": "设置INPUT链默认拒绝",
+    "desc_en": "Set INPUT default policy to DROP",
+    "distro": "common"
+  },
+  {
+    "title_zh": "源地址伪装",
+    "title_en": "Iptables masquerade",
+    "command": "sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE",
+    "desc_zh": "启用出口NAT地址伪装",
+    "desc_en": "Enable outbound NAT masquerade",
+    "distro": "common"
+  },
+  {
+    "title_zh": "DNAT端口转发",
+    "title_en": "Iptables DNAT",
+    "command": "sudo iptables -t nat -A PREROUTING -p tcp --dport  -j DNAT --to-destination ",
+    "desc_zh": "将端口流量转发到其他地址",
+    "desc_en": "Forward port traffic via DNAT",
+    "distro": "common"
+  },
+  {
+    "title_zh": "恢复防火墙规则",
+    "title_en": "Iptables restore",
+    "command": "sudo iptables-restore < /etc/iptables/rules.v4",
+    "desc_zh": "从文件恢复防火墙规则",
+    "desc_en": "Restore iptables rules from file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "IPv6防火墙规则",
+    "title_en": "Ip6tables list",
+    "command": "sudo ip6tables -L -n -v",
+    "desc_zh": "列出IPv6防火墙规则",
+    "desc_en": "List IPv6 firewall rules",
+    "distro": "common"
+  },
+  {
+    "title_zh": "列出nft表",
+    "title_en": "Nft list tables",
+    "command": "sudo nft list tables",
+    "desc_zh": "列出nftables所有表",
+    "desc_en": "List all nftables tables",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建nft表",
+    "title_en": "Nft add table",
+    "command": "sudo nft add table inet filter",
+    "desc_zh": "创建nftables过滤表",
+    "desc_en": "Create an nftables table",
+    "distro": "common"
+  },
+  {
+    "title_zh": "创建nft链",
+    "title_en": "Nft add chain",
+    "command": "sudo nft add chain inet filter input '{ type filter hook input priority 0 ; }'",
+    "desc_zh": "创建挂载input钩子的链",
+    "desc_en": "Create chain hooked to input",
+    "distro": "common"
+  },
+  {
+    "title_zh": "添加nft规则",
+    "title_en": "Nft add rule",
+    "command": "sudo nft add rule inet filter input tcp dport 22 accept",
+    "desc_zh": "添加允许SSH端口的规则",
+    "desc_en": "Add rule allowing SSH port",
+    "distro": "common"
+  },
+  {
+    "title_zh": "显示规则句柄",
+    "title_en": "Nft list handles",
+    "command": "sudo nft -a list ruleset",
+    "desc_zh": "带句柄列出规则便于删除",
+    "desc_en": "List rules with handles",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清空nft规则",
+    "title_en": "Nft flush ruleset",
+    "command": "sudo nft flush ruleset",
+    "desc_zh": "清空全部nftables规则（谨慎操作）",
+    "desc_en": "Flush all nftables rules (use with care)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "网卡驱动信息",
+    "title_en": "Ethtool driver info",
+    "command": "ethtool -i eth0",
+    "desc_zh": "查看网卡驱动和固件信息",
+    "desc_en": "Show NIC driver and firmware info",
+    "distro": "common"
+  },
+  {
+    "title_zh": "网卡Offload特性",
+    "title_en": "Ethtool features",
+    "command": "ethtool -k eth0",
+    "desc_zh": "查看网卡硬件卸载特性",
+    "desc_en": "Show NIC offload features",
+    "distro": "common"
+  },
+  {
+    "title_zh": "网卡环形缓冲",
+    "title_en": "Ethtool ring buffer",
+    "command": "ethtool -g eth0",
+    "desc_zh": "查看网卡环形缓冲区大小",
+    "desc_en": "Show NIC ring buffer sizes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置网卡速率",
+    "title_en": "Ethtool set speed",
+    "command": "sudo ethtool -s eth0 speed 1000 duplex full",
+    "desc_zh": "设置网卡速率和双工模式",
+    "desc_en": "Set NIC speed and duplex",
+    "distro": "common"
+  },
+  {
+    "title_zh": "网卡指示灯定位",
+    "title_en": "Ethtool identify",
+    "command": "sudo ethtool -p eth0",
+    "desc_zh": "闪烁网卡指示灯定位物理网口",
+    "desc_en": "Blink NIC LED to locate port",
+    "distro": "common"
+  },
+  {
+    "title_zh": "反向带宽测试",
+    "title_en": "Iperf3 reverse",
+    "command": "iperf3 -c  -R",
+    "desc_zh": "测试服务端到客户端带宽",
+    "desc_en": "Test server-to-client bandwidth",
+    "distro": "common"
+  },
+  {
+    "title_zh": "UDP带宽测试",
+    "title_en": "Iperf3 UDP",
+    "command": "iperf3 -c  -u -b 100M",
+    "desc_zh": "以100M速率测试UDP带宽",
+    "desc_en": "UDP bandwidth test at 100M",
+    "distro": "common"
+  },
+  {
+    "title_zh": "多流带宽测试",
+    "title_en": "Iperf3 parallel",
+    "command": "iperf3 -c  -P 4",
+    "desc_zh": "使用4个并行流测试带宽",
+    "desc_en": "Bandwidth test with 4 streams",
+    "distro": "common"
+  },
+  {
+    "title_zh": "自定义时长测试",
+    "title_en": "Iperf3 duration",
+    "command": "iperf3 -c  -t 30 -p 5202",
+    "desc_zh": "自定义端口测试30秒带宽",
+    "desc_en": "30-second test on custom port",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成RSA私钥",
+    "title_en": "OpenSSL genrsa",
+    "command": "openssl genrsa -out key.pem 2048",
+    "desc_zh": "生成2048位RSA私钥",
+    "desc_en": "Generate 2048-bit RSA private key",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成ED25519私钥",
+    "title_en": "OpenSSL genpkey",
+    "command": "openssl genpkey -algorithm ED25519 -out key.pem",
+    "desc_zh": "生成ED25519私钥",
+    "desc_en": "Generate ED25519 private key",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成证书请求",
+    "title_en": "OpenSSL CSR",
+    "command": "openssl req -new -key key.pem -out csr.pem",
+    "desc_zh": "使用私钥生成证书签名请求",
+    "desc_en": "Generate certificate signing request",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看CSR内容",
+    "title_en": "OpenSSL view CSR",
+    "command": "openssl req -in csr.pem -text -noout",
+    "desc_zh": "查看证书请求的详细内容",
+    "desc_en": "View CSR details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "签发证书",
+    "title_en": "OpenSSL sign cert",
+    "command": "openssl x509 -req -in csr.pem -signkey key.pem -days 365 -out cert.pem",
+    "desc_zh": "用私钥签发一年期证书",
+    "desc_en": "Sign a 1-year certificate from CSR",
+    "distro": "common"
+  },
+  {
+    "title_zh": "校验RSA私钥",
+    "title_en": "OpenSSL check key",
+    "command": "openssl rsa -in key.pem -check",
+    "desc_zh": "检查RSA私钥完整性",
+    "desc_en": "Verify RSA private key integrity",
+    "distro": "common"
+  },
+  {
+    "title_zh": "验证证书链",
+    "title_en": "OpenSSL verify chain",
+    "command": "openssl verify -CAfile ca.pem cert.pem",
+    "desc_zh": "使用CA证书验证证书链",
+    "desc_en": "Verify certificate against CA",
+    "distro": "common"
+  },
+  {
+    "title_zh": "导出PKCS12",
+    "title_en": "OpenSSL PKCS12 export",
+    "command": "openssl pkcs12 -export -inkey key.pem -in cert.pem -out cert.p12",
+    "desc_zh": "导出证书和私钥为P12文件",
+    "desc_en": "Export cert and key to PKCS12",
+    "distro": "common"
+  },
+  {
+    "title_zh": "AES加密文件",
+    "title_en": "OpenSSL encrypt file",
+    "command": "openssl enc -aes-256-cbc -salt -pbkdf2 -in  -out ",
+    "desc_zh": "使用AES-256加密文件",
+    "desc_en": "Encrypt file with AES-256",
+    "distro": "common"
+  },
+  {
+    "title_zh": "AES解密文件",
+    "title_en": "OpenSSL decrypt file",
+    "command": "openssl enc -d -aes-256-cbc -pbkdf2 -in  -out ",
+    "desc_zh": "解密AES-256加密的文件",
+    "desc_en": "Decrypt AES-256 encrypted file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "计算SHA256摘要",
+    "title_en": "OpenSSL digest",
+    "command": "openssl dgst -sha256 ",
+    "desc_zh": "计算文件SHA256摘要",
+    "desc_en": "Compute SHA-256 digest of file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成随机Base64",
+    "title_en": "OpenSSL random base64",
+    "command": "openssl rand -base64 32",
+    "desc_zh": "生成32字节随机Base64密钥",
+    "desc_en": "Generate 32-byte random base64 key",
+    "distro": "common"
+  },
+  {
+    "title_zh": "测试STARTTLS连接",
+    "title_en": "OpenSSL STARTTLS",
+    "command": "openssl s_client -connect host:587 -starttls smtp",
+    "desc_zh": "测试SMTP STARTTLS连接",
+    "desc_en": "Test SMTP STARTTLS connection",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成GPG密钥",
+    "title_en": "GPG generate key",
+    "command": "gpg --full-generate-key",
+    "desc_zh": "交互式生成GPG密钥对",
+    "desc_en": "Generate GPG key pair interactively",
+    "distro": "common"
+  },
+  {
+    "title_zh": "列出GPG公钥",
+    "title_en": "GPG list keys",
+    "command": "gpg --list-keys",
+    "desc_zh": "列出所有GPG公钥",
+    "desc_en": "List all GPG public keys",
+    "distro": "common"
+  },
+  {
+    "title_zh": "列出GPG私钥",
+    "title_en": "GPG list secret keys",
+    "command": "gpg --list-secret-keys",
+    "desc_zh": "列出所有GPG私钥",
+    "desc_en": "List all GPG secret keys",
+    "distro": "common"
+  },
+  {
+    "title_zh": "导出GPG公钥",
+    "title_en": "GPG export public",
+    "command": "gpg --armor --export ",
+    "desc_zh": "以文本格式导出GPG公钥",
+    "desc_en": "Export GPG public key as ASCII",
+    "distro": "common"
+  },
+  {
+    "title_zh": "导入GPG密钥",
+    "title_en": "GPG import",
+    "command": "gpg --import ",
+    "desc_zh": "导入GPG密钥文件",
+    "desc_en": "Import a GPG key file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "加密给接收者",
+    "title_en": "GPG encrypt recipient",
+    "command": "gpg -e -r  ",
+    "desc_zh": "使用接收者公钥加密文件",
+    "desc_en": "Encrypt file for a recipient",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成分离签名",
+    "title_en": "GPG detach sign",
+    "command": "gpg --detach-sign ",
+    "desc_zh": "为文件生成分离签名",
+    "desc_en": "Create detached signature for file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "验证GPG签名",
+    "title_en": "GPG verify",
+    "command": "gpg --verify ",
+    "desc_zh": "验证文件的GPG签名",
+    "desc_en": "Verify GPG signature of file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "主机名",
+    "title_en": "Hostname",
+    "command": "hostname",
+    "desc_zh": "显示当前主机名",
+    "desc_en": "Show current hostname",
+    "distro": "common"
+  },
+  {
+    "title_zh": "完整域名",
+    "title_en": "Hostname FQDN",
+    "command": "hostname -f",
+    "desc_zh": "显示完整限定域名",
+    "desc_en": "Show fully qualified domain name",
+    "distro": "common"
   }
 ]

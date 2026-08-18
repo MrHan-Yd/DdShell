@@ -599,7 +599,7 @@ mod tests {
 
     #[test]
     fn builtin_command_total_count() {
-        assert_eq!(builtin_commands().len(), 899);
+        assert_eq!(builtin_commands().len(), 2223);
     }
 
     #[test]

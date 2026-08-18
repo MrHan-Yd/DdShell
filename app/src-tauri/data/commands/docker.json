@@ -1022,5 +1022,1093 @@
     "desc_zh": "列出Swarm密钥",
     "desc_en": "List swarm secrets",
     "distro": "common"
+  },
+  {
+    "title_zh": "Docker容器ID列表",
+    "title_en": "Docker ps quiet",
+    "command": "docker ps -q",
+    "desc_zh": "仅显示运行中容器的ID",
+    "desc_en": "Show only running container IDs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker已退出容器",
+    "title_en": "Docker ps exited",
+    "command": "docker ps --filter status=exited",
+    "desc_zh": "列出已退出的容器",
+    "desc_en": "List exited containers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker格式化容器列表",
+    "title_en": "Docker ps format",
+    "command": "docker ps --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'",
+    "desc_zh": "按名称/状态/端口格式化列出容器",
+    "desc_en": "List containers formatted by name/status/ports",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker容器磁盘占用",
+    "title_en": "Docker ps size",
+    "command": "docker ps -s",
+    "desc_zh": "列出容器并显示磁盘占用",
+    "desc_en": "List containers with disk usage",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker覆盖入口点运行",
+    "title_en": "Docker run entrypoint",
+    "command": "docker run -it --entrypoint /bin/sh ",
+    "desc_zh": "覆盖入口点交互式运行容器",
+    "desc_en": "Run container with overridden entrypoint",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker环境文件运行",
+    "title_en": "Docker run env-file",
+    "command": "docker run -d --env-file .env --name  ",
+    "desc_zh": "运行容器并从文件加载环境变量",
+    "desc_en": "Run container with env file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker指定主机名运行",
+    "title_en": "Docker run hostname",
+    "command": "docker run -d --hostname  --name  ",
+    "desc_zh": "运行容器并设置主机名",
+    "desc_en": "Run container with custom hostname",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker指定用户运行",
+    "title_en": "Docker run user",
+    "command": "docker run -d -u 1000:1000 --name  ",
+    "desc_zh": "以指定用户身份运行容器",
+    "desc_en": "Run container as specific user",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker指定工作目录运行",
+    "title_en": "Docker run workdir",
+    "command": "docker run --rm -w /app  ",
+    "desc_zh": "在指定工作目录运行容器命令",
+    "desc_en": "Run container command in working directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker启用GPU运行",
+    "title_en": "Docker run gpus",
+    "command": "docker run -d --gpus all --name  ",
+    "desc_zh": "运行容器并启用全部GPU",
+    "desc_en": "Run container with all GPUs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker特权模式运行",
+    "title_en": "Docker run privileged",
+    "command": "docker run -d --privileged --name  ",
+    "desc_zh": "以特权模式运行容器（谨慎操作）",
+    "desc_en": "Run container in privileged mode (use with care)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker添加主机映射运行",
+    "title_en": "Docker run add-host",
+    "command": "docker run -d --add-host host.docker.internal:host-gateway --name  ",
+    "desc_zh": "运行容器并添加宿主机hosts映射",
+    "desc_en": "Run container with extra host mapping",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker绑定挂载运行",
+    "title_en": "Docker run mount",
+    "command": "docker run -d --mount type=bind,src=/host,dst=/container --name  ",
+    "desc_zh": "使用mount语法绑定挂载运行容器",
+    "desc_en": "Run container with bind mount syntax",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker临时文件系统运行",
+    "title_en": "Docker run tmpfs",
+    "command": "docker run -d --tmpfs /tmp --name  ",
+    "desc_zh": "运行容器并挂载tmpfs临时目录",
+    "desc_en": "Run container with tmpfs mount",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker只读文件系统运行",
+    "title_en": "Docker run read-only",
+    "command": "docker run -d --read-only --name  ",
+    "desc_zh": "以只读根文件系统运行容器",
+    "desc_en": "Run container with read-only root filesystem",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker限制日志大小运行",
+    "title_en": "Docker run log-opt",
+    "command": "docker run -d --log-opt max-size=10m --log-opt max-file=3 --name  ",
+    "desc_zh": "运行容器并限制日志文件大小",
+    "desc_en": "Run container with log size limits",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker指定DNS运行",
+    "title_en": "Docker run dns",
+    "command": "docker run -d --dns 8.8.8.8 --name  ",
+    "desc_zh": "运行容器并指定DNS服务器",
+    "desc_en": "Run container with custom DNS server",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker超时停止",
+    "title_en": "Docker stop timeout",
+    "command": "docker stop -t 30 ",
+    "desc_zh": "等待30秒优雅停止容器",
+    "desc_en": "Stop container with 30s grace period",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker发送信号",
+    "title_en": "Docker kill signal",
+    "command": "docker kill -s SIGHUP ",
+    "desc_zh": "向容器发送指定信号",
+    "desc_en": "Send specific signal to container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除容器及卷",
+    "title_en": "Docker rm volumes",
+    "command": "docker rm -v ",
+    "desc_zh": "删除容器及其匿名数据卷",
+    "desc_en": "Remove container and its anonymous volumes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker后台执行命令",
+    "title_en": "Docker exec detached",
+    "command": "docker exec -d  ",
+    "desc_zh": "在容器中后台执行命令",
+    "desc_en": "Run command in container in background",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker指定目录执行",
+    "title_en": "Docker exec workdir",
+    "command": "docker exec -it -w /app  /bin/bash",
+    "desc_zh": "在容器指定目录进入终端",
+    "desc_en": "Enter container shell in working directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker容器状态",
+    "title_en": "Docker inspect state",
+    "command": "docker inspect -f '{{.State.Status}}' ",
+    "desc_zh": "查看容器运行状态",
+    "desc_en": "Show container state",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker健康检查状态",
+    "title_en": "Docker inspect health",
+    "command": "docker inspect -f '{{json .State.Health}}' ",
+    "desc_zh": "查看容器健康检查状态",
+    "desc_en": "Show container health check status",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker监听退出事件",
+    "title_en": "Docker events die",
+    "command": "docker events --filter event=die",
+    "desc_zh": "监听容器退出事件",
+    "desc_en": "Watch container die events",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker最近事件",
+    "title_en": "Docker events since",
+    "command": "docker events --since 1h",
+    "desc_zh": "查看最近1小时的Docker事件",
+    "desc_en": "Show docker events from last hour",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker镜像ID列表",
+    "title_en": "Docker images quiet",
+    "command": "docker images -q",
+    "desc_zh": "仅显示镜像ID",
+    "desc_en": "Show only image IDs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker镜像摘要",
+    "title_en": "Docker images digests",
+    "command": "docker images --digests",
+    "desc_zh": "列出镜像并显示摘要",
+    "desc_en": "List images with digests",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker拉取指定架构",
+    "title_en": "Docker pull platform",
+    "command": "docker pull --platform linux/arm64 ",
+    "desc_zh": "拉取指定架构的镜像",
+    "desc_en": "Pull image for specific platform",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker拉取所有标签",
+    "title_en": "Docker pull all tags",
+    "command": "docker pull --all-tags ",
+    "desc_zh": "拉取镜像的所有标签",
+    "desc_en": "Pull all tags of an image",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker推送所有标签",
+    "title_en": "Docker push all tags",
+    "command": "docker push --all-tags ",
+    "desc_zh": "推送镜像的所有标签",
+    "desc_en": "Push all tags of an image",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker强制删除镜像",
+    "title_en": "Docker rmi force",
+    "command": "docker rmi -f ",
+    "desc_zh": "强制删除镜像",
+    "desc_en": "Force remove an image",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除悬空镜像",
+    "title_en": "Docker rmi dangling",
+    "command": "docker rmi $(docker images -q -f dangling=true)",
+    "desc_zh": "删除所有悬空镜像",
+    "desc_en": "Remove all dangling images",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker压缩导出镜像",
+    "title_en": "Docker save gzip",
+    "command": "docker save  | gzip > image.tar.gz",
+    "desc_zh": "导出镜像并压缩为gzip",
+    "desc_en": "Save image compressed with gzip",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker完整镜像历史",
+    "title_en": "Docker history full",
+    "command": "docker history --no-trunc ",
+    "desc_zh": "查看完整的镜像层历史",
+    "desc_en": "Show full image layer history",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker搜索高星镜像",
+    "title_en": "Docker search stars",
+    "command": "docker search --filter stars=100 ",
+    "desc_zh": "搜索100星以上的镜像",
+    "desc_en": "Search images with 100+ stars",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker构建指定阶段",
+    "title_en": "Docker build target",
+    "command": "docker build --target  -t  .",
+    "desc_zh": "构建多阶段Dockerfile的指定阶段",
+    "desc_en": "Build specific stage of multi-stage Dockerfile",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker构建注入密钥",
+    "title_en": "Docker build secret",
+    "command": "docker build --secret id=mysecret,src=secret.txt -t  .",
+    "desc_zh": "构建时安全注入密钥文件",
+    "desc_en": "Build with securely mounted secret file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker构建完整日志",
+    "title_en": "Docker build progress",
+    "command": "docker build --progress plain -t  .",
+    "desc_zh": "构建时输出完整日志",
+    "desc_en": "Build with plain progress output",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker构建拉取最新",
+    "title_en": "Docker build pull",
+    "command": "docker build --pull -t  .",
+    "desc_zh": "构建前拉取最新基础镜像",
+    "desc_en": "Pull newer base image before build",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker详细磁盘占用",
+    "title_en": "Docker system df verbose",
+    "command": "docker system df -v",
+    "desc_zh": "查看Docker磁盘使用详情",
+    "desc_en": "Show detailed docker disk usage",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker登录私有仓库",
+    "title_en": "Docker login registry",
+    "command": "docker login registry.example.com",
+    "desc_zh": "登录私有Docker仓库",
+    "desc_en": "Login to private docker registry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker未使用数据卷",
+    "title_en": "Docker volume dangling",
+    "command": "docker volume ls -f dangling=true",
+    "desc_zh": "列出未被容器使用的数据卷",
+    "desc_en": "List volumes not used by containers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker更新集群数据卷",
+    "title_en": "Docker volume update",
+    "command": "docker volume update --availability active ",
+    "desc_zh": "更新集群数据卷可用性（Swarm）",
+    "desc_en": "Update cluster volume availability (Swarm)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker自定义网段网络",
+    "title_en": "Docker network subnet",
+    "command": "docker network create --driver bridge --subnet 172.20.0.0/16 ",
+    "desc_zh": "创建自定义网段的bridge网络",
+    "desc_en": "Create bridge network with custom subnet",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker创建Overlay网络",
+    "title_en": "Docker network overlay",
+    "command": "docker network create --driver overlay --attachable ",
+    "desc_zh": "创建可附加的overlay网络（Swarm）",
+    "desc_en": "Create attachable overlay network (Swarm)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker创建Macvlan网络",
+    "title_en": "Docker network macvlan",
+    "command": "docker network create --driver macvlan --subnet 192.168.1.0/24 -o parent=eth0 ",
+    "desc_zh": "创建macvlan网络直连物理网络",
+    "desc_en": "Create macvlan network bridged to physical NIC",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker创建构建器",
+    "title_en": "Docker buildx create",
+    "command": "docker buildx create --name  --use",
+    "desc_zh": "创建并使用新的buildx构建器",
+    "desc_en": "Create and use a new buildx builder",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker切换构建器",
+    "title_en": "Docker buildx use",
+    "command": "docker buildx use ",
+    "desc_zh": "切换到指定buildx构建器",
+    "desc_en": "Switch to a buildx builder",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker构建器详情",
+    "title_en": "Docker buildx inspect",
+    "command": "docker buildx inspect --bootstrap",
+    "desc_zh": "查看并启动当前构建器",
+    "desc_en": "Inspect and bootstrap current builder",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker停止构建器",
+    "title_en": "Docker buildx stop",
+    "command": "docker buildx stop ",
+    "desc_zh": "停止buildx构建器实例",
+    "desc_en": "Stop a buildx builder instance",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除构建器",
+    "title_en": "Docker buildx rm",
+    "command": "docker buildx rm ",
+    "desc_zh": "删除buildx构建器实例",
+    "desc_en": "Remove a buildx builder instance",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker构建缓存占用",
+    "title_en": "Docker buildx du",
+    "command": "docker buildx du",
+    "desc_zh": "查看buildx构建缓存磁盘占用",
+    "desc_en": "Show buildx build cache disk usage",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker清理Buildx缓存",
+    "title_en": "Docker buildx prune",
+    "command": "docker buildx prune -f",
+    "desc_zh": "清理buildx构建缓存",
+    "desc_en": "Remove buildx build cache",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker Buildx版本",
+    "title_en": "Docker buildx version",
+    "command": "docker buildx version",
+    "desc_zh": "查看buildx版本信息",
+    "desc_en": "Show buildx version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker批量构建",
+    "title_en": "Docker buildx bake",
+    "command": "docker buildx bake",
+    "desc_zh": "按bake配置批量构建目标",
+    "desc_en": "Build all targets from bake config",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker构建加载本地",
+    "title_en": "Docker buildx build load",
+    "command": "docker buildx build --load -t  .",
+    "desc_zh": "构建镜像并加载到本地Docker",
+    "desc_en": "Build image and load into local docker",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker查看多架构清单",
+    "title_en": "Docker buildx imagetools inspect",
+    "command": "docker buildx imagetools inspect ",
+    "desc_zh": "查看远程镜像的多架构清单",
+    "desc_en": "Inspect remote image multi-arch manifest",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker合并多架构清单",
+    "title_en": "Docker buildx imagetools create",
+    "command": "docker buildx imagetools create -t  ",
+    "desc_zh": "合并镜像创建多架构清单并推送",
+    "desc_en": "Create and push multi-arch manifest list",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose项目列表",
+    "title_en": "Docker compose ls",
+    "command": "docker compose ls",
+    "desc_zh": "列出运行中的Compose项目",
+    "desc_en": "List running compose projects",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose镜像列表",
+    "title_en": "Docker compose images",
+    "command": "docker compose images",
+    "desc_zh": "列出服务使用的镜像",
+    "desc_en": "List images used by services",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose强制终止",
+    "title_en": "Docker compose kill",
+    "command": "docker compose kill ",
+    "desc_zh": "强制终止服务容器",
+    "desc_en": "Force kill service containers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose暂停服务",
+    "title_en": "Docker compose pause",
+    "command": "docker compose pause",
+    "desc_zh": "暂停所有Compose服务",
+    "desc_en": "Pause all compose services",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose恢复服务",
+    "title_en": "Docker compose unpause",
+    "command": "docker compose unpause",
+    "desc_zh": "恢复已暂停的Compose服务",
+    "desc_en": "Unpause compose services",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose端口映射",
+    "title_en": "Docker compose port",
+    "command": "docker compose port  80",
+    "desc_zh": "查看服务80端口的映射",
+    "desc_en": "Show public mapping of service port 80",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose推送镜像",
+    "title_en": "Docker compose push",
+    "command": "docker compose push",
+    "desc_zh": "推送Compose服务镜像",
+    "desc_en": "Push compose service images",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose删除容器",
+    "title_en": "Docker compose rm",
+    "command": "docker compose rm -f",
+    "desc_zh": "删除已停止的服务容器",
+    "desc_en": "Remove stopped service containers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose调整实例数",
+    "title_en": "Docker compose scale service",
+    "command": "docker compose scale =3",
+    "desc_zh": "将服务实例数调整为3",
+    "desc_en": "Scale service to 3 instances",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose资源监控",
+    "title_en": "Docker compose stats",
+    "command": "docker compose stats",
+    "desc_zh": "实时显示服务资源使用情况",
+    "desc_en": "Show live service resource usage",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose事件监听",
+    "title_en": "Docker compose events",
+    "command": "docker compose events",
+    "desc_zh": "实时监听Compose事件流",
+    "desc_en": "Stream real-time compose events",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose附加服务",
+    "title_en": "Docker compose attach",
+    "command": "docker compose attach ",
+    "desc_zh": "附加到服务容器的输出",
+    "desc_en": "Attach to service container output",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose复制文件",
+    "title_en": "Docker compose cp",
+    "command": "docker compose cp :/path/file .",
+    "desc_zh": "从服务容器复制文件",
+    "desc_en": "Copy file from service container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose创建容器",
+    "title_en": "Docker compose create",
+    "command": "docker compose create",
+    "desc_zh": "创建服务容器但不启动",
+    "desc_en": "Create service containers without starting",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose导出容器",
+    "title_en": "Docker compose export",
+    "command": "docker compose export -o service.tar ",
+    "desc_zh": "导出服务容器文件系统为tar",
+    "desc_en": "Export service container filesystem to tar",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose等待退出",
+    "title_en": "Docker compose wait",
+    "command": "docker compose wait ",
+    "desc_zh": "阻塞等待服务容器退出",
+    "desc_en": "Wait for service containers to stop",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose监视变更",
+    "title_en": "Docker compose watch",
+    "command": "docker compose watch",
+    "desc_zh": "监视文件变更并自动同步或重建",
+    "desc_en": "Watch files and sync/rebuild automatically",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose版本",
+    "title_en": "Docker compose version",
+    "command": "docker compose version",
+    "desc_zh": "查看Docker Compose版本",
+    "desc_en": "Show docker compose version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose服务名列表",
+    "title_en": "Docker compose config services",
+    "command": "docker compose config --services",
+    "desc_zh": "列出配置中定义的服务名",
+    "desc_en": "List service names in config",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose停止删除镜像",
+    "title_en": "Docker compose down rmi",
+    "command": "docker compose down --rmi all",
+    "desc_zh": "停止服务并删除相关镜像",
+    "desc_en": "Stop services and remove images",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose按Profile启动",
+    "title_en": "Docker compose profile",
+    "command": "docker compose --profile  up -d",
+    "desc_zh": "按profile启动Compose服务",
+    "desc_en": "Start services with a profile",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose指定项目名",
+    "title_en": "Docker compose project",
+    "command": "docker compose -p  up -d",
+    "desc_zh": "以指定项目名启动服务",
+    "desc_en": "Start services with project name",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose无缓存构建",
+    "title_en": "Docker compose build no cache",
+    "command": "docker compose build --no-cache",
+    "desc_zh": "不使用缓存构建服务",
+    "desc_en": "Build services without cache",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose强制重建",
+    "title_en": "Docker compose force recreate",
+    "command": "docker compose up -d --force-recreate",
+    "desc_zh": "强制重新创建服务容器",
+    "desc_en": "Force recreate service containers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker创建SSH上下文",
+    "title_en": "Docker context create",
+    "command": "docker context create  --docker host=ssh://user@host",
+    "desc_zh": "创建SSH远程Docker上下文",
+    "desc_en": "Create SSH remote docker context",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker上下文详情",
+    "title_en": "Docker context inspect",
+    "command": "docker context inspect ",
+    "desc_zh": "查看上下文详细信息",
+    "desc_en": "Inspect context details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker当前上下文",
+    "title_en": "Docker context show",
+    "command": "docker context show",
+    "desc_zh": "显示当前使用的上下文",
+    "desc_en": "Show current docker context",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除上下文",
+    "title_en": "Docker context rm",
+    "command": "docker context rm ",
+    "desc_zh": "删除Docker上下文",
+    "desc_en": "Remove a docker context",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker更新上下文",
+    "title_en": "Docker context update",
+    "command": "docker context update --docker host=ssh://user@host ",
+    "desc_zh": "更新上下文的连接地址",
+    "desc_en": "Update context docker endpoint",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker导出上下文",
+    "title_en": "Docker context export",
+    "command": "docker context export ",
+    "desc_zh": "导出上下文为文件",
+    "desc_en": "Export context to a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker导入上下文",
+    "title_en": "Docker context import",
+    "command": "docker context import  context.dockercontext",
+    "desc_zh": "从文件导入上下文",
+    "desc_en": "Import context from a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker创建镜像清单",
+    "title_en": "Docker manifest create",
+    "command": "docker manifest create  ",
+    "desc_zh": "创建多架构镜像清单列表",
+    "desc_en": "Create multi-arch manifest list",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker标注清单架构",
+    "title_en": "Docker manifest annotate",
+    "command": "docker manifest annotate --arch arm64  ",
+    "desc_zh": "为清单条目标注架构信息",
+    "desc_en": "Annotate manifest entry architecture",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker推送镜像清单",
+    "title_en": "Docker manifest push",
+    "command": "docker manifest push ",
+    "desc_zh": "推送清单列表到仓库",
+    "desc_en": "Push manifest list to registry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除本地清单",
+    "title_en": "Docker manifest rm",
+    "command": "docker manifest rm ",
+    "desc_zh": "删除本地清单列表",
+    "desc_en": "Remove local manifest list",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker插件列表",
+    "title_en": "Docker plugin ls",
+    "command": "docker plugin ls",
+    "desc_zh": "列出已安装的插件",
+    "desc_en": "List installed plugins",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker安装插件",
+    "title_en": "Docker plugin install",
+    "command": "docker plugin install ",
+    "desc_zh": "安装Docker插件",
+    "desc_en": "Install a docker plugin",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker启用插件",
+    "title_en": "Docker plugin enable",
+    "command": "docker plugin enable ",
+    "desc_zh": "启用已安装的插件",
+    "desc_en": "Enable an installed plugin",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker禁用插件",
+    "title_en": "Docker plugin disable",
+    "command": "docker plugin disable ",
+    "desc_zh": "禁用运行中的插件",
+    "desc_en": "Disable an active plugin",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker插件详情",
+    "title_en": "Docker plugin inspect",
+    "command": "docker plugin inspect ",
+    "desc_zh": "查看插件详细信息",
+    "desc_en": "Inspect plugin details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除插件",
+    "title_en": "Docker plugin rm",
+    "command": "docker plugin rm ",
+    "desc_zh": "删除Docker插件",
+    "desc_en": "Remove a docker plugin",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker设置插件参数",
+    "title_en": "Docker plugin set",
+    "command": "docker plugin set  KEY=value",
+    "desc_zh": "设置插件配置参数",
+    "desc_en": "Set plugin configuration",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker升级插件",
+    "title_en": "Docker plugin upgrade",
+    "command": "docker plugin upgrade ",
+    "desc_zh": "升级已安装的插件",
+    "desc_en": "Upgrade an installed plugin",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker创建插件",
+    "title_en": "Docker plugin create",
+    "command": "docker plugin create  .",
+    "desc_zh": "从当前目录创建插件",
+    "desc_en": "Create plugin from current directory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker推送插件",
+    "title_en": "Docker plugin push",
+    "command": "docker plugin push ",
+    "desc_zh": "推送插件到仓库",
+    "desc_en": "Push plugin to registry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm开启自动锁定",
+    "title_en": "Docker swarm autolock",
+    "command": "docker swarm update --autolock=true",
+    "desc_zh": "开启Swarm管理节点自动锁定",
+    "desc_en": "Enable swarm manager autolock",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm解锁节点",
+    "title_en": "Docker swarm unlock",
+    "command": "docker swarm unlock",
+    "desc_zh": "解锁被锁定的管理节点",
+    "desc_en": "Unlock a locked swarm manager",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm解锁密钥",
+    "title_en": "Docker swarm unlock-key",
+    "command": "docker swarm unlock-key",
+    "desc_zh": "查看Swarm解锁密钥",
+    "desc_en": "Show swarm unlock key",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm根CA证书",
+    "title_en": "Docker swarm ca",
+    "command": "docker swarm ca",
+    "desc_zh": "查看Swarm根CA证书",
+    "desc_en": "Show swarm root CA certificate",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm管理节点令牌",
+    "title_en": "Docker swarm join-token manager",
+    "command": "docker swarm join-token manager",
+    "desc_zh": "获取管理节点加入令牌",
+    "desc_en": "Get manager join token",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm节点详情",
+    "title_en": "Docker node inspect",
+    "command": "docker node inspect ",
+    "desc_zh": "查看Swarm节点详细信息",
+    "desc_en": "Inspect swarm node details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm节点任务",
+    "title_en": "Docker node ps",
+    "command": "docker node ps ",
+    "desc_zh": "查看节点上运行的任务",
+    "desc_en": "Show tasks running on a node",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm提升节点",
+    "title_en": "Docker node promote",
+    "command": "docker node promote ",
+    "desc_zh": "将工作节点提升为管理节点",
+    "desc_en": "Promote worker to manager",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm降级节点",
+    "title_en": "Docker node demote",
+    "command": "docker node demote ",
+    "desc_zh": "将管理节点降级为工作节点",
+    "desc_en": "Demote manager to worker",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm删除节点",
+    "title_en": "Docker node rm",
+    "command": "docker node rm ",
+    "desc_zh": "从集群中删除节点",
+    "desc_en": "Remove node from cluster",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm排空节点",
+    "title_en": "Docker node drain",
+    "command": "docker node update --availability drain ",
+    "desc_zh": "排空节点上的服务任务",
+    "desc_en": "Drain tasks from a node",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm服务配置",
+    "title_en": "Docker service inspect",
+    "command": "docker service inspect --pretty ",
+    "desc_zh": "查看服务配置详情",
+    "desc_en": "Inspect service configuration",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm服务回滚",
+    "title_en": "Docker service rollback",
+    "command": "docker service rollback ",
+    "desc_zh": "回滚服务到上一版本",
+    "desc_en": "Roll back service to previous version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm强制更新",
+    "title_en": "Docker service force update",
+    "command": "docker service update --force ",
+    "desc_zh": "强制重新部署服务任务",
+    "desc_en": "Force redeploy service tasks",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Stack任务分布",
+    "title_en": "Docker stack ps",
+    "command": "docker stack ps ",
+    "desc_zh": "查看Stack的任务分布",
+    "desc_en": "Show stack task distribution",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Stack合并配置",
+    "title_en": "Docker stack config",
+    "command": "docker stack config -c docker-compose.yml",
+    "desc_zh": "输出合并后的Stack配置",
+    "desc_en": "Output merged stack config",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm密钥详情",
+    "title_en": "Docker secret inspect",
+    "command": "docker secret inspect ",
+    "desc_zh": "查看Swarm密钥详细信息",
+    "desc_en": "Inspect swarm secret details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm删除密钥",
+    "title_en": "Docker secret rm",
+    "command": "docker secret rm ",
+    "desc_zh": "删除Swarm密钥",
+    "desc_en": "Remove a swarm secret",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm创建配置",
+    "title_en": "Docker config create",
+    "command": "docker config create  ",
+    "desc_zh": "从文件创建Swarm配置项",
+    "desc_en": "Create swarm config from file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm配置列表",
+    "title_en": "Docker config ls",
+    "command": "docker config ls",
+    "desc_zh": "列出Swarm配置项",
+    "desc_en": "List swarm configs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm配置详情",
+    "title_en": "Docker config inspect",
+    "command": "docker config inspect ",
+    "desc_zh": "查看Swarm配置项详情",
+    "desc_en": "Inspect swarm config details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm删除配置",
+    "title_en": "Docker config rm",
+    "command": "docker config rm ",
+    "desc_zh": "删除Swarm配置项",
+    "desc_en": "Remove a swarm config",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker镜像签名信息",
+    "title_en": "Docker trust inspect",
+    "command": "docker trust inspect --pretty ",
+    "desc_zh": "查看镜像签名信息",
+    "desc_en": "Show image signing information",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker签名镜像",
+    "title_en": "Docker trust sign",
+    "command": "docker trust sign ",
+    "desc_zh": "签名并推送镜像",
+    "desc_en": "Sign and push an image",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker撤销签名",
+    "title_en": "Docker trust revoke",
+    "command": "docker trust revoke ",
+    "desc_zh": "撤销镜像的签名",
+    "desc_en": "Revoke image signature",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker生成签名密钥",
+    "title_en": "Docker trust key generate",
+    "command": "docker trust key generate ",
+    "desc_zh": "生成内容信任签名密钥",
+    "desc_en": "Generate content trust signing key",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker加载签名密钥",
+    "title_en": "Docker trust key load",
+    "command": "docker trust key load key.pem",
+    "desc_zh": "加载签名私钥",
+    "desc_en": "Load a signing private key",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker添加签名者",
+    "title_en": "Docker trust signer add",
+    "command": "docker trust signer add --key cert.pem  ",
+    "desc_zh": "为镜像仓库添加签名者",
+    "desc_en": "Add signer to image repository",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker移除签名者",
+    "title_en": "Docker trust signer remove",
+    "command": "docker trust signer remove  ",
+    "desc_zh": "移除镜像仓库的签名者",
+    "desc_en": "Remove signer from image repository",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker创建检查点",
+    "title_en": "Docker checkpoint create",
+    "command": "docker checkpoint create  ",
+    "desc_zh": "创建容器检查点（实验特性）",
+    "desc_en": "Create container checkpoint (experimental)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker检查点列表",
+    "title_en": "Docker checkpoint ls",
+    "command": "docker checkpoint ls ",
+    "desc_zh": "列出容器的检查点",
+    "desc_en": "List container checkpoints",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除检查点",
+    "title_en": "Docker checkpoint rm",
+    "command": "docker checkpoint rm  ",
+    "desc_zh": "删除容器检查点",
+    "desc_en": "Remove container checkpoint",
+    "distro": "common"
   }
 ]

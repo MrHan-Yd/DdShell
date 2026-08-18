@@ -422,5 +422,1181 @@
     "desc_zh": "查看文件指定行范围的修改历史",
     "desc_en": "Show history of specific line range",
     "distro": "common"
+  },
+  {
+    "title_zh": "初始化仓库",
+    "title_en": "Git init",
+    "command": "git init",
+    "desc_zh": "在当前目录初始化Git仓库",
+    "desc_en": "Initialize a repository",
+    "distro": "common"
+  },
+  {
+    "title_zh": "初始化裸仓库",
+    "title_en": "Git init bare",
+    "command": "git init --bare ",
+    "desc_zh": "创建无工作区的裸仓库",
+    "desc_en": "Create a bare repository",
+    "distro": "common"
+  },
+  {
+    "title_zh": "浅克隆",
+    "title_en": "Git clone shallow",
+    "command": "git clone --depth 1 ",
+    "desc_zh": "只克隆最近一次提交",
+    "desc_en": "Clone with only the latest commit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "克隆含子模块",
+    "title_en": "Git clone recurse",
+    "command": "git clone --recurse-submodules ",
+    "desc_zh": "克隆仓库并初始化子模块",
+    "desc_en": "Clone including submodules",
+    "distro": "common"
+  },
+  {
+    "title_zh": "交互式暂存",
+    "title_en": "Git add patch",
+    "command": "git add -p",
+    "desc_zh": "按块交互式选择暂存内容",
+    "desc_en": "Interactively stage hunks",
+    "distro": "common"
+  },
+  {
+    "title_zh": "暂存已跟踪更改",
+    "title_en": "Git add update",
+    "command": "git add -u",
+    "desc_zh": "只暂存已跟踪文件的更改",
+    "desc_en": "Stage tracked file changes only",
+    "distro": "common"
+  },
+  {
+    "title_zh": "追加到上次提交",
+    "title_en": "Git amend no-edit",
+    "command": "git commit --amend --no-edit",
+    "desc_zh": "追加暂存内容到上次提交",
+    "desc_en": "Amend last commit keeping message",
+    "distro": "common"
+  },
+  {
+    "title_zh": "暂存并提交",
+    "title_en": "Git commit all",
+    "command": "git commit -am ''",
+    "desc_zh": "暂存已跟踪更改并提交",
+    "desc_en": "Stage tracked changes and commit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "空提交",
+    "title_en": "Git empty commit",
+    "command": "git commit --allow-empty -m ''",
+    "desc_zh": "创建不含更改的空提交",
+    "desc_en": "Create an empty commit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "简洁状态",
+    "title_en": "Git status short",
+    "command": "git status -sb",
+    "desc_zh": "显示简洁状态和分支信息",
+    "desc_en": "Show short status with branch",
+    "distro": "common"
+  },
+  {
+    "title_zh": "提交改动统计",
+    "title_en": "Git log stat",
+    "command": "git log --stat",
+    "desc_zh": "显示每次提交的文件改动统计",
+    "desc_en": "Show commits with file stats",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按作者过滤提交",
+    "title_en": "Git log author",
+    "command": "git log --author=",
+    "desc_zh": "按作者过滤提交历史",
+    "desc_en": "Filter commits by author",
+    "distro": "common"
+  },
+  {
+    "title_zh": "搜索提交内容",
+    "title_en": "Git log search",
+    "command": "git log -S ",
+    "desc_zh": "搜索改动过指定内容的提交",
+    "desc_en": "Search commits that changed a string",
+    "distro": "common"
+  },
+  {
+    "title_zh": "对比最近提交",
+    "title_en": "Git diff HEAD",
+    "command": "git diff HEAD",
+    "desc_zh": "显示与最近提交的所有差异",
+    "desc_en": "Show all changes since last commit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "差异统计",
+    "title_en": "Git diff stat",
+    "command": "git diff --stat",
+    "desc_zh": "显示差异的文件统计",
+    "desc_en": "Show diff summary stats",
+    "distro": "common"
+  },
+  {
+    "title_zh": "差异文件列表",
+    "title_en": "Git diff names",
+    "command": "git diff --name-only",
+    "desc_zh": "只列出有差异的文件名",
+    "desc_en": "List changed file names only",
+    "distro": "common"
+  },
+  {
+    "title_zh": "强制删除分支",
+    "title_en": "Git branch force delete",
+    "command": "git branch -D ",
+    "desc_zh": "强制删除本地分支",
+    "desc_en": "Force delete local branch",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重命名分支",
+    "title_en": "Git branch rename",
+    "command": "git branch -m ",
+    "desc_zh": "重命名当前分支",
+    "desc_en": "Rename current branch",
+    "distro": "common"
+  },
+  {
+    "title_zh": "已合并分支",
+    "title_en": "Git branch merged",
+    "command": "git branch --merged",
+    "desc_zh": "列出已合并到当前分支的分支",
+    "desc_en": "List branches merged into current",
+    "distro": "common"
+  },
+  {
+    "title_zh": "分支跟踪信息",
+    "title_en": "Git branch upstream",
+    "command": "git branch -vv",
+    "desc_zh": "显示分支及其上游跟踪信息",
+    "desc_en": "Show branches with upstream info",
+    "distro": "common"
+  },
+  {
+    "title_zh": "丢弃全部修改",
+    "title_en": "Git checkout discard",
+    "command": "git checkout -- .",
+    "desc_zh": "丢弃工作区所有未暂存修改",
+    "desc_en": "Discard all unstaged changes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "切回上一分支",
+    "title_en": "Git switch back",
+    "command": "git switch -",
+    "desc_zh": "切换回上一个分支",
+    "desc_en": "Switch to previous branch",
+    "distro": "common"
+  },
+  {
+    "title_zh": "从提交恢复文件",
+    "title_en": "Git restore source",
+    "command": "git restore --source ",
+    "desc_zh": "从指定提交恢复文件",
+    "desc_en": "Restore file from a commit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "非快进合并",
+    "title_en": "Git merge no-ff",
+    "command": "git merge --no-ff ",
+    "desc_zh": "合并并强制生成合并提交",
+    "desc_en": "Merge with a merge commit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "中止合并",
+    "title_en": "Git merge abort",
+    "command": "git merge --abort",
+    "desc_zh": "中止当前合并并还原",
+    "desc_en": "Abort the current merge",
+    "distro": "common"
+  },
+  {
+    "title_zh": "压缩合并",
+    "title_en": "Git merge squash",
+    "command": "git merge --squash ",
+    "desc_zh": "将分支更改压缩合并到当前分支",
+    "desc_en": "Squash merge a branch",
+    "distro": "common"
+  },
+  {
+    "title_zh": "变基到新基底",
+    "title_en": "Git rebase onto",
+    "command": "git rebase --onto ",
+    "desc_zh": "将提交变基到新的基底",
+    "desc_en": "Rebase commits onto a new base",
+    "distro": "common"
+  },
+  {
+    "title_zh": "跳过变基提交",
+    "title_en": "Git rebase skip",
+    "command": "git rebase --skip",
+    "desc_zh": "跳过冲突提交继续变基",
+    "desc_en": "Skip current commit and continue",
+    "distro": "common"
+  },
+  {
+    "title_zh": "继续摘取",
+    "title_en": "Git cherry-pick continue",
+    "command": "git cherry-pick --continue",
+    "desc_zh": "解决冲突后继续摘取",
+    "desc_en": "Continue cherry-pick after conflicts",
+    "distro": "common"
+  },
+  {
+    "title_zh": "中止摘取",
+    "title_en": "Git cherry-pick abort",
+    "command": "git cherry-pick --abort",
+    "desc_zh": "中止当前摘取操作",
+    "desc_en": "Abort the cherry-pick",
+    "distro": "common"
+  },
+  {
+    "title_zh": "撤销但不提交",
+    "title_en": "Git revert no-commit",
+    "command": "git revert --no-commit ",
+    "desc_zh": "撤销更改但不自动提交",
+    "desc_en": "Revert without committing",
+    "distro": "common"
+  },
+  {
+    "title_zh": "取消全部暂存",
+    "title_en": "Git reset unstage",
+    "command": "git reset",
+    "desc_zh": "取消所有暂存并保留修改",
+    "desc_en": "Unstage everything, keep changes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重置到远程分支",
+    "title_en": "Git reset origin",
+    "command": "git reset --hard origin/main",
+    "desc_zh": "重置当前分支到远程main",
+    "desc_en": "Hard reset to origin/main",
+    "distro": "common"
+  },
+  {
+    "title_zh": "安全强制推送",
+    "title_en": "Git push force-with-lease",
+    "command": "git push --force-with-lease",
+    "desc_zh": "更安全的强制推送",
+    "desc_en": "Safer force push",
+    "distro": "common"
+  },
+  {
+    "title_zh": "变基拉取",
+    "title_en": "Git pull rebase",
+    "command": "git pull --rebase",
+    "desc_zh": "拉取并用变基方式整合",
+    "desc_en": "Pull with rebase",
+    "distro": "common"
+  },
+  {
+    "title_zh": "获取并清理",
+    "title_en": "Git fetch prune",
+    "command": "git fetch --prune",
+    "desc_zh": "获取更新并清理失效远程分支",
+    "desc_en": "Fetch and prune stale branches",
+    "distro": "common"
+  },
+  {
+    "title_zh": "暂存含未跟踪",
+    "title_en": "Git stash untracked",
+    "command": "git stash -u",
+    "desc_zh": "暂存包含未跟踪文件的更改",
+    "desc_en": "Stash including untracked files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "应用暂存",
+    "title_en": "Git stash apply",
+    "command": "git stash apply",
+    "desc_zh": "应用暂存但保留条目",
+    "desc_en": "Apply stash keeping the entry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "暂存内容详情",
+    "title_en": "Git stash show",
+    "command": "git stash show -p",
+    "desc_zh": "显示最近暂存的补丁内容",
+    "desc_en": "Show latest stash as a patch",
+    "distro": "common"
+  },
+  {
+    "title_zh": "暂存转分支",
+    "title_en": "Git stash branch",
+    "command": "git stash branch ",
+    "desc_zh": "从暂存创建新分支",
+    "desc_en": "Create branch from a stash",
+    "distro": "common"
+  },
+  {
+    "title_zh": "带说明暂存",
+    "title_en": "Git stash message",
+    "command": "git stash push -m ''",
+    "desc_zh": "带说明信息暂存更改",
+    "desc_en": "Stash with a message",
+    "distro": "common"
+  },
+  {
+    "title_zh": "附注标签",
+    "title_en": "Git tag annotated",
+    "command": "git tag -a ",
+    "desc_zh": "创建附注标签",
+    "desc_en": "Create annotated tag",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除本地标签",
+    "title_en": "Git tag delete",
+    "command": "git tag -d ",
+    "desc_zh": "删除本地标签",
+    "desc_en": "Delete a local tag",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除远程标签",
+    "title_en": "Git tag delete remote",
+    "command": "git push origin :refs/tags/",
+    "desc_zh": "删除远程仓库标签",
+    "desc_en": "Delete a remote tag",
+    "distro": "common"
+  },
+  {
+    "title_zh": "添加远程仓库",
+    "title_en": "Git remote add",
+    "command": "git remote add origin ",
+    "desc_zh": "添加名为origin的远程仓库",
+    "desc_en": "Add origin remote",
+    "distro": "common"
+  },
+  {
+    "title_zh": "修改远程地址",
+    "title_en": "Git remote set-url",
+    "command": "git remote set-url origin ",
+    "desc_zh": "修改origin远程仓库地址",
+    "desc_en": "Change origin remote URL",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除远程配置",
+    "title_en": "Git remote remove",
+    "command": "git remote remove ",
+    "desc_zh": "删除远程仓库配置",
+    "desc_en": "Remove a remote",
+    "distro": "common"
+  },
+  {
+    "title_zh": "远程仓库详情",
+    "title_en": "Git remote show",
+    "command": "git remote show origin",
+    "desc_zh": "显示origin远程详细信息",
+    "desc_en": "Show origin remote details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清理远程引用",
+    "title_en": "Git remote prune",
+    "command": "git remote prune origin",
+    "desc_zh": "清理已删除的远程分支引用",
+    "desc_en": "Prune stale remote-tracking refs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "递归更新子模块",
+    "title_en": "Git submodule init update",
+    "command": "git submodule update --init --recursive",
+    "desc_zh": "初始化并递归更新所有子模块",
+    "desc_en": "Init and update all submodules",
+    "distro": "common"
+  },
+  {
+    "title_zh": "子模块状态",
+    "title_en": "Git submodule status",
+    "command": "git submodule status",
+    "desc_zh": "查看子模块状态",
+    "desc_en": "Show submodule status",
+    "distro": "common"
+  },
+  {
+    "title_zh": "遍历子模块执行",
+    "title_en": "Git submodule foreach",
+    "command": "git submodule foreach ",
+    "desc_zh": "在每个子模块中执行命令",
+    "desc_en": "Run command in each submodule",
+    "distro": "common"
+  },
+  {
+    "title_zh": "注销子模块",
+    "title_en": "Git submodule deinit",
+    "command": "git submodule deinit ",
+    "desc_zh": "注销指定子模块",
+    "desc_en": "Deinit a submodule",
+    "distro": "common"
+  },
+  {
+    "title_zh": "添加工作树",
+    "title_en": "Git worktree add",
+    "command": "git worktree add ",
+    "desc_zh": "为分支创建新的工作树",
+    "desc_en": "Add a new worktree",
+    "distro": "common"
+  },
+  {
+    "title_zh": "工作树列表",
+    "title_en": "Git worktree list",
+    "command": "git worktree list",
+    "desc_zh": "列出所有工作树",
+    "desc_en": "List worktrees",
+    "distro": "common"
+  },
+  {
+    "title_zh": "移除工作树",
+    "title_en": "Git worktree remove",
+    "command": "git worktree remove ",
+    "desc_zh": "移除指定工作树",
+    "desc_en": "Remove a worktree",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清理工作树",
+    "title_en": "Git worktree prune",
+    "command": "git worktree prune",
+    "desc_zh": "清理失效的工作树信息",
+    "desc_en": "Prune stale worktree data",
+    "distro": "common"
+  },
+  {
+    "title_zh": "标记提交有问题",
+    "title_en": "Git bisect bad",
+    "command": "git bisect bad",
+    "desc_zh": "标记当前提交有问题",
+    "desc_en": "Mark current commit as bad",
+    "distro": "common"
+  },
+  {
+    "title_zh": "标记提交正常",
+    "title_en": "Git bisect good",
+    "command": "git bisect good",
+    "desc_zh": "标记当前提交正常",
+    "desc_en": "Mark current commit as good",
+    "distro": "common"
+  },
+  {
+    "title_zh": "结束二分查找",
+    "title_en": "Git bisect reset",
+    "command": "git bisect reset",
+    "desc_zh": "结束二分查找并复位",
+    "desc_en": "End bisect and reset",
+    "distro": "common"
+  },
+  {
+    "title_zh": "自动二分查找",
+    "title_en": "Git bisect run",
+    "command": "git bisect run ",
+    "desc_zh": "用脚本自动二分定位问题",
+    "desc_en": "Automate bisect with a script",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置提交用户名",
+    "title_en": "Git config name",
+    "command": "git config --global user.name ''",
+    "desc_zh": "设置全局提交用户名",
+    "desc_en": "Set global commit user name",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置提交邮箱",
+    "title_en": "Git config email",
+    "command": "git config --global user.email ''",
+    "desc_zh": "设置全局提交邮箱",
+    "desc_en": "Set global commit email",
+    "distro": "common"
+  },
+  {
+    "title_zh": "配置列表",
+    "title_en": "Git config list",
+    "command": "git config --list",
+    "desc_zh": "列出当前生效的所有配置",
+    "desc_en": "List all effective config",
+    "distro": "common"
+  },
+  {
+    "title_zh": "编辑全局配置",
+    "title_en": "Git config edit",
+    "command": "git config --global --edit",
+    "desc_zh": "编辑全局配置文件",
+    "desc_en": "Edit global config file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除配置项",
+    "title_en": "Git config unset",
+    "command": "git config --unset ",
+    "desc_zh": "删除指定配置项",
+    "desc_en": "Remove a config entry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "移动文件",
+    "title_en": "Git mv",
+    "command": "git mv ",
+    "desc_zh": "移动或重命名文件",
+    "desc_en": "Move or rename a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除文件",
+    "title_en": "Git rm",
+    "command": "git rm ",
+    "desc_zh": "从工作区和索引删除文件",
+    "desc_en": "Remove file from worktree and index",
+    "distro": "common"
+  },
+  {
+    "title_zh": "停止跟踪文件",
+    "title_en": "Git rm cached",
+    "command": "git rm --cached ",
+    "desc_zh": "从索引移除但保留文件",
+    "desc_en": "Untrack file but keep it",
+    "distro": "common"
+  },
+  {
+    "title_zh": "提交文件统计",
+    "title_en": "Git show stat",
+    "command": "git show --stat ",
+    "desc_zh": "显示提交的文件改动统计",
+    "desc_en": "Show commit file stats",
+    "distro": "common"
+  },
+  {
+    "title_zh": "仓库内搜索",
+    "title_en": "Git grep",
+    "command": "git grep -n ",
+    "desc_zh": "在跟踪文件中搜索文本",
+    "desc_en": "Search tracked files for text",
+    "distro": "common"
+  },
+  {
+    "title_zh": "描述当前版本",
+    "title_en": "Git describe",
+    "command": "git describe --tags",
+    "desc_zh": "用最近标签描述当前提交",
+    "desc_en": "Describe commit with nearest tag",
+    "distro": "common"
+  },
+  {
+    "title_zh": "导出归档",
+    "title_en": "Git archive",
+    "command": "git archive -o latest.zip HEAD",
+    "desc_zh": "导出当前提交为zip归档",
+    "desc_en": "Export HEAD as zip archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "应用邮件补丁",
+    "title_en": "Git am",
+    "command": "git am ",
+    "desc_zh": "应用邮件格式补丁",
+    "desc_en": "Apply patches from mailbox",
+    "distro": "common"
+  },
+  {
+    "title_zh": "中止补丁应用",
+    "title_en": "Git am abort",
+    "command": "git am --abort",
+    "desc_zh": "中止补丁应用并复位",
+    "desc_en": "Abort patch application",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成补丁文件",
+    "title_en": "Git format-patch",
+    "command": "git format-patch -1",
+    "desc_zh": "为最近提交生成补丁文件",
+    "desc_en": "Create patch for last commit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "应用补丁",
+    "title_en": "Git apply",
+    "command": "git apply ",
+    "desc_zh": "将补丁应用到工作区",
+    "desc_en": "Apply a patch to working tree",
+    "distro": "common"
+  },
+  {
+    "title_zh": "检查补丁",
+    "title_en": "Git apply check",
+    "command": "git apply --check ",
+    "desc_zh": "检查补丁能否干净应用",
+    "desc_en": "Check if patch applies cleanly",
+    "distro": "common"
+  },
+  {
+    "title_zh": "仓库垃圾回收",
+    "title_en": "Git gc",
+    "command": "git gc",
+    "desc_zh": "清理并优化本地仓库",
+    "desc_en": "Clean up and optimize repository",
+    "distro": "common"
+  },
+  {
+    "title_zh": "深度优化仓库",
+    "title_en": "Git gc aggressive",
+    "command": "git gc --aggressive --prune=now",
+    "desc_zh": "深度压缩优化仓库",
+    "desc_en": "Aggressively optimize repository",
+    "distro": "common"
+  },
+  {
+    "title_zh": "运行仓库维护",
+    "title_en": "Git maintenance run",
+    "command": "git maintenance run",
+    "desc_zh": "立即执行仓库维护任务",
+    "desc_en": "Run maintenance tasks now",
+    "distro": "common"
+  },
+  {
+    "title_zh": "启用定时维护",
+    "title_en": "Git maintenance start",
+    "command": "git maintenance start",
+    "desc_zh": "开启后台定时维护",
+    "desc_en": "Enable scheduled maintenance",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重新打包对象",
+    "title_en": "Git repack",
+    "command": "git repack -ad",
+    "desc_zh": "重新打包所有对象",
+    "desc_en": "Repack all objects",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清理游离对象",
+    "title_en": "Git prune",
+    "command": "git prune",
+    "desc_zh": "删除不可达的游离对象",
+    "desc_en": "Remove unreachable objects",
+    "distro": "common"
+  },
+  {
+    "title_zh": "检查仓库完整性",
+    "title_en": "Git fsck",
+    "command": "git fsck",
+    "desc_zh": "校验对象库完整性",
+    "desc_en": "Verify object database integrity",
+    "distro": "common"
+  },
+  {
+    "title_zh": "对象数量统计",
+    "title_en": "Git count-objects",
+    "command": "git count-objects -vH",
+    "desc_zh": "统计对象数量和磁盘占用",
+    "desc_en": "Count objects and disk usage",
+    "distro": "common"
+  },
+  {
+    "title_zh": "添加提交备注",
+    "title_en": "Git notes add",
+    "command": "git notes add -m ''",
+    "desc_zh": "为当前提交添加备注",
+    "desc_en": "Add a note to current commit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看提交备注",
+    "title_en": "Git notes show",
+    "command": "git notes show",
+    "desc_zh": "显示当前提交的备注",
+    "desc_en": "Show note of current commit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "对比提交区间",
+    "title_en": "Git range-diff",
+    "command": "git range-diff ",
+    "desc_zh": "对比两个提交区间的差异",
+    "desc_en": "Compare two commit ranges",
+    "distro": "common"
+  },
+  {
+    "title_zh": "启用稀疏检出",
+    "title_en": "Git sparse-checkout init",
+    "command": "git sparse-checkout init --cone",
+    "desc_zh": "启用cone模式稀疏检出",
+    "desc_en": "Enable cone-mode sparse checkout",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置稀疏目录",
+    "title_en": "Git sparse-checkout set",
+    "command": "git sparse-checkout set ",
+    "desc_zh": "设置稀疏检出的目录",
+    "desc_en": "Set sparse checkout directories",
+    "distro": "common"
+  },
+  {
+    "title_zh": "打包整个仓库",
+    "title_en": "Git bundle create",
+    "command": "git bundle create repo.bundle --all",
+    "desc_zh": "将仓库打包为bundle文件",
+    "desc_en": "Bundle repository into a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "校验包文件",
+    "title_en": "Git bundle verify",
+    "command": "git bundle verify ",
+    "desc_zh": "校验bundle文件有效性",
+    "desc_en": "Verify a bundle file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "补齐缺失对象",
+    "title_en": "Git backfill",
+    "command": "git backfill",
+    "desc_zh": "下载部分克隆缺失的对象",
+    "desc_en": "Download missing objects in partial clone",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重写分支历史",
+    "title_en": "Git filter-branch",
+    "command": "git filter-branch ",
+    "desc_zh": "重写分支历史（建议用filter-repo）",
+    "desc_en": "Rewrite history (prefer filter-repo)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "导出仓库数据",
+    "title_en": "Git fast-export",
+    "command": "git fast-export --all",
+    "desc_zh": "导出仓库数据流",
+    "desc_en": "Export repository data stream",
+    "distro": "common"
+  },
+  {
+    "title_zh": "导入仓库数据",
+    "title_en": "Git fast-import",
+    "command": "git fast-import",
+    "desc_zh": "导入fast-export数据流",
+    "desc_en": "Import fast-export data stream",
+    "distro": "common"
+  },
+  {
+    "title_zh": "工具解决冲突",
+    "title_en": "Git mergetool",
+    "command": "git mergetool",
+    "desc_zh": "用配置的工具解决合并冲突",
+    "desc_en": "Resolve conflicts with merge tool",
+    "distro": "common"
+  },
+  {
+    "title_zh": "工具对比差异",
+    "title_en": "Git difftool",
+    "command": "git difftool",
+    "desc_zh": "用配置的差异工具查看更改",
+    "desc_en": "View changes with diff tool",
+    "distro": "common"
+  },
+  {
+    "title_zh": "打包引用",
+    "title_en": "Git pack-refs",
+    "command": "git pack-refs --all",
+    "desc_zh": "打包引用以提升访问性能",
+    "desc_en": "Pack refs for performance",
+    "distro": "common"
+  },
+  {
+    "title_zh": "校验引用数据",
+    "title_en": "Git refs verify",
+    "command": "git refs verify",
+    "desc_zh": "校验引用数据库一致性",
+    "desc_en": "Verify ref database consistency",
+    "distro": "common"
+  },
+  {
+    "title_zh": "替换引用列表",
+    "title_en": "Git replace list",
+    "command": "git replace -l",
+    "desc_zh": "列出对象替换引用",
+    "desc_en": "List replace refs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "逐行注释文件",
+    "title_en": "Git annotate",
+    "command": "git annotate ",
+    "desc_zh": "逐行显示文件修改信息",
+    "desc_en": "Annotate file lines with commit info",
+    "distro": "common"
+  },
+  {
+    "title_zh": "追溯指定行",
+    "title_en": "Git blame lines",
+    "command": "git blame -L start,end ",
+    "desc_zh": "追溯文件指定行范围",
+    "desc_en": "Blame a specific line range",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成问题报告",
+    "title_en": "Git bugreport",
+    "command": "git bugreport",
+    "desc_zh": "生成Git问题报告文件",
+    "desc_en": "Generate a bug report file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成诊断包",
+    "title_en": "Git diagnose",
+    "command": "git diagnose",
+    "desc_zh": "生成仓库诊断信息压缩包",
+    "desc_en": "Create diagnostics zip archive",
+    "distro": "common"
+  },
+  {
+    "title_zh": "子命令帮助",
+    "title_en": "Git help",
+    "command": "git help ",
+    "desc_zh": "查看指定子命令帮助",
+    "desc_en": "Show help for a subcommand",
+    "distro": "common"
+  },
+  {
+    "title_zh": "全部子命令",
+    "title_en": "Git help all",
+    "command": "git help -a",
+    "desc_zh": "列出全部可用子命令",
+    "desc_en": "List all available subcommands",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看Git版本",
+    "title_en": "Git version",
+    "command": "git version",
+    "desc_zh": "显示Git版本信息",
+    "desc_en": "Show Git version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "试算合并结果",
+    "title_en": "Git merge-tree",
+    "command": "git merge-tree ",
+    "desc_zh": "不动工作区试算合并结果",
+    "desc_en": "Merge without touching worktree",
+    "distro": "common"
+  },
+  {
+    "title_zh": "复用冲突解决",
+    "title_en": "Git rerere",
+    "command": "git rerere",
+    "desc_zh": "复用已记录的冲突解决方案",
+    "desc_en": "Reuse recorded conflict resolutions",
+    "distro": "common"
+  },
+  {
+    "title_zh": "分支提交对比",
+    "title_en": "Git show-branch",
+    "command": "git show-branch -a",
+    "desc_zh": "显示各分支及其提交",
+    "desc_en": "Show branches and their commits",
+    "distro": "common"
+  },
+  {
+    "title_zh": "校验提交签名",
+    "title_en": "Git verify-commit",
+    "command": "git verify-commit ",
+    "desc_zh": "校验提交的GPG签名",
+    "desc_en": "Verify commit GPG signature",
+    "distro": "common"
+  },
+  {
+    "title_zh": "校验标签签名",
+    "title_en": "Git verify-tag",
+    "command": "git verify-tag ",
+    "desc_zh": "校验标签的GPG签名",
+    "desc_en": "Verify tag GPG signature",
+    "distro": "common"
+  },
+  {
+    "title_zh": "历史文件变动",
+    "title_en": "Git whatchanged",
+    "command": "git whatchanged -5",
+    "desc_zh": "显示提交及其文件变动",
+    "desc_en": "Show commits with changed files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "邮件发送补丁",
+    "title_en": "Git send-email",
+    "command": "git send-email ",
+    "desc_zh": "将补丁作为邮件发送",
+    "desc_en": "Send patches as emails",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成拉取摘要",
+    "title_en": "Git request-pull",
+    "command": "git request-pull ",
+    "desc_zh": "生成拉取请求摘要",
+    "desc_en": "Generate pull request summary",
+    "distro": "common"
+  },
+  {
+    "title_zh": "克隆SVN仓库",
+    "title_en": "Git svn clone",
+    "command": "git svn clone ",
+    "desc_zh": "克隆Subversion仓库",
+    "desc_en": "Clone a Subversion repository",
+    "distro": "common"
+  },
+  {
+    "title_zh": "克隆P4仓库",
+    "title_en": "Git p4 clone",
+    "command": "git p4 clone ",
+    "desc_zh": "克隆Perforce仓库",
+    "desc_en": "Clone a Perforce repository",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看对象内容",
+    "title_en": "Git cat-file",
+    "command": "git cat-file -p ",
+    "desc_zh": "显示Git对象内容",
+    "desc_en": "Show object content",
+    "distro": "common"
+  },
+  {
+    "title_zh": "未合入上游提交",
+    "title_en": "Git cherry",
+    "command": "git cherry -v",
+    "desc_zh": "列出尚未合入上游的提交",
+    "desc_en": "List commits not merged upstream",
+    "distro": "common"
+  },
+  {
+    "title_zh": "检查忽略规则",
+    "title_en": "Git check-ignore",
+    "command": "git check-ignore -v ",
+    "desc_zh": "检查文件被哪条规则忽略",
+    "desc_en": "Show which rule ignores a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看文件属性",
+    "title_en": "Git check-attr",
+    "command": "git check-attr -a ",
+    "desc_zh": "显示文件的gitattributes属性",
+    "desc_en": "Show gitattributes for a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "按时间列出分支",
+    "title_en": "Git for-each-ref",
+    "command": "git for-each-ref --sort=-committerdate refs/heads/",
+    "desc_zh": "按提交时间列出本地分支",
+    "desc_en": "List branches by commit date",
+    "distro": "common"
+  },
+  {
+    "title_zh": "计算对象哈希",
+    "title_en": "Git hash-object",
+    "command": "git hash-object ",
+    "desc_zh": "计算文件的对象哈希",
+    "desc_en": "Compute object hash of a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "跟踪文件列表",
+    "title_en": "Git ls-files",
+    "command": "git ls-files",
+    "desc_zh": "列出索引中跟踪的文件",
+    "desc_en": "List tracked files in index",
+    "distro": "common"
+  },
+  {
+    "title_zh": "未跟踪文件列表",
+    "title_en": "Git ls-files others",
+    "command": "git ls-files --others --exclude-standard",
+    "desc_zh": "列出未被忽略的未跟踪文件",
+    "desc_en": "List untracked non-ignored files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "远程引用列表",
+    "title_en": "Git ls-remote",
+    "command": "git ls-remote ",
+    "desc_zh": "列出远程仓库引用",
+    "desc_en": "List refs of a remote repository",
+    "distro": "common"
+  },
+  {
+    "title_zh": "树对象文件列表",
+    "title_en": "Git ls-tree",
+    "command": "git ls-tree -r HEAD --name-only",
+    "desc_zh": "递归列出HEAD跟踪的文件",
+    "desc_en": "Recursively list files at HEAD",
+    "distro": "common"
+  },
+  {
+    "title_zh": "共同祖先提交",
+    "title_en": "Git merge-base",
+    "command": "git merge-base ",
+    "desc_zh": "查找两个分支的共同祖先",
+    "desc_en": "Find common ancestor of branches",
+    "distro": "common"
+  },
+  {
+    "title_zh": "哈希转符号名",
+    "title_en": "Git name-rev",
+    "command": "git name-rev ",
+    "desc_zh": "将提交哈希解析为符号名",
+    "desc_en": "Resolve hash to symbolic name",
+    "distro": "common"
+  },
+  {
+    "title_zh": "统计提交总数",
+    "title_en": "Git rev-list count",
+    "command": "git rev-list --count HEAD",
+    "desc_zh": "统计当前分支提交总数",
+    "desc_en": "Count commits on current branch",
+    "distro": "common"
+  },
+  {
+    "title_zh": "当前提交哈希",
+    "title_en": "Git rev-parse HEAD",
+    "command": "git rev-parse HEAD",
+    "desc_zh": "显示当前提交完整哈希",
+    "desc_en": "Show current commit hash",
+    "distro": "common"
+  },
+  {
+    "title_zh": "当前分支名称",
+    "title_en": "Git rev-parse branch",
+    "command": "git rev-parse --abbrev-ref HEAD",
+    "desc_zh": "显示当前分支名称",
+    "desc_en": "Show current branch name",
+    "distro": "common"
+  },
+  {
+    "title_zh": "仓库根目录",
+    "title_en": "Git rev-parse toplevel",
+    "command": "git rev-parse --show-toplevel",
+    "desc_zh": "显示仓库根目录路径",
+    "desc_en": "Show repository root path",
+    "distro": "common"
+  },
+  {
+    "title_zh": "本地引用列表",
+    "title_en": "Git show-ref",
+    "command": "git show-ref",
+    "desc_zh": "列出本地引用及哈希",
+    "desc_en": "List local refs with hashes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "HEAD指向分支",
+    "title_en": "Git symbolic-ref",
+    "command": "git symbolic-ref --short HEAD",
+    "desc_zh": "显示HEAD指向的分支",
+    "desc_en": "Show branch HEAD points to",
+    "distro": "common"
+  },
+  {
+    "title_zh": "忽略本地修改",
+    "title_en": "Git skip-worktree",
+    "command": "git update-index --skip-worktree ",
+    "desc_zh": "忽略跟踪文件的本地修改",
+    "desc_en": "Ignore local changes to a file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "恢复修改跟踪",
+    "title_en": "Git no-skip-worktree",
+    "command": "git update-index --no-skip-worktree ",
+    "desc_zh": "恢复跟踪文件的本地修改",
+    "desc_en": "Resume tracking local changes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "删除指定引用",
+    "title_en": "Git update-ref delete",
+    "command": "git update-ref -d ",
+    "desc_zh": "安全删除指定引用",
+    "desc_en": "Safely delete a ref",
+    "distro": "common"
+  },
+  {
+    "title_zh": "生成提交图",
+    "title_en": "Git commit-graph",
+    "command": "git commit-graph write --reachable",
+    "desc_zh": "生成提交图加速历史查询",
+    "desc_en": "Write commit-graph for speed",
+    "distro": "common"
+  },
+  {
+    "title_zh": "提交文件清单",
+    "title_en": "Git diff-tree",
+    "command": "git diff-tree --no-commit-id --name-only -r ",
+    "desc_zh": "列出提交改动的文件",
+    "desc_en": "List files changed in a commit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "启动Git服务",
+    "title_en": "Git daemon",
+    "command": "git daemon --export-all --base-path=.",
+    "desc_zh": "以只读方式共享当前目录仓库",
+    "desc_en": "Serve repositories read-only",
+    "distro": "common"
+  },
+  {
+    "title_zh": "运行钩子",
+    "title_en": "Git hook run",
+    "command": "git hook run ",
+    "desc_zh": "手动运行指定Git钩子",
+    "desc_en": "Run a git hook manually",
+    "distro": "common"
+  },
+  {
+    "title_zh": "图形提交界面",
+    "title_en": "Git gui",
+    "command": "git gui",
+    "desc_zh": "打开Git图形提交界面",
+    "desc_en": "Open the Git GUI commit tool",
+    "distro": "common"
+  },
+  {
+    "title_zh": "图形提交工具",
+    "title_en": "Git citool",
+    "command": "git citool",
+    "desc_zh": "打开图形化提交工具",
+    "desc_en": "Graphical alternative to git commit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "提交历史浏览器",
+    "title_en": "Gitk all",
+    "command": "gitk --all",
+    "desc_zh": "图形化浏览全部提交历史",
+    "desc_en": "Browse all history graphically",
+    "distro": "common"
   }
 ]

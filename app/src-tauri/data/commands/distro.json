@@ -272,6 +272,614 @@
     "distro": "ubuntu"
   },
   {
+    "title_zh": "APT包信息",
+    "title_en": "APT show",
+    "command": "apt show ",
+    "desc_zh": "查看软件包信息",
+    "desc_en": "Show package information",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT重装",
+    "title_en": "APT reinstall",
+    "command": "sudo apt reinstall ",
+    "desc_zh": "重新安装软件包",
+    "desc_en": "Reinstall a package",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT编辑源",
+    "title_en": "APT edit sources",
+    "command": "sudo apt edit-sources",
+    "desc_zh": "编辑软件源列表",
+    "desc_en": "Edit the source lists",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT满足依赖",
+    "title_en": "APT satisfy",
+    "command": "sudo apt satisfy ",
+    "desc_zh": "按依赖字符串安装软件包",
+    "desc_en": "Satisfy dependency strings",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT源码下载",
+    "title_en": "APT source",
+    "command": "apt source ",
+    "desc_zh": "下载软件包源码",
+    "desc_en": "Download package source code",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT构建依赖",
+    "title_en": "APT build-dep",
+    "command": "sudo apt build-dep ",
+    "desc_zh": "安装软件包的构建依赖",
+    "desc_en": "Install build dependencies for a package",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT更新日志",
+    "title_en": "APT changelog",
+    "command": "apt changelog ",
+    "desc_zh": "查看软件包更新日志",
+    "desc_en": "Show package changelog",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT清理旧包",
+    "title_en": "APT autoclean",
+    "command": "sudo apt autoclean",
+    "desc_zh": "清理过期的包缓存",
+    "desc_en": "Remove outdated cached packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT清空缓存",
+    "title_en": "APT clean",
+    "command": "sudo apt clean",
+    "desc_zh": "清空本地包缓存",
+    "desc_en": "Clear the local package cache",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT依赖列表",
+    "title_en": "APT depends",
+    "command": "apt depends ",
+    "desc_zh": "查看软件包依赖",
+    "desc_en": "Show package dependencies",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT反向依赖",
+    "title_en": "APT rdepends",
+    "command": "apt rdepends ",
+    "desc_zh": "查看软件包反向依赖",
+    "desc_en": "Show reverse dependencies",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT安装策略",
+    "title_en": "APT policy",
+    "command": "apt policy ",
+    "desc_zh": "查看软件包来源与优先级",
+    "desc_en": "Show package origin and priority",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT-GET发行升级",
+    "title_en": "APT-GET dist-upgrade",
+    "command": "sudo apt-get dist-upgrade -y",
+    "desc_zh": "智能处理依赖变化的整体升级",
+    "desc_en": "Upgrade handling changed dependencies",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT-GET依赖检查",
+    "title_en": "APT-GET check",
+    "command": "sudo apt-get check",
+    "desc_zh": "检查依赖完整性",
+    "desc_en": "Check for broken dependencies",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "缓存依赖查询",
+    "title_en": "APT cache depends",
+    "command": "apt-cache depends ",
+    "desc_zh": "从缓存查看软件包依赖",
+    "desc_en": "Show dependencies from cache",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "缓存反向依赖",
+    "title_en": "APT cache rdepends",
+    "command": "apt-cache rdepends ",
+    "desc_zh": "从缓存查看反向依赖",
+    "desc_en": "Show reverse dependencies from cache",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "缓存版本策略",
+    "title_en": "APT cache policy",
+    "command": "apt-cache policy ",
+    "desc_zh": "查看候选版本与优先级",
+    "desc_en": "Show candidate versions and priorities",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "缓存包名列表",
+    "title_en": "APT cache pkgnames",
+    "command": "apt-cache pkgnames",
+    "desc_zh": "列出所有可用包名",
+    "desc_en": "List all available package names",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "缓存统计信息",
+    "title_en": "APT cache stats",
+    "command": "apt-cache stats",
+    "desc_zh": "查看包缓存统计信息",
+    "desc_en": "Show package cache statistics",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "查看锁定包",
+    "title_en": "APT mark showhold",
+    "command": "apt-mark showhold",
+    "desc_zh": "列出被锁定的软件包",
+    "desc_en": "List packages on hold",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "标记自动安装",
+    "title_en": "APT mark auto",
+    "command": "sudo apt-mark auto ",
+    "desc_zh": "将包标记为自动安装",
+    "desc_en": "Mark package as automatically installed",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "标记手动安装",
+    "title_en": "APT mark manual",
+    "command": "sudo apt-mark manual ",
+    "desc_zh": "将包标记为手动安装",
+    "desc_en": "Mark package as manually installed",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "查看手动安装包",
+    "title_en": "APT mark showmanual",
+    "command": "apt-mark showmanual",
+    "desc_zh": "列出手动安装的软件包",
+    "desc_en": "List manually installed packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DPKG卸载",
+    "title_en": "DPKG remove",
+    "command": "sudo dpkg -r ",
+    "desc_zh": "卸载软件包（保留配置）",
+    "desc_en": "Remove package keeping config files",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DPKG彻底卸载",
+    "title_en": "DPKG purge",
+    "command": "sudo dpkg -P ",
+    "desc_zh": "卸载软件包及配置文件",
+    "desc_en": "Purge package with config files",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DPKG包状态",
+    "title_en": "DPKG status",
+    "command": "dpkg -s ",
+    "desc_zh": "查看已安装包状态",
+    "desc_en": "Show installed package status",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DEB内容列表",
+    "title_en": "DPKG contents",
+    "command": "dpkg -c ",
+    "desc_zh": "列出deb包内的文件",
+    "desc_en": "List files inside a deb package",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DEB包信息",
+    "title_en": "DPKG deb info",
+    "command": "dpkg -I ",
+    "desc_zh": "查看deb包元信息",
+    "desc_en": "Show deb package metadata",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DPKG配置补全",
+    "title_en": "DPKG configure all",
+    "command": "sudo dpkg --configure -a",
+    "desc_zh": "配置所有未完成配置的包",
+    "desc_en": "Configure all unconfigured packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DPKG选择列表",
+    "title_en": "DPKG get selections",
+    "command": "dpkg --get-selections",
+    "desc_zh": "导出软件包选择状态",
+    "desc_en": "Export package selection states",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DPKG安装审计",
+    "title_en": "DPKG audit",
+    "command": "dpkg --audit",
+    "desc_zh": "检查未完成安装的包",
+    "desc_en": "Check for partially installed packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DPKG系统架构",
+    "title_en": "DPKG architecture",
+    "command": "dpkg --print-architecture",
+    "desc_zh": "查看系统包架构",
+    "desc_en": "Show native package architecture",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DPKG添加架构",
+    "title_en": "DPKG add architecture",
+    "command": "sudo dpkg --add-architecture i386",
+    "desc_zh": "添加i386外部架构",
+    "desc_en": "Add i386 foreign architecture",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DPKG文件校验",
+    "title_en": "DPKG verify",
+    "command": "dpkg -V ",
+    "desc_zh": "校验已安装包的文件",
+    "desc_en": "Verify installed package files",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "移除PPA源",
+    "title_en": "Remove PPA",
+    "command": "sudo add-apt-repository --remove ppa:",
+    "desc_zh": "移除PPA软件源",
+    "desc_en": "Remove a PPA repository",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "启用Universe仓库",
+    "title_en": "Enable universe",
+    "command": "sudo add-apt-repository universe",
+    "desc_zh": "启用universe软件仓库",
+    "desc_en": "Enable the universe repository",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "检查版本升级",
+    "title_en": "Check release upgrade",
+    "command": "do-release-upgrade -c",
+    "desc_zh": "检查是否有新版本可升级",
+    "desc_en": "Check if a new release is available",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap搜索",
+    "title_en": "Snap find",
+    "command": "snap find ",
+    "desc_zh": "搜索Snap软件包",
+    "desc_en": "Search for snap packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap包信息",
+    "title_en": "Snap info",
+    "command": "snap info ",
+    "desc_zh": "查看Snap包详细信息",
+    "desc_en": "Show snap package details",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap卸载",
+    "title_en": "Snap remove",
+    "command": "sudo snap remove ",
+    "desc_zh": "卸载Snap软件包",
+    "desc_en": "Remove a snap package",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap全部更新",
+    "title_en": "Snap refresh",
+    "command": "sudo snap refresh",
+    "desc_zh": "更新所有Snap软件包",
+    "desc_en": "Update all snap packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap回滚",
+    "title_en": "Snap revert",
+    "command": "sudo snap revert ",
+    "desc_zh": "回滚到上一个版本",
+    "desc_en": "Revert to the previous version",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap启用",
+    "title_en": "Snap enable",
+    "command": "sudo snap enable ",
+    "desc_zh": "启用已禁用的Snap包",
+    "desc_en": "Enable a disabled snap",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap禁用",
+    "title_en": "Snap disable",
+    "command": "sudo snap disable ",
+    "desc_zh": "禁用Snap包",
+    "desc_en": "Disable a snap",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap启动服务",
+    "title_en": "Snap start",
+    "command": "sudo snap start ",
+    "desc_zh": "启动Snap应用服务",
+    "desc_en": "Start snap app services",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap停止服务",
+    "title_en": "Snap stop",
+    "command": "sudo snap stop ",
+    "desc_zh": "停止Snap应用服务",
+    "desc_en": "Stop snap app services",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap重启服务",
+    "title_en": "Snap restart",
+    "command": "sudo snap restart ",
+    "desc_zh": "重启Snap应用服务",
+    "desc_en": "Restart snap app services",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap服务列表",
+    "title_en": "Snap services",
+    "command": "snap services",
+    "desc_zh": "查看Snap服务状态",
+    "desc_en": "Show snap service status",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap服务日志",
+    "title_en": "Snap logs",
+    "command": "snap logs ",
+    "desc_zh": "查看Snap服务日志",
+    "desc_en": "Show snap service logs",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap接口连接",
+    "title_en": "Snap connections",
+    "command": "snap connections ",
+    "desc_zh": "查看Snap接口连接",
+    "desc_en": "Show snap interface connections",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap连接接口",
+    "title_en": "Snap connect",
+    "command": "sudo snap connect ",
+    "desc_zh": "连接Snap接口",
+    "desc_en": "Connect a snap interface",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap断开接口",
+    "title_en": "Snap disconnect",
+    "command": "sudo snap disconnect ",
+    "desc_zh": "断开Snap接口",
+    "desc_en": "Disconnect a snap interface",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap设置别名",
+    "title_en": "Snap alias",
+    "command": "sudo snap alias ",
+    "desc_zh": "为Snap命令设置别名",
+    "desc_en": "Create an alias for a snap command",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap别名列表",
+    "title_en": "Snap aliases",
+    "command": "snap aliases",
+    "desc_zh": "列出Snap命令别名",
+    "desc_en": "List snap command aliases",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap设置配置",
+    "title_en": "Snap set",
+    "command": "sudo snap set ",
+    "desc_zh": "设置Snap配置项",
+    "desc_en": "Set snap configuration options",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap读取配置",
+    "title_en": "Snap get",
+    "command": "snap get ",
+    "desc_zh": "读取Snap配置项",
+    "desc_en": "Get snap configuration options",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap版本",
+    "title_en": "Snap version",
+    "command": "snap version",
+    "desc_zh": "查看snapd版本",
+    "desc_en": "Show snapd version",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap变更记录",
+    "title_en": "Snap changes",
+    "command": "snap changes",
+    "desc_zh": "查看最近的Snap变更",
+    "desc_en": "Show recent snap changes",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap下载",
+    "title_en": "Snap download",
+    "command": "snap download ",
+    "desc_zh": "下载Snap包但不安装",
+    "desc_en": "Download snap without installing",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap锁定更新",
+    "title_en": "Snap hold",
+    "command": "sudo snap hold ",
+    "desc_zh": "阻止Snap包自动更新",
+    "desc_en": "Hold snap automatic refresh",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap数据快照",
+    "title_en": "Snap save",
+    "command": "sudo snap save",
+    "desc_zh": "创建Snap数据快照",
+    "desc_en": "Create snapshot of snap data",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap快照列表",
+    "title_en": "Snap saved",
+    "command": "snap saved",
+    "desc_zh": "列出Snap数据快照",
+    "desc_en": "List snap data snapshots",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap恢复快照",
+    "title_en": "Snap restore",
+    "command": "sudo snap restore ",
+    "desc_zh": "从快照恢复Snap数据",
+    "desc_en": "Restore snap data from snapshot",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW关闭",
+    "title_en": "UFW disable",
+    "command": "sudo ufw disable",
+    "desc_zh": "关闭UFW防火墙",
+    "desc_en": "Disable UFW firewall",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW重载",
+    "title_en": "UFW reload",
+    "command": "sudo ufw reload",
+    "desc_zh": "重载UFW防火墙规则",
+    "desc_en": "Reload UFW firewall rules",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW重置",
+    "title_en": "UFW reset",
+    "command": "sudo ufw reset",
+    "desc_zh": "重置防火墙为默认状态",
+    "desc_en": "Reset firewall to defaults",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW默认拒绝入站",
+    "title_en": "UFW default deny",
+    "command": "sudo ufw default deny incoming",
+    "desc_zh": "默认拒绝入站连接",
+    "desc_en": "Deny incoming connections by default",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW开启日志",
+    "title_en": "UFW logging",
+    "command": "sudo ufw logging on",
+    "desc_zh": "开启防火墙日志",
+    "desc_en": "Enable firewall logging",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW限速SSH",
+    "title_en": "UFW limit SSH",
+    "command": "sudo ufw limit ssh",
+    "desc_zh": "限速放行SSH防止暴力破解",
+    "desc_en": "Rate-limit SSH connections",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW拒绝连接",
+    "title_en": "UFW reject",
+    "command": "sudo ufw reject ",
+    "desc_zh": "拒绝连接并返回响应",
+    "desc_en": "Reject connections with response",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW插入规则",
+    "title_en": "UFW insert rule",
+    "command": "sudo ufw insert 1 allow from ",
+    "desc_zh": "在指定位置插入规则",
+    "desc_en": "Insert rule at a position",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW转发规则",
+    "title_en": "UFW route allow",
+    "command": "sudo ufw route allow ",
+    "desc_zh": "放行转发流量",
+    "desc_en": "Allow forwarded traffic",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW应用列表",
+    "title_en": "UFW app list",
+    "command": "sudo ufw app list",
+    "desc_zh": "列出应用配置文件",
+    "desc_en": "List application profiles",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW编号规则",
+    "title_en": "UFW status numbered",
+    "command": "sudo ufw status numbered",
+    "desc_zh": "按编号显示防火墙规则",
+    "desc_en": "Show rules with numbers",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW已添加规则",
+    "title_en": "UFW show added",
+    "command": "sudo ufw show added",
+    "desc_zh": "查看已添加的规则",
+    "desc_en": "Show added rules",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW版本",
+    "title_en": "UFW version",
+    "command": "ufw version",
+    "desc_zh": "查看UFW版本",
+    "desc_en": "Show UFW version",
+    "distro": "ubuntu"
+  },
+  {
     "title_zh": "YUM更新",
     "title_en": "YUM update",
     "command": "sudo yum update -y",
@@ -560,6 +1168,654 @@
     "distro": "centos"
   },
   {
+    "title_zh": "YUM检查更新",
+    "title_en": "YUM check-update",
+    "command": "yum check-update",
+    "desc_zh": "检查可更新的软件包",
+    "desc_en": "Check for available updates",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM降级",
+    "title_en": "YUM downgrade",
+    "command": "sudo yum downgrade ",
+    "desc_zh": "降级软件包",
+    "desc_en": "Downgrade a package",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM重装",
+    "title_en": "YUM reinstall",
+    "command": "sudo yum reinstall ",
+    "desc_zh": "重新安装软件包",
+    "desc_en": "Reinstall a package",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM文件溯源",
+    "title_en": "YUM provides",
+    "command": "yum provides ",
+    "desc_zh": "查找提供文件的软件包",
+    "desc_en": "Find package providing a file",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM依赖列表",
+    "title_en": "YUM deplist",
+    "command": "yum deplist ",
+    "desc_zh": "查看软件包依赖列表",
+    "desc_en": "Show package dependency list",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM仓库列表",
+    "title_en": "YUM repolist",
+    "command": "yum repolist",
+    "desc_zh": "列出已启用的仓库",
+    "desc_en": "List enabled repositories",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM安装包组",
+    "title_en": "YUM groupinstall",
+    "command": "sudo yum groupinstall ",
+    "desc_zh": "安装软件包组",
+    "desc_en": "Install a package group",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM包组列表",
+    "title_en": "YUM grouplist",
+    "command": "yum grouplist",
+    "desc_zh": "列出软件包组",
+    "desc_en": "List package groups",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM卸载包组",
+    "title_en": "YUM groupremove",
+    "command": "sudo yum groupremove ",
+    "desc_zh": "卸载软件包组",
+    "desc_en": "Remove a package group",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM清理依赖",
+    "title_en": "YUM autoremove",
+    "command": "sudo yum autoremove",
+    "desc_zh": "清理不再需要的依赖",
+    "desc_en": "Remove unused dependencies",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM本地安装",
+    "title_en": "YUM localinstall",
+    "command": "sudo yum localinstall ",
+    "desc_zh": "安装本地RPM包",
+    "desc_en": "Install local RPM package",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM回滚事务",
+    "title_en": "YUM history undo",
+    "command": "sudo yum history undo ",
+    "desc_zh": "回滚指定的YUM事务",
+    "desc_en": "Undo a yum transaction",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF检查更新",
+    "title_en": "DNF check-update",
+    "command": "dnf check-update",
+    "desc_zh": "检查可更新的软件包（DNF）",
+    "desc_en": "Check for updates (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF包详情",
+    "title_en": "DNF info",
+    "command": "dnf info ",
+    "desc_zh": "查看软件包详细信息（DNF）",
+    "desc_en": "Show package details (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF文件溯源",
+    "title_en": "DNF provides",
+    "command": "dnf provides ",
+    "desc_zh": "查找提供文件的软件包（DNF）",
+    "desc_en": "Find package providing a file (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF仓库列表",
+    "title_en": "DNF repolist",
+    "command": "dnf repolist",
+    "desc_zh": "列出已启用的仓库（DNF）",
+    "desc_en": "List enabled repositories (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF仓库查询",
+    "title_en": "DNF repoquery",
+    "command": "dnf repoquery ",
+    "desc_zh": "查询仓库中的软件包",
+    "desc_en": "Query packages in repositories",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF操作历史",
+    "title_en": "DNF history",
+    "command": "dnf history",
+    "desc_zh": "查看DNF事务历史",
+    "desc_en": "Show dnf transaction history",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF清理依赖",
+    "title_en": "DNF autoremove",
+    "command": "sudo dnf autoremove",
+    "desc_zh": "清理不再需要的依赖（DNF）",
+    "desc_en": "Remove unused dependencies (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF降级",
+    "title_en": "DNF downgrade",
+    "command": "sudo dnf downgrade ",
+    "desc_zh": "降级软件包（DNF）",
+    "desc_en": "Downgrade a package (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF重装",
+    "title_en": "DNF reinstall",
+    "command": "sudo dnf reinstall ",
+    "desc_zh": "重新安装软件包（DNF）",
+    "desc_en": "Reinstall a package (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF安装包组",
+    "title_en": "DNF group install",
+    "command": "sudo dnf group install ",
+    "desc_zh": "安装软件包组（DNF）",
+    "desc_en": "Install a package group (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF包组列表",
+    "title_en": "DNF group list",
+    "command": "dnf group list",
+    "desc_zh": "列出软件包组（DNF）",
+    "desc_en": "List package groups (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF模块列表",
+    "title_en": "DNF module list",
+    "command": "dnf module list",
+    "desc_zh": "列出可用模块流",
+    "desc_en": "List available module streams",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF启用模块",
+    "title_en": "DNF module enable",
+    "command": "sudo dnf module enable ",
+    "desc_zh": "启用模块流",
+    "desc_en": "Enable a module stream",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF安装模块",
+    "title_en": "DNF module install",
+    "command": "sudo dnf module install ",
+    "desc_zh": "安装模块流",
+    "desc_en": "Install a module stream",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF重建缓存",
+    "title_en": "DNF makecache",
+    "command": "sudo dnf makecache",
+    "desc_zh": "重建DNF元数据缓存",
+    "desc_en": "Rebuild dnf metadata cache",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF发行同步",
+    "title_en": "DNF distro-sync",
+    "command": "sudo dnf distro-sync",
+    "desc_zh": "同步软件包到仓库版本",
+    "desc_en": "Sync packages to repository versions",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF标记安装",
+    "title_en": "DNF mark install",
+    "command": "sudo dnf mark install ",
+    "desc_zh": "标记为用户安装",
+    "desc_en": "Mark package as user-installed",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF替换包",
+    "title_en": "DNF swap",
+    "command": "sudo dnf swap ",
+    "desc_zh": "用一个包替换另一个包",
+    "desc_en": "Swap one package for another",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF启用仓库",
+    "title_en": "DNF enable repo",
+    "command": "sudo dnf config-manager --set-enabled ",
+    "desc_zh": "启用软件仓库",
+    "desc_en": "Enable a repository",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM升级",
+    "title_en": "RPM upgrade",
+    "command": "sudo rpm -Uvh ",
+    "desc_zh": "升级RPM软件包",
+    "desc_en": "Upgrade RPM package",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM卸载",
+    "title_en": "RPM erase",
+    "command": "sudo rpm -e ",
+    "desc_zh": "卸载RPM软件包",
+    "desc_en": "Erase RPM package",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM包信息",
+    "title_en": "RPM info",
+    "command": "rpm -qi ",
+    "desc_zh": "查看已安装包信息",
+    "desc_en": "Show installed package info",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM依赖需求",
+    "title_en": "RPM requires",
+    "command": "rpm -qR ",
+    "desc_zh": "查看软件包依赖需求",
+    "desc_en": "Show package requirements",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM配置文件",
+    "title_en": "RPM config files",
+    "command": "rpm -qc ",
+    "desc_zh": "列出软件包的配置文件",
+    "desc_en": "List package config files",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM变更日志",
+    "title_en": "RPM changelog",
+    "command": "rpm -q --changelog ",
+    "desc_zh": "查看软件包变更日志",
+    "desc_en": "Show package changelog",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM文件内容",
+    "title_en": "RPM package files",
+    "command": "rpm -qpl ",
+    "desc_zh": "列出RPM文件内的文件",
+    "desc_en": "List files in an RPM file",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM文件信息",
+    "title_en": "RPM package info",
+    "command": "rpm -qpi ",
+    "desc_zh": "查看RPM文件的元信息",
+    "desc_en": "Show info of an RPM file",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM导入密钥",
+    "title_en": "RPM import key",
+    "command": "sudo rpm --import ",
+    "desc_zh": "导入GPG签名密钥",
+    "desc_en": "Import GPG signing key",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM校验签名",
+    "title_en": "RPM check signature",
+    "command": "rpm -K ",
+    "desc_zh": "校验RPM包签名",
+    "desc_en": "Check RPM package signature",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM重建数据库",
+    "title_en": "RPM rebuild DB",
+    "command": "sudo rpm --rebuilddb",
+    "desc_zh": "重建RPM数据库",
+    "desc_en": "Rebuild RPM database",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM全量校验",
+    "title_en": "RPM verify all",
+    "command": "rpm -Va",
+    "desc_zh": "校验所有已安装包",
+    "desc_en": "Verify all installed packages",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld区域列表",
+    "title_en": "Firewalld zones",
+    "command": "firewall-cmd --get-zones",
+    "desc_zh": "列出所有防火墙区域",
+    "desc_en": "List all firewall zones",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld活动区域",
+    "title_en": "Firewalld active zones",
+    "command": "firewall-cmd --get-active-zones",
+    "desc_zh": "列出活动的防火墙区域",
+    "desc_en": "List active firewall zones",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld默认区域",
+    "title_en": "Firewalld default zone",
+    "command": "firewall-cmd --get-default-zone",
+    "desc_zh": "查看默认防火墙区域",
+    "desc_en": "Show default firewall zone",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld设默认区域",
+    "title_en": "Firewalld set default zone",
+    "command": "sudo firewall-cmd --set-default-zone=",
+    "desc_zh": "设置默认防火墙区域",
+    "desc_en": "Set default firewall zone",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld服务清单",
+    "title_en": "Firewalld get services",
+    "command": "firewall-cmd --get-services",
+    "desc_zh": "列出预定义的服务",
+    "desc_en": "List predefined services",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld放行服务列表",
+    "title_en": "Firewalld list services",
+    "command": "firewall-cmd --list-services",
+    "desc_zh": "列出已放行的服务",
+    "desc_en": "List allowed services",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld开放端口列表",
+    "title_en": "Firewalld list ports",
+    "command": "firewall-cmd --list-ports",
+    "desc_zh": "列出已开放的端口",
+    "desc_en": "List open ports",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld移除服务",
+    "title_en": "Firewalld remove service",
+    "command": "sudo firewall-cmd --permanent --remove-service=",
+    "desc_zh": "移除放行的服务",
+    "desc_en": "Remove allowed service",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld放行来源",
+    "title_en": "Firewalld add source",
+    "command": "sudo firewall-cmd --permanent --add-source=",
+    "desc_zh": "放行来源IP地址段",
+    "desc_en": "Allow a source address",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld绑定网卡",
+    "title_en": "Firewalld add interface",
+    "command": "sudo firewall-cmd --permanent --add-interface=",
+    "desc_zh": "将网卡绑定到区域",
+    "desc_en": "Bind interface to zone",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld富规则",
+    "title_en": "Firewalld rich rule",
+    "command": "sudo firewall-cmd --permanent --add-rich-rule=",
+    "desc_zh": "添加富规则",
+    "desc_en": "Add a rich rule",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld地址伪装",
+    "title_en": "Firewalld masquerade",
+    "command": "sudo firewall-cmd --permanent --add-masquerade",
+    "desc_zh": "开启地址伪装（NAT）",
+    "desc_en": "Enable masquerading (NAT)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld端口转发",
+    "title_en": "Firewalld forward port",
+    "command": "sudo firewall-cmd --permanent --add-forward-port=port=:proto=tcp:toport=",
+    "desc_zh": "添加端口转发规则",
+    "desc_en": "Add port forwarding rule",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld查询端口",
+    "title_en": "Firewalld query port",
+    "command": "sudo firewall-cmd --query-port=/tcp",
+    "desc_zh": "查询端口是否开放",
+    "desc_en": "Query whether a port is open",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld保存规则",
+    "title_en": "Firewalld runtime to permanent",
+    "command": "sudo firewall-cmd --runtime-to-permanent",
+    "desc_zh": "将运行时规则保存为永久",
+    "desc_en": "Save runtime rules permanently",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld紧急模式开",
+    "title_en": "Firewalld panic on",
+    "command": "sudo firewall-cmd --panic-on",
+    "desc_zh": "开启紧急模式断开所有连接",
+    "desc_en": "Enable panic mode (drop all)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld紧急模式关",
+    "title_en": "Firewalld panic off",
+    "command": "sudo firewall-cmd --panic-off",
+    "desc_zh": "关闭紧急模式",
+    "desc_en": "Disable panic mode",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld检查配置",
+    "title_en": "Firewalld check config",
+    "command": "sudo firewall-cmd --check-config",
+    "desc_zh": "检查防火墙配置合法性",
+    "desc_en": "Check firewall configuration validity",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld新建区域",
+    "title_en": "Firewalld new zone",
+    "command": "sudo firewall-cmd --permanent --new-zone=",
+    "desc_zh": "创建自定义防火墙区域",
+    "desc_en": "Create a custom firewall zone",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld网卡区域",
+    "title_en": "Firewalld zone of interface",
+    "command": "firewall-cmd --get-zone-of-interface=",
+    "desc_zh": "查看网卡所属区域",
+    "desc_en": "Show zone of an interface",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux端口列表",
+    "title_en": "Semanage port list",
+    "command": "sudo semanage port -l",
+    "desc_zh": "列出SELinux端口映射",
+    "desc_en": "List SELinux port mappings",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux添加端口",
+    "title_en": "Semanage add port",
+    "command": "sudo semanage port -a -t http_port_t -p tcp ",
+    "desc_zh": "为HTTP类型添加端口",
+    "desc_en": "Add port to http_port_t type",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux上下文规则",
+    "title_en": "Semanage fcontext list",
+    "command": "sudo semanage fcontext -l",
+    "desc_zh": "列出文件上下文规则",
+    "desc_en": "List file context rules",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux添加上下文",
+    "title_en": "Semanage add fcontext",
+    "command": "sudo semanage fcontext -a -t httpd_sys_content_t ",
+    "desc_zh": "添加文件上下文规则",
+    "desc_en": "Add a file context rule",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux布尔列表",
+    "title_en": "Semanage boolean list",
+    "command": "sudo semanage boolean -l",
+    "desc_zh": "列出SELinux布尔值",
+    "desc_en": "List SELinux booleans",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux登录映射",
+    "title_en": "Semanage login list",
+    "command": "sudo semanage login -l",
+    "desc_zh": "列出登录用户映射",
+    "desc_en": "List login user mappings",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux用户列表",
+    "title_en": "Semanage user list",
+    "command": "sudo semanage user -l",
+    "desc_zh": "列出SELinux用户",
+    "desc_en": "List SELinux users",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux模块列表",
+    "title_en": "Semanage module list",
+    "command": "sudo semanage module -l",
+    "desc_zh": "列出SELinux策略模块",
+    "desc_en": "List SELinux policy modules",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux导出定制",
+    "title_en": "Semanage export",
+    "command": "sudo semanage export",
+    "desc_zh": "导出本地SELinux定制",
+    "desc_en": "Export local SELinux customizations",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "预览上下文恢复",
+    "title_en": "Restorecon dry run",
+    "command": "sudo restorecon -Rvn ",
+    "desc_zh": "预览SELinux上下文恢复（不修改）",
+    "desc_en": "Preview context restore (dry run)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Chkconfig开机自启",
+    "title_en": "Chkconfig on",
+    "command": "sudo chkconfig  on",
+    "desc_zh": "设置服务开机自启（sysvinit）",
+    "desc_en": "Enable service at boot (sysvinit)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Chkconfig取消自启",
+    "title_en": "Chkconfig off",
+    "command": "sudo chkconfig  off",
+    "desc_zh": "取消服务开机自启（sysvinit）",
+    "desc_en": "Disable service at boot (sysvinit)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Chkconfig添加服务",
+    "title_en": "Chkconfig add",
+    "command": "sudo chkconfig --add ",
+    "desc_zh": "添加服务到chkconfig管理",
+    "desc_en": "Add service to chkconfig management",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Chkconfig移除服务",
+    "title_en": "Chkconfig del",
+    "command": "sudo chkconfig --del ",
+    "desc_zh": "从chkconfig管理移除服务",
+    "desc_en": "Remove service from chkconfig management",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "启动服务(sysvinit)",
+    "title_en": "Service start",
+    "command": "sudo service  start",
+    "desc_zh": "启动服务（sysvinit方式）",
+    "desc_en": "Start service (sysvinit)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "停止服务(sysvinit)",
+    "title_en": "Service stop",
+    "command": "sudo service  stop",
+    "desc_zh": "停止服务（sysvinit方式）",
+    "desc_en": "Stop service (sysvinit)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "服务状态(sysvinit)",
+    "title_en": "Service status",
+    "command": "sudo service  status",
+    "desc_zh": "查看服务状态（sysvinit方式）",
+    "desc_en": "Show service status (sysvinit)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "全部服务状态",
+    "title_en": "Service status all",
+    "command": "service --status-all",
+    "desc_zh": "列出所有服务状态",
+    "desc_en": "List status of all services",
+    "distro": "centos"
+  },
+  {
     "title_zh": "Pacman同步源",
     "title_en": "Pacman sync",
     "command": "sudo pacman -Sy",
@@ -664,6 +1920,230 @@
     "distro": "arch"
   },
   {
+    "title_zh": "Pacman强制更新",
+    "title_en": "Pacman force update",
+    "command": "sudo pacman -Syyu",
+    "desc_zh": "强制刷新数据库并更新全部",
+    "desc_en": "Force refresh and full upgrade",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman仅下载",
+    "title_en": "Pacman download only",
+    "command": "sudo pacman -Sw ",
+    "desc_zh": "仅下载软件包不安装",
+    "desc_en": "Download package without installing",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman简单卸载",
+    "title_en": "Pacman remove only",
+    "command": "sudo pacman -R ",
+    "desc_zh": "卸载软件包（保留依赖）",
+    "desc_en": "Remove package keeping dependencies",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman卸载含依赖",
+    "title_en": "Pacman remove with deps",
+    "command": "sudo pacman -Rs ",
+    "desc_zh": "卸载软件包及未用依赖",
+    "desc_en": "Remove package with unneeded deps",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman全部包列表",
+    "title_en": "Pacman list all",
+    "command": "pacman -Q",
+    "desc_zh": "列出所有已安装的软件包",
+    "desc_en": "List all installed packages",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman本地包信息",
+    "title_en": "Pacman local info",
+    "command": "pacman -Qi ",
+    "desc_zh": "查看已安装包的信息",
+    "desc_en": "Show installed package info",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman本地搜索",
+    "title_en": "Pacman local search",
+    "command": "pacman -Qs ",
+    "desc_zh": "搜索已安装的软件包",
+    "desc_en": "Search installed packages",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman可升级列表",
+    "title_en": "Pacman list upgrades",
+    "command": "pacman -Qu",
+    "desc_zh": "列出可升级的软件包",
+    "desc_en": "List upgradable packages",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman外部包列表",
+    "title_en": "Pacman foreign packages",
+    "command": "pacman -Qm",
+    "desc_zh": "列出外部（AUR）安装的包",
+    "desc_en": "List foreign (AUR) packages",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman完整性校验",
+    "title_en": "Pacman check files",
+    "command": "pacman -Qk ",
+    "desc_zh": "校验软件包文件完整性",
+    "desc_en": "Check package file integrity",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman刷新文件库",
+    "title_en": "Pacman refresh files DB",
+    "command": "sudo pacman -Fy",
+    "desc_zh": "刷新文件数据库",
+    "desc_en": "Refresh the files database",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman文件查找",
+    "title_en": "Pacman file search",
+    "command": "pacman -F ",
+    "desc_zh": "查找文件所属的仓库包",
+    "desc_en": "Find package owning a file (repos)",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman本地安装",
+    "title_en": "Pacman install local",
+    "command": "sudo pacman -U ",
+    "desc_zh": "安装本地软件包文件",
+    "desc_en": "Install a local package file",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman标记显式",
+    "title_en": "Pacman mark explicit",
+    "command": "sudo pacman -D --asexplicit ",
+    "desc_zh": "将包标记为显式安装",
+    "desc_en": "Mark package as explicitly installed",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman清空缓存",
+    "title_en": "Pacman clean all cache",
+    "command": "sudo pacman -Scc",
+    "desc_zh": "清空全部软件包缓存",
+    "desc_en": "Clear entire package cache",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman清理孤立包",
+    "title_en": "Pacman remove orphans",
+    "command": "sudo pacman -Rns $(pacman -Qdtq)",
+    "desc_zh": "移除所有孤立软件包",
+    "desc_en": "Remove all orphan packages",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Yay全部更新",
+    "title_en": "Yay update all",
+    "command": "yay -Syu",
+    "desc_zh": "更新所有包（含AUR）",
+    "desc_en": "Update all packages including AUR",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Yay搜索",
+    "title_en": "Yay search",
+    "command": "yay -Ss ",
+    "desc_zh": "搜索官方仓库与AUR",
+    "desc_en": "Search repos and AUR",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Yay卸载",
+    "title_en": "Yay remove",
+    "command": "yay -Rns ",
+    "desc_zh": "卸载软件包及依赖（yay）",
+    "desc_en": "Remove package with dependencies (yay)",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Yay清理依赖",
+    "title_en": "Yay clean deps",
+    "command": "yay -Yc",
+    "desc_zh": "清理不需要的依赖",
+    "desc_en": "Clean unneeded dependencies",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Yay系统统计",
+    "title_en": "Yay stats",
+    "command": "yay -Ps",
+    "desc_zh": "查看系统软件包统计",
+    "desc_en": "Show package statistics",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Yay下载PKGBUILD",
+    "title_en": "Yay get PKGBUILD",
+    "command": "yay -G ",
+    "desc_zh": "下载PKGBUILD构建脚本",
+    "desc_en": "Download PKGBUILD source",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "缓存保留单版本",
+    "title_en": "Paccache keep one",
+    "command": "sudo paccache -rk1",
+    "desc_zh": "缓存仅保留1个版本",
+    "desc_en": "Keep only one cached version",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "清理卸载包缓存",
+    "title_en": "Paccache uninstalled",
+    "command": "sudo paccache -ruk0",
+    "desc_zh": "清理已卸载包的缓存",
+    "desc_en": "Remove cache of uninstalled packages",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "构建并安装",
+    "title_en": "Makepkg install",
+    "command": "makepkg -si",
+    "desc_zh": "构建并安装（自动装依赖）",
+    "desc_en": "Build and install with dependencies",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "仅获取源码",
+    "title_en": "Makepkg download only",
+    "command": "makepkg -o",
+    "desc_zh": "仅下载并解压源码",
+    "desc_en": "Download and extract sources only",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "生成校验和",
+    "title_en": "Makepkg checksums",
+    "command": "makepkg -g",
+    "desc_zh": "生成源码校验和",
+    "desc_en": "Generate source checksums",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "生成SRCINFO",
+    "title_en": "Makepkg srcinfo",
+    "command": "makepkg --printsrcinfo > .SRCINFO",
+    "desc_zh": "生成.SRCINFO文件",
+    "desc_en": "Generate .SRCINFO file",
+    "distro": "arch"
+  },
+  {
     "title_zh": "APK更新源",
     "title_en": "APK update",
     "command": "sudo apk update",
@@ -765,6 +2245,230 @@
     "command": "cat /etc/alpine-release",
     "desc_zh": "查看Alpine版本",
     "desc_en": "Show Alpine version",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK修复包",
+    "title_en": "APK fix",
+    "command": "sudo apk fix ",
+    "desc_zh": "修复或重装软件包",
+    "desc_en": "Repair or reinstall a package",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK清理缓存",
+    "title_en": "APK cache clean",
+    "command": "sudo apk cache clean",
+    "desc_zh": "清理本地软件包缓存",
+    "desc_en": "Clean local package cache",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK版本来源",
+    "title_en": "APK policy",
+    "command": "apk policy ",
+    "desc_zh": "查看包版本与来源仓库",
+    "desc_en": "Show package version and repository",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK下载包",
+    "title_en": "APK fetch",
+    "command": "apk fetch ",
+    "desc_zh": "下载软件包到当前目录",
+    "desc_en": "Download package to current directory",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK文件清单",
+    "title_en": "APK manifest",
+    "command": "apk manifest ",
+    "desc_zh": "列出软件包文件校验和",
+    "desc_en": "Show package file checksums",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK校验签名",
+    "title_en": "APK verify",
+    "command": "apk verify ",
+    "desc_zh": "校验软件包签名",
+    "desc_en": "Verify package signature",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK系统审计",
+    "title_en": "APK audit",
+    "command": "sudo apk audit",
+    "desc_zh": "审计系统文件改动",
+    "desc_en": "Audit filesystem changes",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK统计信息",
+    "title_en": "APK stats",
+    "command": "apk stats",
+    "desc_zh": "查看软件包与索引统计",
+    "desc_en": "Show package and index statistics",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK版本对比",
+    "title_en": "APK version",
+    "command": "apk version",
+    "desc_zh": "对比已安装与可用版本",
+    "desc_en": "Compare installed vs available versions",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK虚拟依赖组",
+    "title_en": "APK virtual deps",
+    "command": "sudo apk add --virtual .build-deps ",
+    "desc_zh": "安装虚拟构建依赖组",
+    "desc_en": "Install virtual build dependency group",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK文件归属",
+    "title_en": "APK who owns",
+    "command": "apk info --who-owns ",
+    "desc_zh": "查看文件属于哪个软件包",
+    "desc_en": "Show which package owns a file",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK可升级列表",
+    "title_en": "APK list upgradable",
+    "command": "apk list --upgradable",
+    "desc_zh": "列出可升级的软件包",
+    "desc_en": "List upgradable packages",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "OpenRC重启服务",
+    "title_en": "RC-service restart",
+    "command": "sudo rc-service  restart",
+    "desc_zh": "重启OpenRC服务",
+    "desc_en": "Restart an OpenRC service",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "OpenRC服务查询",
+    "title_en": "RC-service status",
+    "command": "sudo rc-service  status",
+    "desc_zh": "查看单个OpenRC服务状态",
+    "desc_en": "Show status of an OpenRC service",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "OpenRC取消自启",
+    "title_en": "RC-update del",
+    "command": "sudo rc-update del  default",
+    "desc_zh": "取消OpenRC服务开机自启",
+    "desc_en": "Disable service at boot (OpenRC)",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "OpenRC自启列表",
+    "title_en": "RC-update show",
+    "command": "rc-update show",
+    "desc_zh": "查看各运行级的服务配置",
+    "desc_en": "Show services per runlevel",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "OpenRC全部状态",
+    "title_en": "RC-status all",
+    "command": "rc-status --all",
+    "desc_zh": "查看所有运行级服务状态",
+    "desc_en": "Show services in all runlevels",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine安装向导",
+    "title_en": "Setup Alpine",
+    "command": "sudo setup-alpine",
+    "desc_zh": "运行Alpine初始化安装向导",
+    "desc_en": "Run Alpine setup wizard",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine设置主机名",
+    "title_en": "Setup hostname",
+    "command": "sudo setup-hostname ",
+    "desc_zh": "设置主机名（Alpine）",
+    "desc_en": "Set hostname (Alpine)",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine设置时区",
+    "title_en": "Setup timezone",
+    "command": "sudo setup-timezone",
+    "desc_zh": "设置时区（Alpine）",
+    "desc_en": "Set timezone (Alpine)",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine键盘布局",
+    "title_en": "Setup keymap",
+    "command": "sudo setup-keymap",
+    "desc_zh": "设置键盘布局（Alpine）",
+    "desc_en": "Set keyboard layout (Alpine)",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine网络配置",
+    "title_en": "Setup interfaces",
+    "command": "sudo setup-interfaces",
+    "desc_zh": "配置网络接口（Alpine）",
+    "desc_en": "Configure network interfaces (Alpine)",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine配置DNS",
+    "title_en": "Setup DNS",
+    "command": "sudo setup-dns",
+    "desc_zh": "配置DNS解析（Alpine）",
+    "desc_en": "Configure DNS (Alpine)",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine时间同步",
+    "title_en": "Setup NTP",
+    "command": "sudo setup-ntp",
+    "desc_zh": "配置NTP时间同步（Alpine）",
+    "desc_en": "Configure NTP (Alpine)",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine配置SSH",
+    "title_en": "Setup SSHD",
+    "command": "sudo setup-sshd",
+    "desc_zh": "配置SSH服务（Alpine）",
+    "desc_en": "Configure SSH daemon (Alpine)",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine配置软件源",
+    "title_en": "Setup APK repos",
+    "command": "sudo setup-apkrepos",
+    "desc_zh": "配置APK软件源",
+    "desc_en": "Configure APK repositories",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine创建用户",
+    "title_en": "Setup user",
+    "command": "sudo setup-user",
+    "desc_zh": "创建普通用户（Alpine）",
+    "desc_en": "Create a regular user (Alpine)",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine安装到磁盘",
+    "title_en": "Setup disk",
+    "command": "sudo setup-disk",
+    "desc_zh": "安装系统到磁盘（Alpine）",
+    "desc_en": "Install system to disk (Alpine)",
     "distro": "alpine"
   }
 ]
