@@ -132,7 +132,7 @@ export default function App() {
       body.classList.toggle("theme-dark", isDark);
       body.classList.toggle("theme-light", !isDark);
       if (favicon) {
-        favicon.href = "/logo-aurora-dark.svg";
+        favicon.href = "/logo-frostplain-dark.svg";
       }
     };
 

@@ -1,0 +1,43 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="18" y1="18" x2="182" y2="182" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#17243A"/>
+      <stop offset="0.56" stop-color="#060A14"/>
+      <stop offset="1" stop-color="#111A2B"/>
+    </linearGradient>
+    <linearGradient id="ddGrad" x1="30" y1="34" x2="170" y2="166" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8FE8FF"/>
+      <stop offset="0.58" stop-color="#D3DFEF"/>
+      <stop offset="1" stop-color="#6DA7FF"/>
+    </linearGradient>
+    <linearGradient id="crackGrad" x1="66" y1="64" x2="140" y2="138" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F3F8FF" stop-opacity="0.86"/>
+      <stop offset="0.58" stop-color="#8FE8FF" stop-opacity="0.62"/>
+      <stop offset="1" stop-color="#6DA7FF" stop-opacity="0.28"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#8FE8FF" stop-opacity="0.44"/>
+      <stop offset="0.58" stop-color="#8FE8FF" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#8FE8FF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-24%" y="-24%" width="148%" height="148%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+
+  <rect x="16" y="16" width="168" height="168" rx="38" fill="url(#bgGrad)"/>
+  <circle cx="100" cy="100" r="78" fill="url(#glow)"/>
+  <rect x="16.5" y="16.5" width="167" height="167" rx="37.5" stroke="#F2F7FF" stroke-opacity="0.10"/>
+
+  <g filter="url(#softGlow)">
+    <path d="M96 34V76C96 84 86 91 86 100C86 109 96 116 96 124V166C48 166 30 138 30 100C30 62 48 34 96 34Z" fill="#0B1220" fill-opacity="0.34" stroke="url(#ddGrad)" stroke-width="3.2" stroke-linejoin="round"/>
+    <path d="M104 34V76C104 84 114 91 114 100C114 109 104 116 104 124V166C152 166 170 138 170 100C170 62 152 34 104 34Z" fill="#0B1220" fill-opacity="0.34" stroke="url(#ddGrad)" stroke-width="3.2" stroke-linejoin="round"/>
+  </g>
+
+  <path d="M68 70L78 91L69 110L83 132" stroke="url(#crackGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M132 64L123 86L137 104L125 138" stroke="url(#crackGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M145 92L137 108L145 126" stroke="#F3F8FF" stroke-opacity="0.28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M58 142H82" stroke="#F3F8FF" stroke-opacity="0.16" stroke-width="2" stroke-linecap="round"/>
+  <path d="M120 154H148" stroke="#8FE8FF" stroke-opacity="0.18" stroke-width="2" stroke-linecap="round"/>
+</svg>
