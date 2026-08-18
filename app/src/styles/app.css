@@ -855,6 +855,14 @@ body {
 
 /* ── Batch 7: Small Window Fallback ── */
 
+/* Tailwind preflight (base layer) sets `textarea { opacity: 1; resize: vertical; }`,
+   which outranks xterm.css's hiding rule in the lower vendor layer and makes the
+   hidden cursor-positioned input textarea visible and resizable. Re-assert here. */
+.xterm .xterm-helper-textarea {
+  opacity: 0;
+  resize: none;
+}
+
 /* xterm transparent background for image bg mode */
 .xterm-bg-transparent .xterm,
 .xterm-bg-transparent .xterm-viewport,
