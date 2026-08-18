@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 87
-- **Last Active**: 2026-08-04
+- **Total Sessions**: 88
+- **Last Active**: 2026-08-18
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1081 | Active |
+| `journal-2.md` | ~1114 | Active |
 | `journal-1.md` | ~1985 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 88 | 2026-08-18 | 快速编辑：可编辑类型过滤 + 语法高亮与彩虹括号 | `d8601df` | `main` |
 | 87 | 2026-08-04 | 修复假分屏与传输状态卡死并发布 v0.3.2 | `5a93c0b`, `659920f`, `bbe9971` | `main` |
 | 86 | 2026-07-19 | 发布 v0.3.1（Windows MSI 修复版） | `1d440fb` | `main` |
 | 85 | 2026-07-19 | 修复 Windows MSI 安装 2503 与自动更新失败 | `0b58cd3` | `main` |

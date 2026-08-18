@@ -1079,3 +1079,36 @@ Added terminal selection quick actions, fixed top-edge popover placement, preven
 ### Next Steps
 
 - None - task complete
+
+
+## Session 88: 快速编辑：可编辑类型过滤 + 语法高亮与彩虹括号
+
+**Date**: 2026-08-18
+**Task**: 快速编辑：可编辑类型过滤 + 语法高亮与彩虹括号
+**Branch**: `main`
+
+### Summary
+
+提取共享 isLikelyQuickEditFile（白名单并集），SFTP 页与终端抽屉右键菜单统一为不可编辑文件隐藏快速编辑项；QuickEditor 加 HighlightStyle 语法高亮，色板走 --color-syntax-* CSS 变量（:root 暗 + data-theme=light 亮两套，ui-theme 可逐主题覆盖）；新增 rainbowBrackets 插件（嵌套深度 4 色循环，语法树跳过字符串/注释，>200k 停用）+ bracketMatching 配对高亮。trellis-check 修掉 shell case x) 单边括号常驻误报（改为不装饰，错配只在光标处提示，用户拍板方案 2）。沉淀 2 条 spec：跨语言严格语法假设禁令、语义 token 双块模式。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d8601df` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
