@@ -1,0 +1,1026 @@
+[
+  {
+    "title_zh": "Docker运行中容器",
+    "title_en": "Docker ps",
+    "command": "docker ps",
+    "desc_zh": "列出运行中的容器",
+    "desc_en": "List running containers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker所有容器",
+    "title_en": "Docker ps all",
+    "command": "docker ps -a",
+    "desc_zh": "列出所有容器（包括已停止）",
+    "desc_en": "List all containers (including stopped)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker后台运行",
+    "title_en": "Docker run",
+    "command": "docker run -d --name  ",
+    "desc_zh": "后台运行容器",
+    "desc_en": "Run container in background",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker端口映射运行",
+    "title_en": "Docker run with port",
+    "command": "docker run -d -p 8080:80 --name  ",
+    "desc_zh": "运行容器并映射端口",
+    "desc_en": "Run container with port mapping",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker挂载卷运行",
+    "title_en": "Docker run with volume",
+    "command": "docker run -d -v /host:/container --name  ",
+    "desc_zh": "运行容器并挂载数据卷",
+    "desc_en": "Run container with volume mount",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker交互式运行",
+    "title_en": "Docker run interactive",
+    "command": "docker run -it  /bin/bash",
+    "desc_zh": "交互式运行容器",
+    "desc_en": "Run container interactively",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker临时运行",
+    "title_en": "Docker run rm",
+    "command": "docker run --rm ",
+    "desc_zh": "运行容器，退出后自动删除",
+    "desc_en": "Run container and remove on exit",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker启动容器",
+    "title_en": "Docker start",
+    "command": "docker start ",
+    "desc_zh": "启动已停止的容器",
+    "desc_en": "Start a stopped container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker停止容器",
+    "title_en": "Docker stop",
+    "command": "docker stop ",
+    "desc_zh": "停止运行中的容器",
+    "desc_en": "Stop a running container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker重启容器",
+    "title_en": "Docker restart",
+    "command": "docker restart ",
+    "desc_zh": "重启容器",
+    "desc_en": "Restart a container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker强制终止",
+    "title_en": "Docker kill",
+    "command": "docker kill ",
+    "desc_zh": "强制终止容器",
+    "desc_en": "Force kill a container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除容器",
+    "title_en": "Docker rm",
+    "command": "docker rm ",
+    "desc_zh": "删除已停止的容器",
+    "desc_en": "Remove a stopped container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker强制删除",
+    "title_en": "Docker rm force",
+    "command": "docker rm -f ",
+    "desc_zh": "强制删除容器",
+    "desc_en": "Force remove a container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker清理停止容器",
+    "title_en": "Docker rm all stopped",
+    "command": "docker container prune",
+    "desc_zh": "清理所有已停止的容器",
+    "desc_en": "Remove all stopped containers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker暂停容器",
+    "title_en": "Docker pause",
+    "command": "docker pause ",
+    "desc_zh": "暂停容器内所有进程",
+    "desc_en": "Pause all processes in container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker恢复容器",
+    "title_en": "Docker unpause",
+    "command": "docker unpause ",
+    "desc_zh": "恢复已暂停的容器",
+    "desc_en": "Unpause a paused container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker重命名容器",
+    "title_en": "Docker rename",
+    "command": "docker rename  ",
+    "desc_zh": "重命名容器",
+    "desc_en": "Rename a container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker创建容器",
+    "title_en": "Docker create",
+    "command": "docker create --name  ",
+    "desc_zh": "创建容器但不启动",
+    "desc_en": "Create container without starting",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker附加到容器",
+    "title_en": "Docker attach",
+    "command": "docker attach ",
+    "desc_zh": "附加到运行中容器的主进程",
+    "desc_en": "Attach to running container's main process",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker等待容器退出",
+    "title_en": "Docker wait",
+    "command": "docker wait ",
+    "desc_zh": "阻塞等待容器退出并输出退出码",
+    "desc_en": "Wait for container exit and print exit code",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker限制容器资源",
+    "title_en": "Docker update resources",
+    "command": "docker update --memory 512m --cpus 1 ",
+    "desc_zh": "更新运行中容器的资源限制",
+    "desc_en": "Update resource limits of running container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker设置自动重启",
+    "title_en": "Docker update restart",
+    "command": "docker update --restart unless-stopped ",
+    "desc_zh": "设置容器自动重启策略",
+    "desc_en": "Set container restart policy",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker环境变量运行",
+    "title_en": "Docker run with env",
+    "command": "docker run -d -e KEY=value --name  ",
+    "desc_zh": "运行容器并设置环境变量",
+    "desc_en": "Run container with environment variable",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker指定网络运行",
+    "title_en": "Docker run with network",
+    "command": "docker run -d --network  --name  ",
+    "desc_zh": "运行容器并加入指定网络",
+    "desc_en": "Run container in specified network",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker限制资源运行",
+    "title_en": "Docker run with limits",
+    "command": "docker run -d --memory 512m --cpus 1 --name  ",
+    "desc_zh": "运行容器并限制内存和CPU",
+    "desc_en": "Run container with memory and CPU limits",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker自动重启运行",
+    "title_en": "Docker run restart always",
+    "command": "docker run -d --restart always --name  ",
+    "desc_zh": "运行容器并设置总是自动重启",
+    "desc_en": "Run container with always restart policy",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker停止所有容器",
+    "title_en": "Docker stop all",
+    "command": "docker stop $(docker ps -q)",
+    "desc_zh": "停止所有运行中的容器",
+    "desc_en": "Stop all running containers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除所有容器",
+    "title_en": "Docker rm all",
+    "command": "docker rm -f $(docker ps -aq)",
+    "desc_zh": "强制删除所有容器（谨慎操作）",
+    "desc_en": "Force remove all containers (use with care)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker容器日志",
+    "title_en": "Docker logs",
+    "command": "docker logs ",
+    "desc_zh": "查看容器日志",
+    "desc_en": "Show container logs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker跟踪日志",
+    "title_en": "Docker logs follow",
+    "command": "docker logs -f ",
+    "desc_zh": "实时跟踪容器日志",
+    "desc_en": "Follow container logs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker最近日志",
+    "title_en": "Docker logs tail",
+    "command": "docker logs --tail 100 ",
+    "desc_zh": "查看最近100行日志",
+    "desc_en": "Show last 100 lines of logs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker容器详情",
+    "title_en": "Docker inspect",
+    "command": "docker inspect ",
+    "desc_zh": "查看容器详细信息（JSON）",
+    "desc_en": "Inspect container details (JSON)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker进入Bash",
+    "title_en": "Docker exec",
+    "command": "docker exec -it  /bin/bash",
+    "desc_zh": "进入容器的Bash终端",
+    "desc_en": "Enter container shell",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker进入Sh",
+    "title_en": "Docker exec sh",
+    "command": "docker exec -it  /bin/sh",
+    "desc_zh": "进入容器的Sh终端",
+    "desc_en": "Enter container shell (sh)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker执行命令",
+    "title_en": "Docker exec command",
+    "command": "docker exec  ",
+    "desc_zh": "在容器中执行命令",
+    "desc_en": "Run command in container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker容器进程",
+    "title_en": "Docker top",
+    "command": "docker top ",
+    "desc_zh": "查看容器内进程",
+    "desc_en": "Show processes in container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker资源监控",
+    "title_en": "Docker stats",
+    "command": "docker stats",
+    "desc_zh": "实时显示容器资源使用情况",
+    "desc_en": "Show live container resource usage",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker资源快照",
+    "title_en": "Docker stats no-stream",
+    "command": "docker stats --no-stream",
+    "desc_zh": "显示容器资源使用快照",
+    "desc_en": "Show container resource usage (snapshot)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker文件变更",
+    "title_en": "Docker diff",
+    "command": "docker diff ",
+    "desc_zh": "查看容器文件系统变更",
+    "desc_en": "Show filesystem changes in container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker端口映射",
+    "title_en": "Docker port",
+    "command": "docker port ",
+    "desc_zh": "查看容器端口映射",
+    "desc_en": "Show container port mappings",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker容器IP",
+    "title_en": "Docker container IP",
+    "command": "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ",
+    "desc_zh": "查看容器的IP地址",
+    "desc_en": "Show container IP address",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker带时间戳日志",
+    "title_en": "Docker logs timestamps",
+    "command": "docker logs -f -t ",
+    "desc_zh": "实时跟踪日志并显示时间戳",
+    "desc_en": "Follow logs with timestamps",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker最近时间日志",
+    "title_en": "Docker logs since",
+    "command": "docker logs --since 1h ",
+    "desc_zh": "查看最近1小时的容器日志",
+    "desc_en": "Show container logs from last hour",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker事件监听",
+    "title_en": "Docker events",
+    "command": "docker events",
+    "desc_zh": "实时监听Docker事件流",
+    "desc_en": "Stream real-time docker events",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker以root进入",
+    "title_en": "Docker exec as root",
+    "command": "docker exec -it -u root  /bin/bash",
+    "desc_zh": "以root用户进入容器终端",
+    "desc_en": "Enter container shell as root",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker镜像列表",
+    "title_en": "Docker images",
+    "command": "docker images",
+    "desc_zh": "列出所有Docker镜像",
+    "desc_en": "List docker images",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker拉取镜像",
+    "title_en": "Docker pull",
+    "command": "docker pull ",
+    "desc_zh": "从仓库拉取镜像",
+    "desc_en": "Pull an image from registry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker构建镜像",
+    "title_en": "Docker build",
+    "command": "docker build -t  .",
+    "desc_zh": "从Dockerfile构建镜像",
+    "desc_en": "Build image from Dockerfile",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker无缓存构建",
+    "title_en": "Docker build no cache",
+    "command": "docker build --no-cache -t  .",
+    "desc_zh": "不使用缓存构建镜像",
+    "desc_en": "Build image without cache",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker标签",
+    "title_en": "Docker tag",
+    "command": "docker tag   ",
+    "desc_zh": "为镜像打标签",
+    "desc_en": "Tag an image",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker推送镜像",
+    "title_en": "Docker push",
+    "command": "docker push ",
+    "desc_zh": "推送镜像到仓库",
+    "desc_en": "Push image to registry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除镜像",
+    "title_en": "Docker rmi",
+    "command": "docker rmi ",
+    "desc_zh": "删除镜像",
+    "desc_en": "Remove an image",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker清理镜像",
+    "title_en": "Docker image prune",
+    "command": "docker image prune -a",
+    "desc_zh": "清理未使用的镜像",
+    "desc_en": "Remove unused images",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker导出镜像",
+    "title_en": "Docker save",
+    "command": "docker save -o image.tar ",
+    "desc_zh": "保存镜像为tar文件",
+    "desc_en": "Save image to tar file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker导入镜像",
+    "title_en": "Docker load",
+    "command": "docker load -i image.tar",
+    "desc_zh": "从tar文件加载镜像",
+    "desc_en": "Load image from tar file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker镜像历史",
+    "title_en": "Docker history",
+    "command": "docker history ",
+    "desc_zh": "查看镜像层历史",
+    "desc_en": "Show image layer history",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker搜索镜像",
+    "title_en": "Docker search",
+    "command": "docker search ",
+    "desc_zh": "在Docker Hub搜索镜像",
+    "desc_en": "Search images on Docker Hub",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker导出容器",
+    "title_en": "Docker export",
+    "command": "docker export -o container.tar ",
+    "desc_zh": "导出容器文件系统为tar",
+    "desc_en": "Export container filesystem to tar",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker导入容器",
+    "title_en": "Docker import",
+    "command": "docker import container.tar ",
+    "desc_zh": "从tar导入为镜像",
+    "desc_en": "Import tar as image",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker镜像详情",
+    "title_en": "Docker image inspect",
+    "command": "docker image inspect ",
+    "desc_zh": "查看镜像详细信息",
+    "desc_en": "Inspect image details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker悬空镜像",
+    "title_en": "Docker dangling images",
+    "command": "docker images -f dangling=true",
+    "desc_zh": "列出悬空（无标签）镜像",
+    "desc_en": "List dangling (untagged) images",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker指定平台构建",
+    "title_en": "Docker build platform",
+    "command": "docker build --platform linux/amd64 -t  .",
+    "desc_zh": "构建指定架构平台的镜像",
+    "desc_en": "Build image for specific platform",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker构建传参",
+    "title_en": "Docker build arg",
+    "command": "docker build --build-arg KEY=value -t  .",
+    "desc_zh": "构建镜像并传递构建参数",
+    "desc_en": "Build image with build arguments",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker指定Dockerfile构建",
+    "title_en": "Docker build file",
+    "command": "docker build -f Dockerfile.dev -t  .",
+    "desc_zh": "使用指定Dockerfile构建镜像",
+    "desc_en": "Build with specific Dockerfile",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker多架构构建",
+    "title_en": "Docker buildx build",
+    "command": "docker buildx build --platform linux/amd64,linux/arm64 -t  --push .",
+    "desc_zh": "构建多架构镜像并推送",
+    "desc_en": "Build multi-arch image and push",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker构建器列表",
+    "title_en": "Docker buildx ls",
+    "command": "docker buildx ls",
+    "desc_zh": "列出buildx构建器实例",
+    "desc_en": "List buildx builder instances",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker清理构建缓存",
+    "title_en": "Docker builder prune",
+    "command": "docker builder prune -f",
+    "desc_zh": "清理构建缓存",
+    "desc_en": "Remove build cache",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker镜像清单",
+    "title_en": "Docker manifest inspect",
+    "command": "docker manifest inspect ",
+    "desc_zh": "查看镜像清单（多架构信息）",
+    "desc_en": "Inspect image manifest (multi-arch)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker网络列表",
+    "title_en": "Docker network ls",
+    "command": "docker network ls",
+    "desc_zh": "列出Docker网络",
+    "desc_en": "List docker networks",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker创建网络",
+    "title_en": "Docker network create",
+    "command": "docker network create ",
+    "desc_zh": "创建Docker网络",
+    "desc_en": "Create a docker network",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker网络详情",
+    "title_en": "Docker network inspect",
+    "command": "docker network inspect ",
+    "desc_zh": "查看网络详细信息",
+    "desc_en": "Inspect network details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker数据卷列表",
+    "title_en": "Docker volume ls",
+    "command": "docker volume ls",
+    "desc_zh": "列出Docker数据卷",
+    "desc_en": "List docker volumes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker创建数据卷",
+    "title_en": "Docker volume create",
+    "command": "docker volume create ",
+    "desc_zh": "创建Docker数据卷",
+    "desc_en": "Create a docker volume",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker复制文件到容器",
+    "title_en": "Docker cp to container",
+    "command": "docker cp  :/path/",
+    "desc_zh": "复制文件到容器中",
+    "desc_en": "Copy file into container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker从容器复制文件",
+    "title_en": "Docker cp from container",
+    "command": "docker cp :/path/file .",
+    "desc_zh": "从容器中复制文件",
+    "desc_en": "Copy file from container",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker提交容器",
+    "title_en": "Docker commit",
+    "command": "docker commit  ",
+    "desc_zh": "将容器变更提交为新镜像",
+    "desc_en": "Create image from container changes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker登录仓库",
+    "title_en": "Docker login",
+    "command": "docker login",
+    "desc_zh": "登录Docker仓库",
+    "desc_en": "Login to docker registry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker登出仓库",
+    "title_en": "Docker logout",
+    "command": "docker logout",
+    "desc_zh": "登出Docker仓库",
+    "desc_en": "Logout from docker registry",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker连接网络",
+    "title_en": "Docker network connect",
+    "command": "docker network connect  ",
+    "desc_zh": "将容器连接到网络",
+    "desc_en": "Connect container to network",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker断开网络",
+    "title_en": "Docker network disconnect",
+    "command": "docker network disconnect  ",
+    "desc_zh": "将容器从网络断开",
+    "desc_en": "Disconnect container from network",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除网络",
+    "title_en": "Docker network rm",
+    "command": "docker network rm ",
+    "desc_zh": "删除Docker网络",
+    "desc_en": "Remove a docker network",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker清理网络",
+    "title_en": "Docker network prune",
+    "command": "docker network prune -f",
+    "desc_zh": "清理未使用的网络",
+    "desc_en": "Remove unused networks",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker数据卷详情",
+    "title_en": "Docker volume inspect",
+    "command": "docker volume inspect ",
+    "desc_zh": "查看数据卷详细信息",
+    "desc_en": "Inspect volume details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker删除数据卷",
+    "title_en": "Docker volume rm",
+    "command": "docker volume rm ",
+    "desc_zh": "删除Docker数据卷",
+    "desc_en": "Remove a docker volume",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker清理数据卷",
+    "title_en": "Docker volume prune",
+    "command": "docker volume prune -f",
+    "desc_zh": "清理未使用的数据卷",
+    "desc_en": "Remove unused volumes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose后台启动",
+    "title_en": "Docker compose up",
+    "command": "docker compose up -d",
+    "desc_zh": "后台启动Compose服务",
+    "desc_en": "Start compose services in background",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose构建启动",
+    "title_en": "Docker compose up build",
+    "command": "docker compose up -d --build",
+    "desc_zh": "重新构建并启动Compose服务",
+    "desc_en": "Rebuild and start compose services",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose停止删除",
+    "title_en": "Docker compose down",
+    "command": "docker compose down",
+    "desc_zh": "停止并删除Compose服务",
+    "desc_en": "Stop and remove compose services",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose停止删除卷",
+    "title_en": "Docker compose down volumes",
+    "command": "docker compose down -v",
+    "desc_zh": "停止服务并删除数据卷",
+    "desc_en": "Stop services and remove volumes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose服务列表",
+    "title_en": "Docker compose ps",
+    "command": "docker compose ps",
+    "desc_zh": "列出Compose服务",
+    "desc_en": "List compose services",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose跟踪日志",
+    "title_en": "Docker compose logs",
+    "command": "docker compose logs -f ",
+    "desc_zh": "实时跟踪Compose服务日志",
+    "desc_en": "Follow compose service logs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose构建",
+    "title_en": "Docker compose build",
+    "command": "docker compose build",
+    "desc_zh": "构建Compose服务",
+    "desc_en": "Build compose services",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose拉取镜像",
+    "title_en": "Docker compose pull",
+    "command": "docker compose pull",
+    "desc_zh": "拉取Compose服务镜像",
+    "desc_en": "Pull compose service images",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose重启服务",
+    "title_en": "Docker compose restart",
+    "command": "docker compose restart ",
+    "desc_zh": "重启Compose服务",
+    "desc_en": "Restart a compose service",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose进入终端",
+    "title_en": "Docker compose exec",
+    "command": "docker compose exec  /bin/bash",
+    "desc_zh": "进入Compose服务的Bash终端",
+    "desc_en": "Enter compose service shell",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose验证配置",
+    "title_en": "Docker compose config",
+    "command": "docker compose config",
+    "desc_zh": "验证并查看Compose配置",
+    "desc_en": "Validate and view compose config",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose停止服务",
+    "title_en": "Docker compose stop",
+    "command": "docker compose stop",
+    "desc_zh": "停止Compose服务（不删除）",
+    "desc_en": "Stop compose services without removing",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose启动服务",
+    "title_en": "Docker compose start",
+    "command": "docker compose start",
+    "desc_zh": "启动已停止的Compose服务",
+    "desc_en": "Start stopped compose services",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose一次性运行",
+    "title_en": "Docker compose run",
+    "command": "docker compose run --rm  ",
+    "desc_zh": "一次性运行服务命令（完成后删除）",
+    "desc_en": "Run one-off command in service",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose查看进程",
+    "title_en": "Docker compose top",
+    "command": "docker compose top",
+    "desc_zh": "查看Compose服务内的进程",
+    "desc_en": "Show processes in compose services",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose扩容服务",
+    "title_en": "Docker compose scale",
+    "command": "docker compose up -d --scale =3",
+    "desc_zh": "将服务扩容到3个实例",
+    "desc_en": "Scale service to 3 instances",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose指定文件",
+    "title_en": "Docker compose file",
+    "command": "docker compose -f docker-compose.prod.yml up -d",
+    "desc_zh": "使用指定Compose文件启动",
+    "desc_en": "Start with specific compose file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Compose最近日志",
+    "title_en": "Docker compose logs tail",
+    "command": "docker compose logs --tail 100 ",
+    "desc_zh": "查看服务最近100行日志",
+    "desc_en": "Show last 100 lines of service logs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker磁盘占用",
+    "title_en": "Docker system df",
+    "command": "docker system df",
+    "desc_zh": "查看Docker磁盘使用情况",
+    "desc_en": "Show docker disk usage",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker全面清理",
+    "title_en": "Docker prune",
+    "command": "docker system prune -af",
+    "desc_zh": "清理所有未使用的Docker数据",
+    "desc_en": "Remove all unused docker data",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker清理含数据卷",
+    "title_en": "Docker prune volumes",
+    "command": "docker system prune --volumes -af",
+    "desc_zh": "清理未使用数据（含数据卷）",
+    "desc_en": "Remove unused data including volumes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker系统信息",
+    "title_en": "Docker info",
+    "command": "docker info",
+    "desc_zh": "查看Docker系统信息",
+    "desc_en": "Show docker system info",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker版本",
+    "title_en": "Docker version",
+    "command": "docker version",
+    "desc_zh": "查看Docker版本",
+    "desc_en": "Show docker version",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker上下文列表",
+    "title_en": "Docker context ls",
+    "command": "docker context ls",
+    "desc_zh": "列出Docker上下文（本地/远程）",
+    "desc_en": "List docker contexts (local/remote)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Docker切换上下文",
+    "title_en": "Docker context use",
+    "command": "docker context use ",
+    "desc_zh": "切换到指定Docker上下文",
+    "desc_en": "Switch to a docker context",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm初始化",
+    "title_en": "Docker swarm init",
+    "command": "docker swarm init",
+    "desc_zh": "初始化Swarm集群",
+    "desc_en": "Initialize a swarm cluster",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm加入集群",
+    "title_en": "Docker swarm join",
+    "command": "docker swarm join --token  :2377",
+    "desc_zh": "以工作节点加入Swarm集群",
+    "desc_en": "Join swarm cluster as worker",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm获取令牌",
+    "title_en": "Docker swarm join-token",
+    "command": "docker swarm join-token worker",
+    "desc_zh": "获取工作节点加入令牌",
+    "desc_en": "Get worker join token",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm离开集群",
+    "title_en": "Docker swarm leave",
+    "command": "docker swarm leave --force",
+    "desc_zh": "离开Swarm集群",
+    "desc_en": "Leave the swarm cluster",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm节点列表",
+    "title_en": "Docker node ls",
+    "command": "docker node ls",
+    "desc_zh": "列出Swarm集群节点",
+    "desc_en": "List swarm cluster nodes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm创建服务",
+    "title_en": "Docker service create",
+    "command": "docker service create --name  --replicas 3 -p 8080:80 ",
+    "desc_zh": "创建3副本的Swarm服务",
+    "desc_en": "Create swarm service with 3 replicas",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm服务列表",
+    "title_en": "Docker service ls",
+    "command": "docker service ls",
+    "desc_zh": "列出Swarm服务",
+    "desc_en": "List swarm services",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm服务详情",
+    "title_en": "Docker service ps",
+    "command": "docker service ps ",
+    "desc_zh": "查看服务的任务分布",
+    "desc_en": "Show service task distribution",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm服务日志",
+    "title_en": "Docker service logs",
+    "command": "docker service logs -f ",
+    "desc_zh": "实时跟踪Swarm服务日志",
+    "desc_en": "Follow swarm service logs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm服务扩容",
+    "title_en": "Docker service scale",
+    "command": "docker service scale =5",
+    "desc_zh": "将服务扩容到5个副本",
+    "desc_en": "Scale service to 5 replicas",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm更新镜像",
+    "title_en": "Docker service update",
+    "command": "docker service update --image  ",
+    "desc_zh": "滚动更新服务镜像",
+    "desc_en": "Rolling update service image",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm删除服务",
+    "title_en": "Docker service rm",
+    "command": "docker service rm ",
+    "desc_zh": "删除Swarm服务",
+    "desc_en": "Remove a swarm service",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Stack部署",
+    "title_en": "Docker stack deploy",
+    "command": "docker stack deploy -c docker-compose.yml ",
+    "desc_zh": "通过Compose文件部署Stack",
+    "desc_en": "Deploy stack from compose file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Stack列表",
+    "title_en": "Docker stack ls",
+    "command": "docker stack ls",
+    "desc_zh": "列出已部署的Stack",
+    "desc_en": "List deployed stacks",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Stack服务列表",
+    "title_en": "Docker stack services",
+    "command": "docker stack services ",
+    "desc_zh": "列出Stack中的服务",
+    "desc_en": "List services in a stack",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Stack删除",
+    "title_en": "Docker stack rm",
+    "command": "docker stack rm ",
+    "desc_zh": "删除Stack及其服务",
+    "desc_en": "Remove stack and its services",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm创建密钥",
+    "title_en": "Docker secret create",
+    "command": "docker secret create  ",
+    "desc_zh": "从文件创建Swarm密钥",
+    "desc_en": "Create swarm secret from file",
+    "distro": "common"
+  },
+  {
+    "title_zh": "Swarm密钥列表",
+    "title_en": "Docker secret ls",
+    "command": "docker secret ls",
+    "desc_zh": "列出Swarm密钥",
+    "desc_en": "List swarm secrets",
+    "distro": "common"
+  }
+]

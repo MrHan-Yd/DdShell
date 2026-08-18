@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Rust 后端质量规范"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "新增 data/ 目录需符合项目目录结构约定"}
+{"file": ".trellis/tasks/08-18-builtin-json/prd.md", "reason": "任务需求：JSON 抽离方案与无损迁移约束"}

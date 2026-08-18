@@ -1,0 +1,770 @@
+[
+  {
+    "title_zh": "APT更新源",
+    "title_en": "APT update",
+    "command": "sudo apt update",
+    "desc_zh": "更新软件包列表",
+    "desc_en": "Update package lists",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT升级",
+    "title_en": "APT upgrade",
+    "command": "sudo apt upgrade -y",
+    "desc_zh": "升级所有软件包",
+    "desc_en": "Upgrade all packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT安装",
+    "title_en": "APT install",
+    "command": "sudo apt install -y ",
+    "desc_zh": "安装软件包",
+    "desc_en": "Install a package",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT卸载",
+    "title_en": "APT remove",
+    "command": "sudo apt remove ",
+    "desc_zh": "卸载软件包",
+    "desc_en": "Remove a package",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT搜索",
+    "title_en": "APT search",
+    "command": "apt search ",
+    "desc_zh": "搜索软件包",
+    "desc_en": "Search for packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT清理依赖",
+    "title_en": "APT autoremove",
+    "command": "sudo apt autoremove -y",
+    "desc_zh": "清理不再需要的依赖",
+    "desc_en": "Remove unused dependencies",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DPKG查询包",
+    "title_en": "DPKG list",
+    "command": "dpkg -l | grep ",
+    "desc_zh": "查询已安装的软件包",
+    "desc_en": "List installed packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW防火墙状态",
+    "title_en": "UFW status",
+    "command": "sudo ufw status verbose",
+    "desc_zh": "查看防火墙状态",
+    "desc_en": "Show firewall status",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW放行端口",
+    "title_en": "UFW allow",
+    "command": "sudo ufw allow ",
+    "desc_zh": "在防火墙中放行端口",
+    "desc_en": "Allow port in firewall",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "系统日志跟踪",
+    "title_en": "Tail syslog",
+    "command": "tail -f /var/log/syslog",
+    "desc_zh": "实时跟踪系统日志",
+    "desc_en": "Follow system log",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT完整升级",
+    "title_en": "APT full upgrade",
+    "command": "sudo apt full-upgrade -y",
+    "desc_zh": "完整升级（含依赖处理）",
+    "desc_en": "Full upgrade with dependency handling",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT彻底卸载",
+    "title_en": "APT purge",
+    "command": "sudo apt purge ",
+    "desc_zh": "卸载软件包及配置文件",
+    "desc_en": "Remove package with config files",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT缓存搜索",
+    "title_en": "APT cache search",
+    "command": "apt-cache search ",
+    "desc_zh": "搜索软件包缓存",
+    "desc_en": "Search package cache",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT包详情",
+    "title_en": "APT show info",
+    "command": "apt-cache show ",
+    "desc_zh": "查看软件包详细信息",
+    "desc_en": "Show package details",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT已安装列表",
+    "title_en": "APT list installed",
+    "command": "apt list --installed",
+    "desc_zh": "列出所有已安装的软件包",
+    "desc_en": "List all installed packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT可升级列表",
+    "title_en": "APT list upgradable",
+    "command": "apt list --upgradable",
+    "desc_zh": "列出可升级的软件包",
+    "desc_en": "List upgradable packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "DPKG重新配置",
+    "title_en": "DPKG reconfigure",
+    "command": "sudo dpkg-reconfigure ",
+    "desc_zh": "重新配置已安装的软件包",
+    "desc_en": "Reconfigure an installed package",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "添加PPA源",
+    "title_en": "Add PPA",
+    "command": "sudo add-apt-repository ppa:",
+    "desc_zh": "添加PPA软件源",
+    "desc_en": "Add a PPA repository",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap安装",
+    "title_en": "Snap install",
+    "command": "sudo snap install ",
+    "desc_zh": "安装Snap软件包",
+    "desc_en": "Install a snap package",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Snap列表",
+    "title_en": "Snap list",
+    "command": "snap list",
+    "desc_zh": "列出已安装的Snap软件包",
+    "desc_en": "List installed snap packages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "Ubuntu版本升级",
+    "title_en": "Release upgrade",
+    "command": "sudo do-release-upgrade",
+    "desc_zh": "升级到下一个Ubuntu版本",
+    "desc_en": "Upgrade to next Ubuntu release",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW禁止端口",
+    "title_en": "UFW deny",
+    "command": "sudo ufw deny ",
+    "desc_zh": "在防火墙中禁止端口",
+    "desc_en": "Deny port in firewall",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW删除规则",
+    "title_en": "UFW delete rule",
+    "command": "sudo ufw delete ",
+    "desc_zh": "删除防火墙规则",
+    "desc_en": "Delete a firewall rule",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "UFW启用",
+    "title_en": "UFW enable",
+    "command": "sudo ufw enable",
+    "desc_zh": "启用UFW防火墙",
+    "desc_en": "Enable UFW firewall",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "重启服务(sysvinit)",
+    "title_en": "Service restart",
+    "command": "sudo service  restart",
+    "desc_zh": "重启服务（sysvinit方式）",
+    "desc_en": "Restart service (sysvinit)",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "内核日志",
+    "title_en": "Dmesg kernel log",
+    "command": "dmesg -T | tail -30",
+    "desc_zh": "查看最近的内核消息",
+    "desc_en": "Show recent kernel messages",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "认证日志",
+    "title_en": "Auth log",
+    "command": "tail -f /var/log/auth.log",
+    "desc_zh": "实时跟踪认证日志",
+    "desc_en": "Follow authentication log",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "安装DEB包",
+    "title_en": "DPKG install deb",
+    "command": "sudo dpkg -i ",
+    "desc_zh": "安装本地deb软件包",
+    "desc_en": "Install local deb package",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "修复依赖",
+    "title_en": "APT fix broken",
+    "command": "sudo apt --fix-broken install",
+    "desc_zh": "修复损坏的依赖关系",
+    "desc_en": "Fix broken dependencies",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "锁定包版本",
+    "title_en": "APT mark hold",
+    "command": "sudo apt-mark hold ",
+    "desc_zh": "阻止软件包被升级",
+    "desc_en": "Prevent package from being upgraded",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "解锁包版本",
+    "title_en": "APT mark unhold",
+    "command": "sudo apt-mark unhold ",
+    "desc_zh": "解除包版本锁定",
+    "desc_en": "Allow package to be upgraded again",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "查看文件归属包",
+    "title_en": "DPKG owns file",
+    "command": "dpkg -S ",
+    "desc_zh": "查看文件属于哪个已安装的软件包",
+    "desc_en": "Find which installed package owns a file",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "查看包安装文件",
+    "title_en": "DPKG list files",
+    "command": "dpkg -L ",
+    "desc_zh": "列出软件包安装的所有文件",
+    "desc_en": "List all files installed by package",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "APT下载包",
+    "title_en": "APT download",
+    "command": "apt download ",
+    "desc_zh": "只下载deb包不安装",
+    "desc_en": "Download deb package without installing",
+    "distro": "ubuntu"
+  },
+  {
+    "title_zh": "YUM更新",
+    "title_en": "YUM update",
+    "command": "sudo yum update -y",
+    "desc_zh": "更新所有软件包",
+    "desc_en": "Update all packages",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM安装",
+    "title_en": "YUM install",
+    "command": "sudo yum install -y ",
+    "desc_zh": "安装软件包",
+    "desc_en": "Install a package",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM卸载",
+    "title_en": "YUM remove",
+    "command": "sudo yum remove ",
+    "desc_zh": "卸载软件包",
+    "desc_en": "Remove a package",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM搜索",
+    "title_en": "YUM search",
+    "command": "yum search ",
+    "desc_zh": "搜索软件包",
+    "desc_en": "Search for packages",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF更新",
+    "title_en": "DNF update",
+    "command": "sudo dnf update -y",
+    "desc_zh": "更新所有软件包（DNF）",
+    "desc_en": "Update all packages (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF安装",
+    "title_en": "DNF install",
+    "command": "sudo dnf install -y ",
+    "desc_zh": "安装软件包（DNF）",
+    "desc_en": "Install a package (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM查询",
+    "title_en": "RPM query",
+    "command": "rpm -qa | grep ",
+    "desc_zh": "查询已安装的软件包",
+    "desc_en": "Query installed packages",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld状态",
+    "title_en": "Firewalld status",
+    "command": "sudo firewall-cmd --state",
+    "desc_zh": "查看防火墙状态",
+    "desc_en": "Show firewall status",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld规则列表",
+    "title_en": "Firewalld list",
+    "command": "sudo firewall-cmd --list-all",
+    "desc_zh": "列出所有防火墙规则",
+    "desc_en": "List all firewall rules",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld开放端口",
+    "title_en": "Firewalld add port",
+    "command": "sudo firewall-cmd --permanent --add-port=/tcp",
+    "desc_zh": "在防火墙中开放端口",
+    "desc_en": "Open port in firewall",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "系统日志跟踪",
+    "title_en": "Tail messages",
+    "command": "tail -f /var/log/messages",
+    "desc_zh": "实时跟踪系统日志",
+    "desc_en": "Follow system log",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux状态",
+    "title_en": "SELinux status",
+    "command": "getenforce",
+    "desc_zh": "查看SELinux状态",
+    "desc_en": "Show SELinux status",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM清理缓存",
+    "title_en": "YUM clean cache",
+    "command": "sudo yum clean all",
+    "desc_zh": "清理YUM缓存",
+    "desc_en": "Clean yum cache",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM重建缓存",
+    "title_en": "YUM makecache",
+    "command": "sudo yum makecache",
+    "desc_zh": "重建YUM软件包缓存",
+    "desc_en": "Rebuild yum package cache",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM已安装列表",
+    "title_en": "YUM list installed",
+    "command": "yum list installed | grep ",
+    "desc_zh": "列出已安装的软件包",
+    "desc_en": "List installed packages",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM包详情",
+    "title_en": "YUM info",
+    "command": "yum info ",
+    "desc_zh": "查看软件包详细信息",
+    "desc_en": "Show package details",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "YUM操作历史",
+    "title_en": "YUM history",
+    "command": "yum history",
+    "desc_zh": "查看YUM事务历史",
+    "desc_en": "Show yum transaction history",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF卸载",
+    "title_en": "DNF remove",
+    "command": "sudo dnf remove ",
+    "desc_zh": "卸载软件包（DNF）",
+    "desc_en": "Remove a package (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF搜索",
+    "title_en": "DNF search",
+    "command": "dnf search ",
+    "desc_zh": "搜索软件包（DNF）",
+    "desc_en": "Search for packages (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF清理缓存",
+    "title_en": "DNF clean",
+    "command": "sudo dnf clean all",
+    "desc_zh": "清理DNF缓存",
+    "desc_en": "Clean dnf cache",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "DNF已安装列表",
+    "title_en": "DNF list installed",
+    "command": "dnf list installed | grep ",
+    "desc_zh": "列出已安装的软件包（DNF）",
+    "desc_en": "List installed packages (DNF)",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM安装",
+    "title_en": "RPM install",
+    "command": "sudo rpm -ivh ",
+    "desc_zh": "安装RPM软件包",
+    "desc_en": "Install RPM package",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "RPM验证",
+    "title_en": "RPM verify",
+    "command": "rpm -V ",
+    "desc_zh": "验证已安装包的文件",
+    "desc_en": "Verify installed package files",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Chkconfig服务列表",
+    "title_en": "Chkconfig list",
+    "command": "chkconfig --list",
+    "desc_zh": "列出服务运行级别设置",
+    "desc_en": "List service runlevel settings",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld重载",
+    "title_en": "Firewalld reload",
+    "command": "sudo firewall-cmd --reload",
+    "desc_zh": "重载防火墙规则",
+    "desc_en": "Reload firewall rules",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld开放服务",
+    "title_en": "Firewalld add service",
+    "command": "sudo firewall-cmd --permanent --add-service=",
+    "desc_zh": "在防火墙中开放服务",
+    "desc_en": "Allow service in firewall",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Firewalld关闭端口",
+    "title_en": "Firewalld remove port",
+    "command": "sudo firewall-cmd --permanent --remove-port=/tcp",
+    "desc_zh": "在防火墙中关闭端口",
+    "desc_en": "Close port in firewall",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux设为强制",
+    "title_en": "SELinux set enforcing",
+    "command": "sudo setenforce 1",
+    "desc_zh": "将SELinux设为强制模式",
+    "desc_en": "Set SELinux to enforcing mode",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux设为宽容",
+    "title_en": "SELinux set permissive",
+    "command": "sudo setenforce 0",
+    "desc_zh": "将SELinux设为宽容模式",
+    "desc_en": "Set SELinux to permissive mode",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "SELinux上下文",
+    "title_en": "SELinux context",
+    "command": "ls -laZ ",
+    "desc_zh": "查看SELinux安全上下文",
+    "desc_en": "Show SELinux security context",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "恢复SELinux上下文",
+    "title_en": "Restorecon",
+    "command": "sudo restorecon -Rv ",
+    "desc_zh": "恢复SELinux文件上下文",
+    "desc_en": "Restore SELinux file contexts",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "生成SELinux策略",
+    "title_en": "Audit2allow",
+    "command": "sudo grep  /var/log/audit/audit.log | audit2allow -M mypol",
+    "desc_zh": "从拒绝日志生成SELinux策略",
+    "desc_en": "Generate SELinux policy from denials",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "安全日志",
+    "title_en": "Secure log",
+    "command": "tail -f /var/log/secure",
+    "desc_zh": "实时跟踪安全认证日志",
+    "desc_en": "Follow security/authentication log",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "CentOS版本",
+    "title_en": "CentOS release",
+    "command": "cat /etc/centos-release",
+    "desc_zh": "查看CentOS版本",
+    "desc_en": "Show CentOS version",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "文件归属包",
+    "title_en": "RPM owns file",
+    "command": "rpm -qf ",
+    "desc_zh": "查看文件属于哪个已安装的包",
+    "desc_en": "Find which installed package owns a file",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "包安装文件",
+    "title_en": "RPM list files",
+    "command": "rpm -ql ",
+    "desc_zh": "列出软件包安装的所有文件",
+    "desc_en": "List all files in an installed package",
+    "distro": "centos"
+  },
+  {
+    "title_zh": "Pacman同步源",
+    "title_en": "Pacman sync",
+    "command": "sudo pacman -Sy",
+    "desc_zh": "同步软件包数据库",
+    "desc_en": "Synchronize package databases",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman更新",
+    "title_en": "Pacman update",
+    "command": "sudo pacman -Syu",
+    "desc_zh": "更新所有软件包",
+    "desc_en": "Update all packages",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman安装",
+    "title_en": "Pacman install",
+    "command": "sudo pacman -S ",
+    "desc_zh": "安装软件包",
+    "desc_en": "Install a package",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman卸载",
+    "title_en": "Pacman remove",
+    "command": "sudo pacman -Rns ",
+    "desc_zh": "卸载软件包及依赖",
+    "desc_en": "Remove package with dependencies",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman搜索",
+    "title_en": "Pacman search",
+    "command": "pacman -Ss ",
+    "desc_zh": "搜索软件包",
+    "desc_en": "Search for packages",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman包信息",
+    "title_en": "Pacman info",
+    "command": "pacman -Si ",
+    "desc_zh": "查看软件包信息",
+    "desc_en": "Show package info",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman已安装列表",
+    "title_en": "Pacman list installed",
+    "command": "pacman -Qe",
+    "desc_zh": "列出显式安装的软件包",
+    "desc_en": "List explicitly installed packages",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman孤立包",
+    "title_en": "Pacman orphans",
+    "command": "pacman -Qdtq",
+    "desc_zh": "列出孤立的软件包",
+    "desc_en": "List orphan packages",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "Pacman清理缓存",
+    "title_en": "Pacman cache clean",
+    "command": "sudo pacman -Sc",
+    "desc_zh": "清理软件包缓存",
+    "desc_en": "Clean package cache",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "AUR安装",
+    "title_en": "AUR install",
+    "command": "yay -S ",
+    "desc_zh": "使用yay安装AUR软件包",
+    "desc_en": "Install AUR package with yay",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "查看包文件列表",
+    "title_en": "Pacman list files",
+    "command": "pacman -Ql ",
+    "desc_zh": "列出软件包安装的所有文件",
+    "desc_en": "List all files installed by package",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "文件归属包",
+    "title_en": "Pacman owns file",
+    "command": "pacman -Qo ",
+    "desc_zh": "查看文件属于哪个软件包",
+    "desc_en": "Show which package owns a file",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "清理旧版缓存",
+    "title_en": "Pacman paccache",
+    "command": "sudo paccache -r",
+    "desc_zh": "清理软件包缓存（保留最近3版）",
+    "desc_en": "Clean package cache (keep last 3)",
+    "distro": "arch"
+  },
+  {
+    "title_zh": "APK更新源",
+    "title_en": "APK update",
+    "command": "sudo apk update",
+    "desc_zh": "更新软件包索引",
+    "desc_en": "Update package index",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK升级",
+    "title_en": "APK upgrade",
+    "command": "sudo apk upgrade",
+    "desc_zh": "升级所有软件包",
+    "desc_en": "Upgrade all packages",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK安装",
+    "title_en": "APK install",
+    "command": "sudo apk add ",
+    "desc_zh": "安装软件包",
+    "desc_en": "Install a package",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK卸载",
+    "title_en": "APK remove",
+    "command": "sudo apk del ",
+    "desc_zh": "卸载软件包",
+    "desc_en": "Remove a package",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK搜索",
+    "title_en": "APK search",
+    "command": "apk search ",
+    "desc_zh": "搜索软件包",
+    "desc_en": "Search for packages",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK已安装列表",
+    "title_en": "APK list installed",
+    "command": "apk info",
+    "desc_zh": "列出已安装的软件包",
+    "desc_en": "List installed packages",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "OpenRC服务状态",
+    "title_en": "RC-service status",
+    "command": "rc-status",
+    "desc_zh": "查看OpenRC服务状态",
+    "desc_en": "Show OpenRC service status",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "OpenRC启动服务",
+    "title_en": "RC-service start",
+    "command": "sudo rc-service  start",
+    "desc_zh": "启动OpenRC服务",
+    "desc_en": "Start an OpenRC service",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "OpenRC开机自启",
+    "title_en": "RC-update add",
+    "command": "sudo rc-update add  default",
+    "desc_zh": "设置OpenRC服务开机自启",
+    "desc_en": "Enable service at boot (OpenRC)",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK无缓存安装",
+    "title_en": "APK no-cache",
+    "command": "sudo apk add --no-cache ",
+    "desc_zh": "安装包但不缓存索引",
+    "desc_en": "Install package without caching index",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "APK包详情",
+    "title_en": "APK info",
+    "command": "apk info -a ",
+    "desc_zh": "查看软件包详细信息",
+    "desc_en": "Show package details",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "OpenRC停止服务",
+    "title_en": "RC-service stop",
+    "command": "sudo rc-service  stop",
+    "desc_zh": "停止OpenRC服务",
+    "desc_en": "Stop an OpenRC service",
+    "distro": "alpine"
+  },
+  {
+    "title_zh": "Alpine版本",
+    "title_en": "Alpine release",
+    "command": "cat /etc/alpine-release",
+    "desc_zh": "查看Alpine版本",
+    "desc_en": "Show Alpine version",
+    "distro": "alpine"
+  }
+]

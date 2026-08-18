@@ -1,0 +1,738 @@
+[
+  {
+    "title_zh": "端口占用进程",
+    "title_en": "Open files",
+    "command": "lsof -i :80",
+    "desc_zh": "查看占用80端口的进程",
+    "desc_en": "List processes using port 80",
+    "distro": "common"
+  },
+  {
+    "title_zh": "用户打开的文件",
+    "title_en": "Lsof user files",
+    "command": "lsof -u ",
+    "desc_zh": "列出用户打开的文件",
+    "desc_en": "List open files for a user",
+    "distro": "common"
+  },
+  {
+    "title_zh": "跟踪系统调用",
+    "title_en": "Strace process",
+    "command": "strace -p ",
+    "desc_zh": "跟踪进程的系统调用",
+    "desc_en": "Trace system calls of a process",
+    "distro": "common"
+  },
+  {
+    "title_zh": "进程树（带PID）",
+    "title_en": "Process tree",
+    "command": "pstree -p",
+    "desc_zh": "显示带PID的进程树",
+    "desc_en": "Show process tree with PIDs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "指定优先级运行",
+    "title_en": "Nice priority",
+    "command": "nice -n 10 ",
+    "desc_zh": "以自定义优先级运行命令",
+    "desc_en": "Run command with custom priority",
+    "distro": "common"
+  },
+  {
+    "title_zh": "CPU使用率统计",
+    "title_en": "Sar CPU",
+    "command": "sar -u 1 5",
+    "desc_zh": "CPU使用率统计信息",
+    "desc_en": "CPU usage statistics",
+    "distro": "common"
+  },
+  {
+    "title_zh": "系统负载",
+    "title_en": "Load average",
+    "command": "cat /proc/loadavg",
+    "desc_zh": "显示系统负载均值",
+    "desc_en": "Show system load average",
+    "distro": "common"
+  },
+  {
+    "title_zh": "CPU架构信息",
+    "title_en": "CPU info",
+    "command": "lscpu",
+    "desc_zh": "显示CPU架构信息",
+    "desc_en": "Show CPU architecture info",
+    "distro": "common"
+  },
+  {
+    "title_zh": "PCI设备列表",
+    "title_en": "PCI devices",
+    "command": "lspci",
+    "desc_zh": "列出PCI设备",
+    "desc_en": "List PCI devices",
+    "distro": "common"
+  },
+  {
+    "title_zh": "USB设备列表",
+    "title_en": "USB devices",
+    "command": "lsusb",
+    "desc_zh": "列出USB设备",
+    "desc_en": "List USB devices",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看服务状态",
+    "title_en": "Systemctl status",
+    "command": "systemctl status ",
+    "desc_zh": "查看服务运行状态",
+    "desc_en": "Check service status",
+    "distro": "common"
+  },
+  {
+    "title_zh": "启动服务",
+    "title_en": "Systemctl start",
+    "command": "sudo systemctl start ",
+    "desc_zh": "启动服务",
+    "desc_en": "Start a service",
+    "distro": "common"
+  },
+  {
+    "title_zh": "停止服务",
+    "title_en": "Systemctl stop",
+    "command": "sudo systemctl stop ",
+    "desc_zh": "停止服务",
+    "desc_en": "Stop a service",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重启服务",
+    "title_en": "Systemctl restart",
+    "command": "sudo systemctl restart ",
+    "desc_zh": "重启服务",
+    "desc_en": "Restart a service",
+    "distro": "common"
+  },
+  {
+    "title_zh": "开机自启服务",
+    "title_en": "Systemctl enable",
+    "command": "sudo systemctl enable ",
+    "desc_zh": "设置服务开机自启",
+    "desc_en": "Enable service at boot",
+    "distro": "common"
+  },
+  {
+    "title_zh": "禁止开机自启",
+    "title_en": "Systemctl disable",
+    "command": "sudo systemctl disable ",
+    "desc_zh": "禁止服务开机自启",
+    "desc_en": "Disable service at boot",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重载服务配置",
+    "title_en": "Systemctl reload",
+    "command": "sudo systemctl reload ",
+    "desc_zh": "重载服务配置（不重启）",
+    "desc_en": "Reload service config (no restart)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重载Systemd配置",
+    "title_en": "Daemon reload",
+    "command": "sudo systemctl daemon-reload",
+    "desc_zh": "重载systemd单元文件",
+    "desc_en": "Reload systemd unit files",
+    "distro": "common"
+  },
+  {
+    "title_zh": "查看服务配置",
+    "title_en": "Systemctl cat",
+    "command": "systemctl cat ",
+    "desc_zh": "显示服务单元文件内容",
+    "desc_en": "Show service unit file content",
+    "distro": "common"
+  },
+  {
+    "title_zh": "服务是否活跃",
+    "title_en": "Systemctl is-active",
+    "command": "systemctl is-active ",
+    "desc_zh": "检查服务是否在运行",
+    "desc_en": "Check if service is active",
+    "distro": "common"
+  },
+  {
+    "title_zh": "列出所有服务",
+    "title_en": "List services",
+    "command": "systemctl list-units --type=service",
+    "desc_zh": "列出所有服务单元",
+    "desc_en": "List all service units",
+    "distro": "common"
+  },
+  {
+    "title_zh": "失败的服务",
+    "title_en": "Failed services",
+    "command": "systemctl --failed",
+    "desc_zh": "列出失败的服务单元",
+    "desc_en": "List failed service units",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重置失败状态",
+    "title_en": "Reset failed",
+    "command": "sudo systemctl reset-failed",
+    "desc_zh": "重置所有失败单元状态",
+    "desc_en": "Reset all failed units",
+    "distro": "common"
+  },
+  {
+    "title_zh": "屏蔽服务",
+    "title_en": "Systemctl mask",
+    "command": "sudo systemctl mask ",
+    "desc_zh": "完全禁止服务被启动",
+    "desc_en": "Prevent service from being started",
+    "distro": "common"
+  },
+  {
+    "title_zh": "取消屏蔽",
+    "title_en": "Systemctl unmask",
+    "command": "sudo systemctl unmask ",
+    "desc_zh": "取消服务屏蔽",
+    "desc_en": "Unmask a previously masked service",
+    "distro": "common"
+  },
+  {
+    "title_zh": "编辑服务配置",
+    "title_en": "Systemctl edit",
+    "command": "sudo systemctl edit ",
+    "desc_zh": "编辑服务覆盖配置",
+    "desc_en": "Edit service override config",
+    "distro": "common"
+  },
+  {
+    "title_zh": "列出定时器",
+    "title_en": "List timers",
+    "command": "systemctl list-timers --all",
+    "desc_zh": "列出所有定时任务",
+    "desc_en": "List all systemd timers",
+    "distro": "common"
+  },
+  {
+    "title_zh": "用户会话列表",
+    "title_en": "List sessions",
+    "command": "loginctl list-sessions",
+    "desc_zh": "列出所有用户登录会话",
+    "desc_en": "List all user sessions",
+    "distro": "common"
+  },
+  {
+    "title_zh": "会话详情",
+    "title_en": "Session status",
+    "command": "loginctl session-status ",
+    "desc_zh": "查看指定会话的状态",
+    "desc_en": "Show session details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "跟踪所有日志",
+    "title_en": "Journal follow",
+    "command": "journalctl -f",
+    "desc_zh": "实时跟踪所有系统日志",
+    "desc_en": "Follow all journal logs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "跟踪服务日志",
+    "title_en": "Journal service",
+    "command": "journalctl -u  -f",
+    "desc_zh": "实时跟踪指定服务日志",
+    "desc_en": "Follow service logs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "最近日志",
+    "title_en": "Journal recent",
+    "command": "journalctl -n 50 --no-pager",
+    "desc_zh": "显示最近50条日志",
+    "desc_en": "Show last 50 journal entries",
+    "distro": "common"
+  },
+  {
+    "title_zh": "最近一小时日志",
+    "title_en": "Journal since",
+    "command": "journalctl --since '1 hour ago'",
+    "desc_zh": "显示最近一小时的日志",
+    "desc_en": "Show logs from last hour",
+    "distro": "common"
+  },
+  {
+    "title_zh": "今天的日志",
+    "title_en": "Journal today",
+    "command": "journalctl --since today",
+    "desc_zh": "显示今天的日志",
+    "desc_en": "Show today's logs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "本次启动日志",
+    "title_en": "Journal boot",
+    "command": "journalctl -b",
+    "desc_zh": "显示本次启动以来的日志",
+    "desc_en": "Show logs from current boot",
+    "distro": "common"
+  },
+  {
+    "title_zh": "内核日志",
+    "title_en": "Journal kernel",
+    "command": "journalctl -k",
+    "desc_zh": "显示内核消息",
+    "desc_en": "Show kernel messages",
+    "distro": "common"
+  },
+  {
+    "title_zh": "日志磁盘占用",
+    "title_en": "Journal disk usage",
+    "command": "journalctl --disk-usage",
+    "desc_zh": "显示日志的磁盘占用",
+    "desc_en": "Show journal disk usage",
+    "distro": "common"
+  },
+  {
+    "title_zh": "清理旧日志",
+    "title_en": "Journal vacuum",
+    "command": "sudo journalctl --vacuum-time=7d",
+    "desc_zh": "清理7天以前的日志",
+    "desc_en": "Remove logs older than 7 days",
+    "distro": "common"
+  },
+  {
+    "title_zh": "限制日志大小",
+    "title_en": "Journal vacuum size",
+    "command": "sudo journalctl --vacuum-size=500M",
+    "desc_zh": "限制日志总大小为500MB",
+    "desc_en": "Limit journal total size to 500MB",
+    "distro": "common"
+  },
+  {
+    "title_zh": "启动耗时分析",
+    "title_en": "Boot analyze",
+    "command": "systemd-analyze blame",
+    "desc_zh": "分析系统启动各服务耗时",
+    "desc_en": "Analyze boot time per service",
+    "distro": "common"
+  },
+  {
+    "title_zh": "启动耗时",
+    "title_en": "Boot time",
+    "command": "systemd-analyze",
+    "desc_zh": "显示系统启动总耗时",
+    "desc_en": "Show total boot time",
+    "distro": "common"
+  },
+  {
+    "title_zh": "重启系统",
+    "title_en": "Reboot system",
+    "command": "sudo reboot",
+    "desc_zh": "重启系统",
+    "desc_en": "Reboot the system",
+    "distro": "common"
+  },
+  {
+    "title_zh": "立即关机",
+    "title_en": "Shutdown now",
+    "command": "sudo shutdown -h now",
+    "desc_zh": "立即关闭系统",
+    "desc_en": "Shutdown immediately",
+    "distro": "common"
+  },
+  {
+    "title_zh": "5分钟后关机",
+    "title_en": "Shutdown in 5min",
+    "command": "sudo shutdown -h +5",
+    "desc_zh": "5分钟后关闭系统",
+    "desc_en": "Shutdown in 5 minutes",
+    "distro": "common"
+  },
+  {
+    "title_zh": "取消关机",
+    "title_en": "Cancel shutdown",
+    "command": "sudo shutdown -c",
+    "desc_zh": "取消计划中的关机",
+    "desc_en": "Cancel scheduled shutdown",
+    "distro": "common"
+  },
+  {
+    "title_zh": "立即断电关机",
+    "title_en": "Power off",
+    "command": "sudo poweroff",
+    "desc_zh": "立即关闭系统并断电",
+    "desc_en": "Power off the system immediately",
+    "distro": "common"
+  },
+  {
+    "title_zh": "停止系统",
+    "title_en": "Halt system",
+    "command": "sudo halt",
+    "desc_zh": "停止系统运行（不断电）",
+    "desc_en": "Halt system (no power off)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "主机名",
+    "title_en": "Hostname",
+    "command": "hostnamectl",
+    "desc_zh": "显示或设置主机名",
+    "desc_en": "Show or set hostname",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置主机名",
+    "title_en": "Set hostname",
+    "command": "sudo hostnamectl set-hostname ",
+    "desc_zh": "设置系统主机名",
+    "desc_en": "Set system hostname",
+    "distro": "common"
+  },
+  {
+    "title_zh": "时间设置",
+    "title_en": "Time settings",
+    "command": "timedatectl",
+    "desc_zh": "显示时间和时区设置",
+    "desc_en": "Show time and timezone settings",
+    "distro": "common"
+  },
+  {
+    "title_zh": "设置时区",
+    "title_en": "Set timezone",
+    "command": "sudo timedatectl set-timezone ",
+    "desc_zh": "设置系统时区",
+    "desc_en": "Set system timezone",
+    "distro": "common"
+  },
+  {
+    "title_zh": "启用NTP同步",
+    "title_en": "NTP sync",
+    "command": "sudo timedatectl set-ntp true",
+    "desc_zh": "启用NTP时间同步",
+    "desc_en": "Enable NTP time sync",
+    "distro": "common"
+  },
+  {
+    "title_zh": "系统信息",
+    "title_en": "System info",
+    "command": "uname -a",
+    "desc_zh": "显示系统信息",
+    "desc_en": "Show system information",
+    "distro": "common"
+  },
+  {
+    "title_zh": "内核版本",
+    "title_en": "Kernel version",
+    "command": "uname -r",
+    "desc_zh": "显示内核版本",
+    "desc_en": "Show kernel release",
+    "distro": "common"
+  },
+  {
+    "title_zh": "系统发行版信息",
+    "title_en": "OS release",
+    "command": "cat /etc/os-release",
+    "desc_zh": "显示系统发行版信息",
+    "desc_en": "Show OS release info",
+    "distro": "common"
+  },
+  {
+    "title_zh": "运行时间",
+    "title_en": "Uptime",
+    "command": "uptime",
+    "desc_zh": "显示系统运行时间和负载",
+    "desc_en": "Show system uptime and load",
+    "distro": "common"
+  },
+  {
+    "title_zh": "在线用户",
+    "title_en": "Who logged in",
+    "command": "who",
+    "desc_zh": "显示当前登录用户",
+    "desc_en": "Show logged in users",
+    "distro": "common"
+  },
+  {
+    "title_zh": "用户活动",
+    "title_en": "Who am I",
+    "command": "w",
+    "desc_zh": "显示登录用户及其活动",
+    "desc_en": "Show who is logged in and doing what",
+    "distro": "common"
+  },
+  {
+    "title_zh": "最近登录",
+    "title_en": "Last logins",
+    "command": "last -n 20",
+    "desc_zh": "显示最近20次登录",
+    "desc_en": "Show last 20 logins",
+    "distro": "common"
+  },
+  {
+    "title_zh": "环境变量",
+    "title_en": "Environment",
+    "command": "env",
+    "desc_zh": "显示所有环境变量",
+    "desc_en": "Show all environment variables",
+    "distro": "common"
+  },
+  {
+    "title_zh": "区域设置",
+    "title_en": "Set locale",
+    "command": "locale",
+    "desc_zh": "显示当前区域设置",
+    "desc_en": "Show current locale settings",
+    "distro": "common"
+  },
+  {
+    "title_zh": "定时任务列表",
+    "title_en": "Cron list",
+    "command": "crontab -l",
+    "desc_zh": "列出定时任务",
+    "desc_en": "List cron jobs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "编辑定时任务",
+    "title_en": "Cron edit",
+    "command": "crontab -e",
+    "desc_zh": "编辑定时任务",
+    "desc_en": "Edit cron jobs",
+    "distro": "common"
+  },
+  {
+    "title_zh": "内核参数",
+    "title_en": "Sysctl params",
+    "command": "sysctl -a | grep ",
+    "desc_zh": "显示内核参数",
+    "desc_en": "Show kernel parameters",
+    "distro": "common"
+  },
+  {
+    "title_zh": "资源限制",
+    "title_en": "Ulimit",
+    "command": "ulimit -a",
+    "desc_zh": "显示用户资源限制",
+    "desc_en": "Show user resource limits",
+    "distro": "common"
+  },
+  {
+    "title_zh": "内核环形缓冲区",
+    "title_en": "Dmesg",
+    "command": "dmesg | tail -30",
+    "desc_zh": "显示最近的内核消息",
+    "desc_en": "Show recent kernel ring buffer",
+    "distro": "common"
+  },
+  {
+    "title_zh": "虚拟内存统计",
+    "title_en": "Vmstat",
+    "command": "vmstat 1 5",
+    "desc_zh": "每秒采样虚拟内存/CPU统计（5次）",
+    "desc_en": "Virtual memory stats (1s x5)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "磁盘IO统计",
+    "title_en": "Iostat",
+    "command": "iostat -x 1 5",
+    "desc_zh": "每秒采样磁盘IO扩展统计（5次）",
+    "desc_en": "Extended disk I/O stats (1s x5)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "各核CPU统计",
+    "title_en": "Mpstat per-CPU",
+    "command": "mpstat -P ALL 1 5",
+    "desc_zh": "每秒采样各CPU核心使用率（5次）",
+    "desc_en": "Per-CPU usage stats (1s x5)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "进程资源统计",
+    "title_en": "Pidstat",
+    "command": "pidstat 1 5",
+    "desc_zh": "每秒采样各进程资源使用（5次）",
+    "desc_en": "Per-process resource stats (1s x5)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "内存使用统计",
+    "title_en": "Sar memory",
+    "command": "sar -r 1 5",
+    "desc_zh": "每秒采样内存使用统计（5次）",
+    "desc_en": "Memory usage statistics (1s x5)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "CPU热点分析",
+    "title_en": "Perf top",
+    "command": "sudo perf top",
+    "desc_zh": "实时查看CPU热点函数",
+    "desc_en": "Live CPU hotspot profiling",
+    "distro": "common"
+  },
+  {
+    "title_zh": "进程内存映射",
+    "title_en": "Pmap memory",
+    "command": "pmap -x ",
+    "desc_zh": "查看进程的内存映射详情",
+    "desc_en": "Show process memory map",
+    "distro": "common"
+  },
+  {
+    "title_zh": "内存占用排行",
+    "title_en": "Top by memory",
+    "command": "ps aux --sort=-%mem | head -10",
+    "desc_zh": "显示内存占用最高的10个进程",
+    "desc_en": "Top 10 processes by memory",
+    "distro": "common"
+  },
+  {
+    "title_zh": "CPU占用排行",
+    "title_en": "Top by CPU",
+    "command": "ps aux --sort=-%cpu | head -10",
+    "desc_zh": "显示CPU占用最高的10个进程",
+    "desc_en": "Top 10 processes by CPU",
+    "distro": "common"
+  },
+  {
+    "title_zh": "交互式磁盘分析",
+    "title_en": "Ncdu",
+    "command": "ncdu ",
+    "desc_zh": "交互式分析目录磁盘占用",
+    "desc_en": "Interactive disk usage analyzer",
+    "distro": "common"
+  },
+  {
+    "title_zh": "网络流量监控",
+    "title_en": "Iftop",
+    "command": "sudo iftop -i eth0",
+    "desc_zh": "按连接实时监控网络流量",
+    "desc_en": "Monitor network traffic by connection",
+    "distro": "common"
+  },
+  {
+    "title_zh": "进程网络流量",
+    "title_en": "Nethogs",
+    "command": "sudo nethogs",
+    "desc_zh": "按进程监控网络流量",
+    "desc_en": "Monitor network traffic by process",
+    "distro": "common"
+  },
+  {
+    "title_zh": "流量统计",
+    "title_en": "Vnstat daily",
+    "command": "vnstat -d",
+    "desc_zh": "查看按天统计的网络流量",
+    "desc_en": "Show daily network traffic stats",
+    "distro": "common"
+  },
+  {
+    "title_zh": "HTTP压力测试",
+    "title_en": "Apache bench",
+    "command": "ab -n 1000 -c 10 ",
+    "desc_zh": "发起1000次请求（并发10）压测",
+    "desc_en": "HTTP benchmark (1000 reqs, 10 concurrent)",
+    "distro": "common"
+  },
+  {
+    "title_zh": "内核模块列表",
+    "title_en": "List modules",
+    "command": "lsmod",
+    "desc_zh": "列出已加载的内核模块",
+    "desc_en": "List loaded kernel modules",
+    "distro": "common"
+  },
+  {
+    "title_zh": "加载内核模块",
+    "title_en": "Load module",
+    "command": "sudo modprobe ",
+    "desc_zh": "加载内核模块",
+    "desc_en": "Load a kernel module",
+    "distro": "common"
+  },
+  {
+    "title_zh": "卸载内核模块",
+    "title_en": "Unload module",
+    "command": "sudo modprobe -r ",
+    "desc_zh": "卸载内核模块",
+    "desc_en": "Unload a kernel module",
+    "distro": "common"
+  },
+  {
+    "title_zh": "内存硬件信息",
+    "title_en": "Memory hardware",
+    "command": "sudo dmidecode -t memory",
+    "desc_zh": "查看内存条硬件信息",
+    "desc_en": "Show memory hardware details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "主机硬件信息",
+    "title_en": "System hardware",
+    "command": "sudo dmidecode -t system",
+    "desc_zh": "查看主机硬件信息",
+    "desc_en": "Show system hardware details",
+    "distro": "common"
+  },
+  {
+    "title_zh": "硬件概览",
+    "title_en": "Hardware summary",
+    "command": "sudo lshw -short",
+    "desc_zh": "显示硬件配置概览",
+    "desc_en": "Show hardware configuration summary",
+    "distro": "common"
+  },
+  {
+    "title_zh": "开启IP转发",
+    "title_en": "Enable IP forward",
+    "command": "sudo sysctl -w net.ipv4.ip_forward=1",
+    "desc_zh": "临时开启IP转发",
+    "desc_en": "Enable IP forwarding temporarily",
+    "distro": "common"
+  },
+  {
+    "title_zh": "应用内核参数",
+    "title_en": "Sysctl apply",
+    "command": "sudo sysctl -p",
+    "desc_zh": "应用sysctl.conf中的内核参数",
+    "desc_en": "Apply kernel params from sysctl.conf",
+    "distro": "common"
+  },
+  {
+    "title_zh": "强制日志轮转",
+    "title_en": "Force logrotate",
+    "command": "sudo logrotate -f /etc/logrotate.conf",
+    "desc_zh": "强制执行日志轮转",
+    "desc_en": "Force log rotation",
+    "distro": "common"
+  },
+  {
+    "title_zh": "启动错误日志",
+    "title_en": "Journal errors",
+    "command": "journalctl -p err -b",
+    "desc_zh": "显示本次启动的错误级别日志",
+    "desc_en": "Show error logs from current boot",
+    "distro": "common"
+  },
+  {
+    "title_zh": "NTP同步源状态",
+    "title_en": "Chrony sources",
+    "command": "chronyc sources",
+    "desc_zh": "查看NTP时间同步源状态",
+    "desc_en": "Show NTP sync sources status",
+    "distro": "common"
+  },
+  {
+    "title_zh": "崩溃转储列表",
+    "title_en": "Coredump list",
+    "command": "coredumpctl list",
+    "desc_zh": "列出进程崩溃转储记录",
+    "desc_en": "List process core dumps",
+    "distro": "common"
+  }
+]
