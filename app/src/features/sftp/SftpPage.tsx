@@ -1940,16 +1940,19 @@ export function SftpPage() {
     };
   }, []);
 
-  // Poll transfers periodically to show progress
+  // Poll transfers periodically to show progress. Depend on the boolean, not
+  // the transfers array: progress events replace the array every ~200ms, which
+  // would reset the interval before it ever fires and defeat this fallback
+  // precisely while transfers are in flight.
+  const hasActiveTransfers = transfers.some((t) => t.state === "running" || t.state === "queued");
   useEffect(() => {
-    const hasActive = transfers.some((t) => t.state === "running" || t.state === "queued");
-    if (!hasActive) return;
+    if (!hasActiveTransfers) return;
 
     const interval = setInterval(() => {
       refreshTransfers();
     }, 500);
     return () => clearInterval(interval);
-  }, [transfers, refreshTransfers]);
+  }, [hasActiveTransfers, refreshTransfers]);
 
   if (!sessionId) {
     return <SessionPicker onSelect={setSessionId} />;

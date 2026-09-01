@@ -1211,6 +1211,9 @@ impl SftpManager {
         local_file.flush().await?;
         drop(local_file);
 
+        // Final 100% progress before Completed — symmetric with execute_upload
+        // so the frontend's byte counters are full when the task completes.
+        event::emit_transfer_progress(app, task_id, total, total, 0);
         self.update_task_state(task_id, TransferState::Completed, None);
         Ok(())
     }

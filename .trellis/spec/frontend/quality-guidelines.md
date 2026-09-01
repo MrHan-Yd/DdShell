@@ -273,6 +273,12 @@ const nextState = isTerminal ? task.state : ("running" as const);
 
 Additionally, any surface that displays live transfer state must poll as a fallback while tasks are in flight. `SftpPage` polls every 500ms; `TerminalFileManagerDrawer` originally did not, which is why the bug only surfaced in the terminal drawer. Event-only state sync has no recovery path when an event is dropped.
 
+**2026-09 addendum — the same class has three writers, guard all of them** (`fix` for the download variant of "stuck at 1 transferring"):
+
+1. `refreshTransfers` applies the fetched list wholesale — a snapshot served before the backend marked a task terminal can land after `transfer:completed` was processed. Merge with absorbing semantics, **gated on event-confirmed terminal states** (`eventConfirmedTerminalIds`, recorded by `markTransferCompleted`/`markTransferFailed`): a snapshot must never resurrect a task whose terminal state came from an event, but snapshot-derived terminal states must NOT be absorbed — the backend's transient Failed→Queued transition between retry attempts has to stay visible.
+2. `markTransferCompleted` / `markTransferFailed` are `transfers.map(...)` no-ops when the task is not in the local list yet (fast transfers complete before the start-flow's first `refreshTransfers` response lands, and those events are emitted exactly once). When the task is missing, re-fetch via `refreshTransfers()` from the event handler.
+3. Poll effects must depend on a boolean (`hasActiveTransfers`), never on the `transfers` array: progress events replace the array every ~200ms, which resets the 500ms interval before it ever fires — the fallback was silently dead during exactly the window it exists for.
+
 ---
 
 ## Testing Requirements

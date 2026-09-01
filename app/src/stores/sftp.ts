@@ -18,6 +18,18 @@ function getRemoteParentPath(path: string): string {
   return `/${parts.join("/")}` || "/";
 }
 
+function isTerminalTransferState(state: TransferTask["state"]): boolean {
+  return state === "completed" || state === "failed" || state === "canceled";
+}
+
+// Task ids whose terminal state was set by an authoritative transfer:completed
+// or transfer:failed event. Those events are emitted exactly once, so a stale
+// snapshot arriving afterwards must never resurrect the task. Deliberately not
+// reactive: it only gates the absorbing merge inside refreshTransfers. The
+// backend's transient Failed→Queued transition between retry attempts must
+// stay visible, so snapshot-derived terminal states are not absorbed.
+const eventConfirmedTerminalIds = new Set<string>();
+
 interface SftpState {
   sessionId: string | null;
   remotePath: string;
@@ -183,11 +195,39 @@ export const useSftpStore = create<SftpState>((set, get) => ({
   },
 
   refreshTransfers: async () => {
-    const transfers = await api.sftpTransferList();
+    const fetched = await api.sftpTransferList();
+    // Forget confirmations for tasks the backend no longer tracks (cleared or
+    // removed) so the set cannot grow unboundedly across a session.
+    const fetchedIds = new Set(fetched.map((task) => task.id));
+    for (const id of eventConfirmedTerminalIds) {
+      if (!fetchedIds.has(id)) eventConfirmedTerminalIds.delete(id);
+    }
     let shouldRefreshRemote = false;
     const completedBatchToasts: Array<{ total: number; completed: number; failed: number; direction: TransferDirection }> = [];
 
     set((s) => {
+      // Terminal states are absorbing — but only event-driven ones. A snapshot
+      // taken before the backend marked a task terminal can land after the
+      // transfer:completed/failed event already moved the local copy. Those
+      // events are emitted exactly once, so applying the stale non-terminal
+      // state here would leave the task stuck at "running" and the summary at
+      // "N transferring" forever. Snapshot-derived terminal states (e.g. the
+      // backend's transient Failed between retry attempts) are NOT absorbed —
+      // an in-progress retry must stay visible.
+      const prevById = new Map(s.transfers.map((task) => [task.id, task]));
+      const transfers = fetched.map((task) => {
+        const prev = prevById.get(task.id);
+        if (
+          prev &&
+          eventConfirmedTerminalIds.has(task.id) &&
+          isTerminalTransferState(prev.state) &&
+          !isTerminalTransferState(task.state)
+        ) {
+          return prev;
+        }
+        return task;
+      });
+
       const taskById = new Map(transfers.map((task) => [task.id, task]));
       const newUploading = new Map(s.uploadingFiles);
       const newTaskIdToRemotePath = new Map(s.taskIdToRemotePath);
@@ -195,8 +235,7 @@ export const useSftpStore = create<SftpState>((set, get) => ({
       const newBatches = new Map(s.activeBatches);
 
       for (const task of transfers) {
-        const terminalState =
-          task.state === "completed" || task.state === "failed" || task.state === "canceled";
+        const terminalState = isTerminalTransferState(task.state);
         if (!terminalState || task.direction !== "upload") continue;
 
         const uploadPath = newTaskIdToRemotePath.get(task.id) || task.remotePath;
@@ -356,8 +395,7 @@ export const useSftpStore = create<SftpState>((set, get) => ({
       // task Completed, so a late-arriving progress event must never resurrect
       // a task that already reached a terminal state — that would leave the
       // last transfer stuck at "1 transferring" forever.
-      const isTerminal =
-        task?.state === "completed" || task?.state === "failed" || task?.state === "canceled";
+      const isTerminal = task !== undefined && isTerminalTransferState(task.state);
       const nextState = isTerminal ? task.state : ("running" as const);
       // Look up the upload path directly from taskId; fall back to refreshed transfer data.
       const uploadPath = s.taskIdToRemotePath.get(taskId) || (task?.direction === "upload" ? task.remotePath : undefined);
@@ -396,6 +434,7 @@ export const useSftpStore = create<SftpState>((set, get) => ({
   },
 
   markTransferCompleted: (taskId) => {
+    eventConfirmedTerminalIds.add(taskId);
     set((s) => ({
       transfers: s.transfers.map((t) =>
         t.id === taskId
@@ -411,6 +450,7 @@ export const useSftpStore = create<SftpState>((set, get) => ({
   },
 
   markTransferFailed: (taskId, error) => {
+    eventConfirmedTerminalIds.add(taskId);
     set((s) => ({
       transfers: s.transfers.map((t) =>
         t.id === taskId ? { ...t, state: "failed" as const, error } : t,
@@ -515,6 +555,14 @@ export function initSftpListeners() {
 
     state.markTransferCompleted(event.payload.taskId);
 
+    // Fast transfers can complete before the start-flow's refreshTransfers
+    // response has inserted the task into the local list, so the mark above
+    // no-ops — and this event is never re-emitted. Pull the authoritative
+    // terminal state; the absorbing merge in refreshTransfers keeps it.
+    if (!task) {
+      void useSftpStore.getState().refreshTransfers();
+    }
+
     // Single file (not upload, not in batch) — e.g. download
     if (!batchKey && task && task.direction === "download") {
       const locale = useAppStore.getState().locale;
@@ -570,6 +618,12 @@ export function initSftpListeners() {
     useSftpStore
       .getState()
       .markTransferFailed(event.payload.taskId, event.payload.error);
+
+    // Same race as transfer:completed — the event can beat the first
+    // refreshTransfers response, leaving markTransferFailed a no-op.
+    if (!task) {
+      void useSftpStore.getState().refreshTransfers();
+    }
 
     // Update batch progress
     const currentState = useSftpStore.getState();

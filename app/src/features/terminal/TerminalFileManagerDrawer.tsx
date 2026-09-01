@@ -297,16 +297,17 @@ export function TerminalFileManagerDrawer({
 
   // Poll while transfers are in flight so a dropped completion event can't
   // leave the summary stuck at "N transferring" (SftpPage does the same).
+  // Depend on the boolean, not the transfers array: progress events replace
+  // the array every ~200ms and would reset the interval before it fires.
+  const hasActiveTransfers = transfers.some((task) => task.state === "running" || task.state === "queued");
   useEffect(() => {
-    if (!open) return;
-    const hasActive = transfers.some((task) => task.state === "running" || task.state === "queued");
-    if (!hasActive) return;
+    if (!open || !hasActiveTransfers) return;
 
     const interval = setInterval(() => {
       void refreshTransfers();
     }, 500);
     return () => clearInterval(interval);
-  }, [open, transfers, refreshTransfers]);
+  }, [open, hasActiveTransfers, refreshTransfers]);
 
   useEffect(() => {
     if (!open || !sessionId) return;
