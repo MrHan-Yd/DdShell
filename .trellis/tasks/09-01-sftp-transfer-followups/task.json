@@ -1,0 +1,32 @@
+{
+  "id": "sftp-transfer-followups",
+  "name": "sftp-transfer-followups",
+  "title": "SFTP 传输遗留优化清单（抽屉渲染 / 快速下载 toast / 底层 IO 超时）",
+  "description": "fix aa8feb6（下载完成后传输中计数不清零）code review 通过后有意延后的三项后续优化，按优先级 T1/T2/T3 独立执行、独立提交。",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "han",
+  "assignee": "han",
+  "createdAt": "2026-09-01",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "app/src/features/terminal/TerminalFileManagerDrawer.tsx",
+    "app/src/features/sftp/SftpPage.tsx",
+    "app/src/stores/sftp.ts",
+    "app/src-tauri/src/core/ssh.rs",
+    "app/src-tauri/src/core/sftp.rs"
+  ],
+  "notes": "来源：2026-09-01 code-reviewer 审查（PASSED）的 P2 项 + 修复分析中发现的存量后端隐患。",
+  "meta": {}
+}

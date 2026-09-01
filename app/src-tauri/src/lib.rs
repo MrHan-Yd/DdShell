@@ -1334,6 +1334,23 @@ async fn sftp_mkdir(
 }
 
 #[tauri::command]
+async fn sftp_create_file(
+    mgr: tauri::State<'_, SessionManager>,
+    session_id: String,
+    remote_path: String,
+) -> Result<SuccessResponse, String> {
+    // Check if session is still connected
+    if !mgr.is_connected(&session_id) {
+        return Err("Session disconnected".to_string());
+    }
+    mgr.touch_activity(&session_id);
+    SftpManager::create_file(&mgr, &session_id, &remote_path)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SuccessResponse { success: true })
+}
+
+#[tauri::command]
 async fn sftp_remove(
     mgr: tauri::State<'_, SessionManager>,
     session_id: String,
@@ -3195,6 +3212,7 @@ pub fn run() {
             sftp_list_dir,
             sftp_canonicalize,
             sftp_mkdir,
+            sftp_create_file,
             sftp_remove,
             sftp_rename,
             sftp_read_text,

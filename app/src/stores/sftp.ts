@@ -47,6 +47,7 @@ interface SftpState {
   navigateRemote: (path: string) => Promise<void>;
   refreshRemote: () => Promise<void>;
   mkdir: (name: string) => Promise<void>;
+  createFile: (name: string) => Promise<void>;
   remove: (name: string, isDir: boolean) => Promise<void>;
   removeEntry: (name: string) => void;  // Remove entry from local list without refresh
   rename: (oldName: string, newName: string) => Promise<void>;
@@ -141,6 +142,14 @@ export const useSftpStore = create<SftpState>((set, get) => ({
     if (!sessionId) return;
     const fullPath = remotePath === "/" ? `/${name}` : `${remotePath}/${name}`;
     await api.sftpMkdir(sessionId, fullPath);
+    await get().refreshRemote();
+  },
+
+  createFile: async (name) => {
+    const { sessionId, remotePath } = get();
+    if (!sessionId) return;
+    const fullPath = remotePath === "/" ? `/${name}` : `${remotePath}/${name}`;
+    await api.sftpCreateFile(sessionId, fullPath);
     await get().refreshRemote();
   },
 

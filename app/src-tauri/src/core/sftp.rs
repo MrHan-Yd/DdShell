@@ -347,6 +347,62 @@ impl SftpManager {
         Ok(())
     }
 
+    /// Create an empty file on remote host
+    pub async fn create_file(
+        session_mgr: &SessionManager,
+        session_id: &str,
+        remote_path: &str,
+    ) -> anyhow::Result<()> {
+        use tokio::io::AsyncWriteExt;
+
+        let session = session_mgr
+            .get(session_id)
+            .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
+
+        let sftp = {
+            let sess = session.lock().await;
+            sess.init_sftp().await?
+        };
+
+        // create() implies truncate — refuse to clobber an existing name
+        // (symlinks included).
+        if sftp.symlink_metadata(remote_path).await.is_ok() {
+            return Err(anyhow::anyhow!("FILE_ALREADY_EXISTS"));
+        }
+
+        let mut file = sftp
+            .create(remote_path)
+            .await
+            .map_err(|err| anyhow::anyhow!(map_write_error(&err)))?;
+        let close_result = tokio::time::timeout(
+            Duration::from_secs(SFTP_CLOSE_TIMEOUT_SECS),
+            file.shutdown(),
+        )
+        .await;
+        match close_result {
+            Ok(Ok(())) => {}
+            Ok(Err(_)) | Err(_) => {
+                // The open already created the file server-side; treat an
+                // incomplete close as success only if the path is now present.
+                let verified = tokio::time::timeout(
+                    Duration::from_secs(SFTP_CLOSE_VERIFY_TIMEOUT_SECS),
+                    sftp.metadata(remote_path),
+                )
+                .await
+                .map(|r| r.is_ok())
+                .unwrap_or(false);
+                if !verified {
+                    return Err(anyhow::anyhow!("FILE_CREATE_FAILED"));
+                }
+                tracing::warn!(
+                    "create_file: remote close incomplete but file verified present: {}",
+                    remote_path
+                );
+            }
+        }
+        Ok(())
+    }
+
     /// Remove file on remote host
     pub async fn remove_file(
         session_mgr: &SessionManager,

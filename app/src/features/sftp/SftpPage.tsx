@@ -4,6 +4,7 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import {
   Folder,
   File,
+  FilePlus,
   FileSymlink,
   ArrowUp,
   ArrowDown,
@@ -850,49 +851,64 @@ function RemoteFileList() {
     toggleSelectRemote,
     clearSelectRemote,
   } = useSftpStore();
-  const [showMkdir, setShowMkdir] = useState(false);
-  const [newDirName, setNewDirName] = useState("");
+  const [editorMode, setEditorMode] = useState<"dir" | "file" | null>(null);
+  const [newName, setNewName] = useState("");
   const [showRename, setShowRename] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
   const [deletingEntries, setDeletingEntries] = useState<Set<string>>(new Set());
   const mkdir = useSftpStore((s) => s.mkdir);
+  const createFile = useSftpStore((s) => s.createFile);
   const rename = useSftpStore((s) => s.rename);
   const dropRef = useRef<HTMLDivElement>(null);
-  const mkdirSubmittingRef = useRef(false);
+  const editorSubmittingRef = useRef(false);
   const currentHostId = tabs.find((tab) => tab.sessionId === sessionId)?.hostId ?? null;
 
   const { menuState, onContextMenu, closeMenu } = useContextMenu<FileEntry>();
 
-  const openMkdirEditor = useCallback(() => {
-    mkdirSubmittingRef.current = false;
-    setNewDirName("");
-    setShowMkdir(true);
+  const openEditor = useCallback((mode: "dir" | "file") => {
+    editorSubmittingRef.current = false;
+    setNewName("");
+    setEditorMode(mode);
   }, []);
 
-  const cancelMkdirEditor = useCallback(() => {
-    mkdirSubmittingRef.current = false;
-    setShowMkdir(false);
-    setNewDirName("");
+  const cancelEditor = useCallback(() => {
+    editorSubmittingRef.current = false;
+    setEditorMode(null);
+    setNewName("");
   }, []);
 
-  const commitMkdirEditor = useCallback(async () => {
-    if (mkdirSubmittingRef.current) return;
+  const commitEditor = useCallback(async () => {
+    if (editorSubmittingRef.current) return;
+    const mode = editorMode;
+    if (!mode) return;
 
-    const name = newDirName.trim();
+    const name = newName.trim();
     if (!name) {
-      cancelMkdirEditor();
+      cancelEditor();
       return;
     }
 
-    mkdirSubmittingRef.current = true;
+    editorSubmittingRef.current = true;
     try {
-      await mkdir(name);
-      cancelMkdirEditor();
-    } finally {
-      mkdirSubmittingRef.current = false;
+      if (mode === "dir") {
+        await mkdir(name);
+      } else {
+        await createFile(name);
+      }
+      setEditorMode(null);
+      setNewName("");
+    } catch (err) {
+      // Keep the editor open so the name can be corrected
+      editorSubmittingRef.current = false;
+      const message = String(err);
+      if (message.includes("FILE_ALREADY_EXISTS")) {
+        toast.error(t("sftp.fileExists", { name }));
+      } else {
+        toast.error(message);
+      }
     }
-  }, [cancelMkdirEditor, mkdir, newDirName]);
+  }, [cancelEditor, createFile, editorMode, mkdir, newName, t]);
 
   // Wrap navigateRemote to also track recent paths
   const navigateRemoteWithRecent = useCallback(
@@ -1252,7 +1268,7 @@ function RemoteFileList() {
         setRenameValue(selected[0]);
       }
     };
-    const handleMkdir = openMkdirEditor;
+    const handleMkdir = () => openEditor("dir");
 
     window.addEventListener("sftp:refresh", handleRefresh);
     window.addEventListener("sftp:rename", handleRename);
@@ -1265,7 +1281,7 @@ function RemoteFileList() {
       window.removeEventListener("sftp:delete", handleDelete);
       window.removeEventListener("sftp:mkdir", handleMkdir);
     };
-  }, [refreshRemote, selectedRemoteEntries, remoteEntries, remove, handleDelete, openMkdirEditor]);
+  }, [refreshRemote, selectedRemoteEntries, remoteEntries, remove, handleDelete, openEditor]);
 
   // Handle native file drag-drop via Tauri drag events
   const addUploadingEntryDrop = useSftpStore((s) => s.addUploadingEntry);
@@ -1402,7 +1418,7 @@ function RemoteFileList() {
       ref={dropRef}
       className={cn(
         "file-pane is-active-pane",
-        showMkdir && "has-mkdir-editor",
+        editorMode && "has-mkdir-editor",
         isDragOver ? "is-drop-target" : "",
       )}
       data-context-menu-container
@@ -1435,8 +1451,11 @@ function RemoteFileList() {
           )}
         </span>
         <span className="pane-actions">
-          <button className="btn btn-icon btn-ghost" onClick={openMkdirEditor} title="New folder">
+          <button className="btn btn-icon btn-ghost" onClick={() => openEditor("dir")} title={t("sftp.newFolder")}>
             <FolderPlus size={13} />
+          </button>
+          <button className="btn btn-icon btn-ghost" onClick={() => openEditor("file")} title={t("sftp.newFile")}>
+            <FilePlus size={13} />
           </button>
           {selectedQuickEditEntry && (
             <button
@@ -1468,34 +1487,34 @@ function RemoteFileList() {
         )}
       </div>
 
-      {/* Mkdir inline input */}
-      {showMkdir && (
+      {/* New folder / new file inline input */}
+      {editorMode && (
         <div
           className="mkdir-editor"
           onBlur={(event) => {
             const nextTarget = event.relatedTarget as Node | null;
             if (nextTarget && event.currentTarget.contains(nextTarget)) return;
-            void commitMkdirEditor();
+            void commitEditor();
           }}
         >
           <span className="mkdir-editor-icon" aria-hidden="true">
-            <FolderPlus size={14} />
+            {editorMode === "dir" ? <FolderPlus size={14} /> : <FilePlus size={14} />}
           </span>
           <Input
-            value={newDirName}
-            onChange={(e) => setNewDirName(e.target.value)}
-            placeholder={t("sftp.newFolderName")}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder={editorMode === "dir" ? t("sftp.newFolderName") : t("sftp.newFileName")}
             className="mkdir-editor-input"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                void commitMkdirEditor();
+                void commitEditor();
                 return;
               }
               if (e.key === "Escape") {
                 e.preventDefault();
-                cancelMkdirEditor();
+                cancelEditor();
               }
             }}
           />
@@ -1504,11 +1523,11 @@ function RemoteFileList() {
             size="icon"
             variant="ghost"
             className="mkdir-editor-action"
-            aria-label={t("sftp.newFolder")}
+            aria-label={editorMode === "dir" ? t("sftp.newFolder") : t("sftp.newFile")}
             onMouseDown={(event) => {
               event.preventDefault();
             }}
-            onClick={() => void commitMkdirEditor()}
+            onClick={() => void commitEditor()}
           >
             <Check size={14} />
           </Button>
@@ -1520,9 +1539,9 @@ function RemoteFileList() {
             aria-label={t("terminalPicker.hintClose")}
             onMouseDown={(event) => {
               event.preventDefault();
-              cancelMkdirEditor();
+              cancelEditor();
             }}
-            onClick={cancelMkdirEditor}
+            onClick={cancelEditor}
           >
             <X size={14} />
           </Button>

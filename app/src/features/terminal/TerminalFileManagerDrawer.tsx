@@ -6,6 +6,7 @@ import {
   ArrowUp,
   Download,
   File,
+  FilePlus,
   FileSymlink,
   Folder,
   FolderOpen,
@@ -225,6 +226,7 @@ export function TerminalFileManagerDrawer({
     navigateRemote,
     refreshRemote,
     mkdir,
+    createFile,
     rename,
     remove,
     removeEntry,
@@ -234,8 +236,8 @@ export function TerminalFileManagerDrawer({
     addUploadingEntry,
     registerBatch,
   } = useSftpStore();
-  const [showMkdir, setShowMkdir] = useState(false);
-  const [newDirName, setNewDirName] = useState("");
+  const [editorMode, setEditorMode] = useState<"dir" | "file" | null>(null);
+  const [newName, setNewName] = useState("");
   const [renamingName, setRenamingName] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
@@ -243,41 +245,55 @@ export function TerminalFileManagerDrawer({
   const [deletingEntries, setDeletingEntries] = useState<Set<string>>(new Set());
   const [focusInside, setFocusInside] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
-  const mkdirSubmittingRef = useRef(false);
+  const editorSubmittingRef = useRef(false);
   const onPathResolvedRef = useRef(onPathResolved);
   const { menuState, onContextMenu, closeMenu } = useContextMenu<FileEntry>();
 
   onPathResolvedRef.current = onPathResolved;
 
-  const openMkdirEditor = useCallback(() => {
-    mkdirSubmittingRef.current = false;
-    setNewDirName("");
-    setShowMkdir(true);
+  const openEditor = useCallback((mode: "dir" | "file") => {
+    editorSubmittingRef.current = false;
+    setNewName("");
+    setEditorMode(mode);
   }, []);
 
-  const cancelMkdirEditor = useCallback(() => {
-    mkdirSubmittingRef.current = false;
-    setShowMkdir(false);
-    setNewDirName("");
+  const cancelEditor = useCallback(() => {
+    editorSubmittingRef.current = false;
+    setEditorMode(null);
+    setNewName("");
   }, []);
 
-  const commitMkdirEditor = useCallback(async () => {
-    if (mkdirSubmittingRef.current) return;
+  const commitEditor = useCallback(async () => {
+    if (editorSubmittingRef.current) return;
+    const mode = editorMode;
+    if (!mode) return;
 
-    const name = newDirName.trim();
+    const name = newName.trim();
     if (!name) {
-      cancelMkdirEditor();
+      cancelEditor();
       return;
     }
 
-    mkdirSubmittingRef.current = true;
+    editorSubmittingRef.current = true;
     try {
-      await mkdir(name);
-      cancelMkdirEditor();
-    } finally {
-      mkdirSubmittingRef.current = false;
+      if (mode === "dir") {
+        await mkdir(name);
+      } else {
+        await createFile(name);
+      }
+      setEditorMode(null);
+      setNewName("");
+    } catch (err) {
+      // Keep the editor open so the name can be corrected
+      editorSubmittingRef.current = false;
+      const message = String(err);
+      if (message.includes("FILE_ALREADY_EXISTS")) {
+        toast.error(t("sftp.fileExists", { name }));
+      } else {
+        toast.error(message);
+      }
     }
-  }, [cancelMkdirEditor, mkdir, newDirName]);
+  }, [cancelEditor, createFile, editorMode, mkdir, newName, t]);
 
   const uploadSpeeds = useMemo(() => {
     const map = new Map<string, number>();
@@ -762,12 +778,12 @@ export function TerminalFileManagerDrawer({
         void handleDeleteEntries(selectedEntries);
       } else if (event.key.toLowerCase() === "n" && event.shiftKey && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();
-        openMkdirEditor();
+        openEditor("dir");
       }
     };
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
-  }, [focusInside, handleDeleteEntries, open, openMkdirEditor, refreshRemote, selectedEntries]);
+  }, [focusInside, handleDeleteEntries, open, openEditor, refreshRemote, selectedEntries]);
 
   const goUp = useCallback(() => {
     if (remotePath === "/") return;
@@ -819,8 +835,11 @@ export function TerminalFileManagerDrawer({
           <ArrowUp size={13} />
         </button>
         <div className="tfm-path" title={remotePath}>{remotePath}</div>
-        <button className="btn btn-icon btn-ghost" onClick={openMkdirEditor} title={t("sftp.newFolder")}>
+        <button className="btn btn-icon btn-ghost" onClick={() => openEditor("dir")} title={t("sftp.newFolder")}>
           <FolderPlus size={13} />
+        </button>
+        <button className="btn btn-icon btn-ghost" onClick={() => openEditor("file")} title={t("sftp.newFile")}>
+          <FilePlus size={13} />
         </button>
         {selectedQuickEditEntry && (
           <button
@@ -842,30 +861,30 @@ export function TerminalFileManagerDrawer({
         )}
       </div>
 
-      {showMkdir && (
+      {editorMode && (
         <div
           className="tfm-inline-editor"
           onBlur={(event) => {
             const nextTarget = event.relatedTarget as Node | null;
             if (nextTarget && event.currentTarget.contains(nextTarget)) return;
-            void commitMkdirEditor();
+            void commitEditor();
           }}
         >
           <Input
-            value={newDirName}
-            onChange={(event) => setNewDirName(event.target.value)}
-            placeholder={t("sftp.newFolderName")}
+            value={newName}
+            onChange={(event) => setNewName(event.target.value)}
+            placeholder={editorMode === "dir" ? t("sftp.newFolderName") : t("sftp.newFileName")}
             className="flex-1"
             autoFocus
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
-                void commitMkdirEditor();
+                void commitEditor();
                 return;
               }
               if (event.key === "Escape") {
                 event.preventDefault();
-                cancelMkdirEditor();
+                cancelEditor();
               }
             }}
           />
@@ -876,9 +895,9 @@ export function TerminalFileManagerDrawer({
             aria-label={t("terminalPicker.hintClose")}
             onMouseDown={(event) => {
               event.preventDefault();
-              cancelMkdirEditor();
+              cancelEditor();
             }}
-            onClick={cancelMkdirEditor}
+            onClick={cancelEditor}
           >
             <X size={14} />
           </Button>

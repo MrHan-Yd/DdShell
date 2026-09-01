@@ -333,6 +333,10 @@ export async function sftpMkdir(sessionId: string, remotePath: string): Promise<
   return invoke("sftp_mkdir", { sessionId, remotePath });
 }
 
+export async function sftpCreateFile(sessionId: string, remotePath: string): Promise<{ success: boolean }> {
+  return invoke("sftp_create_file", { sessionId, remotePath });
+}
+
 export async function sftpRemove(
   sessionId: string,
   remotePath: string,
